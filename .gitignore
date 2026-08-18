@@ -1,0 +1,29 @@
+.DS_Store
+DerivedData/
+.build/
+*.xcuserstate
+xcuserdata/
+LocalDictation.xcodeproj/project.xcworkspace/xcuserdata/
+
+# Local signing and release artifacts
+*.dmg
+*.pkg
+*.ipa
+*.provisionprofile
+*.p12
+
+# Local model weights, evaluation corpora, and audio artifacts.
+# Anchored to the repository root so LocalDictation/Models/ (source) is still tracked.
+/Models/
+/Recordings/
+/Benchmark/
+*.wav
+*.m4a
+
+
+# The marketing site is a separate repository: igskak/localdictation-website
+/website/
+
+# Marketing strategy notes stay local (competitor spend, CPL gates, unit economics)
+/docs/LANDING.md
+/docs/LANDING_IMPLEMENTATION.md
