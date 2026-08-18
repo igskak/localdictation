@@ -169,13 +169,31 @@ do with recognition quality.
 Not benchmark results — these came out of getting the harness to run, and are
 recorded because they bear directly on the engine decision.
 
-- **Apple's on-device German model is not present by default.** On a macOS 26.2
-  machine with an English system language, `prepare(for:)` on the German profile
-  fails with *"macOS has no on-device German model"* until the language is added
-  under System Settings → General → Language & Region. Germany is the launch
-  market, so for `SFSpeechRecognizer` this is not a detail: the product's primary
-  language depends on a system setting the user has probably never touched, and
-  the app would have to detect and explain that.
+- **Apple has on-device models for only one of the four MVP languages here.**
+  Probing `SFSpeechRecognizer` on a macOS 26.2 machine:
+
+  | Locale | `supportsOnDeviceRecognition` | `isAvailable` |
+  | --- | --- | --- |
+  | `en-US` | true | true |
+  | `de-DE` | false | true |
+  | `ru-RU` | false | true |
+  | `uk-UA` | false | true |
+
+  The system log explains it: `No Assistant asset for language de-DE`. Adding the
+  language under General → Language & Region does **not** fetch the offline asset;
+  it is downloaded by adding the language under Keyboard → Dictation.
+
+  `isAvailable == true` alongside `supportsOnDeviceRecognition == false` is a trap
+  worth naming: the recognizer works, but only by sending audio to Apple's
+  servers. For this product that is not a degraded mode, it is a forbidden one.
+  `AppleSpeechTranscriptionService` pins `requiresOnDeviceRecognition = true` and
+  fails loudly instead, which is why the failure surfaced at all.
+
+  The consequence for the engine decision is direct: on a stock machine Apple's
+  engine cannot serve German, Russian, or Ukrainian locally, and the launch
+  market is Germany. Whether an asset is present depends on a Dictation setting
+  the user has probably never opened, so any product built on `SFSpeechRecognizer`
+  would have to detect this per language and walk the user through fixing it.
 - Because of this, engine preparation happens **per language profile inside the
   benchmark run**, and a language an engine cannot serve is recorded as a failure
   row rather than aborting the whole run. An engine that handles three of four

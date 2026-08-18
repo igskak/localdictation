@@ -54,6 +54,18 @@ lands in `Benchmark/report-whisperkit.md`.
 - [ ] Confidence separation is a number, not `n/a` — this is the metric that
       decides whether Phase 3 is buildable at all.
 
+Before scoring the Apple candidate, check which languages it can serve offline
+on this machine:
+
+```sh
+swift Tools/probe_speech_models.swift
+```
+
+A language reported as `available` but not `on-device` works only by sending
+audio to Apple's servers, which this product never does — count it as
+unsupported. Offline assets are fetched via System Settings → Keyboard →
+Dictation → Languages, not via Language & Region.
+
 Swap `whisperkit` for `apple` to score the other candidate. That one asks for
 speech-recognition permission the first time, so it needs someone present, and
 it will report a failure row for any language whose on-device model macOS has
