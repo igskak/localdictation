@@ -191,7 +191,7 @@ private struct ModelStateView: View {
 
             switch state {
             case .unavailable, .failed:
-                Button("Enable speech recognition…", action: prepare)
+                Button("Prepare speech model…", action: prepare)
             case .preparing:
                 ProgressView().controlSize(.small)
             case .ready:

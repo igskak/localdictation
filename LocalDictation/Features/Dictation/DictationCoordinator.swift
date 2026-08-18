@@ -444,7 +444,11 @@ extension DictationCoordinator {
             permissionService: AVCaptureMicrophonePermissionService(),
             hotkeyService: CarbonHotkeyService(),
             captureService: AVAudioEngineCaptureService(),
-            transcriptionService: AppleSpeechTranscriptionService()
+            // Development default rather than a final decision: WhisperKit is
+            // the only admitted candidate that returns per-token confidence,
+            // which Phase 3 requires. `AppleSpeechTranscriptionService` stays in
+            // the codebase as the comparison the benchmark scores it against.
+            transcriptionService: WhisperKitTranscriptionService()
         )
     }
 }
