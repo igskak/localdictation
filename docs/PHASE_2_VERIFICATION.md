@@ -55,7 +55,14 @@ lands in `Benchmark/report-whisperkit.md`.
       decides whether Phase 3 is buildable at all.
 
 Swap `whisperkit` for `apple` to score the other candidate. That one asks for
-speech-recognition permission the first time, so it needs someone present.
+speech-recognition permission the first time, so it needs someone present, and
+it will report a failure row for any language whose on-device model macOS has
+not installed — German is absent by default on an English-language system.
+
+Do not run this while Xcode or another `xcodebuild` is building the same scheme.
+They share DerivedData and will corrupt each other's result bundle, failing the
+run after all the work is done. Add `-derivedDataPath /tmp/localdictation-benchmark`
+to isolate it.
 
 **These numbers are not a quality benchmark.** Synthesized speech is unnaturally
 clean and evenly paced. Expect the numeric error rate to look bad for a boring

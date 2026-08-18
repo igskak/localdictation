@@ -148,12 +148,34 @@ enum BenchmarkRunner {
     ) async -> BenchmarkReport {
         var results: [BenchmarkSampleResult] = []
         var failures: [String] = []
+        var prepared: Set<LanguageProfile> = []
+        var preparationFailures: [LanguageProfile: String] = [:]
 
         for sample in corpus.samples {
             let profile = sample.languageProfile
             guard engine.supports(profile) else {
                 failures.append("\(sample.audio): \(profile.displayName) unsupported by \(engine.identifier)")
                 continue
+            }
+
+            // Preparation happens per profile, inside the run. An engine that
+            // cannot serve one language must not abort the whole benchmark:
+            // "no on-device German model" is a result worth recording, not a
+            // reason to stop measuring the other three languages.
+            if let failure = preparationFailures[profile] {
+                failures.append("\(sample.audio): \(failure)")
+                continue
+            }
+            if !prepared.contains(profile) {
+                do {
+                    try await engine.prepare(for: profile)
+                    prepared.insert(profile)
+                } catch {
+                    let message = (error as? TranscriptionError)?.message ?? error.localizedDescription
+                    preparationFailures[profile] = message
+                    failures.append("\(sample.audio): \(message)")
+                    continue
+                }
             }
 
             do {

@@ -123,6 +123,16 @@ Without it the run silently uses the fake engine.
 The rendered table is written to `Benchmark/report-<engine>.md` for pasting into
 the results section below.
 
+**Do not run this concurrently with another `xcodebuild` or with Xcode building
+the same scheme.** Two `xcodebuild test` invocations sharing one DerivedData
+clobber each other's result bundle, and the run dies with
+`mkstemp: No such file or directory` after having done all the work. Isolate it
+if you want to keep working:
+
+```sh
+TEST_RUNNER_BENCHMARK_ENGINE=whisperkit xcodebuild test -project LocalDictation.xcodeproj -scheme LocalDictation -destination 'platform=macOS,arch=arm64' -derivedDataPath /tmp/localdictation-benchmark -only-testing:LocalDictationTests/BenchmarkRunnerTests/testRunAgainstTheInstalledCorpusIfPresent
+```
+
 ### A synthesized smoke corpus is not a benchmark
 
 `python3 Tools/make_smoke_corpus.py` generates TTS audio for all four languages,
@@ -143,6 +153,23 @@ do with recognition quality.
 - Enough samples per language that the pooled rates are not dominated by one
   recording. Treat fewer than roughly 50 utterances per language as indicative
   only, and say so in the results.
+
+## Observations so far
+
+Not benchmark results — these came out of getting the harness to run, and are
+recorded because they bear directly on the engine decision.
+
+- **Apple's on-device German model is not present by default.** On a macOS 26.2
+  machine with an English system language, `prepare(for:)` on the German profile
+  fails with *"macOS has no on-device German model"* until the language is added
+  under System Settings → General → Language & Region. Germany is the launch
+  market, so for `SFSpeechRecognizer` this is not a detail: the product's primary
+  language depends on a system setting the user has probably never touched, and
+  the app would have to detect and explain that.
+- Because of this, engine preparation happens **per language profile inside the
+  benchmark run**, and a language an engine cannot serve is recorded as a failure
+  row rather than aborting the whole run. An engine that handles three of four
+  languages must still be measurable on those three.
 
 ## Results
 
