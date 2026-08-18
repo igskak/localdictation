@@ -59,10 +59,13 @@ speech-recognition permission the first time, so it needs someone present, and
 it will report a failure row for any language whose on-device model macOS has
 not installed — German is absent by default on an English-language system.
 
-Do not run this while Xcode or another `xcodebuild` is building the same scheme.
-They share DerivedData and will corrupt each other's result bundle, failing the
-run after all the work is done. Add `-derivedDataPath /tmp/localdictation-benchmark`
-to isolate it.
+Check free space before starting — `df -h /System/Volumes/Data`. The run needs
+about 5 GB. On a full disk WhisperKit reports `Model not found`, which points at
+the model name and not at the actual cause.
+
+Avoid running this while Xcode or another `xcodebuild` is building the same
+scheme; they share DerivedData and can corrupt each other's result bundle. Add
+`-derivedDataPath /tmp/localdictation-benchmark` to isolate it.
 
 **These numbers are not a quality benchmark.** Synthesized speech is unnaturally
 clean and evenly paced. Expect the numeric error rate to look bad for a boring

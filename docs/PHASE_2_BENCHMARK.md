@@ -123,11 +123,21 @@ Without it the run silently uses the fake engine.
 The rendered table is written to `Benchmark/report-<engine>.md` for pasting into
 the results section below.
 
-**Do not run this concurrently with another `xcodebuild` or with Xcode building
-the same scheme.** Two `xcodebuild test` invocations sharing one DerivedData
-clobber each other's result bundle, and the run dies with
-`mkstemp: No such file or directory` after having done all the work. Isolate it
-if you want to keep working:
+**Check free disk space first.** The Whisper weights are roughly 600 MB
+compressed and about 1 GB unpacked, on top of 1.5–2 GB of DerivedData. On a full
+disk the download fails and WhisperKit reports it as
+`Model not found. Please check the model or repo name and try again` — the real
+cause, `No space left on device`, is only visible in the attached error. Budget
+at least 5 GB free before a run:
+
+```sh
+df -h /System/Volumes/Data
+```
+
+**Avoid running this concurrently with another `xcodebuild` or with Xcode
+building the same scheme.** They share DerivedData and can corrupt each other's
+result bundle, producing errors that name `mkstemp` and give no hint of the
+cause. Isolate it if you want to keep working:
 
 ```sh
 TEST_RUNNER_BENCHMARK_ENGINE=whisperkit xcodebuild test -project LocalDictation.xcodeproj -scheme LocalDictation -destination 'platform=macOS,arch=arm64' -derivedDataPath /tmp/localdictation-benchmark -only-testing:LocalDictationTests/BenchmarkRunnerTests/testRunAgainstTheInstalledCorpusIfPresent
