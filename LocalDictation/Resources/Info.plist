@@ -26,6 +26,8 @@
 	<string>Copyright © 2026. All rights reserved.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>LocalDictation needs microphone access to transcribe speech locally on your Mac.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>LocalDictation uses on-device speech recognition to turn your dictation into text. Audio and text stay on this Mac.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 </dict>

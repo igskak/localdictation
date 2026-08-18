@@ -106,4 +106,57 @@ final class RecordingStateMachineTests: XCTestCase {
         XCTAssertFalse(machine.apply(.maximumDurationReached).didTransition)
         XCTAssertEqual(machine.state, .ready)
     }
+
+    // MARK: - Phase 2 transcription transitions
+
+    func testTranscriptionStartsAfterAnUtteranceCompletes() {
+        var machine = RecordingStateMachine(state: .finishing)
+        XCTAssertTrue(machine.apply(.utteranceCompleted).didTransition)
+        XCTAssertEqual(machine.state, .ready)
+        XCTAssertTrue(machine.apply(.transcriptionStarted).didTransition)
+        XCTAssertEqual(machine.state, .transcribing)
+        XCTAssertTrue(machine.apply(.transcriptionFinished).didTransition)
+        XCTAssertEqual(machine.state, .ready)
+    }
+
+    func testTranscriptionFailureIsRecoverable() {
+        var machine = RecordingStateMachine(state: .transcribing)
+        XCTAssertTrue(machine.apply(.transcriptionFailed("engine died")).didTransition)
+        XCTAssertEqual(machine.state, .failed(.transcription("engine died")))
+        XCTAssertTrue(machine.apply(.recoveryRequested).didTransition)
+        XCTAssertEqual(machine.state, .ready)
+    }
+
+    /// Pressing the hotkey during inference starts the next utterance rather
+    /// than being swallowed; the coordinator supersedes the running request.
+    func testNewRecordingSupersedesTranscription() {
+        var machine = RecordingStateMachine(state: .transcribing)
+        XCTAssertTrue(machine.apply(.hotkeyPressed).didTransition)
+        XCTAssertEqual(machine.state, .starting)
+    }
+
+    func testTranscriptionCannotStartFromACapturingState() {
+        for state in [RecordingState.starting, .recording, .finishing] {
+            var machine = RecordingStateMachine(state: state)
+            XCTAssertFalse(machine.apply(.transcriptionStarted).didTransition)
+            XCTAssertEqual(machine.state, state)
+        }
+    }
+
+    /// Transcription runs on audio that is already captured, so neither an
+    /// authorization re-read nor a hotkey registration result may overwrite it.
+    func testTranscribingStateSurvivesOSOriginatedEvents() {
+        var machine = RecordingStateMachine(state: .transcribing)
+        XCTAssertFalse(machine.apply(.authorizationResolved(.authorized)).didTransition)
+        XCTAssertEqual(machine.state, .transcribing)
+        XCTAssertFalse(machine.apply(.hotkeyRegistrationFailed("taken")).didTransition)
+        XCTAssertEqual(machine.state, .transcribing)
+    }
+
+    func testTranscriptionEventsAreRejectedOutsideTheirStates() {
+        var machine = RecordingStateMachine(state: .ready)
+        XCTAssertFalse(machine.apply(.transcriptionFinished).didTransition)
+        XCTAssertFalse(machine.apply(.transcriptionFailed("nope")).didTransition)
+        XCTAssertEqual(machine.state, .ready)
+    }
 }

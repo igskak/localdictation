@@ -17,6 +17,20 @@ struct MenuBarView: View {
                 RecordingLevelView(snapshot: coordinator.diagnostics.snapshot)
             }
 
+            if coordinator.hasTranscriptionEngine {
+                LanguageProfilePicker(selection: $coordinator.languageProfile)
+
+                if !coordinator.transcriptionModelState.isReady {
+                    ModelStateView(state: coordinator.transcriptionModelState) {
+                        Task { await coordinator.prepareTranscriptionModel() }
+                    }
+                }
+            }
+
+            if let transcript = coordinator.transcript, !transcript.isEmpty {
+                TranscriptView(transcript: transcript)
+            }
+
             if let summary = coordinator.diagnostics.lastUtterance {
                 LastUtteranceView(summary: summary)
             }
@@ -40,8 +54,14 @@ struct MenuBarView: View {
             }
         }
         .padding(14)
-        .frame(width: 340)
-        .onAppear { coordinator.refreshAuthorization() }
+        .frame(width: 360)
+        .onAppear {
+            coordinator.refreshAuthorization()
+            Task { await coordinator.refreshTranscriptionModelState() }
+        }
+        .onChange(of: coordinator.languageProfile) {
+            Task { await coordinator.refreshTranscriptionModelState() }
+        }
     }
 
     private var header: some View {
@@ -135,5 +155,98 @@ private struct LastUtteranceView: View {
             .font(.caption2)
             .foregroundStyle(.secondary)
         }
+    }
+}
+
+private struct LanguageProfilePicker: View {
+    @Binding var selection: LanguageProfile
+
+    var body: some View {
+        Picker("Language", selection: $selection) {
+            Section("Single") {
+                ForEach(LanguageProfile.single) { profile in
+                    Text(profile.displayName).tag(profile)
+                }
+            }
+            Section("Mixed") {
+                ForEach(LanguageProfile.mixed) { profile in
+                    Text(profile.displayName).tag(profile)
+                }
+            }
+        }
+        .font(.caption)
+    }
+}
+
+private struct ModelStateView: View {
+    let state: TranscriptionModelState
+    let prepare: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(state.label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            switch state {
+            case .unavailable, .failed:
+                Button("Enable speech recognition…", action: prepare)
+            case .preparing:
+                ProgressView().controlSize(.small)
+            case .ready:
+                EmptyView()
+            }
+        }
+    }
+}
+
+/// The raw transcript, shown inside LocalDictation only.
+///
+/// Phase 2 does not insert into other applications and does not mark risk. The
+/// copy button is the single, explicit way this text leaves the app.
+private struct TranscriptView: View {
+    let transcript: Transcript
+    @State private var didCopy = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text("Transcript")
+                    .font(.caption)
+                Spacer()
+                Text(transcript.profile.shortLabel)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+
+            ScrollView {
+                Text(transcript.text)
+                    .font(.body)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxHeight: 120)
+
+            HStack {
+                Button(didCopy ? "Copied" : "Copy") {
+                    let pasteboard = NSPasteboard.general
+                    pasteboard.clearContents()
+                    pasteboard.setString(transcript.text, forType: .string)
+                    didCopy = true
+                }
+                .disabled(didCopy)
+
+                Spacer()
+
+                if let factor = transcript.realTimeFactor {
+                    Text(String(format: "%.2f\u{00d7} real time", factor))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .onChange(of: transcript) { didCopy = false }
     }
 }

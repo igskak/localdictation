@@ -34,11 +34,42 @@ struct CaptureSnapshot: Sendable, Equatable {
     var reachedCapacity: Bool { capacityFrames > 0 && frameCount >= capacityFrames }
 }
 
+/// Non-content summary of the last transcript.
+///
+/// Deliberately counts and timings only. The recognized text itself is never
+/// copied into diagnostics, so nothing here can end up in a log line.
+struct TranscriptDiagnostics: Sendable, Equatable {
+    let engineIdentifier: String
+    let profileLabel: String
+    let detectedLanguage: String?
+    let tokenCount: Int
+    let characterCount: Int
+    let processingDuration: TimeInterval
+    let realTimeFactor: Double?
+    let meanConfidence: Double?
+    let minimumConfidence: Double?
+    let hasConfidenceSignal: Bool
+
+    init(_ transcript: Transcript) {
+        engineIdentifier = transcript.engineIdentifier
+        profileLabel = transcript.profile.shortLabel
+        detectedLanguage = transcript.detectedLanguage?.rawValue
+        tokenCount = transcript.tokens.count
+        characterCount = transcript.text.count
+        processingDuration = transcript.processingDuration
+        realTimeFactor = transcript.realTimeFactor
+        meanConfidence = transcript.meanConfidence
+        minimumConfidence = transcript.minimumConfidence
+        hasConfidenceSignal = transcript.hasConfidenceSignal
+    }
+}
+
 /// Everything the developer diagnostics section displays.
 struct CaptureDiagnostics: Sendable, Equatable {
     var format: CaptureFormatDescription?
     var snapshot: CaptureSnapshot = CaptureSnapshot()
     var lastUtterance: UtteranceSummary?
+    var lastTranscript: TranscriptDiagnostics?
     var lastErrorDescription: String?
 
     static let empty = CaptureDiagnostics()
