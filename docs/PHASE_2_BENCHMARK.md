@@ -106,10 +106,32 @@ licensed speech data is never committed and never leaves the machine.
 
 `profile` is optional and defaults to the sample's own single-language profile.
 
-4. Run the suite. `BenchmarkRunnerTests.testRunAgainstTheInstalledCorpusIfPresent`
-   skips when no manifest is present and runs when one is.
+4. Run the harness against a chosen engine:
 
-`BenchmarkReport.markdown()` renders the results table for this file.
+```sh
+TEST_RUNNER_BENCHMARK_ENGINE=whisperkit xcodebuild test -project LocalDictation.xcodeproj -scheme LocalDictation -destination 'platform=macOS,arch=arm64' -only-testing:LocalDictationTests/BenchmarkRunnerTests/testRunAgainstTheInstalledCorpusIfPresent
+```
+
+`BenchmarkRunnerTests.testRunAgainstTheInstalledCorpusIfPresent` skips when no
+manifest is present. `BENCHMARK_ENGINE` accepts `whisperkit` or `apple`; unset,
+it runs a fake engine that checks the harness in a second and measures nothing.
+
+The `TEST_RUNNER_` prefix is mandatory — `xcodebuild` does not forward the shell
+environment to the test process, and strips that prefix to inject the variable.
+Without it the run silently uses the fake engine.
+
+The rendered table is written to `Benchmark/report-<engine>.md` for pasting into
+the results section below.
+
+### A synthesized smoke corpus is not a benchmark
+
+`python3 Tools/make_smoke_corpus.py` generates TTS audio for all four languages,
+which is enough to prove the harness runs end to end — useful when no human
+speaker is available for a language. It is not evidence about accuracy:
+synthesized speech is unnaturally clean and evenly paced, and number formatting
+differences between the reference and the engine's output (`1450` versus
+`1.450`) will dominate the numeric error rate for reasons that have nothing to
+do with recognition quality.
 
 ### Corpus requirements
 

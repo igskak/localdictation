@@ -165,23 +165,75 @@ final class BenchmarkRunnerTests: XCTestCase {
 
     /// Runs only when a corpus is present in the git-ignored `/Benchmark/`
     /// directory, so the suite stays green on a machine without speech data.
+    ///
+    /// Engine selection comes from the `BENCHMARK_ENGINE` environment variable:
+    ///
+    /// - unset — a fake engine, which checks the harness in a second;
+    /// - `apple` — on-device `SFSpeechRecognizer`;
+    /// - `whisperkit` — Whisper, downloading roughly 600 MB on first run.
+    ///
+    /// The rendered report is written next to the corpus for pasting into
+    /// `docs/PHASE_2_BENCHMARK.md`.
     func testRunAgainstTheInstalledCorpusIfPresent() async throws {
-        let directory = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appendingPathComponent("Benchmark")
-
+        let directory = Self.corpusDirectory
         guard FileManager.default.fileExists(
             atPath: directory.appendingPathComponent(BenchmarkCorpus.manifestName).path
         ) else {
-            throw XCTSkip("No corpus installed at \(directory.path); see docs/PHASE_2_BENCHMARK.md")
+            throw XCTSkip("""
+                No corpus installed at \(directory.path).
+                Generate a smoke corpus with: python3 Tools/make_smoke_corpus.py
+                See docs/PHASE_2_BENCHMARK.md.
+                """)
         }
 
         let corpus = try BenchmarkCorpus.load(from: directory)
-        let engine = FakeTranscriptionService()
-        engine.setResult(.fixture(words: [("placeholder", 0.5)]))
+        let selection = ProcessInfo.processInfo.environment["BENCHMARK_ENGINE"]?.lowercased()
+
+        let engine: any TranscriptionService
+        switch selection {
+        case "whisperkit":
+            // Downloading and loading Whisper takes far longer than a unit test
+            // is normally allowed.
+            executionTimeAllowance = 3600
+            let whisper = WhisperKitTranscriptionService()
+            try await whisper.prepare(for: .default)
+            engine = whisper
+        case "apple":
+            executionTimeAllowance = 1800
+            let apple = AppleSpeechTranscriptionService()
+            try await apple.prepare(for: .default)
+            engine = apple
+        default:
+            let fake = FakeTranscriptionService()
+            fake.setResult(.fixture(words: [("placeholder", 0.5)]))
+            engine = fake
+        }
 
         let report = await BenchmarkRunner.run(engine: engine, corpus: corpus, directory: directory)
-        XCTAssertEqual(report.overall.sampleCount + report.failures.count, corpus.samples.count)
+        let markdown = report.markdown()
+        print("\n\(markdown)\n")
+
+        let reportURL = directory.appendingPathComponent("report-\(report.engineIdentifier).md")
+        try markdown.write(to: reportURL, atomically: true, encoding: .utf8)
+
+        XCTAssertEqual(
+            report.overall.sampleCount + report.failures.count,
+            corpus.samples.count,
+            "every sample must be either scored or reported as a failure"
+        )
+
+        if selection != nil {
+            XCTAssertFalse(
+                report.results.isEmpty,
+                "a real engine run produced no scored samples: \(report.failures)"
+            )
+        }
+    }
+
+    static var corpusDirectory: URL {
+        URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Benchmark")
     }
 }
