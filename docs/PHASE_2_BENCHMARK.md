@@ -201,10 +201,62 @@ recorded because they bear directly on the engine decision.
 
 ## Results
 
-Not yet measured. Fill in per engine once a corpus is installed:
+### WhisperKit, TTS smoke corpus, 2026-08-19
 
-| Language | Samples | WER | CER | Numeric ER | RTF | Confidence separation | Risk recall | False warnings |
+`openai_whisper-large-v3-v20240930_turbo` · WhisperKit 1.1.0 · macOS 26.2 ·
+Apple M1, 8 cores · corpus `tts-smoke`, 6 synthesized utterances per language.
+
+| Language | Samples | WER | CER | Numeric ER | RTF | Confidence separation | Risk recall @ 0.5 | False warnings |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| German | 0 | — | — | — | — | — | — | — |
+| English | 6 | 21.4% | 17.6% | 55.6% | 4.17 | 0.203 | 33.3% | 0.0% |
+| Russian | 6 | 15.2% | 19.4% | 0.0% | 3.90 | −0.008 | 0.0% | 0.0% |
+| Ukrainian | 6 | 21.2% | 18.8% | 0.0% | 3.23 | 0.121 | 20.0% | 0.0% |
+| **Overall** | 18 | 19.4% | 18.6% | 26.3% | 3.73 | 0.133 | 21.4% | 0.0% |
+
+**This is not evidence about quality.** Six synthesized utterances per language
+is far too few for any of these figures to be stable, and the audio is not what
+the product will actually receive. What the run does establish is that the
+WhisperKit adapter works end to end on real inference in three languages, and
+that the harness reports what it measures.
+
+Read with these caveats:
+
+- **German scored zero samples for a transient reason, not a real one.** German
+  is first in the corpus, so its profile triggered the model download while the
+  machine was still out of disk space. The download completed during the English
+  profile and the remaining languages ran normally. German needs a re-run, and
+  nothing here says anything about Whisper's German.
+- **RTF near 3.7 is not the product's latency.** Whisper pads every input to a
+  30-second window, so on 2–4 second utterances the fixed cost dominates and the
+  ratio is meaningless. What matters is absolute end-of-speech to text, measured
+  on utterances of realistic length. That has not been measured.
+- **WER around 19% is not yet attributable.** The reference says `1450`; the
+  engine may write `1,450`, which normalization splits into two tokens and scores
+  as errors. The 55.6% English numeric error rate next to 0.0% for Russian and
+  Ukrainian is the signature of a formatting mismatch, not of the engine being
+  four times worse at English numbers. **The harness cannot currently tell these
+  apart, because the report does not record the hypothesis text.** That is the
+  first thing to fix.
+
+### The finding that actually matters
+
+**Confidence separation is weak, and for Russian it is negative.** Overall 0.133;
+Russian −0.008, meaning Whisper was very slightly *more* confident when it was
+wrong. Risk recall at a 0.5 threshold is 21.4% overall and 0% for Russian, while
+false warnings are 0% everywhere — the probabilities sit high and bunched, for
+correct and incorrect tokens alike.
+
+If this holds on real speech and a real corpus, it undercuts the assumption
+Phase 3 rests on. Raw token probability alone would not be enough to decide what
+to show the user, and the risk engine would have to lean much harder on the other
+signals `docs/ARCHITECTURE.md` lists: number and entity rules, language
+switching, glossary matches, and cleanup edits.
+
+It does not change the engine decision — WhisperKit remains the only candidate
+with any usable confidence signal, and Apple's engine cannot serve three of the
+four languages offline at all. But it does mean the Phase 3 design should be
+validated against measured calibration before it is built, not after.
 
 Record with every run: corpus name and size, model variant, WhisperKit version,
 macOS version, and machine.
