@@ -27,6 +27,16 @@ final class DictationCoordinator: ObservableObject {
     /// The user's vocabulary — the only state in the app that survives a launch.
     @Published private(set) var glossary: Glossary = .empty
     @Published private(set) var glossaryErrorDescription: String?
+    /// Accessibility trust, which gates insertion and nothing else.
+    @Published private(set) var accessibilityAuthorization: AccessibilityAuthorization = .notTrusted
+    /// How the last finished result left the app, or `nil` when none has.
+    @Published private(set) var lastInsertion: InsertionOutcome?
+    /// Whether a result that needs no review goes straight into the target.
+    ///
+    /// On by default, because that is the phase's whole point: speak, release,
+    /// and the words are in the document. Off is for users who want the
+    /// keystroke to be theirs.
+    @Published var insertsAutomatically = true
 
     let binding: HotkeyBinding
 
@@ -39,6 +49,8 @@ final class DictationCoordinator: ObservableObject {
     private let reviewPolicy: ReviewPolicy
     private let glossaryStore: (any GlossaryStore)?
     private let fragmentPlayer: (any AudioFragmentPlayer)?
+    private let accessibilityService: (any AccessibilityPermissionService)?
+    private let insertionService: (any TextInsertionService)?
 
     private var machine = RecordingStateMachine()
     private var pollTimer: Timer?
@@ -57,6 +69,14 @@ final class DictationCoordinator: ObservableObject {
     /// at that instant, before the user has done anything at all.
     private var retainedAudio: RetainedAudio?
 
+    /// The application the current utterance was spoken into, captured when
+    /// recording started rather than read when inserting.
+    private var insertionTarget: InsertionTarget?
+    private var insertionTask: Task<Void, Never>?
+    /// Incremented whenever an insertion is started or superseded, so an
+    /// outcome belonging to a replaced utterance is dropped instead of shown.
+    private var insertionGeneration = 0
+
     #if DEBUG
     /// Retained in memory only, for the explicit debug export action. Replaced on
     /// every new utterance and never written to disk automatically.
@@ -73,6 +93,8 @@ final class DictationCoordinator: ObservableObject {
         reviewPolicy: ReviewPolicy = .default,
         glossaryStore: (any GlossaryStore)? = nil,
         fragmentPlayer: (any AudioFragmentPlayer)? = nil,
+        accessibilityService: (any AccessibilityPermissionService)? = nil,
+        insertionService: (any TextInsertionService)? = nil,
         configuration: AudioCaptureConfiguration = .default,
         binding: HotkeyBinding = .optionSpace,
         languageProfile: LanguageProfile = .default,
@@ -87,6 +109,8 @@ final class DictationCoordinator: ObservableObject {
         self.reviewPolicy = reviewPolicy
         self.glossaryStore = glossaryStore
         self.fragmentPlayer = fragmentPlayer
+        self.accessibilityService = accessibilityService
+        self.insertionService = insertionService
         self.configuration = configuration
         self.binding = binding
         self.languageProfile = languageProfile
@@ -102,6 +126,7 @@ final class DictationCoordinator: ObservableObject {
     func activate() {
         loadGlossary()
         apply(.authorizationResolved(permissionService.currentAuthorization))
+        refreshAccessibilityAuthorization()
         registerHotkey()
         loadInstalledModel()
     }
@@ -133,6 +158,7 @@ final class DictationCoordinator: ObservableObject {
 
     func deactivate() {
         stopPolling()
+        cancelInsertion()
         cancelTranscription()
         fragmentPlayer?.stop()
         releaseRetainedAudio()
@@ -147,6 +173,10 @@ final class DictationCoordinator: ObservableObject {
 
     /// Re-reads authorization, e.g. after the user returns from System Settings.
     func refreshAuthorization() {
+        // Accessibility trust changes out of band and has no notification, so
+        // it is re-read even while the app is busy: this costs one cheap call
+        // and is how the app notices a grant at all.
+        refreshAccessibilityAuthorization()
         guard !state.isBusy else { return }
         apply(.authorizationResolved(permissionService.currentAuthorization))
         if permissionService.currentAuthorization.allowsCapture, registeredHotkey == nil {
@@ -234,12 +264,19 @@ final class DictationCoordinator: ObservableObject {
         // ambiguous about which utterance it belongs to. The retained audio of
         // the superseded utterance goes with it.
         cancelTranscription()
+        cancelInsertion()
         fragmentPlayer?.stop()
         releaseRetainedAudio()
         transcript = nil
         result = nil
         prefersRawTranscript = false
+        lastInsertion = nil
         pendingEndReason = nil
+
+        // The target is captured here, at the start, and not read again when
+        // the text is ready. By then the user may have moved on: transcription
+        // takes seconds and a review takes as long as reading does.
+        insertionTarget = insertionService?.captureTarget()
         let captureConfiguration = configuration
         let service = captureService
         let interruptionHandler: @Sendable (AudioCaptureError) -> Void = { [weak self] error in
@@ -415,6 +452,95 @@ final class DictationCoordinator: ObservableObject {
         releaseRetainedAudio()
     }
 
+    // MARK: - Insertion
+
+    /// Whether the app is able to put text into another application at all.
+    var canInsert: Bool { insertionService != nil }
+    var needsAccessibilityTrust: Bool {
+        insertionService != nil && accessibilityAuthorization != .trusted
+    }
+    /// What the user is told the text will go into. `nil` when there is
+    /// nothing to insert into, which is a normal state rather than an error.
+    var insertionTargetName: String? { insertionTarget?.displayName }
+
+    /// A finished result the user can still act on from the menu.
+    var hasInsertableResult: Bool {
+        guard let result, !result.isEmpty else { return false }
+        return state == .ready
+    }
+
+    func refreshAccessibilityAuthorization() {
+        guard let accessibilityService else { return }
+        let resolved = accessibilityService.currentAuthorization
+        guard resolved != accessibilityAuthorization else { return }
+        accessibilityAuthorization = resolved
+        Log.permissions.info("Accessibility authorization now \(resolved.rawValue, privacy: .public)")
+    }
+
+    /// Shows the system prompt. Trust is granted out of band, so the answer
+    /// arrives through `refreshAuthorization()` when the user comes back.
+    func requestAccessibilityTrust() {
+        guard let accessibilityService else { return }
+        accessibilityAuthorization = accessibilityService.requestTrust()
+    }
+
+    func openAccessibilitySettings() {
+        accessibilityService?.openSystemSettings()
+    }
+
+    /// Sends the current result to the target application.
+    ///
+    /// The text is whichever of the two the user is looking at, so a raw
+    /// transcript they recovered is the one that lands — the same rule the copy
+    /// action already follows.
+    func insertCurrentResult() {
+        guard let result, !result.isEmpty else { return }
+        performInsertion(of: result.text(preferringRaw: prefersRawTranscript))
+    }
+
+    /// Returns whether the insertion actually started, so the caller can
+    /// finish the utterance its own way when it did not. Without an insertion
+    /// service the app is in the Phase 3 world: the result stays here and the
+    /// copy button is the way out.
+    @discardableResult
+    private func performInsertion(of text: String) -> Bool {
+        guard let insertionService, !text.isEmpty else { return false }
+        guard apply(.insertionStarted) else { return false }
+
+        insertionGeneration += 1
+        let generation = insertionGeneration
+        let target = insertionTarget
+        insertionTask = Task { [weak self] in
+            let outcome = await insertionService.insert(text, into: target)
+            guard let self, !Task.isCancelled else { return }
+            self.insertionDidFinish(outcome, generation: generation)
+        }
+        return true
+    }
+
+    private func insertionDidFinish(_ outcome: InsertionOutcome, generation: Int) {
+        // A superseding recording moved the app on. Reporting where the text of
+        // a replaced utterance went would describe something the user has
+        // already abandoned.
+        guard generation == insertionGeneration else { return }
+        insertionTask = nil
+        lastInsertion = outcome
+        diagnostics.lastInsertion = InsertionDiagnostics(outcome: outcome, target: insertionTarget)
+        insertionTarget = nil
+        // A clipboard fallback for want of trust is the moment the ask makes
+        // sense, so the displayed state is re-read before the menu shows it.
+        refreshAccessibilityAuthorization()
+        Log.insertion.info("Insertion outcome \(outcome.logLabel, privacy: .public)")
+        apply(.insertionFinished)
+    }
+
+    private func cancelInsertion() {
+        insertionGeneration += 1
+        insertionTask?.cancel()
+        insertionTask = nil
+        insertionTarget = nil
+    }
+
     // MARK: - Review
 
     /// Whether the app is still holding the recording. Read by the tests that
@@ -424,14 +550,25 @@ final class DictationCoordinator: ObservableObject {
 
     var canReplayFragments: Bool { fragmentPlayer != nil && retainedAudio != nil }
 
-    /// Ends a shown review. Both outcomes release the audio: the difference is
-    /// what Phase 4 will do with the text afterwards, not how long the
-    /// recording lives.
+    /// Ends a shown review. Both outcomes release the audio; they differ in
+    /// what happens to the text.
+    ///
+    /// Accepting is what authorizes the insertion — review always completes
+    /// before anything leaves the app, and a dismissal inserts nothing at all,
+    /// because dismissing is the user saying no.
     func completeReview(_ outcome: ReviewOutcome) {
         guard state.isReviewing else { return }
         fragmentPlayer?.stop()
         releaseRetainedAudio()
         Log.application.info("Review \(outcome.rawValue, privacy: .public)")
+
+        switch outcome {
+        case .accepted:
+            let text = result?.text(preferringRaw: prefersRawTranscript) ?? ""
+            if performInsertion(of: text) { return }
+        case .dismissed:
+            insertionTarget = nil
+        }
         apply(.reviewCompleted)
     }
 
@@ -585,6 +722,10 @@ final class DictationCoordinator: ObservableObject {
             // over. Releasing here rather than at the end of the interaction is
             // the whole point of deciding early.
             releaseRetainedAudio()
+            // And this is the phase's whole point: nothing worth saying means
+            // nothing is said. No window, no click — the words appear where the
+            // user was already typing.
+            if insertsAutomatically, performInsertion(of: result.cleanedText) { return }
             apply(.transcriptionFinished)
         }
     }
@@ -715,7 +856,10 @@ final class DictationCoordinator: ObservableObject {
 extension DictationCoordinator {
     /// Live composition root.
     static func makeLive() -> DictationCoordinator {
-        DictationCoordinator(
+        // One trust reader, shared: the coordinator shows the state and the
+        // insertion service gates on it, and two readers could disagree.
+        let accessibility = AXAccessibilityPermissionService()
+        return DictationCoordinator(
             permissionService: AVCaptureMicrophonePermissionService(),
             hotkeyService: CarbonHotkeyService(),
             captureService: AVAudioEngineCaptureService(),
@@ -728,7 +872,9 @@ extension DictationCoordinator {
             riskEngine: .standard(),
             reviewPolicy: .default,
             glossaryStore: FileGlossaryStore(),
-            fragmentPlayer: AVAudioEngineFragmentPlayer()
+            fragmentPlayer: AVAudioEngineFragmentPlayer(),
+            accessibilityService: accessibility,
+            insertionService: AXTextInsertionService(permissionService: accessibility)
         )
     }
 }

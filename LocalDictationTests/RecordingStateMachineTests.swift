@@ -159,4 +159,59 @@ final class RecordingStateMachineTests: XCTestCase {
         XCTAssertFalse(machine.apply(.transcriptionFailed("nope")).didTransition)
         XCTAssertEqual(machine.state, .ready)
     }
+
+    // MARK: - Insertion
+
+    /// The three places a finished result can leave the app from: a decision
+    /// that needed no review, a review the user accepted, and the explicit
+    /// action offered when automatic insertion is switched off.
+    func testInsertionStartsFromEveryStateAResultCanBeFinishedIn() {
+        for state in [RecordingState.transcribing, .reviewing, .ready] {
+            var machine = RecordingStateMachine(state: state)
+            XCTAssertTrue(machine.apply(.insertionStarted).didTransition, "\(state) must be able to insert")
+            XCTAssertEqual(machine.state, .inserting)
+            XCTAssertTrue(machine.apply(.insertionFinished).didTransition)
+            XCTAssertEqual(machine.state, .ready)
+        }
+    }
+
+    func testInsertionCannotStartWhileCapturing() {
+        for state in [RecordingState.starting, .recording, .finishing] {
+            var machine = RecordingStateMachine(state: state)
+            XCTAssertFalse(machine.apply(.insertionStarted).didTransition)
+            XCTAssertEqual(machine.state, state)
+        }
+    }
+
+    /// The paste path waits for the target application to read the pasteboard,
+    /// and the next dictation may arrive inside that window.
+    func testNewRecordingSupersedesAnInsertionStillSettling() {
+        var machine = RecordingStateMachine(state: .inserting)
+        XCTAssertTrue(machine.apply(.hotkeyPressed).didTransition)
+        XCTAssertEqual(machine.state, .starting)
+    }
+
+    func testInsertingStateSurvivesOSOriginatedEvents() {
+        var machine = RecordingStateMachine(state: .inserting)
+        XCTAssertFalse(machine.apply(.authorizationResolved(.authorized)).didTransition)
+        XCTAssertEqual(machine.state, .inserting)
+        XCTAssertFalse(machine.apply(.hotkeyRegistrationFailed("taken")).didTransition)
+        XCTAssertEqual(machine.state, .inserting)
+    }
+
+    func testInsertionEventsAreRejectedOutsideTheirStates() {
+        var machine = RecordingStateMachine(state: .ready)
+        XCTAssertFalse(machine.apply(.insertionFinished).didTransition)
+        XCTAssertEqual(machine.state, .ready)
+
+        machine = RecordingStateMachine(state: .recording)
+        XCTAssertFalse(machine.apply(.insertionFinished).didTransition)
+        XCTAssertEqual(machine.state, .recording)
+    }
+
+    func testInsertingCountsAsBusy() {
+        XCTAssertTrue(RecordingState.inserting.isBusy)
+        XCTAssertTrue(RecordingState.inserting.isInserting)
+        XCTAssertFalse(RecordingState.inserting.isCapturing)
+    }
 }

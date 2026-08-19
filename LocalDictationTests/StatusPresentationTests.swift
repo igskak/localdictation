@@ -86,4 +86,15 @@ final class StatusPresentationTests: XCTestCase {
         XCTAssertTrue(presentation.showsRecoveryAction)
         XCTAssertTrue(presentation.detail.contains("collision"))
     }
+
+    /// The state that exists because the paste path waits for the target
+    /// application to read the pasteboard.
+    func testInsertingSaysWhereTheTextIsGoing() {
+        let presentation = StatusPresentation(state: .inserting, binding: .optionSpace)
+
+        XCTAssertEqual(presentation.title, "Inserting")
+        XCTAssertEqual(presentation.tint, .active)
+        XCTAssertFalse(presentation.showsRecoveryAction)
+        XCTAssertFalse(presentation.showsPermissionRequest)
+    }
 }

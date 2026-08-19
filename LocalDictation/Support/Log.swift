@@ -14,4 +14,7 @@ enum Log {
     static let audio = Logger(subsystem: subsystem, category: "audio")
     static let voiceActivity = Logger(subsystem: subsystem, category: "voice-activity")
     static let transcription = Logger(subsystem: subsystem, category: "transcription")
+    /// Insertion may log the identity of the target application — a bundle
+    /// identifier is not content — and never the text that went into it.
+    static let insertion = Logger(subsystem: subsystem, category: "insertion")
 }

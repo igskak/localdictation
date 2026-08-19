@@ -465,3 +465,83 @@ extension Transcript {
         )
     }
 }
+
+/// Accessibility trust that answers from a variable instead of from macOS, so
+/// tests can run both sides of the trust boundary without a system prompt.
+final class FakeAccessibilityPermissionService: AccessibilityPermissionService, @unchecked Sendable {
+    private let lock = NSLock()
+    private var authorization: AccessibilityAuthorization
+    private var trustAfterRequest: AccessibilityAuthorization
+    private(set) var requestCount = 0
+    private(set) var openSettingsCount = 0
+
+    init(
+        authorization: AccessibilityAuthorization = .trusted,
+        trustAfterRequest: AccessibilityAuthorization? = nil
+    ) {
+        self.authorization = authorization
+        self.trustAfterRequest = trustAfterRequest ?? authorization
+    }
+
+    var currentAuthorization: AccessibilityAuthorization {
+        lock.withLock { authorization }
+    }
+
+    func set(_ authorization: AccessibilityAuthorization) {
+        lock.withLock { self.authorization = authorization }
+    }
+
+    func requestTrust() -> AccessibilityAuthorization {
+        lock.withLock {
+            requestCount += 1
+            authorization = trustAfterRequest
+            return authorization
+        }
+    }
+
+    @MainActor
+    func openSystemSettings() {
+        lock.withLock { openSettingsCount += 1 }
+    }
+}
+
+/// Insertion service that records what it was asked to insert and where,
+/// without an Accessibility call, a synthetic key event, or a write to the
+/// user's real pasteboard.
+@MainActor
+final class FakeTextInsertionService: TextInsertionService {
+    struct Attempt: Equatable {
+        let text: String
+        let target: InsertionTarget?
+    }
+
+    /// What `captureTarget()` hands back. `nil` models dictating with no other
+    /// application in front.
+    var targetToCapture: InsertionTarget? = InsertionTarget(
+        processIdentifier: 501,
+        bundleIdentifier: "com.example.editor",
+        applicationName: "Editor"
+    )
+    var outcome: InsertionOutcome = .inserted(.focusedElement)
+    /// Held open to model the paste path's settling delay, so a test can press
+    /// the hotkey while an insertion is still in flight.
+    var gate: AsyncGate?
+
+    private(set) var attempts: [Attempt] = []
+    private(set) var captureCount = 0
+
+    var insertCount: Int { attempts.count }
+    var lastAttempt: Attempt? { attempts.last }
+    var insertedText: String? { attempts.last?.text }
+
+    func captureTarget() -> InsertionTarget? {
+        captureCount += 1
+        return targetToCapture
+    }
+
+    func insert(_ text: String, into target: InsertionTarget?) async -> InsertionOutcome {
+        attempts.append(Attempt(text: text, target: target))
+        if let gate { try? await gate.wait() }
+        return outcome
+    }
+}

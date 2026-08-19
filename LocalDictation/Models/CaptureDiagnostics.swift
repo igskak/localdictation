@@ -64,6 +64,22 @@ struct TranscriptDiagnostics: Sendable, Equatable {
     }
 }
 
+/// Non-content summary of where the last result went.
+///
+/// The method and the outcome are facts about the app; the target's bundle
+/// identifier is a fact about which application was in front. Neither is
+/// content, and the text that was inserted appears nowhere in here — which is
+/// what makes this safe to show and to log.
+struct InsertionDiagnostics: Sendable, Equatable {
+    let outcome: String
+    let targetIdentity: String?
+
+    init(outcome: InsertionOutcome, target: InsertionTarget?) {
+        self.outcome = outcome.logLabel
+        self.targetIdentity = target?.logIdentity
+    }
+}
+
 /// Everything the developer diagnostics section displays.
 struct CaptureDiagnostics: Sendable, Equatable {
     var format: CaptureFormatDescription?
@@ -71,6 +87,7 @@ struct CaptureDiagnostics: Sendable, Equatable {
     var lastUtterance: UtteranceSummary?
     var lastTranscript: TranscriptDiagnostics?
     var lastRisk: RiskDiagnostics?
+    var lastInsertion: InsertionDiagnostics?
     var lastErrorDescription: String?
 
     static let empty = CaptureDiagnostics()

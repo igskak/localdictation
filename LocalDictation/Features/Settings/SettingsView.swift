@@ -40,6 +40,24 @@ struct SettingsView: View {
                 LabeledContent("MVP languages", value: "DE, EN, RU, UK")
             }
 
+            Section("Insertion") {
+                Toggle("Insert automatically when nothing needs review", isOn: $coordinator.insertsAutomatically)
+                Text("On, a result with nothing worth checking goes straight into the application you were typing in. Off, it waits in this menu for an explicit insert. A result that does need review always waits for you either way.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                LabeledContent("Accessibility access", value: coordinator.accessibilityAuthorization == .trusted ? "Granted" : "Not granted")
+                if coordinator.needsAccessibilityTrust {
+                    HStack {
+                        Button("Allow…") { coordinator.requestAccessibilityTrust() }
+                        Button("Open Settings") { coordinator.openAccessibilitySettings() }
+                        Button("Re-check") { coordinator.refreshAccessibilityAuthorization() }
+                    }
+                    Text("Without Accessibility access the text is copied to the clipboard instead. A development build loses this permission on every rebuild, because macOS keys it to the code signature.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
             Section("Review") {
                 Text("The review step appears only when a fragment is worth checking — an amount, a date, a name, a dictionary near-miss, or a word the app removed. When nothing is marked, the text is simply ready and the recording is discarded immediately.")
                     .font(.callout)
@@ -47,7 +65,7 @@ struct SettingsView: View {
             }
 
             Section("Phase") {
-                Text("Phase 3 covers conservative cleanup, the risk engine, the review strip with raw-transcript recovery, and memory-only fragment replay. Insertion into other applications arrives in Phase 4.")
+                Text("Phase 4 covers Accessibility onboarding, insertion into other applications with a clipboard fallback, and the review panel that stands in front of it without taking focus. Licensing, the trial, and the paywall arrive in Phase 5.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
@@ -167,6 +185,14 @@ struct DiagnosticsView: View {
                     LabeledContent("Signals", value: risk.spanCategories.isEmpty ? "\u{2014}" : risk.spanCategories.joined(separator: ", "))
                     LabeledContent("Highest weight", value: String(format: "%.2f", risk.maximumWeight))
                     LabeledContent("Review", value: risk.requiresReview ? "Shown" : "Not needed")
+                }
+
+                Section("Last insertion") {
+                    LabeledContent("Outcome", value: coordinator.diagnostics.lastInsertion?.outcome ?? "\u{2014}")
+                    LabeledContent("Target", value: coordinator.diagnostics.lastInsertion?.targetIdentity ?? "\u{2014}")
+                    Text("The method and the application, which is what anyone asks first when an app misbehaves. The inserted text appears nowhere in here and in no log line.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
                 }
 
                 Section("Audio lifetime") {
