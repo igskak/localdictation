@@ -203,6 +203,28 @@ final class DictationCoordinatorTranscriptionTests: XCTestCase {
         XCTAssertEqual(engine.prepareCount, 1)
     }
 
+    /// The regression behind "I pressed Prepare and nothing happened": while a
+    /// load runs the menu must show a spinner, not the button again. Offering
+    /// the button back is what led to repeated presses and competing loads.
+    func testModelReportsPreparingWhileTheLoadIsInFlight() async throws {
+        let engine = FakeTranscriptionService()
+        engine.setModelState(.unavailable("not installed"))
+        let gate = engine.blockNextPreparation()
+        let (coordinator, _, _) = makeCoordinator(transcription: engine)
+
+        let preparation = Task { await coordinator.prepareTranscriptionModel() }
+        try await waitUntil("preparation is in flight") {
+            coordinator.transcriptionModelState == .preparing(progress: nil)
+        }
+        XCTAssertFalse(coordinator.transcriptionModelState.isReady)
+
+        gate.open()
+        await preparation.value
+
+        XCTAssertEqual(coordinator.transcriptionModelState, .ready)
+        XCTAssertEqual(engine.prepareCount, 1)
+    }
+
     func testFailedPreparationSurfacesAnActionableMessage() async {
         let engine = FakeTranscriptionService()
         engine.failPreparation(with: .modelUnavailable("no German model"))

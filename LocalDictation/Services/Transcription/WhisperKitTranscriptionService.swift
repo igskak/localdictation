@@ -29,6 +29,21 @@ actor WhisperKitTranscriptionService: TranscriptionService {
 
     private var engine: WhisperKit?
 
+    /// The one load in flight, shared by every caller.
+    ///
+    /// Actor isolation alone does not make loading single-flight. The actor is
+    /// released at the `await` that builds `WhisperKit`, so a second caller
+    /// sails past an `engine == nil` check and starts a second load of the same
+    /// 1.5 GB model; the observed failure was six concurrent loads competing
+    /// for one Neural Engine, none of them ever finishing. Holding the task —
+    /// not just the finished result — is what makes later callers join the load
+    /// that is already running.
+    ///
+    /// It carries `Void` rather than the engine because `WhisperKit` is not
+    /// `Sendable`: the task assigns `engine` under this actor's isolation
+    /// instead of handing the value across a boundary.
+    private var loadTask: Task<Void, any Error>?
+
     init(modelVariant: String = "openai_whisper-large-v3-v20240930_turbo") {
         self.modelVariant = modelVariant
     }
@@ -40,6 +55,11 @@ actor WhisperKitTranscriptionService: TranscriptionService {
 
     func modelState(for profile: LanguageProfile) async -> TranscriptionModelState {
         if engine != nil { return .ready }
+        // A load in flight has to be reported as such. Reporting "not loaded"
+        // instead puts the "Prepare speech model…" button back in front of a
+        // user who already pressed it, and every extra press used to start
+        // another load.
+        if loadTask != nil { return .preparing(progress: nil) }
         guard let folder = Self.modelDirectory() else {
             return .failed("Could not locate Application Support")
         }
@@ -50,25 +70,73 @@ actor WhisperKitTranscriptionService: TranscriptionService {
     }
 
     func prepare(for profile: LanguageProfile) async throws {
-        guard engine == nil else { return }
-        guard let downloadBase = Self.modelDirectory() else {
-            throw TranscriptionError.modelUnavailable("Could not locate Application Support")
+        _ = try await loadedEngine()
+    }
+
+    /// The loaded engine, loading it once if nobody has yet.
+    ///
+    /// Every caller funnels through here, so the download and the Core ML
+    /// compilation happen exactly once however many callers ask at once.
+    private func loadedEngine() async throws -> WhisperKit {
+        if let engine { return engine }
+
+        let load: Task<Void, any Error>
+        if let loadTask {
+            // Someone else is already loading: wait for their result rather
+            // than starting a competing load.
+            load = loadTask
+        } else {
+            load = startLoad()
+            loadTask = load
         }
 
         do {
-            try FileManager.default.createDirectory(at: downloadBase, withIntermediateDirectories: true)
-            let configuration = WhisperKitConfig(
-                model: modelVariant,
-                downloadBase: downloadBase,
-                verbose: false,
-                logLevel: .error,
-                prewarm: true,
-                load: true,
-                download: true
-            )
-            engine = try await WhisperKit(configuration)
+            try await load.value
         } catch {
-            throw TranscriptionError.modelUnavailable(error.localizedDescription)
+            // Cleared so a failure the user can act on — no disk space, no
+            // network — can be retried from the button.
+            if loadTask == load { loadTask = nil }
+            throw error
+        }
+
+        guard let engine else {
+            if loadTask == load { loadTask = nil }
+            throw TranscriptionError.modelUnavailable("The speech model is not loaded")
+        }
+        return engine
+    }
+
+    /// Unstructured on purpose: an unstructured task does not inherit
+    /// cancellation, so one superseded utterance cannot tear down a load that
+    /// the rest of the app — and possibly the user's own Prepare press — is
+    /// still waiting on.
+    private func startLoad() -> Task<Void, any Error> {
+        let variant = modelVariant
+        return Task { [self] in
+            guard let downloadBase = Self.modelDirectory() else {
+                throw TranscriptionError.modelUnavailable("Could not locate Application Support")
+            }
+            do {
+                try FileManager.default.createDirectory(at: downloadBase, withIntermediateDirectories: true)
+                let configuration = WhisperKitConfig(
+                    model: variant,
+                    downloadBase: downloadBase,
+                    verbose: false,
+                    logLevel: .error,
+                    prewarm: true,
+                    load: true,
+                    download: true
+                )
+                // Assigned here, inside the actor, so every joiner sees the same
+                // engine and the value never crosses an isolation boundary.
+                engine = try await WhisperKit(configuration)
+            } catch let error as TranscriptionError {
+                throw error
+            } catch {
+                // Wrapped inside the task so joiners and the originating caller
+                // receive the same error.
+                throw TranscriptionError.modelUnavailable(error.localizedDescription)
+            }
         }
     }
 
@@ -80,12 +148,16 @@ actor WhisperKitTranscriptionService: TranscriptionService {
             )
         }
 
-        if engine == nil {
-            try await prepare(for: profile)
+        // Dictation never starts a download on its own: fetching the weights is
+        // the app's only network access and stays bound to the explicit
+        // "Prepare speech model…" action. Joining a load that action already
+        // started is fine, and beats failing a recording the user just made.
+        guard engine != nil || loadTask != nil else {
+            throw TranscriptionError.modelUnavailable(
+                "The speech model is not loaded. Use \u{201C}Prepare speech model\u{2026}\u{201D} first."
+            )
         }
-        guard let engine else {
-            throw TranscriptionError.modelUnavailable("The speech model is not loaded")
-        }
+        let engine = try await loadedEngine()
 
         try Task.checkCancellation()
         let started = Date()
