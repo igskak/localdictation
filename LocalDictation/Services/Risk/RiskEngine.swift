@@ -54,28 +54,30 @@ struct RiskEngine: Sendable {
         var seen: Set<SpanKey> = []
         var spans: [RiskSpan] = []
 
-        for signal in signals {
-            for raw in signal.spans(in: context) {
-                let key = SpanKey(range: raw.range, category: raw.reason.category)
-                // Two signals agreeing on the same fragment for the same reason
-                // is one mark, not two.
-                guard seen.insert(key).inserted else { continue }
+        // Collected before any are priced, so a specific reason can suppress a
+        // heuristic one covering the same words.
+        let raws = Self.suppressingRedundantEntities(signals.flatMap { $0.spans(in: context) })
 
-                let cleanedRange = cleanup.map.cleanedRange(forRaw: raw.range)
-                let window = Self.audioWindow(for: raw.range, tokens: tokens)
+        for raw in raws {
+            let key = SpanKey(range: raw.range, category: raw.reason.category)
+            // Two signals agreeing on the same fragment for the same reason
+            // is one mark, not two.
+            guard seen.insert(key).inserted else { continue }
 
-                spans.append(
-                    RiskSpan(
-                        reason: raw.reason,
-                        rawRange: raw.range,
-                        cleanedRange: cleanedRange,
-                        weight: weights.weight(for: raw.reason, profile: profile),
-                        text: Self.slice(cleanedCharacters, cleanedRange),
-                        start: window?.start,
-                        end: window?.end
-                    )
+            let cleanedRange = cleanup.map.cleanedRange(forRaw: raw.range)
+            let window = Self.audioWindow(for: raw.range, tokens: tokens)
+
+            spans.append(
+                RiskSpan(
+                    reason: raw.reason,
+                    rawRange: raw.range,
+                    cleanedRange: cleanedRange,
+                    weight: weights.weight(for: raw.reason, profile: profile),
+                    text: Self.slice(cleanedCharacters, cleanedRange),
+                    start: window?.start,
+                    end: window?.end
                 )
-            }
+            )
         }
 
         return spans.sorted {
@@ -83,6 +85,30 @@ struct RiskEngine: Sendable {
                 return $0.cleanedRange.lowerBound < $1.cleanedRange.lowerBound
             }
             return $0.weight > $1.weight
+        }
+    }
+
+    /// Drops a name mark from words another signal already explained.
+    ///
+    /// The entity rule is a capitalization heuristic, and it is the weakest of
+    /// the signals: in English every month and weekday is capitalized, so
+    /// "March" arrived marked both as a date and as a person's name. Two labels
+    /// on one word is not extra safety — it is the false-warning budget being
+    /// spent to say the same thing twice, and `docs/PHASE_3.md` makes that
+    /// budget binding.
+    ///
+    /// Only the heuristic gives way. Two specific signals disagreeing about the
+    /// same fragment is real information and is left alone.
+    static func suppressingRedundantEntities(_ raws: [RawRiskSpan]) -> [RawRiskSpan] {
+        let explained = raws.compactMap { raw -> Range<Int>? in
+            if case .namedEntity = raw.reason { return nil }
+            return raw.range
+        }
+        guard !explained.isEmpty else { return raws }
+
+        return raws.filter { raw in
+            guard case .namedEntity = raw.reason else { return true }
+            return !explained.contains { $0.overlaps(raw.range) }
         }
     }
 

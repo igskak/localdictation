@@ -34,7 +34,9 @@ final class RiskSignalTests: XCTestCase {
         let text = "Bitte überweise 1450 Euro bis Freitag"
         let spans = NumberRiskSignal().spans(in: context(text, profile: .german))
 
-        XCTAssertEqual(marked(spans, in: text), ["1450", "Euro"])
+        // Freitag is here because a weekday is a date: a deadline heard wrong is
+        // the same class of error as an amount heard wrong.
+        XCTAssertEqual(marked(spans, in: text), ["1450", "Euro", "Freitag"])
     }
 
     func testDatesAreMarkedInEveryLanguage() {
