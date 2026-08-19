@@ -25,10 +25,15 @@ final class ReviewPanelController {
 
     private let coordinator: DictationCoordinator
     private var panel: NSPanel?
+    /// Held as a plain view: only its fitting size is ever read, and the
+    /// environment object makes the hosted root's type unspellable anyway.
+    private var hostingView: NSView?
     private var noticePanel: NSPanel?
+    private var noticeHostingView: NSHostingView<InsertionNoticeView>?
     private var noticeDismissal: Task<Void, Never>?
     private var stateObserver: AnyCancellable?
     private var outcomeObserver: AnyCancellable?
+    private var contentObserver: AnyCancellable?
 
     init(coordinator: DictationCoordinator) {
         self.coordinator = coordinator
@@ -45,7 +50,22 @@ final class ReviewPanelController {
             .sink { [weak self] outcome in
                 Task { @MainActor in self?.present(outcome) }
             }
+        // The one thing that changes the panel's height while it is open.
+        // A new result does not: it arrives with a state change, which shows
+        // the panel again and measures it then.
+        contentObserver = coordinator.$prefersRawTranscript
+            .removeDuplicates()
+            .sink { [weak self] _ in
+                Task { @MainActor in self?.resizeToContent() }
+            }
     }
+
+    #if DEBUG
+    /// Read by the tests that drive a real panel through a real layout pass.
+    var isShowingReviewPanel: Bool { panel?.isVisible ?? false }
+    var reviewPanelContentSize: NSSize? { panel?.contentView?.frame.size }
+    var isShowingNotice: Bool { noticePanel?.isVisible ?? false }
+    #endif
 
     private func apply(_ state: RecordingState) {
         if state.isReviewing {
@@ -58,6 +78,7 @@ final class ReviewPanelController {
     private func show() {
         let panel = panel ?? makePanel()
         self.panel = panel
+        resize(panel, toFit: hostingView)
         position(panel)
         // Deliberately not `makeKeyAndOrderFront`: taking key status is what a
         // non-activating panel exists to avoid.
@@ -66,6 +87,32 @@ final class ReviewPanelController {
 
     private func hide() {
         panel?.orderOut(nil)
+    }
+
+    private func resizeToContent() {
+        guard let panel, panel.isVisible else { return }
+        resize(panel, toFit: hostingView)
+        position(panel)
+    }
+
+    /// Sizes a panel to its SwiftUI content, once, from outside the layout pass.
+    ///
+    /// The first version let `NSHostingController.sizingOptions` do this and
+    /// forced a layout pass while positioning the window. That is a loop:
+    /// resizing the window makes SwiftUI lay out again, which produces a new
+    /// preferred size, which resizes the window — until AppKit gives up with
+    /// "more Update Constraints passes than there are views in the window" and
+    /// takes the app down with it.
+    ///
+    /// So nothing resizes the window except this method, it is only ever called
+    /// from an event handler rather than from inside layout, and it does
+    /// nothing when the size has not actually changed.
+    private func resize(_ panel: NSPanel, toFit view: NSView?) {
+        guard let view else { return }
+        let size = view.fittingSize
+        guard size.width > 0, size.height > 0 else { return }
+        guard panel.contentView?.frame.size != size else { return }
+        panel.setContentSize(size)
     }
 
     // MARK: - Outcome notice
@@ -89,8 +136,8 @@ final class ReviewPanelController {
 
         let panel = noticePanel ?? makeNoticePanel()
         noticePanel = panel
-        (panel.contentViewController as? NSHostingController<InsertionNoticeView>)?
-            .rootView = InsertionNoticeView(message: message) { [weak self] in self?.hideNotice() }
+        noticeHostingView?.rootView = InsertionNoticeView(message: message) { [weak self] in self?.hideNotice() }
+        resize(panel, toFit: noticeHostingView)
         position(panel)
         panel.orderFrontRegardless()
 
@@ -108,20 +155,23 @@ final class ReviewPanelController {
     }
 
     private func makeNoticePanel() -> NSPanel {
-        let panel = makeBarePanel(width: 420)
-        let controller = NSHostingController(
+        let panel = makeBarePanel(width: 444)
+        let hosting = NSHostingView(
             rootView: InsertionNoticeView(message: "") { [weak self] in self?.hideNotice() }
         )
-        controller.sizingOptions = [.preferredContentSize]
-        panel.contentViewController = controller
+        panel.contentView = hosting
+        noticeHostingView = hosting
         return panel
     }
 
     private func makePanel() -> NSPanel {
-        let panel = makeBarePanel(width: 460)
-        let controller = NSHostingController(rootView: ReviewPanelView().environmentObject(coordinator))
-        controller.sizingOptions = [.preferredContentSize]
-        panel.contentViewController = controller
+        let panel = makeBarePanel(width: 484)
+        // An `NSHostingView` rather than a controller with `sizingOptions`:
+        // the controller resizes its window from inside the layout pass, and
+        // this panel is positioned from outside it. See `resize(_:toFit:)`.
+        let hosting = NSHostingView(rootView: ReviewPanelView().environmentObject(coordinator))
+        panel.contentView = hosting
+        hostingView = hosting
         return panel
     }
 
@@ -158,11 +208,6 @@ final class ReviewPanelController {
     /// need the fallback most, and a panel that lands in the wrong place is
     /// worse than one that is always in the same place.
     private func position(_ panel: NSPanel) {
-        // The hosting controller sizes the window from its content, but only
-        // once that content has laid out. Measuring before it does gives a
-        // collapsed panel placed against the wrong edge.
-        panel.contentViewController?.view.layoutSubtreeIfNeeded()
-
         let pointer = NSEvent.mouseLocation
         let screen = NSScreen.screens.first { $0.frame.contains(pointer) } ?? NSScreen.main
         guard let visible = screen?.visibleFrame else { return }
@@ -196,7 +241,7 @@ private struct ReviewPanelView: View {
 }
 
 /// One sentence about where the text went, and a way to dismiss it.
-private struct InsertionNoticeView: View {
+struct InsertionNoticeView: View {
     let message: String
     let dismiss: () -> Void
 
