@@ -73,6 +73,8 @@ final class DictationCoordinator: ObservableObject {
     /// recording started rather than read when inserting.
     private var insertionTarget: InsertionTarget?
     private var insertionTask: Task<Void, Never>?
+    /// Runs only while Accessibility trust is missing. See `startTrustPolling`.
+    private var trustPollTimer: Timer?
     /// Incremented whenever an insertion is started or superseded, so an
     /// outcome belonging to a replaced utterance is dropped instead of shown.
     private var insertionGeneration = 0
@@ -158,6 +160,7 @@ final class DictationCoordinator: ObservableObject {
 
     func deactivate() {
         stopPolling()
+        stopTrustPolling()
         cancelInsertion()
         cancelTranscription()
         fragmentPlayer?.stop()
@@ -472,10 +475,47 @@ final class DictationCoordinator: ObservableObject {
     func refreshAccessibilityAuthorization() {
         guard let accessibilityService else { return }
         let resolved = accessibilityService.currentAuthorization
+        if resolved.allowsInsertion {
+            stopTrustPolling()
+        } else {
+            startTrustPolling()
+        }
         guard resolved != accessibilityAuthorization else { return }
         accessibilityAuthorization = resolved
         Log.permissions.info("Accessibility authorization now \(resolved.rawValue, privacy: .public)")
     }
+
+    /// Watches for the grant while it is missing.
+    ///
+    /// macOS sends no notification when Accessibility trust changes, so the app
+    /// has to look. The obvious moment — "when the user comes back to the app"
+    /// — turned out not to exist for this app: it has no Dock icon, and opening
+    /// a menu bar panel does not reliably activate it or re-run a view's
+    /// `onAppear`. Someone could therefore grant access in System Settings and
+    /// find the app still claiming it had none, which is indistinguishable from
+    /// the grant not working.
+    ///
+    /// So while trust is missing, and only then, the app asks every two
+    /// seconds. The call is cheap, the timer stops the moment the answer
+    /// changes, and the grant simply appears without anyone pressing anything.
+    private func startTrustPolling() {
+        guard accessibilityService != nil, trustPollTimer == nil else { return }
+        let timer = Timer(timeInterval: 2, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.refreshAccessibilityAuthorization()
+            }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        trustPollTimer = timer
+    }
+
+    private func stopTrustPolling() {
+        trustPollTimer?.invalidate()
+        trustPollTimer = nil
+    }
+
+    /// Read by the test that asserts the watch ends when the answer arrives.
+    var isWatchingForAccessibilityTrust: Bool { trustPollTimer != nil }
 
     /// Shows the system prompt. Trust is granted out of band, so the answer
     /// arrives through `refreshAuthorization()` when the user comes back.

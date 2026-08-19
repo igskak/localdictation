@@ -297,4 +297,32 @@ final class DictationCoordinatorInsertionTests: XCTestCase {
             "pid:77"
         )
     }
+
+    // MARK: - Noticing the grant
+
+    /// The grant happens in System Settings, out of band, and macOS says
+    /// nothing about it. A menu bar app with no Dock icon cannot rely on being
+    /// activated afterwards either, so it has to look for itself.
+    func testTheGrantIsNoticedWithoutAnyUserActionInTheApp() async throws {
+        let harness = makeHarness(transcript: Self.quietTranscript, trust: .notTrusted)
+        XCTAssertTrue(harness.coordinator.needsAccessibilityTrust)
+
+        // The user goes to System Settings and turns it on. Nothing tells the
+        // app; nobody comes back and clicks anything.
+        harness.accessibility.set(.trusted)
+
+        try await waitUntil("the app notices the grant on its own") {
+            harness.coordinator.accessibilityAuthorization == .trusted
+        }
+        XCTAssertFalse(harness.coordinator.needsAccessibilityTrust)
+    }
+
+    /// And it stops looking once it has the answer, rather than asking forever.
+    func testTheAppStopsWatchingOnceTrustIsGranted() async throws {
+        let harness = makeHarness(transcript: Self.quietTranscript, trust: .trusted)
+
+        try await Task.sleep(nanoseconds: 50_000_000)
+        XCTAssertFalse(harness.coordinator.needsAccessibilityTrust)
+        XCTAssertFalse(harness.coordinator.isWatchingForAccessibilityTrust)
+    }
 }
