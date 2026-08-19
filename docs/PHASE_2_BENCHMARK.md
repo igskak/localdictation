@@ -263,9 +263,31 @@ macOS version, and machine.
 
 ## Decision
 
-Pending the run above.
+**WhisperKit. Apple's on-device engine is dropped as a candidate.**
 
-WhisperKit is wired as the development default in `DictationCoordinator.makeLive()`
-because it is the only admitted candidate that meets the per-token confidence
-requirement at all. That is an admission criterion, not a benchmark result, and
-it does not settle accuracy, latency, or calibration in any language.
+Decided 2026-08-19, on admission criteria rather than on accuracy — the accuracy
+comparison never became necessary, because `SFSpeechRecognizer` failed the
+entry requirements outright:
+
+1. **It cannot serve three of the four MVP languages offline.** On a stock
+   macOS 26.2 machine only `en-US` has an on-device asset. German, Russian, and
+   Ukrainian report `supportsOnDeviceRecognition == false`, and the launch market
+   is Germany. Whether an asset exists depends on a Dictation setting most users
+   have never opened, and it is not something the product can fix for them.
+2. **What it offers instead is forbidden here.** Those same locales report
+   `isAvailable == true`, because recognition works by sending audio to Apple's
+   servers. That is not a fallback this product is allowed to take.
+3. **One recognizer binds to one locale**, so the mixed profiles from
+   `docs/PRODUCT_SCOPE.md` cannot be served at all.
+4. **Its confidence signal is frequently `0` on device**, which Phase 3 cannot
+   build on.
+
+`AppleSpeechTranscriptionService` stays in the tree. It is the evidence behind
+the dependency this project took on, per `AGENTS.md`, and it keeps a second
+implementation of `TranscriptionService` honest — proving the protocol is not
+quietly shaped around Whisper. It is no longer a candidate, and no further
+benchmarking of it is planned.
+
+Revisit if `SpeechAnalyzer` becomes viable — that is, once macOS 26 is an
+acceptable minimum and its language coverage and confidence signal are checked
+against the same criteria.

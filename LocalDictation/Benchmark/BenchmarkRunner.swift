@@ -6,6 +6,12 @@ struct BenchmarkSampleResult: Sendable, Equatable {
     let audio: String
     let language: SpeechLanguage
     let profile: LanguageProfile
+    /// Kept so a score can be explained. Without the two texts side by side
+    /// there is no way to tell a real misrecognition from a formatting
+    /// mismatch -- a reference of "1450" against a hypothesis of "1,450"
+    /// scores as two errors and looks identical to getting the amount wrong.
+    let reference: String
+    let hypothesis: String
     let word: ErrorRate
     let character: ErrorRate
     let numeric: ErrorRate
@@ -229,6 +235,8 @@ enum BenchmarkRunner {
             audio: sample.audio,
             language: language,
             profile: sample.languageProfile,
+            reference: sample.reference,
+            hypothesis: transcript.text,
             word: TranscriptionScorer.wordErrorRate(
                 reference: sample.reference,
                 hypothesis: transcript.text,
@@ -306,6 +314,21 @@ extension BenchmarkReport {
 
         lines.append("")
         lines.append("Samples with any confidence signal: \(overall.samplesWithConfidence)/\(overall.sampleCount).")
+
+        let imperfect = results.filter { ($0.word.errors) > 0 }
+        if !imperfect.isEmpty {
+            lines.append("")
+            lines.append("### Samples with errors")
+            lines.append("")
+            lines.append("Reference against hypothesis, so a rate can be explained rather than trusted.")
+            for result in imperfect {
+                lines.append("")
+                lines.append("**\(result.audio)** — \(result.word.errors) word errors, \(result.numeric.errors) in numbers")
+                lines.append("")
+                lines.append("- ref: `\(result.reference)`")
+                lines.append("- hyp: `\(result.hypothesis)`")
+            }
+        }
 
         if !failures.isEmpty {
             lines.append("")

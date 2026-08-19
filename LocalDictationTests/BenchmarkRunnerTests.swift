@@ -156,9 +156,39 @@ final class BenchmarkRunnerTests: XCTestCase {
 
         let markdown = report.markdown()
         XCTAssertTrue(markdown.contains("Fake Engine"))
+        XCTAssertFalse(
+            markdown.contains("### Samples with errors"),
+            "a perfect sample has nothing to explain"
+        )
         XCTAssertTrue(markdown.contains("| German |"))
         XCTAssertTrue(markdown.contains("**Overall**"))
         XCTAssertTrue(markdown.contains("uk/1.wav: unsupported"))
+    }
+
+    /// A score is only useful if it can be explained, so the report has to show
+    /// what the engine actually produced next to what it should have.
+    func testMarkdownShowsReferenceAndHypothesisForImperfectSamples() {
+        let result = BenchmarkRunner.score(
+            transcript: .fixture(words: [("transfer", 0.9), ("1,450", 0.9)], profile: .english),
+            sample: sample("en/1.wav", reference: "transfer 1450"),
+            utteranceDuration: 1,
+            threshold: 0.5
+        )
+        let report = BenchmarkReport(
+            engineIdentifier: "fake",
+            engineName: "Fake Engine",
+            corpusName: "smoke",
+            machine: "test",
+            results: [result],
+            overall: .combining([result], threshold: 0.5),
+            byLanguage: [.english: .combining([result], threshold: 0.5)],
+            failures: []
+        )
+
+        let markdown = report.markdown()
+        XCTAssertTrue(markdown.contains("### Samples with errors"))
+        XCTAssertTrue(markdown.contains("transfer 1450"), "the reference must be shown")
+        XCTAssertTrue(markdown.contains("transfer 1,450"), "the hypothesis must be shown")
     }
 
     // MARK: - Corpus-gated integration

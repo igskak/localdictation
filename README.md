@@ -6,7 +6,9 @@ Native, local-first macOS dictation app. The product goal is fast voice input wi
 
 Phase 1 (application and audio foundation) is complete: menu bar lifecycle, microphone permission handling, a global push-to-talk hotkey, bounded in-memory PCM capture normalized to mono Float32 at 16 kHz, an energy-based voice-activity boundary, developer diagnostics, and a deterministic test suite.
 
-Phase 2 (transcription and raw dictation) is in progress. Implemented: the `TranscriptionService` boundary, explicit language profiles, transcripts with per-token timing and confidence, two engine adapters, in-app raw transcript display with an explicit copy action, and the benchmark scoring harness. **The benchmark itself has not been run** — no evaluation corpus is installed, so the engine choice is not final. See `docs/PHASE_2_BENCHMARK.md`.
+Phase 2 (transcription and raw dictation) is in progress. Implemented: the `TranscriptionService` boundary, explicit language profiles, transcripts with per-token timing and confidence, two engine adapters, in-app raw transcript display with an explicit copy action, and the benchmark harness.
+
+The engine is decided: **WhisperKit**. Apple's on-device engine was dropped because it cannot serve German, Russian, or Ukrainian offline on a stock Mac — it offers server recognition instead, which this product does not allow. Accuracy is **not** settled: the only measurements so far come from a synthesized smoke corpus, and no real speech has been scored. See `docs/PHASE_2_BENCHMARK.md`.
 
 There is deliberately no text cleanup, risk highlighting, Accessibility insertion, persistence, analytics, or licensing yet. Text never enters another application: the only way it leaves the app is the copy button.
 
