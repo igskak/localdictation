@@ -25,6 +25,11 @@ enum RecordingFailure: Sendable, Equatable {
 /// Explicit lifecycle of the dictation slice. Capture ends at `.finishing`;
 /// Phase 2 attaches transcription after the utterance is handed over, so the
 /// capture path is unchanged and a new recording can start while inference runs.
+///
+/// Phase 3 adds `.reviewing`, which the app enters only when the risk policy
+/// says the interruption is earned. The state is what bounds the recording's
+/// lifetime: audio is held while it lasts and released the moment it ends — or
+/// immediately, when the decision was that no review is needed.
 enum RecordingState: Sendable, Equatable {
     case launching
     case needsPermission
@@ -35,6 +40,7 @@ enum RecordingState: Sendable, Equatable {
     case recording
     case finishing
     case transcribing
+    case reviewing
     case failed(RecordingFailure)
 
     var isCapturing: Bool {
@@ -48,9 +54,11 @@ enum RecordingState: Sendable, Equatable {
 
     var isTranscribing: Bool { self == .transcribing }
 
+    var isReviewing: Bool { self == .reviewing }
+
     /// States whose progress must not be clobbered by an authorization re-read
     /// or a hotkey registration result arriving from the OS.
-    var isBusy: Bool { isCapturing || isTranscribing }
+    var isBusy: Bool { isCapturing || isTranscribing || isReviewing }
 }
 
 /// Events the coordinator feeds into the state machine. Anything not listed as a
@@ -68,6 +76,8 @@ enum RecordingEvent: Sendable, Equatable {
     case transcriptionStarted
     case transcriptionFinished
     case transcriptionFailed(String)
+    case reviewRequired
+    case reviewCompleted
     case hotkeyRegistrationFailed(String)
     case recoveryRequested
 }
@@ -122,9 +132,10 @@ struct RecordingStateMachine: Sendable, Equatable {
             guard !state.isCapturing else {
                 return authorization.allowsCapture ? nil : .failed(.captureInterrupted("Microphone access was revoked"))
             }
-            // Transcription runs on audio that is already captured, so an
-            // authorization change must not interrupt or overwrite it.
-            guard !state.isTranscribing else { return nil }
+            // Transcription runs on audio that is already captured, and a
+            // review is the user reading a result, so an authorization change
+            // must not interrupt or overwrite either.
+            guard !state.isTranscribing, !state.isReviewing else { return nil }
             return Self.state(for: authorization)
 
         case let .hotkeyRegistrationFailed(detail):
@@ -175,6 +186,8 @@ struct RecordingStateMachine: Sendable, Equatable {
             return .transcribing
         case (.transcribing, .transcriptionFinished):
             return .ready
+        case (.transcribing, .reviewRequired):
+            return .reviewing
         case let (.transcribing, .transcriptionFailed(detail)):
             return .failed(.transcription(detail))
         case (.transcribing, .hotkeyPressed):
@@ -182,6 +195,17 @@ struct RecordingStateMachine: Sendable, Equatable {
             // coordinator cancels the in-flight request so it cannot deliver
             // a stale transcript into the new recording.
             return .starting
+
+        case (.reviewing, .reviewCompleted):
+            return .ready
+        case (.reviewing, .hotkeyPressed):
+            // Starting the next dictation ends the review. The coordinator
+            // releases the retained audio on the way out, so the recording
+            // never outlives the interaction it belonged to.
+            return .starting
+        case (.reviewing, .transcriptionStarted):
+            // A review must finish before the next transcript can replace it.
+            return nil
 
         case (.failed, .recoveryRequested):
             return .ready

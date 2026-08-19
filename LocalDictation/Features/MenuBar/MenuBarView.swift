@@ -27,8 +27,12 @@ struct MenuBarView: View {
                 }
             }
 
-            if let transcript = coordinator.transcript, !transcript.isEmpty {
-                TranscriptView(transcript: transcript)
+            if let result = coordinator.result, !result.isEmpty {
+                if coordinator.state.isReviewing {
+                    ReviewStripView(result: result)
+                } else {
+                    ResultView(result: result, prefersRaw: coordinator.prefersRawTranscript)
+                }
             }
 
             if let summary = coordinator.diagnostics.lastUtterance {
@@ -201,27 +205,36 @@ private struct ModelStateView: View {
     }
 }
 
-/// The raw transcript, shown inside LocalDictation only.
+/// The finished result, shown when the risk policy found nothing worth an
+/// interruption.
 ///
-/// Phase 2 does not insert into other applications and does not mark risk. The
+/// It is deliberately plain. A review that appears every time is a review
+/// nobody reads, so the quiet path has no marks, no strip, and no decision to
+/// make — just the text. Phase 3 still inserts into no other application: the
 /// copy button is the single, explicit way this text leaves the app.
-private struct TranscriptView: View {
-    let transcript: Transcript
+private struct ResultView: View {
+    let result: DictationResult
+    /// Carried out of the review: a user who recovered the raw transcript keeps
+    /// it afterwards, rather than having the cleaned text quietly return.
+    let prefersRaw: Bool
+
     @State private var didCopy = false
+
+    private var text: String { result.text(preferringRaw: prefersRaw) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text("Transcript")
+                Text(prefersRaw ? "Raw transcript" : "Transcript")
                     .font(.caption)
                 Spacer()
-                Text(transcript.profile.shortLabel)
+                Text(result.profile.shortLabel)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
 
             ScrollView {
-                Text(transcript.text)
+                Text(text)
                     .font(.body)
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -233,20 +246,20 @@ private struct TranscriptView: View {
                 Button(didCopy ? "Copied" : "Copy") {
                     let pasteboard = NSPasteboard.general
                     pasteboard.clearContents()
-                    pasteboard.setString(transcript.text, forType: .string)
+                    pasteboard.setString(text, forType: .string)
                     didCopy = true
                 }
                 .disabled(didCopy)
 
                 Spacer()
 
-                if let factor = transcript.realTimeFactor {
+                if let factor = result.transcript.realTimeFactor {
                     Text(String(format: "%.2f\u{00d7} real time", factor))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
             }
         }
-        .onChange(of: transcript) { didCopy = false }
+        .onChange(of: text) { didCopy = false }
     }
 }

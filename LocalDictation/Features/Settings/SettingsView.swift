@@ -15,6 +15,9 @@ struct SettingsView: View {
             boundaryTab
                 .tabItem { Label("Boundary", systemImage: "waveform") }
 
+            GlossaryView()
+                .tabItem { Label("Dictionary", systemImage: "character.book.closed") }
+
             DiagnosticsView()
                 .tabItem { Label("Diagnostics", systemImage: "stethoscope") }
         }
@@ -31,14 +34,20 @@ struct SettingsView: View {
             }
 
             Section("Privacy") {
-                Text("Audio stays in memory on this Mac. Nothing is written to disk during normal capture and nothing is sent to a network service.")
+                Text("Audio stays in memory on this Mac. Nothing is written to disk during normal capture and nothing is sent to a network service. A recording is discarded as soon as the app decides no review is needed, and otherwise when the review ends.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                 LabeledContent("MVP languages", value: "DE, EN, RU, UK")
             }
 
+            Section("Review") {
+                Text("The review step appears only when a fragment is worth checking — an amount, a date, a name, a dictionary near-miss, or a word the app removed. When nothing is marked, the text is simply ready and the recording is discarded immediately.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Phase") {
-                Text("Phase 1 covers permission, global hotkey, bounded in-memory capture, and the voice-activity boundary. Speech recognition arrives in Phase 2.")
+                Text("Phase 3 covers conservative cleanup, the risk engine, the review strip with raw-transcript recovery, and memory-only fragment replay. Insertion into other applications arrives in Phase 4.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
@@ -149,6 +158,25 @@ struct DiagnosticsView: View {
                 }
             }
 
+            if let risk = coordinator.diagnostics.lastRisk {
+                Section("Last result") {
+                    LabeledContent("Cleanup edits", value: "\(risk.editCount)")
+                    LabeledContent("Edit kinds", value: risk.editKinds.isEmpty ? "\u{2014}" : risk.editKinds.joined(separator: ", "))
+                    LabeledContent("Risk spans", value: "\(risk.spanCount)")
+                    LabeledContent("Flagged", value: "\(risk.flaggedSpanCount)")
+                    LabeledContent("Signals", value: risk.spanCategories.isEmpty ? "\u{2014}" : risk.spanCategories.joined(separator: ", "))
+                    LabeledContent("Highest weight", value: String(format: "%.2f", risk.maximumWeight))
+                    LabeledContent("Review", value: risk.requiresReview ? "Shown" : "Not needed")
+                }
+
+                Section("Audio lifetime") {
+                    LabeledContent("Retained frames", value: "\(coordinator.retainedAudioFrameCount)")
+                    Text("A recording is held only while a review can still use it. Zero here means the app is no longer holding the last utterance.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
             if let error = coordinator.diagnostics.lastErrorDescription {
                 Section("Last error") {
                     Text(error)
@@ -193,4 +221,94 @@ struct DiagnosticsView: View {
         }
     }
     #endif
+}
+
+/// The user's vocabulary, scoped by language.
+///
+/// The only screen in the app that writes anything to disk. It stores terms and
+/// their language — never a transcript, never audio.
+struct GlossaryView: View {
+    @EnvironmentObject private var coordinator: DictationCoordinator
+
+    @State private var term = ""
+    @State private var language: SpeechLanguage = .german
+
+    var body: some View {
+        Form {
+            Section("Add a term") {
+                HStack {
+                    TextField("Name, product, or term", text: $term)
+                        .onSubmit(add)
+                    Picker("", selection: $language) {
+                        ForEach(SpeechLanguage.allCases, id: \.self) { language in
+                            Text(language.rawValue.uppercased()).tag(language)
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(width: 70)
+                    Button("Add", action: add)
+                        .disabled(term.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+
+                Text("A word that comes out close to one of your terms, but not equal to it, is marked for review. An exact match is not: it came out right.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            ForEach(SpeechLanguage.allCases, id: \.self) { language in
+                let entries = coordinator.glossary.entries(for: language)
+                if !entries.isEmpty {
+                    Section(language.displayName) {
+                        ForEach(entries) { entry in
+                            HStack {
+                                Text(entry.term)
+                                Spacer()
+                                Button {
+                                    coordinator.removeGlossaryTerm(id: entry.id)
+                                } label: {
+                                    Image(systemName: "minus.circle")
+                                }
+                                .buttonStyle(.borderless)
+                                .help("Remove this term")
+                            }
+                        }
+                    }
+                }
+            }
+
+            if coordinator.glossary.entries.isEmpty {
+                Section {
+                    Text("No terms yet. Add the names and words you dictate often and would notice being wrong.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Section("Storage") {
+                if let location = coordinator.glossaryLocationDescription {
+                    Text(location)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                }
+                Text("This file is the only thing the app persists. Transcripts and recordings stay in memory.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            if let error = coordinator.glossaryErrorDescription {
+                Section("Last error") {
+                    Text(error)
+                        .font(.callout)
+                        .foregroundStyle(.orange)
+                }
+            }
+        }
+        .formStyle(.grouped)
+    }
+
+    private func add() {
+        guard coordinator.addGlossaryTerm(term, language: language) else { return }
+        term = ""
+    }
 }
