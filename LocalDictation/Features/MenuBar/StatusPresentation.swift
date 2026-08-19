@@ -104,6 +104,15 @@ struct StatusPresentation: Sendable, Equatable {
             showsSystemSettingsShortcut = false
             showsRecoveryAction = false
 
+        case .reviewing:
+            title = "Worth a look"
+            detail = "Some fragments are worth checking before you use this text."
+            systemImage = "text.magnifyingglass"
+            tint = .warning
+            showsPermissionRequest = false
+            showsSystemSettingsShortcut = false
+            showsRecoveryAction = false
+
         case let .failed(failure):
             title = "Needs attention"
             detail = failure.message

@@ -330,3 +330,126 @@ extension Transcript {
         )
     }
 }
+
+/// Fragment player that records what it was asked to play and never touches
+/// AVAudioEngine, so replay can be asserted without a sound device.
+@MainActor
+final class FakeAudioFragmentPlayer: AudioFragmentPlayer {
+    private(set) var isPlaying = false
+    private(set) var playedFragments: [(samples: [Float], sampleRate: Double)] = []
+    private(set) var stopCount = 0
+    var errorToThrow: AudioPlaybackError?
+
+    var playCount: Int { playedFragments.count }
+    var lastFrameCount: Int { playedFragments.last?.samples.count ?? 0 }
+
+    func play(samples: [Float], sampleRate: Double) throws {
+        if let errorToThrow { throw errorToThrow }
+        playedFragments.append((samples, sampleRate))
+        isPlaying = true
+    }
+
+    func stop() {
+        stopCount += 1
+        isPlaying = false
+    }
+}
+
+/// Glossary store backed by memory, so coordinator tests never write to the
+/// real Application Support directory.
+final class InMemoryGlossaryStore: GlossaryStore, @unchecked Sendable {
+    private let lock = NSLock()
+    private var stored: Glossary
+    private var loadError: GlossaryStoreError?
+    private var saveError: GlossaryStoreError?
+    private(set) var saveCount = 0
+
+    init(_ glossary: Glossary = .empty) {
+        stored = glossary
+    }
+
+    var locationDescription: String { "in memory" }
+
+    var current: Glossary { lock.withLock { stored } }
+
+    func failLoad(with error: GlossaryStoreError) {
+        lock.withLock { loadError = error }
+    }
+
+    func failSave(with error: GlossaryStoreError) {
+        lock.withLock { saveError = error }
+    }
+
+    func load() throws -> Glossary {
+        let (error, glossary): (GlossaryStoreError?, Glossary) = lock.withLock { (loadError, stored) }
+        if let error { throw error }
+        return glossary
+    }
+
+    func save(_ glossary: Glossary) throws {
+        let error: GlossaryStoreError? = lock.withLock {
+            saveCount += 1
+            return saveError
+        }
+        if let error { throw error }
+        lock.withLock { stored = glossary }
+    }
+}
+
+/// Cleanup double that returns whatever a test needs, so the coordinator and
+/// the risk engine can be exercised without the real rule set.
+struct StubCleanupService: CleanupService {
+    let result: CleanupResult
+
+    func clean(_ raw: String, language: SpeechLanguage, options: CleanupOptions) -> CleanupResult {
+        result
+    }
+}
+
+/// Signal double producing fixed spans, so `RiskEngine` can be tested for what
+/// it does — weighting, mapping, deduplication — rather than for what the real
+/// signals find.
+struct StubRiskSignal: RiskSignal {
+    let identifier: String
+    let produced: [RawRiskSpan]
+
+    init(identifier: String = "stub", produced: [RawRiskSpan]) {
+        self.identifier = identifier
+        self.produced = produced
+    }
+
+    func spans(in context: RiskContext) -> [RawRiskSpan] { produced }
+}
+
+extension Transcript {
+    /// A transcript whose tokens carry the character ranges of `text`, built by
+    /// scanning it. Used where a test needs timings that line up with a
+    /// specific string rather than with a list of words.
+    static func fixture(
+        text: String,
+        profile: LanguageProfile = .default,
+        confidence: Double? = 0.9,
+        secondsPerWord: TimeInterval = 0.4,
+        engineIdentifier: String = "fake"
+    ) -> Transcript {
+        let words = WordScanner.words(in: text)
+        let tokens = words.map { word in
+            TranscriptToken(
+                text: word.text,
+                range: word.range,
+                start: Double(word.index) * secondsPerWord,
+                end: Double(word.index + 1) * secondsPerWord,
+                confidence: confidence
+            )
+        }
+        return Transcript(
+            text: text,
+            tokens: tokens,
+            profile: profile,
+            detectedLanguage: nil,
+            audioDuration: Double(max(words.count, 1)) * secondsPerWord,
+            processingDuration: 0.1,
+            engineIdentifier: engineIdentifier
+        )
+    }
+}

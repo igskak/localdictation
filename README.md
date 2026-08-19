@@ -6,20 +6,26 @@ Native, local-first macOS dictation app. The product goal is fast voice input wi
 
 Phase 1 (application and audio foundation) is complete: menu bar lifecycle, microphone permission handling, a global push-to-talk hotkey, bounded in-memory PCM capture normalized to mono Float32 at 16 kHz, an energy-based voice-activity boundary, developer diagnostics, and a deterministic test suite.
 
-Phase 2 (transcription and raw dictation) is in progress. Implemented: the `TranscriptionService` boundary, explicit language profiles, transcripts with per-token timing and confidence, two engine adapters, in-app raw transcript display with an explicit copy action, and the benchmark harness.
+Phase 2 (transcription and raw dictation) is complete. The engine is decided: **WhisperKit**. Apple's on-device engine was dropped because it cannot serve German, Russian, or Ukrainian offline on a stock Mac — it offers server recognition instead, which this product does not allow. Accuracy is **not** settled: the only measurements so far come from a synthesized smoke corpus, and no real speech has been scored. See `docs/PHASE_2_BENCHMARK.md`.
 
-The engine is decided: **WhisperKit**. Apple's on-device engine was dropped because it cannot serve German, Russian, or Ukrainian offline on a stock Mac — it offers server recognition instead, which this product does not allow. Accuracy is **not** settled: the only measurements so far come from a synthesized smoke corpus, and no real speech has been scored. See `docs/PHASE_2_BENCHMARK.md`.
+Phase 3 (uncertainty and conservative cleanup) is in progress. Implemented: conservative cleanup with an auditable edit map, six risk signals over the raw text, risky spans mapped onto the cleaned text, an explicit review policy, the review strip with raw-transcript recovery and memory-only fragment replay, and a user dictionary scoped by language.
 
-There is deliberately no text cleanup, risk highlighting, Accessibility insertion, persistence, analytics, or licensing yet. Text never enters another application: the only way it leaves the app is the copy button.
+Two Phase 3 decisions are worth knowing before reading the code:
+
+- **The deterministic signals come first and model confidence comes last.** Numbers, dates, amounts, names, dictionary near-misses, cleanup edits, and language switching are facts about the text. Model confidence is wired up and measured but carries a weight of **zero**, because Phase 2 found weak — and on Russian, negative — separation between the confidence of correct and incorrect tokens. It earns a weight from a measurement on real speech, not from an assumption.
+- **A dropped word is not chased.** If the engine swallows "не" or "nicht", no rule can flag what is absent. The app does not build a mechanism for it; the reasoning is recorded in `docs/PHASE_3.md`. The consequence is that audio replay is offered only for a marked fragment, and the recording is discarded the moment the app decides no review is needed.
+
+There is deliberately no Accessibility insertion, analytics, or licensing yet. Text never enters another application: the only way it leaves the app is the copy button. The user dictionary is the only thing that persists — transcripts and audio stay in memory.
 
 Read these files before continuing implementation:
 
 - `docs/PRODUCT_SCOPE.md` — current product decisions and MVP boundary.
 - `docs/ARCHITECTURE.md` — target architecture and phase boundaries.
 - `docs/PHASE_1.md` — acceptance criteria for the first implementation phase.
-- `docs/PHASE_2.md` — acceptance criteria for the current phase.
+- `docs/PHASE_2.md` — acceptance criteria for the previous phase.
 - `docs/PHASE_2_BENCHMARK.md` — engine candidates, metrics, and how to run the benchmark.
-- `docs/PHASE_3.md` — acceptance criteria for the next phase.
+- `docs/PHASE_3.md` — acceptance criteria for the current phase.
+- `docs/PHASE_3_MEASUREMENT.md` — how recall, false-warning density, and semantic preservation are measured, and what they came out as.
 - `AGENTS.md` — repository-level engineering constraints.
 
 ## Requirements
@@ -36,7 +42,8 @@ Read these files before continuing implementation:
 3. In Signing & Capabilities, choose a Personal Team if Xcode requires one for local execution. A paid Apple Developer Program membership is not required for local development.
 4. Build and run, then open the menu bar item and grant microphone access.
 5. Choose a language profile and press **Prepare speech model…**. The first run downloads roughly 600 MB of Whisper weights into `~/Library/Application Support/LocalDictation/Models`. This is the only network access in the app, it is a one-way fetch of a static asset, and it never runs without this explicit action.
-6. Hold `⌥Space` to record, release to finish, and the raw transcript appears in the menu bar panel.
+6. Hold `⌥Space` to record, release to finish. The text appears in the menu bar panel — with a review strip when something is worth checking, and without one when nothing is.
+7. Optionally add names and terms you dictate often under **Settings → Dictionary**. A word that comes out close to one of them, but not equal to it, gets marked.
 
 The app is an agent-style menu bar utility (`LSUIElement = true`), so it does not show a Dock icon.
 
@@ -61,7 +68,13 @@ LocalDictation/
   Services/Audio/         capture, format conversion, bounded PCM buffer
   Services/VAD/           replaceable voice-activity detector
   Services/Transcription/ TranscriptionService boundary and engine adapters
-  Benchmark/              corpus loading and scoring (Debug builds only)
+  Services/Text/          word scanning, edit distance, language evidence
+  Services/Cleanup/       conservative cleanup and the edit map
+  Services/Risk/          the six risk signals and the engine combining them
+  Services/Review/        the review policy and decision
+  Services/Glossary/      the user dictionary and its only persistence
+  Features/Review/        review strip and its pure presentation
+  Benchmark/              corpus loading, scoring, and risk measurement (Debug builds only)
   Support/                logging and locking primitives
 Tools/
   generate_pbxproj.py     regenerates the Xcode file lists from the files on disk
@@ -79,7 +92,11 @@ python3 Tools/generate_pbxproj.py
 
 ## Privacy
 
-Audio stays in memory. Normal capture performs no file writes, and a test asserts that the real capture path creates no files. Transcripts are memory-only and are discarded when the next utterance starts. Inference is local; no audio or text is transmitted.
+Audio stays in memory. Normal capture performs no file writes, and a test asserts that the real capture path creates no files. Inference is local; no audio or text is transmitted.
+
+A recording's lifetime is bounded by the review decision, not by the end of the interaction: it is released the instant the app decides no review is needed, and otherwise when the review is accepted, dismissed, or superseded. Tests assert both. Replay reads those samples straight out of memory — no file and no URL is involved.
+
+The user dictionary in `~/Library/Application Support/LocalDictation/glossary.json` is the only thing written to disk. It holds terms and their language, and a test asserts nothing else can end up in it.
 
 The single network operation is the explicit, user-initiated speech-model download. The debug WAV export is compiled only in Debug builds and writes solely to a location chosen by the user in a save panel.
 

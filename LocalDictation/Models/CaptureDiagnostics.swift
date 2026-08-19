@@ -70,6 +70,7 @@ struct CaptureDiagnostics: Sendable, Equatable {
     var snapshot: CaptureSnapshot = CaptureSnapshot()
     var lastUtterance: UtteranceSummary?
     var lastTranscript: TranscriptDiagnostics?
+    var lastRisk: RiskDiagnostics?
     var lastErrorDescription: String?
 
     static let empty = CaptureDiagnostics()
