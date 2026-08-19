@@ -17,7 +17,11 @@ an unverified acceptance criterion in the phase report.
 xcodebuild test -project LocalDictation.xcodeproj -scheme LocalDictation -destination 'platform=macOS,arch=arm64'
 ```
 
-- [ ] `** TEST SUCCEEDED **`, 327 tests, 2 skipped (corpus-gated), no warnings.
+- [ ] `** TEST SUCCEEDED **`, 332 tests, 2 skipped (corpus-gated), no warnings.
+- [ ] `ReviewPanelControllerTests` passed. It drives a real `NSPanel`
+      through a real layout pass, because a panel that resizes its own
+      window from inside that pass took the app down the first time a
+      review appeared, with every other test still green.
 - [ ] No permission dialog appeared during the run. Every Accessibility call,
       synthetic key event, and pasteboard write in the insertion path sits
       behind a protocol, and the tests use fakes.
