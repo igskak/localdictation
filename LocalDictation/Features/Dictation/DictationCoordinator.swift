@@ -21,7 +21,7 @@ final class DictationCoordinator: ObservableObject {
     /// Set inside review when the user asks for the raw transcript back.
     /// Reset on every new utterance, so a recovery never leaks into the next one.
     @Published var prefersRawTranscript = false
-    @Published private(set) var transcriptionModelState: TranscriptionModelState = .unavailable("No speech engine configured")
+    @Published private(set) var transcriptionModelState: TranscriptionModelState = .unavailable("No speech engine configured", needsUserAction: true)
     /// Selected language profile. Explicit, never inferred per utterance.
     @Published var languageProfile: LanguageProfile
     /// The user's vocabulary — the only state in the app that survives a launch.
@@ -103,6 +103,32 @@ final class DictationCoordinator: ObservableObject {
         loadGlossary()
         apply(.authorizationResolved(permissionService.currentAuthorization))
         registerHotkey()
+        loadInstalledModel()
+    }
+
+    /// Loads weights that are already on disk, in the background, at launch.
+    ///
+    /// Never downloads. The 600 MB fetch stays bound to the explicit button,
+    /// and this only covers the case that needs neither the network nor the
+    /// user: reading installed weights into memory. That load costs seconds on
+    /// a warm system, and paying it at launch is the difference between a user
+    /// who waits and a user who never notices.
+    private func loadInstalledModel() {
+        guard let transcriptionService else { return }
+        let profile = languageProfile
+        Task { [weak self] in
+            let state = await transcriptionService.modelState(for: profile)
+            guard let self else { return }
+            // Reading the state took a hop, and in that time the user may have
+            // pressed the button themselves. This is a launch convenience, not
+            // an authority on the state: whatever is already under way wins.
+            guard !transcriptionModelState.isPreparing, !transcriptionModelState.isReady else { return }
+            guard state.canPrepareUnattended else {
+                transcriptionModelState = state
+                return
+            }
+            await prepareTranscriptionModel()
+        }
     }
 
     func deactivate() {
@@ -332,22 +358,48 @@ final class DictationCoordinator: ObservableObject {
     func prepareTranscriptionModel() async {
         guard let transcriptionService else { return }
         let profile = languageProfile
-        transcriptionModelState = .preparing(progress: nil)
+        transcriptionModelState = .preparing(ModelPreparation(phase: .loading))
         // Logged on both ends. Preparing a cold model runs for minutes, and
         // without a start and a finish there is no way to tell a slow load from
         // a stuck one.
         Log.transcription.info("Preparing speech model for \(profile.displayName, privacy: .public)")
         let started = Date()
+        // The engine knows which phase it is in and how far a download has got,
+        // but `prepare` only returns at the end. Polling is what turns a silent
+        // multi-minute wait into a label that changes.
+        let phasePolling = pollPreparationPhase(of: transcriptionService, for: profile)
+        defer { phasePolling.cancel() }
         do {
             try await transcriptionService.prepare(for: profile)
+            phasePolling.cancel()
             transcriptionModelState = await transcriptionService.modelState(for: profile)
-            Log.transcription.info(
-                "Speech model ready after \(String(format: "%.1f", Date().timeIntervalSince(started))) s"
-            )
+            // Explicitly public: string interpolations are redacted by default,
+            // and a timing with no content in it is exactly what this log is
+            // for. Without the annotation it arrives as "<private> s".
+            let elapsed = String(format: "%.1f", Date().timeIntervalSince(started))
+            Log.transcription.info("Speech model ready after \(elapsed, privacy: .public) s")
         } catch {
             let message = (error as? TranscriptionError)?.message ?? error.localizedDescription
             Log.transcription.error("Model preparation failed: \(message, privacy: .public)")
             transcriptionModelState = .failed(message)
+        }
+    }
+
+    /// Mirrors the engine's preparation phase into the published state until
+    /// the load ends. Only overwrites a `preparing` state, so it can never
+    /// stomp on the final `ready` or `failed`.
+    private func pollPreparationPhase(
+        of service: any TranscriptionService,
+        for profile: LanguageProfile
+    ) -> Task<Void, Never> {
+        Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 400_000_000)
+                guard !Task.isCancelled else { return }
+                let state = await service.modelState(for: profile)
+                guard let self, state.isPreparing, self.transcriptionModelState.isPreparing else { return }
+                self.transcriptionModelState = state
+            }
         }
     }
 

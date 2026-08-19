@@ -19,7 +19,9 @@ struct StatusPresentation: Sendable, Equatable {
     let showsSystemSettingsShortcut: Bool
     let showsRecoveryAction: Bool
 
-    init(state: RecordingState, binding: HotkeyBinding) {
+    /// `modelState` only changes the transcribing copy, so callers that do not
+    /// have an engine can leave it alone.
+    init(state: RecordingState, binding: HotkeyBinding, modelState: TranscriptionModelState = .ready) {
         switch state {
         case .launching:
             title = "Starting up"
@@ -96,8 +98,14 @@ struct StatusPresentation: Sendable, Equatable {
             showsRecoveryAction = false
 
         case .transcribing:
-            title = "Transcribing"
-            detail = "Recognizing speech on this Mac. Hold \(binding.displayString) to start the next one."
+            // Recording during a load is allowed on purpose — the audio is
+            // already captured and throwing it away would be worse. But saying
+            // "Transcribing" while the engine is still loading reads as a hang,
+            // so the wait is named for what it is.
+            title = modelState.isPreparing ? "Waiting for the speech model" : "Transcribing"
+            detail = modelState.isPreparing
+                ? "Your recording is held in memory. Transcription starts the moment the model finishes loading."
+                : "Recognizing speech on this Mac. Hold \(binding.displayString) to start the next one."
             systemImage = "waveform.badge.magnifyingglass"
             tint = .active
             showsPermissionRequest = false
