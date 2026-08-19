@@ -107,6 +107,42 @@ final class RiskFalsePositiveTests: XCTestCase {
         XCTAssertEqual(RiskEngine.suppressingRedundantEntities([entity, number]).count, 2)
     }
 
+    /// From the second live session, on the build without the fix: "April" came
+    /// back as both a Date and a Name.
+    func testMonthNameInAnEnglishSentenceIsADateOnly() {
+        let result = spans(
+            "We will not ship before April 15th.",
+            language: .english,
+            profile: .russianEnglish
+        )
+
+        XCTAssertEqual(reasons(for: "April", in: result), ["Date"])
+    }
+
+    /// Same session: "EUR" was marked Amount *and* Name, because an all-caps
+    /// word matches the acronym rule as well as the currency list.
+    func testCurrencyCodeIsAnAmountNotAName() {
+        let result = spans("Balance 2500 EUR.", language: .english, profile: .ukrainianEnglish)
+
+        XCTAssertEqual(reasons(for: "EUR", in: result), ["Amount"])
+    }
+
+    /// And "Euro" spelled out, which reaches the entity rule by capitalization
+    /// rather than by the acronym rule — a different path to the same defect.
+    func testSpelledOutCurrencyIsAnAmountNotAName() {
+        let result = spans("Balance 2500 Euro.", language: .english, profile: .ukrainianEnglish)
+
+        XCTAssertEqual(reasons(for: "Euro", in: result), ["Amount"])
+    }
+
+    /// A genuine acronym with nothing else explaining it stays a name, so the
+    /// suppression did not simply switch the acronym rule off.
+    func testAnAcronymThatIsNotCurrencyIsStillAName() {
+        let result = spans("Send it to ACME today.", language: .english, profile: .russianEnglish)
+
+        XCTAssertEqual(reasons(for: "ACME", in: result), ["Name"])
+    }
+
     // MARK: - The languages that were already correct must stay correct
 
     func testRussianSentenceStillMarksExactlyTheRightThree() {

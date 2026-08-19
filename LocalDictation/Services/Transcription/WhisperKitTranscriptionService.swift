@@ -233,24 +233,43 @@ actor WhisperKitTranscriptionService: TranscriptionService {
         try Task.checkCancellation()
         let started = Date()
 
-        let results: [TranscriptionResult]
-        do {
-            results = try await engine.transcribe(
-                audioArray: utterance.samples,
-                decodeOptions: Self.decodingOptions(for: profile)
-            )
-        } catch is CancellationError {
-            throw TranscriptionError.cancelled
-        } catch {
-            throw TranscriptionError.engineFailure(error.localizedDescription)
-        }
+        var results = try await decode(
+            utterance.samples,
+            options: Self.decodingOptions(for: profile),
+            using: engine
+        )
 
         try Task.checkCancellation()
-        let processingDuration = Date().timeIntervalSince(started)
 
-        let segments = results.flatMap(\.segments)
         // Whisper reports ISO-639-1 codes, which are exactly our raw values.
-        let detected = results.first.flatMap { SpeechLanguage(rawValue: $0.language) }
+        var detected = results.first.flatMap { SpeechLanguage(rawValue: $0.language) }
+
+        // Free detection chooses from every language Whisper knows, not from the
+        // two the user selected, and it does wander: a Ukrainian utterance under
+        // UK+EN came back decoded as Polish, in Latin script. Whisper names the
+        // language it picked, so the miss is detectable exactly rather than by
+        // guessing at the text.
+        if profile.isMixed, detected == nil || !profile.contains(detected!) {
+            let strayed = results.first?.language ?? "unknown"
+            let pinned = try await languageWithinProfile(
+                profile,
+                samples: utterance.samples,
+                using: engine
+            )
+            Log.transcription.notice(
+                "Detected \(strayed, privacy: .public) outside profile \(profile.shortLabel, privacy: .public); redecoding as \(pinned.rawValue, privacy: .public)"
+            )
+            results = try await decode(
+                utterance.samples,
+                options: Self.decodingOptions(for: profile, pinnedTo: pinned),
+                using: engine
+            )
+            detected = pinned
+            try Task.checkCancellation()
+        }
+
+        let processingDuration = Date().timeIntervalSince(started)
+        let segments = results.flatMap(\.segments)
 
         return Transcript.assemble(
             words: Self.words(from: segments),
@@ -264,7 +283,78 @@ actor WhisperKitTranscriptionService: TranscriptionService {
 
     // MARK: - Options
 
-    private static func decodingOptions(for profile: LanguageProfile) -> DecodingOptions {
+    private func decode(
+        _ samples: [Float],
+        options: DecodingOptions,
+        using engine: WhisperKit
+    ) async throws -> [TranscriptionResult] {
+        do {
+            return try await engine.transcribe(audioArray: samples, decodeOptions: options)
+        } catch is CancellationError {
+            throw TranscriptionError.cancelled
+        } catch {
+            throw TranscriptionError.engineFailure(error.localizedDescription)
+        }
+    }
+
+    /// The profile language Whisper considers most likely.
+    ///
+    /// Asks for the full language distribution and takes the best entry *within
+    /// the profile*, rather than defaulting to the primary. A user who selected
+    /// UK+EN and spoke English should not be re-decoded as Ukrainian just
+    /// because the first pass strayed to a third language.
+    ///
+    /// Falls back to the primary when detection cannot be obtained at all —
+    /// producing a transcript in a language the user selected beats failing the
+    /// recording they just made.
+    private func languageWithinProfile(
+        _ profile: LanguageProfile,
+        samples: [Float],
+        using engine: WhisperKit
+    ) async throws -> SpeechLanguage {
+        // The WhisperKit method is spelled `detectLangauge`; the typo is theirs
+        // and is part of the public API.
+        guard let probabilities = try? await engine.detectLangauge(audioArray: samples).langProbs else {
+            return profile.primary
+        }
+        return Self.bestLanguage(in: profile, probabilities: probabilities)
+    }
+
+    /// The profile language with the highest reported probability.
+    ///
+    /// Restricting the argmax to the profile is the whole point: Whisper's own
+    /// ranking is trusted, but only among the languages the user actually
+    /// selected. Falls back to the primary when no profile language appears in
+    /// the distribution at all.
+    static func bestLanguage(
+        in profile: LanguageProfile,
+        probabilities: [String: Float]
+    ) -> SpeechLanguage {
+        let ranked = profile.languages.compactMap { language -> (SpeechLanguage, Float)? in
+            guard let probability = probabilities[language.rawValue] else { return nil }
+            return (language, probability)
+        }
+        return ranked.max { $0.1 < $1.1 }?.0 ?? profile.primary
+    }
+
+    private static func decodingOptions(
+        for profile: LanguageProfile,
+        pinnedTo language: SpeechLanguage? = nil
+    ) -> DecodingOptions {
+        if let language {
+            return DecodingOptions(
+                verbose: false,
+                task: .transcribe,
+                language: language.rawValue,
+                detectLanguage: false,
+                skipSpecialTokens: true,
+                wordTimestamps: true
+            )
+        }
+        return baseDecodingOptions(for: profile)
+    }
+
+    private static func baseDecodingOptions(for profile: LanguageProfile) -> DecodingOptions {
         // Whisper decodes one language per pass. A single-language profile pins
         // it; a mixed profile lets Whisper decide, which is the honest way to
         // serve DE+EN and RU+UK and is exactly what the benchmark must measure.
