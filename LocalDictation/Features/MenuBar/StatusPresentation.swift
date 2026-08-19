@@ -121,6 +121,15 @@ struct StatusPresentation: Sendable, Equatable {
             showsSystemSettingsShortcut = false
             showsRecoveryAction = false
 
+        case .inserting:
+            title = "Inserting"
+            detail = "Putting the text where you were typing."
+            systemImage = "text.cursor"
+            tint = .active
+            showsPermissionRequest = false
+            showsSystemSettingsShortcut = false
+            showsRecoveryAction = false
+
         case let .failed(failure):
             title = "Needs attention"
             detail = failure.message

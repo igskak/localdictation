@@ -6,6 +6,10 @@ import SwiftUI
 /// It appears only when the risk policy says the interruption is earned, and
 /// it holds the three things a user needs to settle a doubt: the marked text,
 /// the raw transcript the app started from, and the audio of a marked fragment.
+///
+/// From Phase 4 it also stands between the text and the application it is going
+/// into, which is why its primary action is named for what it does. Accepting
+/// inserts; discarding inserts nothing at all.
 struct ReviewStripView: View {
     @EnvironmentObject private var coordinator: DictationCoordinator
 
@@ -126,6 +130,14 @@ struct ReviewStripView: View {
         }
     }
 
+    /// Named for where the text is going, because "Done" says nothing about
+    /// the fact that pressing it puts text into another application.
+    private var insertTitle: String {
+        guard coordinator.canInsert else { return "Done" }
+        guard let target = coordinator.insertionTargetName else { return "Insert" }
+        return "Insert into \(target)"
+    }
+
     private var actions: some View {
         HStack {
             Button(coordinator.prefersRawTranscript ? "Show cleaned text" : "Show raw transcript") {
@@ -145,7 +157,14 @@ struct ReviewStripView: View {
             }
             .disabled(didCopy)
 
-            Button("Done") {
+            if coordinator.canInsert {
+                Button("Discard") {
+                    coordinator.dismissReview()
+                }
+                .help("Close this without putting the text anywhere")
+            }
+
+            Button(insertTitle) {
                 coordinator.acceptReview()
             }
             .keyboardShortcut(.defaultAction)

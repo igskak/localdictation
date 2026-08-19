@@ -237,6 +237,20 @@ enum RiskBenchmark {
 
     // MARK: - Scoring
 
+
+    /// The same word-in-its-neighbourhood question the risk engine asks, so the
+    /// definition that scores a corpus and the definition that marks a
+    /// transcript stay the one definition Phase 3 promoted them into being.
+    private static func isCritical(_ words: [String], at index: Int) -> Bool {
+        guard words.indices.contains(index) else { return false }
+        let window = CriticalTokens.dateContextWindow
+        return CriticalTokens.isCritical(
+            words[index],
+            precededBy: Array(words[max(index - window, 0)..<index]),
+            followedBy: Array(words[(index + 1)..<min(index + 1 + window, words.count)])
+        )
+    }
+
     static func score(
         sample: BenchmarkSample,
         hypothesis: String,
@@ -298,8 +312,8 @@ enum RiskBenchmark {
                 guard hypothesisIndex < hypothesisWords.count else { break }
                 let range = hypothesisWords[hypothesisIndex].range
                 incorrectRanges.append(range)
-                let isCritical = CriticalTokens.isCritical(referenceWords[referenceIndex])
-                    || CriticalTokens.isCritical(hypothesisWords[hypothesisIndex].normalized)
+                let isCritical = Self.isCritical(referenceWords, at: referenceIndex)
+                    || Self.isCritical(hypothesisWords.map(\.normalized), at: hypothesisIndex)
                 if isCritical {
                     criticalErrors += 1
                     if isMarked(range) { criticalErrorsMarked += 1 }
@@ -309,7 +323,7 @@ enum RiskBenchmark {
                 guard hypothesisIndex < hypothesisWords.count else { break }
                 let range = hypothesisWords[hypothesisIndex].range
                 incorrectRanges.append(range)
-                if CriticalTokens.isCritical(hypothesisWords[hypothesisIndex].normalized) {
+                if Self.isCritical(hypothesisWords.map(\.normalized), at: hypothesisIndex) {
                     criticalErrors += 1
                     if isMarked(range) { criticalErrorsMarked += 1 }
                 }
@@ -319,7 +333,7 @@ enum RiskBenchmark {
                 // `docs/PHASE_3.md` decided not to chase: no rule can flag what
                 // is absent, and it is counted here so the decision stays
                 // visible in the numbers rather than becoming invisible.
-                if CriticalTokens.isCritical(referenceWords[referenceIndex]) {
+                if Self.isCritical(referenceWords, at: referenceIndex) {
                     criticalWordsDropped += 1
                 }
             }

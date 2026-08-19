@@ -30,6 +30,11 @@ enum RecordingFailure: Sendable, Equatable {
 /// says the interruption is earned. The state is what bounds the recording's
 /// lifetime: audio is held while it lasts and released the moment it ends — or
 /// immediately, when the decision was that no review is needed.
+///
+/// Phase 4 adds `.inserting`, which is short but not instantaneous: the paste
+/// path posts a key event and then waits for the target application to read the
+/// pasteboard. A state makes that window explicit, so a hotkey press arriving
+/// inside it supersedes the insertion instead of racing it.
 enum RecordingState: Sendable, Equatable {
     case launching
     case needsPermission
@@ -41,6 +46,7 @@ enum RecordingState: Sendable, Equatable {
     case finishing
     case transcribing
     case reviewing
+    case inserting
     case failed(RecordingFailure)
 
     var isCapturing: Bool {
@@ -56,9 +62,11 @@ enum RecordingState: Sendable, Equatable {
 
     var isReviewing: Bool { self == .reviewing }
 
+    var isInserting: Bool { self == .inserting }
+
     /// States whose progress must not be clobbered by an authorization re-read
     /// or a hotkey registration result arriving from the OS.
-    var isBusy: Bool { isCapturing || isTranscribing || isReviewing }
+    var isBusy: Bool { isCapturing || isTranscribing || isReviewing || isInserting }
 }
 
 /// Events the coordinator feeds into the state machine. Anything not listed as a
@@ -78,6 +86,8 @@ enum RecordingEvent: Sendable, Equatable {
     case transcriptionFailed(String)
     case reviewRequired
     case reviewCompleted
+    case insertionStarted
+    case insertionFinished
     case hotkeyRegistrationFailed(String)
     case recoveryRequested
 }
@@ -132,10 +142,11 @@ struct RecordingStateMachine: Sendable, Equatable {
             guard !state.isCapturing else {
                 return authorization.allowsCapture ? nil : .failed(.captureInterrupted("Microphone access was revoked"))
             }
-            // Transcription runs on audio that is already captured, and a
-            // review is the user reading a result, so an authorization change
-            // must not interrupt or overwrite either.
-            guard !state.isTranscribing, !state.isReviewing else { return nil }
+            // Transcription runs on audio that is already captured, a review
+            // is the user reading a result, and an insertion is text already on
+            // its way out, so an authorization change must not interrupt or
+            // overwrite any of them.
+            guard !state.isTranscribing, !state.isReviewing, !state.isInserting else { return nil }
             return Self.state(for: authorization)
 
         case let .hotkeyRegistrationFailed(detail):
@@ -205,6 +216,28 @@ struct RecordingStateMachine: Sendable, Equatable {
             return .starting
         case (.reviewing, .transcriptionStarted):
             // A review must finish before the next transcript can replace it.
+            return nil
+
+        // Insertion is entered from all three places text can be finished with:
+        // a result that needed no review, a review the user accepted, and the
+        // explicit action offered when automatic insertion is switched off.
+        case (.transcribing, .insertionStarted):
+            return .inserting
+        case (.reviewing, .insertionStarted):
+            return .inserting
+        case (.ready, .insertionStarted):
+            return .inserting
+
+        case (.inserting, .insertionFinished):
+            return .ready
+        case (.inserting, .hotkeyPressed):
+            // The next dictation supersedes an insertion still settling. The
+            // coordinator drops the outcome of the superseded one, so a late
+            // result cannot report on a recording that has been replaced.
+            return .starting
+        case (.inserting, .transcriptionStarted):
+            // The utterance behind this insertion is finished; a transcript
+            // arriving now belongs to a recording that has not superseded it.
             return nil
 
         case (.failed, .recoveryRequested):

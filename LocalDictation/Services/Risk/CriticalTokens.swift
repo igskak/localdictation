@@ -34,26 +34,57 @@ enum CriticalTokens {
 
     /// Month names, weekday names, and the ordinals used to speak a day of the
     /// month. A wrong date reads as fluently as a right one.
-    static func isDate(_ word: String) -> Bool {
+    ///
+    /// An ordinal needs its neighbours to mean a date. "den zweiten Absatz" and
+    /// "the second paragraph" are ordinary writing, and marking them as dates
+    /// was found on ordinary prose in Phase 4 — a mark with a reason the user
+    /// reads as nonsense is worse than no mark, because it is the thing that
+    /// teaches people to dismiss the review.
+    ///
+    /// So a bare ordinal is a date only when something says it is: a month
+    /// beside it, or a preposition that introduces one. Months and weekdays
+    /// need nothing — they are dates on their own.
+    static func isDate(_ word: String, precededBy previous: [String] = [], followedBy next: [String] = []) -> Bool {
         let lowercased = word.lowercased()
-        return monthWords.contains(lowercased)
-            || weekdayWords.contains(lowercased)
-            || ordinalWords.contains(lowercased)
+        if monthWords.contains(lowercased) || weekdayWords.contains(lowercased) { return true }
+        guard ordinalWords.contains(lowercased) else { return false }
+        if (previous + next).contains(where: { monthWords.contains($0.lowercased()) }) { return true }
+        return previous.contains { dateMarkerWords.contains($0.lowercased()) }
     }
 
-    static func isCritical(_ word: String) -> Bool {
-        isNumeric(word) || isDate(word)
+    static func isCritical(_ word: String, precededBy previous: [String] = [], followedBy next: [String] = []) -> Bool {
+        isNumeric(word) || isDate(word, precededBy: previous, followedBy: next)
     }
 
     /// The most specific category that applies, or `nil` for ordinary words.
     /// Currency wins over bare number, and a month name is a date even though
     /// "March third" also contains an ordinal.
-    static func category(of word: String) -> Category? {
+    static func category(
+        of word: String,
+        precededBy previous: [String] = [],
+        followedBy next: [String] = []
+    ) -> Category? {
         if isCurrency(word) { return .currency }
-        if isDate(word) { return .date }
+        if isDate(word, precededBy: previous, followedBy: next) { return .date }
         if isNumeric(word) { return .number }
         return nil
     }
+
+    /// How many words on each side decide whether an ordinal is a day.
+    static let dateContextWindow = 2
+
+    /// The words that introduce a spoken date, which is how a day of the month
+    /// is said without naming the month: "am fünfzehnten", "до пятнадцатого".
+    static let dateMarkerWords: Set<String> = [
+        // German
+        "am", "vom", "zum", "bis", "ab", "seit", "nach",
+        // English
+        "on", "by", "until", "till", "after", "before", "since",
+        // Russian
+        "до", "с", "по", "к", "после", "числа",
+        // Ukrainian
+        "з", "після", "числа",
+    ]
 
     static let currencyWords: Set<String> = [
         "euro", "eur", "cent", "cents", "dollar", "dollars", "usd", "pfund", "pound",

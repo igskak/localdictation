@@ -9,8 +9,15 @@ struct NumberRiskSignal: RiskSignal {
     let identifier = "numbers"
 
     func spans(in context: RiskContext) -> [RawRiskSpan] {
-        context.words.compactMap { word in
-            guard let category = CriticalTokens.category(of: word.text) else { return nil }
+        let words = context.words
+        let window = CriticalTokens.dateContextWindow
+        return words.enumerated().compactMap { index, word in
+            // An ordinal is a day of the month or an ordinary adjective
+            // depending on what stands next to it, so the neighbours travel
+            // with the word.
+            let previous = words[max(index - window, 0)..<index].map(\.text)
+            let next = words[(index + 1)..<min(index + 1 + window, words.count)].map(\.text)
+            guard let category = CriticalTokens.category(of: word.text, precededBy: previous, followedBy: next) else { return nil }
             let reason: RiskReason = switch category {
             case .number: .number
             case .currency: .currency

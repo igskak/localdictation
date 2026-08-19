@@ -35,8 +35,26 @@ struct MenuBarView: View {
                 if coordinator.state.isReviewing {
                     ReviewStripView(result: result)
                 } else {
-                    ResultView(result: result, prefersRaw: coordinator.prefersRawTranscript)
+                    ResultView(
+                        result: result,
+                        prefersRaw: coordinator.prefersRawTranscript,
+                        canInsert: coordinator.canInsert && coordinator.hasInsertableResult,
+                        insertTitle: insertTitle,
+                        insert: { coordinator.insertCurrentResult() }
+                    )
                 }
+            }
+
+            if let outcome = coordinator.lastInsertion, let message = outcome.message {
+                InsertionOutcomeView(message: message)
+            }
+
+            if coordinator.needsAccessibilityTrust {
+                AccessibilityTrustView(
+                    grant: { coordinator.requestAccessibilityTrust() },
+                    openSettings: { coordinator.openAccessibilitySettings() },
+                    recheck: { coordinator.refreshAccessibilityAuthorization() }
+                )
             }
 
             if let summary = coordinator.diagnostics.lastUtterance {
@@ -70,6 +88,11 @@ struct MenuBarView: View {
         .onChange(of: coordinator.languageProfile) {
             Task { await coordinator.refreshTranscriptionModelState() }
         }
+    }
+
+    private var insertTitle: String {
+        guard let target = coordinator.insertionTargetName else { return "Insert" }
+        return "Insert into \(target)"
     }
 
     private var header: some View {
@@ -214,13 +237,21 @@ private struct ModelStateView: View {
 ///
 /// It is deliberately plain. A review that appears every time is a review
 /// nobody reads, so the quiet path has no marks, no strip, and no decision to
-/// make — just the text. Phase 3 still inserts into no other application: the
-/// copy button is the single, explicit way this text leaves the app.
+/// make — just the text.
+///
+/// From Phase 4 the text is usually already in the application the user was
+/// typing in by the time this is visible. It is still shown, because the menu
+/// is where someone looks when the insertion did not go where they expected —
+/// and it carries the explicit insert action for users who turned the automatic
+/// one off.
 private struct ResultView: View {
     let result: DictationResult
     /// Carried out of the review: a user who recovered the raw transcript keeps
     /// it afterwards, rather than having the cleaned text quietly return.
     let prefersRaw: Bool
+    let canInsert: Bool
+    let insertTitle: String
+    let insert: () -> Void
 
     @State private var didCopy = false
 
@@ -255,6 +286,10 @@ private struct ResultView: View {
                 }
                 .disabled(didCopy)
 
+                if canInsert {
+                    Button(insertTitle, action: insert)
+                }
+
                 Spacer()
 
                 if let factor = result.transcript.realTimeFactor {
@@ -265,5 +300,59 @@ private struct ResultView: View {
             }
         }
         .onChange(of: text) { didCopy = false }
+    }
+}
+
+/// Where the last result went, when it did not go where it was meant to.
+///
+/// Shown for a clipboard fallback and for a refusal, and never for a successful
+/// insertion: the text appearing in the document is the message, and a banner
+/// congratulating the app on it would be noise on the path this phase exists to
+/// keep quiet.
+private struct InsertionOutcomeView: View {
+    let message: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 6) {
+            Image(systemName: "info.circle")
+                .foregroundStyle(.secondary)
+            Text(message)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// The Accessibility ask.
+///
+/// Never shown at launch and never blocking: everything the app did before this
+/// phase still works without trust, and the text still arrives — on the
+/// clipboard. This is an offer to do better, not a wall.
+private struct AccessibilityTrustView: View {
+    let grant: () -> Void
+    let openSettings: () -> Void
+    let recheck: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Type text for you")
+                .font(.caption.weight(.semibold))
+            Text("LocalDictation needs Accessibility access to put text into other applications. Without it, results go to the clipboard.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack {
+                Button("Allow…", action: grant)
+                Button("Open Settings", action: openSettings)
+                Button("Re-check", action: recheck)
+            }
+            .font(.caption)
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
     }
 }
