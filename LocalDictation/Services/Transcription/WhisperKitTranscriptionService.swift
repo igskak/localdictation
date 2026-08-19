@@ -44,6 +44,19 @@ actor WhisperKitTranscriptionService: TranscriptionService {
     /// instead of handing the value across a boundary.
     private var loadTask: Task<Void, any Error>?
 
+    /// What the in-flight load is doing, for `modelState`. Nil when idle.
+    private var preparation: ModelPreparation?
+    /// When the current load started, so a load that outruns
+    /// `longLoadThreshold` can be reported as the one-time compilation it is.
+    private var loadStartedAt: Date?
+
+    /// Past this, a load is no longer "reading weights off disk". Measured on
+    /// an M-series Mac: a warm load of large-v3-turbo is about 9 seconds, and a
+    /// cold one — the first for this model on this OS build — is minutes.
+    private static let longLoadThreshold: TimeInterval = 20
+
+    private static let modelRepo = "argmaxinc/whisperkit-coreml"
+
     init(modelVariant: String = "openai_whisper-large-v3-v20240930_turbo") {
         self.modelVariant = modelVariant
     }
@@ -55,18 +68,35 @@ actor WhisperKitTranscriptionService: TranscriptionService {
 
     func modelState(for profile: LanguageProfile) async -> TranscriptionModelState {
         if engine != nil { return .ready }
+
         // A load in flight has to be reported as such. Reporting "not loaded"
         // instead puts the "Prepare speech model…" button back in front of a
         // user who already pressed it, and every extra press used to start
         // another load.
-        if loadTask != nil { return .preparing(progress: nil) }
-        guard let folder = Self.modelDirectory() else {
+        if let preparation {
+            return .preparing(elapsedAdjusted(preparation))
+        }
+        // The task exists a moment before it has said what it is doing. Without
+        // this the button would flash back for that moment.
+        if loadTask != nil {
+            return .preparing(ModelPreparation(phase: .loading))
+        }
+
+        guard Self.modelDirectory() != nil else {
             return .failed("Could not locate Application Support")
         }
-        let installed = (try? FileManager.default.contentsOfDirectory(atPath: folder.path))?.isEmpty == false
-        return installed
-            ? .unavailable("Speech model is installed but not loaded yet")
-            : .unavailable("The speech model has not been downloaded yet (about 600 MB)")
+        return Self.installedModelFolder(variant: modelVariant) != nil
+            ? .unavailable("Speech model is installed but not loaded yet", needsUserAction: false)
+            : .unavailable("The speech model has not been downloaded yet (about 600 MB)", needsUserAction: true)
+    }
+
+    /// Promotes a long-running load to the phase that explains itself. Nothing
+    /// in Core ML says "I am compiling for the Neural Engine", but a load that
+    /// has run for twenty seconds is not reading files off a disk.
+    private func elapsedAdjusted(_ preparation: ModelPreparation) -> ModelPreparation {
+        guard preparation.phase == .loading, let loadStartedAt else { return preparation }
+        guard Date().timeIntervalSince(loadStartedAt) > Self.longLoadThreshold else { return preparation }
+        return ModelPreparation(phase: .compilingForThisSystem)
     }
 
     func prepare(for profile: LanguageProfile) async throws {
@@ -113,19 +143,34 @@ actor WhisperKitTranscriptionService: TranscriptionService {
     private func startLoad() -> Task<Void, any Error> {
         let variant = modelVariant
         return Task { [self] in
+            defer {
+                preparation = nil
+                loadStartedAt = nil
+            }
             guard let downloadBase = Self.modelDirectory() else {
                 throw TranscriptionError.modelUnavailable("Could not locate Application Support")
             }
             do {
-                try FileManager.default.createDirectory(at: downloadBase, withIntermediateDirectories: true)
+                // Download and load are separated so the download can report a
+                // real percentage. Rolled into one `WhisperKit(_:)` call they
+                // are one opaque wait, and the download — the phase that can
+                // take the longest on a slow connection — is the one phase
+                // where a number actually exists.
+                let folder = try await modelFolder(variant: variant, downloadBase: downloadBase)
+
+                preparation = ModelPreparation(phase: .loading)
+                loadStartedAt = Date()
                 let configuration = WhisperKitConfig(
                     model: variant,
                     downloadBase: downloadBase,
+                    modelFolder: folder.path,
                     verbose: false,
                     logLevel: .error,
                     prewarm: true,
                     load: true,
-                    download: true
+                    // The weights are already here. Passing the folder and
+                    // refusing the download keeps this phase off the network.
+                    download: false
                 )
                 // Assigned here, inside the actor, so every joiner sees the same
                 // engine and the value never crosses an isolation boundary.
@@ -138,6 +183,32 @@ actor WhisperKitTranscriptionService: TranscriptionService {
                 throw TranscriptionError.modelUnavailable(error.localizedDescription)
             }
         }
+    }
+
+    /// The folder holding the weights, fetching them if this is the first run.
+    private func modelFolder(variant: String, downloadBase: URL) async throws -> URL {
+        if let installed = Self.installedModelFolder(variant: variant) {
+            preparation = ModelPreparation(phase: .loading)
+            return installed
+        }
+
+        preparation = ModelPreparation(phase: .downloading)
+        try FileManager.default.createDirectory(at: downloadBase, withIntermediateDirectories: true)
+        return try await WhisperKit.download(
+            variant: variant,
+            downloadBase: downloadBase,
+            from: Self.modelRepo,
+            progressCallback: { [weak self] progress in
+                guard let self else { return }
+                let fraction = progress.fractionCompleted
+                Task { await self.report(downloadProgress: fraction) }
+            }
+        )
+    }
+
+    private func report(downloadProgress: Double) {
+        guard preparation?.phase == .downloading else { return }
+        preparation = ModelPreparation(phase: .downloading, progress: downloadProgress)
     }
 
     func transcribe(_ utterance: CapturedUtterance, profile: LanguageProfile) async throws -> Transcript {
@@ -241,6 +312,26 @@ actor WhisperKitTranscriptionService: TranscriptionService {
     }
 
     // MARK: - Storage
+
+    /// The folder holding this variant's weights, or nil when they are not on
+    /// disk yet.
+    ///
+    /// Checks for the three model bundles rather than for a non-empty folder:
+    /// an interrupted download leaves the folder populated but useless, and
+    /// calling that "installed" sends the app down the offline path with
+    /// nothing to load.
+    static func installedModelFolder(variant: String) -> URL? {
+        guard let base = modelDirectory() else { return nil }
+        let folder = base
+            .appendingPathComponent("models", isDirectory: true)
+            .appendingPathComponent(modelRepo, isDirectory: true)
+            .appendingPathComponent(variant, isDirectory: true)
+        let required = ["MelSpectrogram.mlmodelc", "AudioEncoder.mlmodelc", "TextDecoder.mlmodelc"]
+        let present = required.allSatisfy {
+            FileManager.default.fileExists(atPath: folder.appendingPathComponent($0).path)
+        }
+        return present ? folder : nil
+    }
 
     /// Weights live in Application Support, outside the app bundle, so they
     /// survive updates and stay visible to the user.

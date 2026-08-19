@@ -6,7 +6,11 @@ struct MenuBarView: View {
     @Environment(\.openSettings) private var openSettings
 
     private var presentation: StatusPresentation {
-        StatusPresentation(state: coordinator.state, binding: coordinator.binding)
+        StatusPresentation(
+            state: coordinator.state,
+            binding: coordinator.binding,
+            modelState: coordinator.transcriptionModelState
+        )
     }
 
     var body: some View {

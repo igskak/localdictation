@@ -32,25 +32,25 @@ final class AppleSpeechTranscriptionService: TranscriptionService {
     func modelState(for profile: LanguageProfile) async -> TranscriptionModelState {
         switch SFSpeechRecognizer.authorizationStatus() {
         case .notDetermined:
-            return .unavailable("Speech recognition access has not been granted yet")
+            return .unavailable("Speech recognition access has not been granted yet", needsUserAction: true)
         case .denied:
-            return .unavailable("Speech recognition access was denied in System Settings")
+            return .unavailable("Speech recognition access was denied in System Settings", needsUserAction: true)
         case .restricted:
-            return .unavailable("Speech recognition is restricted on this Mac")
+            return .unavailable("Speech recognition is restricted on this Mac", needsUserAction: true)
         case .authorized:
             break
         @unknown default:
-            return .unavailable("Unknown speech recognition authorization state")
+            return .unavailable("Unknown speech recognition authorization state", needsUserAction: true)
         }
 
         guard let recognizer = Self.makeRecognizer(for: profile) else {
-            return .unavailable("\(profile.primary.displayName) is not available on this Mac")
+            return .unavailable("\(profile.primary.displayName) is not available on this Mac", needsUserAction: true)
         }
         guard recognizer.supportsOnDeviceRecognition else {
-            return .unavailable("\(profile.primary.displayName) has no on-device model installed")
+            return .unavailable("\(profile.primary.displayName) has no on-device model installed", needsUserAction: true)
         }
         guard recognizer.isAvailable else {
-            return .preparing(progress: nil)
+            return .preparing(ModelPreparation(phase: .loading))
         }
         return .ready
     }

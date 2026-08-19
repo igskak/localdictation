@@ -194,7 +194,7 @@ final class DictationCoordinatorTranscriptionTests: XCTestCase {
 
     func testPreparingTheModelReportsReady() async {
         let engine = FakeTranscriptionService()
-        engine.setModelState(.unavailable("not installed"))
+        engine.setModelState(.unavailable("not installed", needsUserAction: true))
         let (coordinator, _, _) = makeCoordinator(transcription: engine)
 
         await coordinator.prepareTranscriptionModel()
@@ -203,18 +203,46 @@ final class DictationCoordinatorTranscriptionTests: XCTestCase {
         XCTAssertEqual(engine.prepareCount, 1)
     }
 
+    /// Weights already on disk cost seconds to load and no network at all, so
+    /// the app pays that at launch rather than making the user pay it at the
+    /// moment they want to dictate.
+    func testLaunchLoadsWeightsThatAreAlreadyOnDisk() async throws {
+        let engine = FakeTranscriptionService()
+        engine.setModelState(.unavailable("installed but not loaded", needsUserAction: false))
+
+        let (coordinator, _, _) = makeCoordinator(transcription: engine)
+
+        try await waitUntil("model is loaded at launch") { coordinator.transcriptionModelState.isReady }
+        XCTAssertEqual(engine.prepareCount, 1)
+    }
+
+    /// The download is the app's only network access and stays bound to the
+    /// explicit button. Launch must never reach for it.
+    func testLaunchNeverStartsADownloadOnItsOwn() async throws {
+        let engine = FakeTranscriptionService()
+        engine.setModelState(.unavailable("not downloaded yet", needsUserAction: true))
+
+        let (coordinator, _, _) = makeCoordinator(transcription: engine)
+
+        try await waitUntil("launch has read the model state") {
+            coordinator.transcriptionModelState.label == "not downloaded yet"
+        }
+        XCTAssertEqual(engine.prepareCount, 0)
+        XCTAssertFalse(coordinator.transcriptionModelState.isPreparing)
+    }
+
     /// The regression behind "I pressed Prepare and nothing happened": while a
     /// load runs the menu must show a spinner, not the button again. Offering
     /// the button back is what led to repeated presses and competing loads.
     func testModelReportsPreparingWhileTheLoadIsInFlight() async throws {
         let engine = FakeTranscriptionService()
-        engine.setModelState(.unavailable("not installed"))
+        engine.setModelState(.unavailable("not installed", needsUserAction: true))
         let gate = engine.blockNextPreparation()
         let (coordinator, _, _) = makeCoordinator(transcription: engine)
 
         let preparation = Task { await coordinator.prepareTranscriptionModel() }
         try await waitUntil("preparation is in flight") {
-            coordinator.transcriptionModelState == .preparing(progress: nil)
+            coordinator.transcriptionModelState.isPreparing
         }
         XCTAssertFalse(coordinator.transcriptionModelState.isReady)
 
