@@ -19,6 +19,7 @@ Read these files before continuing implementation:
 - `docs/PHASE_1.md` — acceptance criteria for the first implementation phase.
 - `docs/PHASE_2.md` — acceptance criteria for the current phase.
 - `docs/PHASE_2_BENCHMARK.md` — engine candidates, metrics, and how to run the benchmark.
+- `docs/PHASE_3.md` — acceptance criteria for the next phase.
 - `AGENTS.md` — repository-level engineering constraints.
 
 ## Requirements
