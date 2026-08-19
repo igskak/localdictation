@@ -54,20 +54,44 @@ The architecture does not change. Confidence joins as one more signal once it ha
 been measured on real speech, and its weight is a tuned parameter rather than a
 structural assumption.
 
-## What no risk engine can catch
+## What no risk engine can catch, and why the app does not chase it
 
 A dropped negation. If the engine swallows "не" or "nicht", the word is simply
 not in the text: no rule can flag what is absent, and no confidence score
-attaches to a token that was never emitted. This is also the single worst failure
-this product can have, because it inverts meaning while reading perfectly.
+attaches to a token that was never emitted.
 
-Two design consequences, both binding:
+**Decided 2026-08-19: the app does not build a mechanism for this. The user
+catches it by reading.** The reasoning, recorded so it is not re-opened without
+new evidence:
 
-- **Review must always be reachable, not only when a risk fires.** A user who
-  senses something is off needs a way to see the raw transcript and hear the
-  audio even when the engine flagged nothing.
-- **Audio replay is not a nicety.** It is the only mechanism that covers this
-  class at all, which is why it belongs in this phase and not later.
+Memory for digits and memory for meaning are not the same thing. Reading back
+"we will ship before April 15th" when you meant "will not" is your own thought
+turned inside out, seconds after you formed it — that is close to the easiest
+class of error for a person to catch on a scan. Reading back "1415" when you
+said "1450" is the opposite: digits leave almost no episodic trace, and no
+amount of re-reading recovers which one you actually spoke.
+
+So the mechanism earns its place exactly where the risk signals already fire —
+numbers, amounts, names — and is least needed where they do not. This is
+dictation, not transcription of someone else's recording: the speaker has the
+intent in working memory, and the product's first promise is saving time, not
+inviting a proofread.
+
+Consequences:
+
+- **Audio replay is offered only for a flagged span**, inside the review strip.
+- **Audio is discarded as soon as the review decision is "no review needed."**
+  This is strictly better for privacy and memory than keeping it reachable: the
+  recording's lifetime ends at the decision rather than at the end of the
+  interaction.
+- **Raw transcript recovery lives inside review too.** It needs no separate
+  affordance: any cleanup edit is itself a risk signal, so a transcript the app
+  meaningfully changed always produces a review. If no risk fired, the raw and
+  cleaned texts do not differ in any way worth showing.
+
+If calibration later turns out usable, a dropped word sometimes leaves a trace
+at the join — a timing gap or a low-probability boundary. That is a hypothesis to
+test against measured data, not a feature to plan.
 
 ## Required behavior
 
@@ -125,12 +149,15 @@ user to dismiss the review step, and then the one real error goes through.
 
 ### Review strip
 
+Shown only when the risk policy says so. It is the single place where
+verification lives.
+
 - Shows the cleaned text with risky spans marked, each with its reason.
 - Toggles to the raw transcript.
-- Plays the audio fragment for a selected span, from memory, using the token
+- Plays the audio fragment for a **flagged span**, from memory, using the token
   timings Phase 2 already produces.
-- Audio is discarded when the review is dismissed or the utterance is accepted.
-- Reachable on demand even when no risk fired.
+- Audio is discarded when the review is dismissed, when the utterance is
+  accepted, or — when no review is shown — as soon as that decision is made.
 
 ### Glossary
 
@@ -164,6 +191,8 @@ engine choice without a benchmark was not a choice.
 - The review decision is deterministic and tested.
 - Audio replay works from memory and leaves nothing on disk; the Phase 1
   no-disk-writes test still passes.
+- A test asserts that audio is released once the review decision is "no review
+  needed", so the recording's lifetime is bounded by the decision.
 - Glossary persists across launches; nothing else does.
 - Recall, false-warning density, and semantic preservation are measured and
   recorded per language.
