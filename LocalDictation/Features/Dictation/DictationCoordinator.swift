@@ -325,13 +325,25 @@ final class DictationCoordinator: ObservableObject {
     // MARK: - Transcription
 
     /// Explicit user action: load or download the engine's model.
+    ///
+    /// Safe to call more than once: the engine coalesces concurrent calls into
+    /// one load, so a second press joins the first rather than starting a
+    /// competing download.
     func prepareTranscriptionModel() async {
         guard let transcriptionService else { return }
         let profile = languageProfile
         transcriptionModelState = .preparing(progress: nil)
+        // Logged on both ends. Preparing a cold model runs for minutes, and
+        // without a start and a finish there is no way to tell a slow load from
+        // a stuck one.
+        Log.transcription.info("Preparing speech model for \(profile.displayName, privacy: .public)")
+        let started = Date()
         do {
             try await transcriptionService.prepare(for: profile)
             transcriptionModelState = await transcriptionService.modelState(for: profile)
+            Log.transcription.info(
+                "Speech model ready after \(String(format: "%.1f", Date().timeIntervalSince(started))) s"
+            )
         } catch {
             let message = (error as? TranscriptionError)?.message ?? error.localizedDescription
             Log.transcription.error("Model preparation failed: \(message, privacy: .public)")

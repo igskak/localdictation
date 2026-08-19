@@ -187,6 +187,7 @@ final class FakeTranscriptionService: TranscriptionService, @unchecked Sendable 
     private var unsupportedProfiles: Set<LanguageProfile> = []
     private var state: TranscriptionModelState = .ready
     private var gate: AsyncGate?
+    private var prepareGate: AsyncGate?
     private var prepareError: TranscriptionError?
 
     private(set) var transcribeCount = 0
@@ -221,6 +222,14 @@ final class FakeTranscriptionService: TranscriptionService, @unchecked Sendable 
         return gate
     }
 
+    /// Makes the next `prepare` block until the returned gate is opened, so a
+    /// test can observe the model state while a load is genuinely in flight.
+    func blockNextPreparation() -> AsyncGate {
+        let gate = AsyncGate()
+        lock.withLock { self.prepareGate = gate }
+        return gate
+    }
+
     func supports(_ profile: LanguageProfile) -> Bool {
         lock.withLock { !unsupportedProfiles.contains(profile) }
     }
@@ -230,10 +239,13 @@ final class FakeTranscriptionService: TranscriptionService, @unchecked Sendable 
     }
 
     func prepare(for profile: LanguageProfile) async throws {
-        let error: TranscriptionError? = lock.withLock {
+        let (error, gate): (TranscriptionError?, AsyncGate?) = lock.withLock {
             prepareCount += 1
-            return prepareError
+            let gate = prepareGate
+            prepareGate = nil
+            return (prepareError, gate)
         }
+        if let gate { try await gate.wait() }
         if let error { throw error }
         lock.withLock { state = .ready }
     }
