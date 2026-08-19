@@ -59,17 +59,14 @@ struct ReviewStripView: View {
     }
 
     private var markedText: some View {
-        ScrollView {
+        TranscriptText {
             // One attributed string rather than a row of separate views, so a
             // marked fragment stays inside the sentence the user is reading
             // instead of being lifted out of it.
             Text(markedAttributedText)
                 .font(.body)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .fixedSize(horizontal: false, vertical: true)
                 .textSelection(.enabled)
         }
-        .frame(maxHeight: 110)
     }
 
     private var markedAttributedText: AttributedString {
@@ -90,14 +87,11 @@ struct ReviewStripView: View {
             Text("Raw transcript, exactly as recognized")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
-            ScrollView {
+            TranscriptText {
                 Text(result.rawText)
                     .font(.body.monospaced())
                     .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .fixedSize(horizontal: false, vertical: true)
             }
-            .frame(maxHeight: 110)
         }
     }
 
@@ -156,5 +150,39 @@ struct ReviewStripView: View {
             }
             .keyboardShortcut(.defaultAction)
         }
+    }
+}
+
+/// Shows an utterance at its natural height, and scrolls only when one genuinely
+/// does not fit.
+///
+/// The first version wrapped the text in a `ScrollView` capped at 110 points.
+/// A dictated sentence is almost always one or two lines, far short of that cap,
+/// yet the top of the first line came back clipped: a marked fragment carries a
+/// highlight background and bold emphasis, which draw outside the line box
+/// `Text` reports, and the scroll view cut at its own bounds.
+///
+/// So the common case gets no scroll view at all. `ViewThatFits` falls back to a
+/// bounded scrolling copy only for an utterance long enough to need one, which
+/// also keeps the panel from growing without limit after a two-minute recording.
+private struct TranscriptText<Content: View>: View {
+    private let maximumHeight: CGFloat = 110
+
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        ViewThatFits(in: .vertical) {
+            laidOut
+            ScrollView { laidOut }.frame(height: maximumHeight)
+        }
+        .frame(maxHeight: maximumHeight)
+    }
+
+    private var laidOut: some View {
+        content
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .fixedSize(horizontal: false, vertical: true)
+            // Room for the highlight and the emphasized run to draw fully.
+            .padding(.vertical, 2)
     }
 }

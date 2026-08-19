@@ -32,11 +32,13 @@ enum CriticalTokens {
         containsDigit(word) || isCurrency(word) || numberWords.contains(word.lowercased())
     }
 
-    /// Month names and the ordinals German, Russian, and Ukrainian use to speak
-    /// a day of the month. A wrong date reads as fluently as a right one.
+    /// Month names, weekday names, and the ordinals used to speak a day of the
+    /// month. A wrong date reads as fluently as a right one.
     static func isDate(_ word: String) -> Bool {
         let lowercased = word.lowercased()
-        return monthWords.contains(lowercased) || ordinalWords.contains(lowercased)
+        return monthWords.contains(lowercased)
+            || weekdayWords.contains(lowercased)
+            || ordinalWords.contains(lowercased)
     }
 
     static func isCritical(_ word: String) -> Bool {
@@ -75,6 +77,31 @@ enum CriticalTokens {
         "нуль", "одне", "чотири", "п'ять", "шість", "сім", "вісім", "дев'ять",
         "двадцять", "тридцять", "п'ятдесят", "двісті", "п'ятсот", "тисяча", "тисячі", "тисяч",
         "мільйон",
+    ]
+
+    /// Weekdays are dates too: "Friday" heard as "Monday" is exactly the class
+    /// of error this product exists to surface.
+    ///
+    /// English and German capitalize them, which is why their absence here was
+    /// not merely a gap — the entity heuristic caught them instead and reported
+    /// them as people's names.
+    ///
+    /// Inflected forms are listed because they are how a deadline is actually
+    /// spoken: "до пятницы", "до п'ятниці", "bis Freitag".
+    static let weekdayWords: Set<String> = [
+        // German
+        "montag", "dienstag", "mittwoch", "donnerstag", "freitag", "samstag",
+        "sonnabend", "sonntag",
+        // English
+        "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
+        // Russian
+        "понедельник", "понедельника", "вторник", "вторника", "среда", "среду", "среды",
+        "четверг", "четверга", "пятница", "пятницу", "пятницы",
+        "суббота", "субботу", "субботы", "воскресенье", "воскресенья",
+        // Ukrainian
+        "понеділок", "понеділка", "вівторок", "вівторка", "середа", "середу", "середи",
+        "четвер", "четверга", "п'ятниця", "п'ятницю", "п'ятниці",
+        "субота", "суботу", "суботи", "неділя", "неділю", "неділі",
     ]
 
     static let monthWords: Set<String> = [

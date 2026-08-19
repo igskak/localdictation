@@ -184,11 +184,19 @@ final class RiskEngineTests: XCTestCase {
         XCTAssertEqual(spans.count, 1)
     }
 
-    func testTwoReasonsOnOneFragmentAreBothKept() {
+    /// Narrowed after the first live session. The rule still holds for two
+    /// *specific* signals — but not for the entity heuristic, which only ever
+    /// means "this word is capitalized". When another signal has already
+    /// explained the word, that adds nothing and costs a warning slot.
+    /// `RiskFalsePositiveTests` covers the suppressed side.
+    func testTwoSpecificReasonsOnOneFragmentAreBothKept() {
         let engine = RiskEngine(
             signals: [
                 StubRiskSignal(identifier: "a", produced: [RawRiskSpan(reason: .number, range: 0..<4)]),
-                StubRiskSignal(identifier: "b", produced: [RawRiskSpan(reason: .namedEntity, range: 0..<4)]),
+                StubRiskSignal(
+                    identifier: "b",
+                    produced: [RawRiskSpan(reason: .glossaryNearMiss(term: "1450"), range: 0..<4)]
+                ),
             ]
         )
         let spans = engine.analyze(cleanup: .unchanged("1450 euro", language: .german), profile: .german)
