@@ -173,3 +173,160 @@ final class FakeAudioCaptureService: AudioCaptureService, @unchecked Sendable {
         )
     }
 }
+
+/// Transcription service backed by canned results. It loads no model, touches
+/// no framework, and can be told to block so tests can supersede a request that
+/// is still in flight.
+final class FakeTranscriptionService: TranscriptionService, @unchecked Sendable {
+    let identifier = "fake"
+    let displayName = "Fake Engine"
+
+    private let lock = NSLock()
+    private var result: Transcript?
+    private var error: TranscriptionError?
+    private var unsupportedProfiles: Set<LanguageProfile> = []
+    private var state: TranscriptionModelState = .ready
+    private var gate: AsyncGate?
+    private var prepareError: TranscriptionError?
+
+    private(set) var transcribeCount = 0
+    private(set) var prepareCount = 0
+    private(set) var requestedProfiles: [LanguageProfile] = []
+    private(set) var cancelledCount = 0
+
+    func setResult(_ transcript: Transcript) {
+        lock.withLock { result = transcript; error = nil }
+    }
+
+    func setError(_ error: TranscriptionError) {
+        lock.withLock { self.error = error; result = nil }
+    }
+
+    func setModelState(_ state: TranscriptionModelState) {
+        lock.withLock { self.state = state }
+    }
+
+    func failPreparation(with error: TranscriptionError) {
+        lock.withLock { prepareError = error }
+    }
+
+    func markUnsupported(_ profile: LanguageProfile) {
+        lock.withLock { _ = unsupportedProfiles.insert(profile) }
+    }
+
+    /// Makes the next `transcribe` block until the returned gate is opened.
+    func blockNextTranscription() -> AsyncGate {
+        let gate = AsyncGate()
+        lock.withLock { self.gate = gate }
+        return gate
+    }
+
+    func supports(_ profile: LanguageProfile) -> Bool {
+        lock.withLock { !unsupportedProfiles.contains(profile) }
+    }
+
+    func modelState(for profile: LanguageProfile) async -> TranscriptionModelState {
+        lock.withLock { state }
+    }
+
+    func prepare(for profile: LanguageProfile) async throws {
+        let error: TranscriptionError? = lock.withLock {
+            prepareCount += 1
+            return prepareError
+        }
+        if let error { throw error }
+        lock.withLock { state = .ready }
+    }
+
+    func transcribe(_ utterance: CapturedUtterance, profile: LanguageProfile) async throws -> Transcript {
+        let gate: AsyncGate? = lock.withLock {
+            transcribeCount += 1
+            requestedProfiles.append(profile)
+            let gate = self.gate
+            self.gate = nil
+            return gate
+        }
+
+        if let gate {
+            do {
+                try await gate.wait()
+            } catch {
+                lock.withLock { cancelledCount += 1 }
+                throw TranscriptionError.cancelled
+            }
+        }
+
+        try Task.checkCancellation()
+
+        let (result, error): (Transcript?, TranscriptionError?) = lock.withLock { (self.result, self.error) }
+        if let error { throw error }
+        guard let result else { throw TranscriptionError.engineFailure("No canned result configured") }
+        return result
+    }
+}
+
+/// A suspension point a test can open explicitly, so "still running" is a real
+/// state rather than a race against a sleep.
+final class AsyncGate: @unchecked Sendable {
+    private let lock = NSLock()
+    private var continuation: CheckedContinuation<Void, any Error>?
+    private var opened = false
+
+    func open() {
+        let pending: CheckedContinuation<Void, any Error>? = lock.withLock {
+            opened = true
+            let current = continuation
+            continuation = nil
+            return current
+        }
+        pending?.resume()
+    }
+
+    func wait() async throws {
+        if lock.withLock({ opened }) { return }
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                let alreadyOpen: Bool = lock.withLock {
+                    guard !opened else { return true }
+                    self.continuation = continuation
+                    return false
+                }
+                if alreadyOpen { continuation.resume() }
+            }
+        } onCancel: {
+            let pending: CheckedContinuation<Void, any Error>? = lock.withLock {
+                let current = continuation
+                continuation = nil
+                return current
+            }
+            pending?.resume(throwing: CancellationError())
+        }
+    }
+}
+
+extension Transcript {
+    /// Convenience builder for tests: words with uniform timing.
+    static func fixture(
+        words: [(String, Double?)],
+        profile: LanguageProfile = .default,
+        engineIdentifier: String = "fake",
+        audioDuration: TimeInterval = 1,
+        processingDuration: TimeInterval = 0.1
+    ) -> Transcript {
+        let timed = words.enumerated().map { index, entry in
+            Transcript.Word(
+                entry.0,
+                start: Double(index) * 0.1,
+                end: Double(index) * 0.1 + 0.1,
+                confidence: entry.1
+            )
+        }
+        return .assemble(
+            words: timed,
+            profile: profile,
+            audioDuration: audioDuration,
+            processingDuration: processingDuration,
+            engineIdentifier: engineIdentifier
+        )
+    }
+}

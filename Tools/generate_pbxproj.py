@@ -100,14 +100,31 @@ class Tree:
 
 
 def section(text, name):
+    body = optional_section(text, name)
+    if body is None:
+        raise SystemExit(f"Missing section {name} in the existing project file")
+    return body
+
+
+def optional_section(text, name):
+    """Returns a section body, or None when the project has no such section."""
     match = re.search(
         rf"/\* Begin {name} section \*/\n(.*?)/\* End {name} section \*/\n",
         text,
         re.S,
     )
-    if not match:
-        raise SystemExit(f"Missing section {name} in the existing project file")
-    return match.group(1)
+    return match.group(1) if match else None
+
+
+def package_build_files(text):
+    """Existing PBXBuildFile entries that link a Swift package product.
+
+    Source build files are regenerated from disk, but package products have no
+    file on disk to rediscover. They are carried over verbatim, otherwise the
+    frameworks build phase would keep referencing entries this script deleted.
+    """
+    body = optional_section(text, "PBXBuildFile") or ""
+    return [line for line in body.splitlines() if "productRef" in line]
 
 
 def main():
@@ -126,7 +143,7 @@ def main():
     for path in test_swift + test_other:
         test_tree.add(path)
 
-    build_files = []
+    build_files = list(package_build_files(existing))
     for path in app_swift + test_swift:
         name = os.path.basename(path)
         build_files.append(
@@ -228,8 +245,18 @@ def main():
         f"/* Begin XCBuildConfiguration section */\n{section(existing, 'XCBuildConfiguration')}/* End XCBuildConfiguration section */\n",
         "\n",
         f"/* Begin XCConfigurationList section */\n{section(existing, 'XCConfigurationList')}/* End XCConfigurationList section */\n",
-        "\t};\n\trootObject = A50000000000000000000001 /* Project object */;\n}\n",
     ]
+
+    # Swift package sections are hand-maintained in the project file; copy them
+    # through unchanged when they exist so adding a source file cannot silently
+    # unlink a dependency.
+    for name in ("XCRemoteSwiftPackageReference", "XCSwiftPackageProductDependency"):
+        body = optional_section(existing, name)
+        if body:
+            output.append("\n")
+            output.append(f"/* Begin {name} section */\n{body}/* End {name} section */\n")
+
+    output.append("\t};\n\trootObject = A50000000000000000000001 /* Project object */;\n}\n")
 
     with open(PBXPROJ, "w", encoding="utf-8") as handle:
         handle.write("".join(output))

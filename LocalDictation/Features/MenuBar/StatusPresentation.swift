@@ -95,6 +95,15 @@ struct StatusPresentation: Sendable, Equatable {
             showsSystemSettingsShortcut = false
             showsRecoveryAction = false
 
+        case .transcribing:
+            title = "Transcribing"
+            detail = "Recognizing speech on this Mac. Hold \(binding.displayString) to start the next one."
+            systemImage = "waveform.badge.magnifyingglass"
+            tint = .active
+            showsPermissionRequest = false
+            showsSystemSettingsShortcut = false
+            showsRecoveryAction = false
+
         case let .failed(failure):
             title = "Needs attention"
             detail = failure.message

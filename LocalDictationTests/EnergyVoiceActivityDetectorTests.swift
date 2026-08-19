@@ -137,8 +137,8 @@ final class EnergyVoiceActivityDetectorTests: XCTestCase {
     func testIngestDoesNotModifyTheInputFrames() {
         var detector = EnergyVoiceActivityDetector(configuration: makeConfiguration(), sampleRate: sampleRate)
         let input = frames(level: 0.4, duration: 0.1)
-        var copy = input
-        copy.withUnsafeBufferPointer { detector.ingest($0) }
+        let copy = input
+        _ = copy.withUnsafeBufferPointer { detector.ingest($0) }
 
         XCTAssertEqual(copy, input, "Phase 1 must never trim or rewrite captured frames")
     }

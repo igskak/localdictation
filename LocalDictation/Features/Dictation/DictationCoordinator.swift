@@ -13,17 +13,29 @@ final class DictationCoordinator: ObservableObject {
     @Published private(set) var registeredHotkey: HotkeyBinding?
     @Published var configuration: AudioCaptureConfiguration
 
+    /// Raw transcript of the most recent utterance. Memory only, and released
+    /// to the user solely through an explicit copy action.
+    @Published private(set) var transcript: Transcript?
+    @Published private(set) var transcriptionModelState: TranscriptionModelState = .unavailable("No speech engine configured")
+    /// Selected language profile. Explicit, never inferred per utterance.
+    @Published var languageProfile: LanguageProfile
+
     let binding: HotkeyBinding
 
     private let permissionService: any MicrophonePermissionService
     private let hotkeyService: any HotkeyService
     private let captureService: any AudioCaptureService
+    private let transcriptionService: (any TranscriptionService)?
 
     private var machine = RecordingStateMachine()
     private var pollTimer: Timer?
     private var captureIsRunning = false
     private var pendingEndReason: UtteranceEndReason?
     private let pollInterval: TimeInterval
+    private var transcriptionTask: Task<Void, Never>?
+    /// Incremented whenever a transcription is started or superseded. A result
+    /// carrying a stale generation is dropped instead of being published.
+    private var transcriptionGeneration = 0
 
     #if DEBUG
     /// Retained in memory only, for the explicit debug export action. Replaced on
@@ -35,17 +47,24 @@ final class DictationCoordinator: ObservableObject {
         permissionService: any MicrophonePermissionService,
         hotkeyService: any HotkeyService,
         captureService: any AudioCaptureService,
+        transcriptionService: (any TranscriptionService)? = nil,
         configuration: AudioCaptureConfiguration = .default,
         binding: HotkeyBinding = .optionSpace,
+        languageProfile: LanguageProfile = .default,
         pollInterval: TimeInterval = 0.1
     ) {
         self.permissionService = permissionService
         self.hotkeyService = hotkeyService
         self.captureService = captureService
+        self.transcriptionService = transcriptionService
         self.configuration = configuration
         self.binding = binding
+        self.languageProfile = languageProfile
         self.pollInterval = pollInterval
     }
+
+    var transcriptionEngineName: String? { transcriptionService?.displayName }
+    var hasTranscriptionEngine: Bool { transcriptionService != nil }
 
     // MARK: - Lifecycle
 
@@ -57,6 +76,7 @@ final class DictationCoordinator: ObservableObject {
 
     func deactivate() {
         stopPolling()
+        cancelTranscription()
         hotkeyService.unregister()
         registeredHotkey = nil
         if captureIsRunning {
@@ -68,7 +88,7 @@ final class DictationCoordinator: ObservableObject {
 
     /// Re-reads authorization, e.g. after the user returns from System Settings.
     func refreshAuthorization() {
-        guard !state.isCapturing else { return }
+        guard !state.isBusy else { return }
         apply(.authorizationResolved(permissionService.currentAuthorization))
         if permissionService.currentAuthorization.allowsCapture, registeredHotkey == nil {
             registerHotkey()
@@ -150,6 +170,11 @@ final class DictationCoordinator: ObservableObject {
     private func beginCapture() {
         guard apply(.hotkeyPressed) else { return }
 
+        // A new utterance supersedes whatever is still being transcribed, and
+        // clears the previous transcript so the copy action is never ambiguous
+        // about which utterance it belongs to.
+        cancelTranscription()
+        transcript = nil
         pendingEndReason = nil
         let captureConfiguration = configuration
         let service = captureService
@@ -241,6 +266,96 @@ final class DictationCoordinator: ObservableObject {
         }
 
         apply(.utteranceCompleted)
+
+        if let utterance {
+            startTranscription(for: utterance)
+        }
+    }
+
+    // MARK: - Transcription
+
+    /// Explicit user action: load or download the engine's model.
+    func prepareTranscriptionModel() async {
+        guard let transcriptionService else { return }
+        let profile = languageProfile
+        transcriptionModelState = .preparing(progress: nil)
+        do {
+            try await transcriptionService.prepare(for: profile)
+            transcriptionModelState = await transcriptionService.modelState(for: profile)
+        } catch {
+            let message = (error as? TranscriptionError)?.message ?? error.localizedDescription
+            Log.transcription.error("Model preparation failed: \(message, privacy: .public)")
+            transcriptionModelState = .failed(message)
+        }
+    }
+
+    func refreshTranscriptionModelState() async {
+        guard let transcriptionService else { return }
+        transcriptionModelState = await transcriptionService.modelState(for: languageProfile)
+    }
+
+    func clearTranscript() {
+        transcript = nil
+    }
+
+    private func startTranscription(for utterance: CapturedUtterance) {
+        guard let transcriptionService else { return }
+        guard !utterance.samples.isEmpty else { return }
+
+        let profile = languageProfile
+        guard transcriptionService.supports(profile) else {
+            guard apply(.transcriptionStarted) else { return }
+            apply(.transcriptionFailed(TranscriptionError.unsupportedProfile(profile).message))
+            return
+        }
+        guard apply(.transcriptionStarted) else { return }
+
+        transcriptionGeneration += 1
+        let generation = transcriptionGeneration
+
+        transcriptionTask = Task { [weak self] in
+            do {
+                let result = try await transcriptionService.transcribe(utterance, profile: profile)
+                try Task.checkCancellation()
+                self?.transcriptionDidFinish(result, generation: generation)
+            } catch is CancellationError {
+                return
+            } catch TranscriptionError.cancelled {
+                return
+            } catch {
+                let message = (error as? TranscriptionError)?.message ?? error.localizedDescription
+                self?.transcriptionDidFail(message, generation: generation)
+            }
+        }
+    }
+
+    /// Drops the in-flight request and invalidates its generation, so a result
+    /// already in flight cannot land after the caller moved on.
+    private func cancelTranscription() {
+        transcriptionTask?.cancel()
+        transcriptionTask = nil
+        transcriptionGeneration += 1
+    }
+
+    private func transcriptionDidFinish(_ result: Transcript, generation: Int) {
+        guard generation == transcriptionGeneration else { return }
+        transcriptionTask = nil
+        transcript = result
+        diagnostics.lastTranscript = TranscriptDiagnostics(result)
+        Log.transcription.info(
+            """
+            Transcript ready: engine \(result.engineIdentifier, privacy: .public),             profile \(result.profile.shortLabel, privacy: .public),             \(result.tokens.count) tokens, \(String(format: "%.2f", result.processingDuration)) s inference
+            """
+        )
+        apply(.transcriptionFinished)
+    }
+
+    private func transcriptionDidFail(_ message: String, generation: Int) {
+        guard generation == transcriptionGeneration else { return }
+        transcriptionTask = nil
+        diagnostics.lastErrorDescription = message
+        Log.transcription.error("Transcription failed: \(message, privacy: .public)")
+        apply(.transcriptionFailed(message))
     }
 
     private func handleInterruption(_ error: AudioCaptureError) {
@@ -328,7 +443,12 @@ extension DictationCoordinator {
         DictationCoordinator(
             permissionService: AVCaptureMicrophonePermissionService(),
             hotkeyService: CarbonHotkeyService(),
-            captureService: AVAudioEngineCaptureService()
+            captureService: AVAudioEngineCaptureService(),
+            // Development default rather than a final decision: WhisperKit is
+            // the only admitted candidate that returns per-token confidence,
+            // which Phase 3 requires. `AppleSpeechTranscriptionService` stays in
+            // the codebase as the comparison the benchmark scores it against.
+            transcriptionService: WhisperKitTranscriptionService()
         )
     }
 }
