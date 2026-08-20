@@ -147,8 +147,31 @@ focused that cannot is pasted into. What guards an insertion is the target and
 the focus being unchanged and the secure checks — facts about where the text is
 going — and not how well the application describes itself.
 
-The clipboard remains for the case it was always about: no focused element at
-all, which is an application with no insertion point to aim at.
+That went one step further after Flock. An Electron application describes *no*
+focused element at all until an assistive technology asks it to build an
+accessibility tree, so "nothing is focused" turned out to mean "nobody asked" —
+and the message box the user was looking at took ⌘V perfectly well. Two things
+changed: the app now asks (below), and an application that still describes
+nothing is pasted into rather than copied from.
+
+So Accessibility decides only *how* the text goes in, never whether it goes in.
+The clipboard is left for the cases that are about where the text is going and
+not about how well an application describes itself: no trust, no other
+application in front, and the target moving away.
+
+### Electron is asked for its accessibility tree
+
+Chromium builds no accessibility tree until an assistive technology asks for
+one, and Electron exposes that request as a settable `AXManualAccessibility`
+attribute on the application element. Without it a focused message box is
+invisible: no element, no role, no way to write directly, and nothing to check a
+secure field against.
+
+The app sets it on the captured target at the hotkey, not at insertion, because
+the tree is built asynchronously — recording and transcription are seconds the
+application can spend building it. Applications that are not Electron ignore the
+attribute, which is why the target is not interrogated first. Each process is
+asked once.
 
 ### A write is not believed, it is checked
 

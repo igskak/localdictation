@@ -27,7 +27,6 @@ enum ClipboardReason: String, Sendable, Equatable, CaseIterable {
     case notTrusted
     case noTarget
     case targetChanged
-    case noEditableField
     case insertionFailed
 
     var message: String {
@@ -38,8 +37,6 @@ enum ClipboardReason: String, Sendable, Equatable, CaseIterable {
             "Copied to the clipboard — there was no other application to put it in."
         case .targetChanged:
             "Copied to the clipboard: you moved to a different application while this was being prepared."
-        case .noEditableField:
-            "Copied to the clipboard — there was nothing in focus to insert into."
         case .insertionFailed:
             "Copied to the clipboard: that application would not accept the text directly."
         }
