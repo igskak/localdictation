@@ -65,12 +65,19 @@ final class ReviewPanelControllerTests: XCTestCase {
         secondsPerWord: 0.2
     )
 
+    private static let quietTranscript = Transcript.fixture(
+        text: "der bericht ist fertig",
+        profile: .german,
+        secondsPerWord: 0.2
+    )
+
     func testAReviewPanelSurvivesBeingShownAndResized() async throws {
         let harness = makeHarness(transcript: Self.riskyTranscript)
 
         harness.hotkey.emit(.pressed)
         harness.hotkey.emit(.released)
-        try await waitUntil("review is requested") { harness.coordinator.state == .reviewing }
+        try await waitUntil("attention is offered") { harness.coordinator.attentionIsPending }
+        harness.coordinator.openReview()
         try await waitUntil("panel is on screen") { harness.controller.isShowingReviewPanel }
         try await settle()
 
@@ -93,26 +100,52 @@ final class ReviewPanelControllerTests: XCTestCase {
 
         harness.hotkey.emit(.pressed)
         harness.hotkey.emit(.released)
+        try await waitUntil("attention is offered") { harness.coordinator.attentionIsPending }
+        harness.coordinator.openReview()
         try await waitUntil("panel is on screen") { harness.controller.isShowingReviewPanel }
         try await settle()
 
-        harness.coordinator.dismissReview()
+        harness.coordinator.closeReview()
         try await waitUntil("panel is gone") { !harness.controller.isShowingReviewPanel }
     }
 
-    /// The notice is the same machinery with different content, and the same
-    /// crash was available to it.
-    func testTheOutcomeNoticeSurvivesBeingShown() async throws {
+    /// The review must never appear on its own. Everything this phase is for
+    /// rests on that: the text goes in, and the panel waits to be asked.
+    func testNoPanelAppearsOnItsOwnHoweverRiskyTheTextIs() async throws {
         let harness = makeHarness(transcript: Self.riskyTranscript)
+
         harness.hotkey.emit(.pressed)
         harness.hotkey.emit(.released)
-        try await waitUntil("review is requested") { harness.coordinator.state == .reviewing }
-
-        harness.coordinator.acceptReview()
         try await waitUntil("insertion finished") { harness.coordinator.lastInsertion != nil }
         try await settle()
 
-        // A successful insertion says nothing at all.
+        XCTAssertTrue(harness.coordinator.attentionIsPending, "the indicator is lit")
+        XCTAssertFalse(harness.controller.isShowingReviewPanel, "but the review is not open")
+    }
+
+    /// The chip is the same machinery as the notice, in the same corner, and
+    /// the same AppKit crash was available to it.
+    func testTheAttentionChipSurvivesBeingShown() async throws {
+        let harness = makeHarness(transcript: Self.riskyTranscript)
+
+        harness.hotkey.emit(.pressed)
+        harness.hotkey.emit(.released)
+        try await waitUntil("chip is on screen") { harness.controller.isShowingNotice }
+        try await settle()
+
+        XCTAssertTrue(harness.controller.isShowingNotice)
+    }
+
+    /// A successful insertion with nothing flagged says nothing at all.
+    func testAQuietResultShowsNoPanelOfAnyKind() async throws {
+        let harness = makeHarness(transcript: Self.quietTranscript)
+        harness.hotkey.emit(.pressed)
+        harness.hotkey.emit(.released)
+        try await waitUntil("insertion finished") { harness.coordinator.lastInsertion != nil }
+        try await settle()
+
+        XCTAssertFalse(harness.coordinator.attentionIsPending)
         XCTAssertFalse(harness.controller.isShowingNotice)
+        XCTAssertFalse(harness.controller.isShowingReviewPanel)
     }
 }

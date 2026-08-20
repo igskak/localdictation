@@ -34,7 +34,7 @@ struct RiskSampleResult: Sendable, Equatable {
     /// explain. Cleanup that changed meaning would show up here.
     let unexplainedCleanupChanges: Int
     let editKinds: [String]
-    let requiresReview: Bool
+    let deservesAttention: Bool
 }
 
 /// Aggregate over a language or the whole corpus.
@@ -48,7 +48,7 @@ struct RiskAggregate: Sendable, Equatable {
     let falseWarnings: Int
     let falseWarningsByCategory: [String: Int]
     let unexplainedCleanupChanges: Int
-    let reviewedSampleCount: Int
+    let flaggedSampleCount: Int
 
     /// Of the critical errors a rule could reach, how many did it mark?
     /// `nil` when the corpus proves no such error exists — a recall over zero
@@ -67,9 +67,14 @@ struct RiskAggregate: Sendable, Equatable {
         wordCount > 0 ? 1 - Double(unexplainedCleanupChanges) / Double(wordCount) : nil
     }
 
-    /// How often the review step interrupts at all.
-    var reviewRate: Double? {
-        sampleCount > 0 ? Double(reviewedSampleCount) / Double(sampleCount) : nil
+    /// How often a sample lights the indicator at all.
+    ///
+    /// Phase 4 called this the review rate and it meant "how often the user is
+    /// interrupted". Nothing interrupts any more, so what it measures now is
+    /// how often the app claims a sentence is worth a second look — which is
+    /// the budget that decides whether anyone still believes the triangle.
+    var attentionRate: Double? {
+        sampleCount > 0 ? Double(flaggedSampleCount) / Double(sampleCount) : nil
     }
 
     static func combining(_ results: [RiskSampleResult]) -> RiskAggregate {
@@ -90,7 +95,7 @@ struct RiskAggregate: Sendable, Equatable {
             falseWarnings: results.reduce(0) { $0 + $1.falseWarnings },
             falseWarningsByCategory: categories,
             unexplainedCleanupChanges: results.reduce(0) { $0 + $1.unexplainedCleanupChanges },
-            reviewedSampleCount: results.filter(\.requiresReview).count
+            flaggedSampleCount: results.filter(\.deservesAttention).count
         )
     }
 }
@@ -129,7 +134,7 @@ enum RiskBenchmark {
     /// the reference. This is the model-free half of the measurement.
     static func runOnReferences(
         corpus: BenchmarkCorpus,
-        engine: RiskEngine = .standard(),
+        engine: RiskEngine = .standard(lexicon: ShapeOnlyLexicon()),
         cleanup: any CleanupService = ConservativeCleanupService(),
         policy: ReviewPolicy = .default,
         glossary: [GlossaryEntry] = [],
@@ -166,7 +171,7 @@ enum RiskBenchmark {
         engine speechEngine: any TranscriptionService,
         corpus: BenchmarkCorpus,
         directory: URL,
-        riskEngine: RiskEngine = .standard(),
+        riskEngine: RiskEngine = .standard(lexicon: ShapeOnlyLexicon()),
         cleanup: any CleanupService = ConservativeCleanupService(),
         policy: ReviewPolicy = .default,
         glossary: [GlossaryEntry] = [],
@@ -276,7 +281,7 @@ enum RiskBenchmark {
             policy: policy,
             isEmptyResult: cleanupResult.cleaned.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         )
-        let flagged = decision.flaggedSpans
+        let flagged = decision.flagged
 
         // Positions are needed, so the hypothesis is scanned rather than
         // normalized wholesale: normalization deliberately destroys offsets and
@@ -364,7 +369,7 @@ enum RiskBenchmark {
             falseWarningsByCategory: falseWarningsByCategory,
             unexplainedCleanupChanges: unexplainedChanges(in: cleanupResult, normalizer: normalizer),
             editKinds: cleanupResult.edits.map { $0.kind.rawValue }.sorted(),
-            requiresReview: decision.requiresReview
+            deservesAttention: decision.deservesAttention
         )
     }
 
@@ -461,7 +466,7 @@ extension RiskReport {
         lines.append("")
         lines.append("Corpus: \(corpusName) · \(overall.sampleCount) samples · \(machine)")
         lines.append("")
-        lines.append("Flag threshold \(String(format: "%.2f", policy.flagThreshold)) · model-confidence weight \(String(format: "%.2f", weights.modelConfidence))")
+        lines.append("Attention threshold \(String(format: "%.2f", policy.attentionThreshold)) · display threshold \(String(format: "%.2f", policy.displayThreshold)) · model-confidence weight \(String(format: "%.2f", weights.modelConfidence))")
         lines.append("")
         lines.append("| Language | Samples | Critical errors | Recall | Dropped (unmarkable) | False warnings / 100 words | Semantic preservation | Review shown |")
         lines.append("| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
@@ -472,7 +477,7 @@ extension RiskReport {
                 "| \(language.displayName) | \(aggregate.sampleCount) | \(aggregate.criticalErrors) | "
                 + "\(percent(aggregate.recall)) | \(aggregate.criticalWordsDropped) | "
                 + "\(density(aggregate.falseWarningDensity)) | \(percent(aggregate.semanticPreservation)) | "
-                + "\(percent(aggregate.reviewRate)) |"
+                + "\(percent(aggregate.attentionRate)) |"
             )
         }
 
@@ -480,7 +485,7 @@ extension RiskReport {
             "| **Overall** | \(overall.sampleCount) | \(overall.criticalErrors) | "
             + "\(percent(overall.recall)) | \(overall.criticalWordsDropped) | "
             + "\(density(overall.falseWarningDensity)) | \(percent(overall.semanticPreservation)) | "
-            + "\(percent(overall.reviewRate)) |"
+            + "\(percent(overall.attentionRate)) |"
         )
 
         if !overall.falseWarningsByCategory.isEmpty {

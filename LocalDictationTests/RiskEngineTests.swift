@@ -77,29 +77,31 @@ final class RiskEngineTests: XCTestCase {
         let amount = spans.first { $0.reason == .number }
 
         XCTAssertEqual(amount?.weight, RiskWeights.default.number)
-        XCTAssertGreaterThanOrEqual(try XCTUnwrap(amount?.weight), ReviewPolicy.default.flagThreshold)
+        XCTAssertGreaterThanOrEqual(try XCTUnwrap(amount?.weight), ReviewPolicy.default.attentionThreshold)
     }
 
     /// Punctuation and capitalization happen on nearly every utterance. If they
-    /// were priced like a deleted word, every utterance would demand a review.
-    func testRoutineCleanupEditsStayBelowTheFlagThreshold() {
+    /// were priced like a deleted word, every utterance would light the
+    /// indicator.
+    func testRoutineCleanupEditsStayBelowTheAttentionThreshold() {
         let (_, spans) = analyze("der termin steht", language: .german, profile: .german)
 
         XCTAssertFalse(spans.isEmpty)
         for span in spans {
-            XCTAssertLessThan(span.weight, ReviewPolicy.default.flagThreshold, "\(span.reason) is too heavy")
+            XCTAssertLessThan(span.weight, ReviewPolicy.default.attentionThreshold, "\(span.reason) is too heavy")
         }
     }
 
-    func testRemovingASpokenWordIsWeightedAsARealEvent() throws {
+    /// Deleting a word the user said must always be visible in the review —
+    /// but a removed "ähm" is cleanup working as designed, not a recognition
+    /// failure, and lighting the indicator for one would put a triangle on most
+    /// spoken sentences. Visible, then, and not announced.
+    func testRemovingASpokenWordIsAlwaysShownAndNeverAnnounced() throws {
         let (_, spans) = analyze("ähm der termin steht", language: .german, profile: .german)
-        let removal = spans.first { $0.reason == .cleanupEdit(.fillerRemoval) }
+        let removal = try XCTUnwrap(spans.first { $0.reason == .cleanupEdit(.fillerRemoval) })
 
-        XCTAssertGreaterThanOrEqual(
-            try XCTUnwrap(removal?.weight),
-            ReviewPolicy.default.flagThreshold,
-            "deleting a word the user said must be visible"
-        )
+        XCTAssertGreaterThanOrEqual(removal.weight, ReviewPolicy.default.displayThreshold)
+        XCTAssertLessThan(removal.weight, ReviewPolicy.default.attentionThreshold)
     }
 
     /// `docs/PHASE_3.md` requires model confidence to arrive last, behind a
@@ -118,7 +120,7 @@ final class RiskEngineTests: XCTestCase {
 
         XCTAssertEqual(confidenceSpans.count, 3, "the signal still runs and still reports")
         XCTAssertTrue(confidenceSpans.allSatisfy { $0.weight == 0 })
-        XCTAssertEqual(ReviewCoordinator.decide(spans: spans), .noReviewNeeded)
+        XCTAssertEqual(ReviewCoordinator.decide(spans: spans), .quiet)
     }
 
     func testConfidenceCanBeEnabledByRaisingItsWeight() throws {

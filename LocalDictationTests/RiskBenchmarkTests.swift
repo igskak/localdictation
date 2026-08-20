@@ -102,7 +102,7 @@ final class RiskBenchmarkTests: XCTestCase {
         )
 
         XCTAssertEqual(result.falseWarnings, 0)
-        XCTAssertFalse(result.requiresReview)
+        XCTAssertFalse(result.deservesAttention)
     }
 
     // MARK: - Semantic preservation

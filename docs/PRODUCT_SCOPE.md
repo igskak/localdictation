@@ -43,8 +43,8 @@ The app should use explicit language profiles rather than promise arbitrary four
 - Local microphone capture and VAD.
 - Local STT.
 - Raw transcript and conservative cleanup.
-- Risk detection for low-confidence fragments, numbers, dates, currency, names, negations, and glossary terms.
-- Review UI that appears only when useful and always runs before insertion into the target application.
+- Risk detection for low-confidence fragments, numbers, dates, currency, names, malformed words, negations, and glossary terms.
+- Review UI that never stands between the user and their text. Insertion is unconditional; when something is worth checking the app lights an indicator, and the review opens only if the user asks for it.
 - Raw transcript recovery.
 - Ephemeral replay of a risky audio fragment.
 - Accessibility insertion with clipboard fallback.
@@ -71,7 +71,7 @@ The app should use explicit language profiles rather than promise arbitrary four
 ## Privacy and telemetry boundary
 
 - Audio, transcripts, vocabulary, clipboard contents, target-application contents, risky fragments, and other content-derived data never leave the Mac.
-- Audio remains memory-only through the active dictation and, when needed, the review step; it is discarded after insertion or dismissal.
+- Audio remains memory-only through the active dictation and, when a result is worth checking, until the review is closed, declined, or superseded by the next utterance; it is discarded at whichever of those comes first, and immediately when nothing is worth checking.
 - Limited non-content product and marketing events may be sent for activation, funnel measurement, licensing, checkout, and updates. The allowed event names and payload fields must be enumerated before implementation.
 - General diagnostics remain local unless the user explicitly chooses to share them.
 - The privacy policy, first-run disclosure, and relevant product terms must identify every transmitted field, purpose, recipient, and retention period.

@@ -35,6 +35,19 @@ struct RiskContext: Sendable {
         self.edits = edits
         self.glossary = glossary
     }
+
+    /// Whether the user put this exact word in their dictionary.
+    ///
+    /// A term someone typed into Settings on purpose is a word, whatever a
+    /// spelling dictionary or a capitalization heuristic thinks of it. This is
+    /// what makes the dictionary work as a way to *silence* marks and not only
+    /// as a way to earn them: adding "Флок" stops it being reported as a risky
+    /// name every time it is said correctly.
+    func isInGlossary(_ lowercasedWord: String) -> Bool {
+        glossary.contains { entry in
+            profile.contains(entry.language) && entry.term.lowercased() == lowercasedWord
+        }
+    }
 }
 
 /// A marked fragment before the engine has priced it or mapped it forward.

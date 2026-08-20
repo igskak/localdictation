@@ -118,6 +118,36 @@ final class RiskSignalTests: XCTestCase {
         XCTAssertTrue(EntityRiskSignal().spans(in: context(text, profile: .english)).isEmpty)
     }
 
+    /// The dictionary has to work as a way to *silence* a mark, not only as a
+    /// way to earn one. A user who adds the name of the tool they talk about
+    /// every day is telling the app that word is fine; marking it as a risky
+    /// name afterwards ignores what they said and spends their attention on a
+    /// success.
+    func testATermInTheDictionaryIsNotMarkedAsAName() {
+        let text = "обсуждение перенесли во Флок"
+        let glossary = [GlossaryEntry(term: "Флок", language: .russian)]
+
+        XCTAssertEqual(
+            marked(EntityRiskSignal().spans(in: context(text, profile: .russian)), in: text),
+            ["Флок"],
+            "without the dictionary it is just a capitalized word"
+        )
+        XCTAssertTrue(
+            EntityRiskSignal().spans(in: context(text, profile: .russian, glossary: glossary)).isEmpty
+        )
+    }
+
+    /// Scoped like every other use of the dictionary: a Russian term does not
+    /// silence a mark inside an English profile.
+    func testDictionarySilencingIsScopedByLanguage() {
+        let text = "we moved it to Flock"
+        let glossary = [GlossaryEntry(term: "Flock", language: .russian)]
+
+        XCTAssertFalse(
+            EntityRiskSignal().spans(in: context(text, profile: .english, glossary: glossary)).isEmpty
+        )
+    }
+
     // MARK: - Glossary
 
     func testANearMissOnAGlossaryTermIsMarked() {

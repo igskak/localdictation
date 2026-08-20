@@ -21,7 +21,29 @@ struct StatusPresentation: Sendable, Equatable {
 
     /// `modelState` only changes the transcribing copy, so callers that do not
     /// have an engine can leave it alone.
-    init(state: RecordingState, binding: HotkeyBinding, modelState: TranscriptionModelState = .ready) {
+    ///
+    /// `attentionIsPending` is the indicator, and it is deliberately allowed to
+    /// change only the idle state. A triangle is worth showing while nothing
+    /// else is happening; painted over "Recording" or "Transcribing" it would
+    /// be describing the previous utterance while the user is producing the
+    /// next one, which is the one thing an indicator must never do.
+    init(
+        state: RecordingState,
+        binding: HotkeyBinding,
+        modelState: TranscriptionModelState = .ready,
+        attentionIsPending: Bool = false
+    ) {
+        if state == .ready, attentionIsPending {
+            title = "Worth a look"
+            detail = "Some fragments in the last result are worth checking. The text is already in place."
+            systemImage = "exclamationmark.triangle"
+            tint = .warning
+            showsPermissionRequest = false
+            showsSystemSettingsShortcut = false
+            showsRecoveryAction = false
+            return
+        }
+
         switch state {
         case .launching:
             title = "Starting up"
@@ -108,15 +130,6 @@ struct StatusPresentation: Sendable, Equatable {
                 : "Recognizing speech on this Mac. Hold \(binding.displayString) to start the next one."
             systemImage = "waveform.badge.magnifyingglass"
             tint = .active
-            showsPermissionRequest = false
-            showsSystemSettingsShortcut = false
-            showsRecoveryAction = false
-
-        case .reviewing:
-            title = "Worth a look"
-            detail = "Some fragments are worth checking before you use this text."
-            systemImage = "text.magnifyingglass"
-            tint = .warning
             showsPermissionRequest = false
             showsSystemSettingsShortcut = false
             showsRecoveryAction = false

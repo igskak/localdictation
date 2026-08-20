@@ -9,7 +9,8 @@ struct MenuBarView: View {
         StatusPresentation(
             state: coordinator.state,
             binding: coordinator.binding,
-            modelState: coordinator.transcriptionModelState
+            modelState: coordinator.transcriptionModelState,
+            attentionIsPending: coordinator.attentionIsPending
         )
     }
 
@@ -32,16 +33,24 @@ struct MenuBarView: View {
             }
 
             if let result = coordinator.result, !result.isEmpty {
-                if coordinator.state.isReviewing {
-                    ReviewStripView(result: result)
-                } else {
-                    ResultView(
-                        result: result,
-                        prefersRaw: coordinator.prefersRawTranscript,
-                        canInsert: coordinator.canInsert && coordinator.hasInsertableResult,
-                        insertTitle: insertTitle,
-                        insert: { coordinator.insertCurrentResult() }
-                    )
+                ResultView(
+                    result: result,
+                    prefersRaw: coordinator.prefersRawTranscript,
+                    canInsert: coordinator.canInsert && coordinator.hasInsertableResult,
+                    insertTitle: insertTitle,
+                    insert: { coordinator.insertCurrentResult() }
+                )
+
+                // The second way into the review, and the one that still works
+                // after the chip has faded. The menu is where a user goes when
+                // they have already started doubting the text, so the offer has
+                // to be here rather than only in something that disappears.
+                if coordinator.canOpenReview {
+                    Button {
+                        coordinator.openReview()
+                    } label: {
+                        Label(reviewTitle(for: result), systemImage: "exclamationmark.triangle")
+                    }
                 }
             }
 
@@ -93,6 +102,15 @@ struct MenuBarView: View {
     private var insertTitle: String {
         guard let target = coordinator.insertionTargetName else { return "Insert" }
         return "Insert into \(target)"
+    }
+
+    private func reviewTitle(for result: DictationResult) -> String {
+        let count = result.flaggedSpans.count
+        switch count {
+        case 0: return "Check what was marked"
+        case 1: return "Check 1 flagged fragment"
+        default: return "Check \(count) flagged fragments"
+        }
     }
 
     private var header: some View {

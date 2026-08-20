@@ -162,11 +162,12 @@ final class RecordingStateMachineTests: XCTestCase {
 
     // MARK: - Insertion
 
-    /// The three places a finished result can leave the app from: a decision
-    /// that needed no review, a review the user accepted, and the explicit
-    /// action offered when automatic insertion is switched off.
+    /// The two places a finished result can leave the app from: a transcript
+    /// that has just arrived, and the explicit action offered when automatic
+    /// insertion is switched off. Phase 5 removed the third — a review no
+    /// longer authorizes an insertion, because the insertion already happened.
     func testInsertionStartsFromEveryStateAResultCanBeFinishedIn() {
-        for state in [RecordingState.transcribing, .reviewing, .ready] {
+        for state in [RecordingState.transcribing, .ready] {
             var machine = RecordingStateMachine(state: state)
             XCTAssertTrue(machine.apply(.insertionStarted).didTransition, "\(state) must be able to insert")
             XCTAssertEqual(machine.state, .inserting)

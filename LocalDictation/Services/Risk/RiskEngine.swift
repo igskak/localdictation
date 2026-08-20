@@ -19,14 +19,23 @@ struct RiskEngine: Sendable {
         self.weights = weights
     }
 
-    /// The six signals of `docs/ARCHITECTURE.md`, in the order the phase spec
-    /// builds them: five deterministic rules first, model confidence last.
-    static func standard(weights: RiskWeights = .default) -> RiskEngine {
+    /// The signals of `docs/ARCHITECTURE.md`, in the order the phase spec
+    /// builds them: deterministic rules first, model confidence last.
+    ///
+    /// `lexicon` defaults to one that knows nothing, so an engine built without
+    /// one behaves exactly as it did before Phase 5. That default is what the
+    /// benchmark uses: a measurement whose numbers depend on which spelling
+    /// dictionaries happen to be installed is not a regression guard.
+    static func standard(
+        weights: RiskWeights = .default,
+        lexicon: any LexiconChecking = EmptyLexicon()
+    ) -> RiskEngine {
         RiskEngine(
             signals: [
                 NumberRiskSignal(),
                 EntityRiskSignal(),
                 GlossaryRiskSignal(),
+                MalformedWordSignal(lexicon: lexicon),
                 CleanupEditRiskSignal(),
                 LanguageSwitchRiskSignal(),
                 ConfidenceRiskSignal(threshold: weights.confidenceThreshold),
@@ -89,6 +98,10 @@ struct RiskEngine: Sendable {
     }
 
     /// Drops a name mark from words another signal already explained.
+    ///
+    /// This is also what keeps `MalformedWordSignal` and the entity heuristic
+    /// from both reporting the same word: a mangled capitalized word is marked
+    /// once, by the signal with something specific to say about it.
     ///
     /// The entity rule is a capitalization heuristic, and it is the weakest of
     /// the signals: in English every month and weekday is capitalized, so

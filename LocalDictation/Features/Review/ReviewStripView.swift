@@ -3,13 +3,14 @@ import SwiftUI
 
 /// The single place verification lives.
 ///
-/// It appears only when the risk policy says the interruption is earned, and
-/// it holds the three things a user needs to settle a doubt: the marked text,
+/// It holds the three things a user needs to settle a doubt: the marked text,
 /// the raw transcript the app started from, and the audio of a marked fragment.
 ///
-/// From Phase 4 it also stands between the text and the application it is going
-/// into, which is why its primary action is named for what it does. Accepting
-/// inserts; discarding inserts nothing at all.
+/// Phase 5 takes away the only thing it used to decide. The text is in the
+/// user's document before this ever opens, so there is nothing here to accept
+/// and nothing to discard — this is a report, and its actions are the ones a
+/// report has: look at the raw text, hear the fragment, take a copy, close it.
+/// Nobody is asked to approve anything they have already been given.
 struct ReviewStripView: View {
     @EnvironmentObject private var coordinator: DictationCoordinator
 
@@ -18,7 +19,11 @@ struct ReviewStripView: View {
     @State private var didCopy = false
 
     private var presentation: ReviewPresentation {
-        ReviewPresentation(text: result.cleanedText, flagged: result.flaggedSpans)
+        ReviewPresentation(
+            text: result.cleanedText,
+            highlighted: result.highlightedSpans,
+            flagged: result.flaggedSpans
+        )
     }
 
     var body: some View {
@@ -50,11 +55,27 @@ struct ReviewStripView: View {
     }
 
     private var header: some View {
-        HStack {
-            Image(systemName: "text.magnifyingglass")
+        HStack(spacing: 6) {
+            // The fixed frame is load-bearing, not styling. This panel sizes
+            // itself by asking SwiftUI what its content wants and then setting
+            // the window to that; an icon whose intrinsic height is not a whole
+            // number of points makes that answer fractional, the window never
+            // lands on it, and the resize repeats every layout pass until
+            // AppKit takes the app down. It crashed the first time "Show raw
+            // transcript" was pressed, and the only thing that had changed was
+            // the symbol in this line. Pinning the icon keeps the measurement
+            // integral. See `ReviewPanelController.resize(_:toFit:)`.
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.caption)
                 .foregroundStyle(.orange)
+                .frame(width: 14, height: 14)
             Text(presentation.summary)
                 .font(.caption.weight(.semibold))
+            if let secondary = presentation.secondarySummary {
+                Text("· \(secondary)")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
             Spacer()
             Text(result.profile.shortLabel)
                 .font(.caption2)
@@ -77,9 +98,14 @@ struct ReviewStripView: View {
         var output = AttributedString()
         for segment in presentation.segments {
             var piece = AttributedString(segment.text)
-            if segment.isMarked {
+            if segment.isFlagged {
                 piece.backgroundColor = Color.orange.opacity(0.3)
                 piece.inlinePresentationIntent = .stronglyEmphasized
+            } else if segment.isMarked {
+                // Drawn, but quietly. A mark the user never asked to be warned
+                // about should be findable, not loud.
+                piece.underlineStyle = .single
+                piece.underlineColor = NSColor.systemOrange.withAlphaComponent(0.7)
             }
             output.append(piece)
         }
@@ -104,10 +130,14 @@ struct ReviewStripView: View {
             ForEach(presentation.explanations) { explanation in
                 HStack(spacing: 6) {
                     Text(explanation.label)
-                        .font(.caption2.weight(.medium))
+                        .font(.caption2.weight(explanation.isFlagged ? .medium : .regular))
+                        .foregroundStyle(explanation.isFlagged ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
                         .padding(.horizontal, 5)
                         .padding(.vertical, 1)
-                        .background(Color.orange.opacity(0.18), in: Capsule())
+                        .background(
+                            Color.orange.opacity(explanation.isFlagged ? 0.18 : 0.07),
+                            in: Capsule()
+                        )
 
                     Text(explanation.fragment)
                         .font(.caption2)
@@ -130,14 +160,6 @@ struct ReviewStripView: View {
         }
     }
 
-    /// Named for where the text is going, because "Done" says nothing about
-    /// the fact that pressing it puts text into another application.
-    private var insertTitle: String {
-        guard coordinator.canInsert else { return "Done" }
-        guard let target = coordinator.insertionTargetName else { return "Insert" }
-        return "Insert into \(target)"
-    }
-
     private var actions: some View {
         HStack {
             Button(coordinator.prefersRawTranscript ? "Show cleaned text" : "Show raw transcript") {
@@ -148,32 +170,31 @@ struct ReviewStripView: View {
 
             Spacer()
 
-            // Only where the text has nowhere to go on its own. With insertion
-            // available, copying is not a step the user should have to take:
-            // inserting puts the text in the field, and every path that cannot
-            // leaves it on the clipboard and says so. A copy button next to
-            // that is a second way to do the same thing, offered first.
-            if !coordinator.canInsert {
-                Button(didCopy ? "Copied" : "Copy") {
-                    let text = result.text(preferringRaw: coordinator.prefersRawTranscript)
-                    let pasteboard = NSPasteboard.general
-                    pasteboard.clearContents()
-                    pasteboard.setString(text, forType: .string)
-                    didCopy = true
-                }
-                .disabled(didCopy)
-            } else {
-                Button("Discard") {
-                    coordinator.dismissReview()
-                }
-                .help("Close this without putting the text anywhere")
+            // Copying is the only way this panel can still change anything.
+            // The text is already in the document, so the app will not reach
+            // back in to rewrite it — reading the caret across Electron and
+            // browser fields is exactly as unreliable as `docs/PHASE_4.md`
+            // found it, and a replacement that lands in the wrong place is
+            // worse than no replacement. What the app can do is hand the user
+            // the version they decided they wanted.
+            Button(didCopy ? "Copied" : copyTitle) {
+                let text = result.text(preferringRaw: coordinator.prefersRawTranscript)
+                let pasteboard = NSPasteboard.general
+                pasteboard.clearContents()
+                pasteboard.setString(text, forType: .string)
+                didCopy = true
             }
+            .disabled(didCopy)
 
-            Button(insertTitle) {
-                coordinator.acceptReview()
+            Button("Close") {
+                coordinator.closeReview()
             }
             .keyboardShortcut(.defaultAction)
         }
+    }
+
+    private var copyTitle: String {
+        coordinator.prefersRawTranscript ? "Copy raw" : "Copy"
     }
 }
 

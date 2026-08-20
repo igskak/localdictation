@@ -12,6 +12,9 @@ enum RiskReason: Sendable, Equatable {
     case namedEntity
     /// The text nearly matches a term in the user's dictionary.
     case glossaryNearMiss(term: String)
+    /// A word whose letters form a sequence no MVP language produces, and which
+    /// the system dictionary does not know either. See `MalformedWordSignal`.
+    case malformedWord
     case cleanupEdit(TextEdit.Kind)
     /// A word carrying evidence of a language the profile does not name.
     case languageSwitch(SpeechLanguage)
@@ -24,6 +27,7 @@ enum RiskReason: Sendable, Equatable {
         case .date: "Date"
         case .namedEntity: "Name"
         case let .glossaryNearMiss(term): "Close to “\(term)”"
+        case .malformedWord: "Not a word"
         case let .cleanupEdit(kind): kind.label
         case let .languageSwitch(language): "\(language.displayName) word"
         case .lowConfidence: "Uncertain"
@@ -39,6 +43,7 @@ enum RiskReason: Sendable, Equatable {
         case .date: "date"
         case .namedEntity: "entity"
         case .glossaryNearMiss: "glossary"
+        case .malformedWord: "malformed"
         case let .cleanupEdit(kind): "cleanup.\(kind.rawValue)"
         case .languageSwitch: "language"
         case .lowConfidence: "confidence"
@@ -84,6 +89,14 @@ struct RiskWeights: Sendable, Equatable {
     var namedEntity: Double = 0.6
     var glossaryNearMiss: Double = 0.9
 
+    /// The heaviest deterministic signal in the engine, and the only new one in
+    /// Phase 5. A word that is both impossible in shape and unknown to the
+    /// system dictionary is not a judgement call — `ррверка` is not a word in
+    /// any language, and the user has no way to notice it except by rereading
+    /// text they just dictated. Priced above the attention threshold on its own,
+    /// which nothing else except a dictionary near-miss is.
+    var malformedWord: Double = 0.85
+
     /// Cleanup edits are weighted by what they actually did. Every utterance
     /// gets a closing period and a capital letter, so charging those the same
     /// as a deleted word would put every single utterance into review and burn
@@ -114,6 +127,7 @@ struct RiskWeights: Sendable, Equatable {
         case .date: date
         case .namedEntity: namedEntity
         case .glossaryNearMiss: glossaryNearMiss
+        case .malformedWord: malformedWord
         case let .cleanupEdit(kind):
             switch kind {
             case .fillerRemoval: cleanupFillerRemoval

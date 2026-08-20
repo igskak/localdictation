@@ -10,7 +10,15 @@ Phase 2 (transcription and raw dictation) is complete. The engine is decided: **
 
 Phase 3 (uncertainty and conservative cleanup) is complete: conservative cleanup with an auditable edit map, six risk signals over the raw text, risky spans mapped onto the cleaned text, an explicit review policy, the review strip with raw-transcript recovery and memory-only fragment replay, and a user dictionary scoped by language.
 
-Phase 4 (system insertion and app compatibility) is in progress. The text now leaves the app: Accessibility onboarding, a `TextInsertionService` that writes into the focused element, pastes where it cannot, and copies to the clipboard where it cannot do that either — and a review panel that stands in front of all of it without taking focus from the application you were typing in.
+Phase 4 (system insertion and app compatibility) is complete. The text leaves the app: Accessibility onboarding, a `TextInsertionService` that writes into the focused element, pastes where it cannot, and copies to the clipboard where it cannot do that either.
+
+Phase 5 (verification that does not interrupt) is complete, and it came from using the app rather than from a plan. The review used to stand in front of the text and wait to be answered, and it was answering the wrong question: a correctly recognized product name was marked as risky in sentence after sentence, while `проверка` coming back as `ррверка` went through unmarked. Both are fixed, and the review no longer blocks anything. See `docs/PHASE_5.md`.
+
+Three Phase 5 decisions are worth knowing before reading the code:
+
+- **Insertion never waits for anybody.** The words go where you were typing, every time, and the checking is offered afterwards to whoever wants it. A risk mark that blocks the text costs the user on every utterance and pays back only on the rare one that is wrong; a mark that waits costs nothing. Frequent warnings are also what teaches people to dismiss warnings, and then the one that mattered goes with the rest.
+- **Two thresholds, not one.** A capitalized word mid-sentence is worth an underline inside a review you opened on purpose. It is not worth a triangle. The high threshold is the only number that can cost you attention; the low one only decides what the review draws once you are already looking.
+- **A word that is not a word is the strongest deterministic signal there is.** It is the one error you cannot catch by rereading your own sentence. But "not in the dictionary" was measured and rejected: macOS does not know `деплой`, `коммит`, or `аутентификация`, and marking those would have moved the noise rather than removed it. A word must be *impossible in shape* **and** unknown before it is marked.
 
 Three Phase 4 decisions are worth knowing before reading the code:
 
@@ -37,6 +45,7 @@ Read these files before continuing implementation:
 - `docs/PHASE_4.md` — acceptance criteria for the current phase.
 - `docs/PHASE_4_MEASUREMENT.md` — what the review costs on ordinary prose, and what that measurement changed.
 - `docs/PHASE_4_COMPATIBILITY.md` — which applications take text by which method.
+- `docs/PHASE_5.md` — why the review stopped interrupting, and what it cost.
 - `AGENTS.md` — repository-level engineering constraints.
 
 ## Requirements
@@ -53,7 +62,7 @@ Read these files before continuing implementation:
 3. In Signing & Capabilities, choose a Personal Team if Xcode requires one for local execution. A paid Apple Developer Program membership is not required for local development.
 4. Build and run, then open the menu bar item and grant microphone access.
 5. Choose a language profile and press **Prepare speech model…**. The first run downloads roughly 600 MB of Whisper weights into `~/Library/Application Support/LocalDictation/Models`. This is the only network access in the app, it is a one-way fetch of a static asset, and it never runs without this explicit action.
-6. Hold `⌥Space` to record, release to finish. The text goes into whatever you were typing in — with a review panel first when something is worth checking, and with no window at all when nothing is.
+6. Hold `⌥Space` to record, release to finish. The text goes into whatever you were typing in, immediately and always. If something is worth a second look, a triangle appears in the menu bar and a small chip fades in and out where you are already looking — click either to see what was marked, or ignore both.
 7. The first insertion asks for Accessibility access. Until it is granted, results are copied to the clipboard instead. **A development build loses this permission on every rebuild**, because macOS keys the grant to the code signature — expect to re-grant it after each build from Xcode.
 8. Optionally add names and terms you dictate often under **Settings → Dictionary**. A word that comes out close to one of them, but not equal to it, gets marked.
 

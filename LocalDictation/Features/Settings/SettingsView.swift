@@ -184,7 +184,7 @@ struct DiagnosticsView: View {
                     LabeledContent("Flagged", value: "\(risk.flaggedSpanCount)")
                     LabeledContent("Signals", value: risk.spanCategories.isEmpty ? "\u{2014}" : risk.spanCategories.joined(separator: ", "))
                     LabeledContent("Highest weight", value: String(format: "%.2f", risk.maximumWeight))
-                    LabeledContent("Review", value: risk.requiresReview ? "Shown" : "Not needed")
+                    LabeledContent("Attention", value: risk.deservesAttention ? "Offered" : "None")
                 }
 
                 Section("Last insertion") {

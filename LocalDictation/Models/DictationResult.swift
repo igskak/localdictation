@@ -9,17 +9,26 @@ import Foundation
 struct DictationResult: Sendable, Equatable {
     let transcript: Transcript
     let cleanup: CleanupResult
-    /// Every span the engine produced, including the ones below the flag
-    /// threshold. Those are informational: they explain a review that happened
-    /// for another reason, and never cause one.
+    /// Every span the engine produced, including the ones the policy prices
+    /// below both thresholds. Those reach neither the indicator nor the review;
+    /// they exist so a measurement can see the whole engine, not the part that
+    /// survived a cut.
     let spans: [RiskSpan]
     let decision: ReviewDecision
 
     var rawText: String { cleanup.raw }
     var cleanedText: String { cleanup.cleaned }
     var profile: LanguageProfile { transcript.profile }
-    var requiresReview: Bool { decision.requiresReview }
-    var flaggedSpans: [RiskSpan] { decision.flaggedSpans }
+    /// Whether this result is worth pointing at. The only thing that lights the
+    /// indicator, and the only thing that keeps the recording alive past the
+    /// moment the text is ready.
+    var deservesAttention: Bool { decision.deservesAttention }
+    /// The marks that earned the indicator.
+    var flaggedSpans: [RiskSpan] { decision.flagged }
+    /// The marks shown inside the review, a superset of `flaggedSpans`.
+    var highlightedSpans: [RiskSpan] { decision.highlighted }
+    /// Whether opening the review would show the user anything.
+    var hasAnythingToReview: Bool { decision.hasAnythingToShow && !isEmpty }
 
     var isEmpty: Bool { cleanup.cleaned.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
@@ -42,7 +51,8 @@ struct RiskDiagnostics: Sendable, Equatable {
     let flaggedSpanCount: Int
     let spanCategories: [String]
     let maximumWeight: Double
-    let requiresReview: Bool
+    let highlightedSpanCount: Int
+    let deservesAttention: Bool
 
     init(_ result: DictationResult) {
         editCount = result.cleanup.edits.count
@@ -51,6 +61,7 @@ struct RiskDiagnostics: Sendable, Equatable {
         flaggedSpanCount = result.flaggedSpans.count
         spanCategories = result.spans.map { $0.reason.category }.sorted()
         maximumWeight = result.spans.map(\.weight).max() ?? 0
-        requiresReview = result.requiresReview
+        highlightedSpanCount = result.highlightedSpans.count
+        deservesAttention = result.deservesAttention
     }
 }

@@ -17,7 +17,14 @@ final class DictationCoordinatorReviewTests: XCTestCase {
     private func makeHarness(
         transcript: Transcript,
         glossary: Glossary = .empty,
-        profile: LanguageProfile = .german
+        profile: LanguageProfile = .german,
+        // Defaults to an engine with no dictionaries, so most tests here see
+        // exactly the deterministic signals they were written against. The
+        // tests that exercise `MalformedWordSignal` pass a lexicon that answers
+        // "unknown" to everything, which leaves its shape rule as the only
+        // thing deciding — and keeps the assertion independent of which
+        // spelling files this Mac has installed.
+        riskEngine: RiskEngine = .standard()
     ) -> Harness {
         let engine = FakeTranscriptionService()
         engine.setResult(transcript)
@@ -41,6 +48,7 @@ final class DictationCoordinatorReviewTests: XCTestCase {
             hotkeyService: hotkey,
             captureService: capture,
             transcriptionService: engine,
+            riskEngine: riskEngine,
             glossaryStore: store,
             fragmentPlayer: player,
             languageProfile: profile
@@ -77,7 +85,7 @@ final class DictationCoordinatorReviewTests: XCTestCase {
 
     // MARK: - The quiet path
 
-    func testAResultWithNothingWorthCheckingNeverInterrupts() async throws {
+    func testAResultWithNothingWorthCheckingSaysNothing() async throws {
         let harness = makeHarness(transcript: Self.quietTranscript)
 
         record(harness)
@@ -85,13 +93,14 @@ final class DictationCoordinatorReviewTests: XCTestCase {
 
         let result = try XCTUnwrap(harness.coordinator.result)
         XCTAssertEqual(result.cleanedText, "Der termin steht.")
-        XCTAssertFalse(result.requiresReview)
-        XCTAssertEqual(harness.coordinator.state, .ready)
+        XCTAssertFalse(result.deservesAttention)
+        XCTAssertFalse(harness.coordinator.attentionIsPending)
+        XCTAssertFalse(harness.coordinator.isShowingReview)
     }
 
     /// The acceptance criterion: the recording's lifetime ends at the decision,
     /// not at the end of the interaction.
-    func testAudioIsReleasedTheMomentTheDecisionIsNoReviewNeeded() async throws {
+    func testAudioIsReleasedTheMomentTheResultTurnsOutToBeQuiet() async throws {
         let harness = makeHarness(transcript: Self.quietTranscript)
 
         record(harness)
@@ -99,7 +108,7 @@ final class DictationCoordinatorReviewTests: XCTestCase {
 
         XCTAssertFalse(
             harness.coordinator.hasRetainedAudio,
-            "audio must not outlive a decision that no review is needed"
+            "audio must not outlive a decision that there is nothing worth checking"
         )
         XCTAssertEqual(harness.coordinator.retainedAudioFrameCount, 0)
         XCTAssertFalse(harness.coordinator.canReplayFragments)
@@ -107,42 +116,58 @@ final class DictationCoordinatorReviewTests: XCTestCase {
 
     // MARK: - The review path
 
-    func testAFlaggedFragmentShowsTheReviewStripAndHoldsTheAudio() async throws {
+    func testAFlaggedFragmentLightsTheIndicatorAndHoldsTheAudio() async throws {
         let harness = makeHarness(transcript: Self.riskyTranscript)
 
         record(harness)
-        try await waitUntil("review is requested") { harness.coordinator.state == .reviewing }
+        try await waitUntil("attention is offered") { harness.coordinator.attentionIsPending }
 
         let result = try XCTUnwrap(harness.coordinator.result)
-        XCTAssertTrue(result.requiresReview)
+        XCTAssertTrue(result.deservesAttention)
         XCTAssertTrue(result.flaggedSpans.contains { $0.text == "1450" })
         XCTAssertTrue(harness.coordinator.hasRetainedAudio, "a review needs the audio it may replay")
         XCTAssertTrue(harness.coordinator.canReplayFragments)
     }
 
-    func testCompletingAReviewReleasesTheAudioAndReturnsToReady() async throws {
+    func testOpeningTheReviewPutsTheIndicatorOutAndKeepsTheAudio() async throws {
         let harness = makeHarness(transcript: Self.riskyTranscript)
 
         record(harness)
-        try await waitUntil("review is requested") { harness.coordinator.state == .reviewing }
+        try await waitUntil("attention is offered") { harness.coordinator.attentionIsPending }
+
+        harness.coordinator.openReview()
+
+        XCTAssertTrue(harness.coordinator.isShowingReview)
+        XCTAssertFalse(harness.coordinator.attentionIsPending, "a lit triangle behind an open review says nothing")
+        XCTAssertTrue(harness.coordinator.hasRetainedAudio, "replay is the reason the review exists")
+    }
+
+    func testClosingTheReviewReleasesTheAudio() async throws {
+        let harness = makeHarness(transcript: Self.riskyTranscript)
+
+        record(harness)
+        try await waitUntil("attention is offered") { harness.coordinator.attentionIsPending }
+        harness.coordinator.openReview()
 
         let stopsBefore = harness.player.stopCount
-        harness.coordinator.acceptReview()
+        harness.coordinator.closeReview()
 
-        XCTAssertEqual(harness.coordinator.state, .ready)
+        XCTAssertFalse(harness.coordinator.isShowingReview)
         XCTAssertFalse(harness.coordinator.hasRetainedAudio)
         XCTAssertGreaterThan(harness.player.stopCount, stopsBefore, "playback must not outlive the review")
     }
 
-    func testDismissingAReviewAlsoReleasesTheAudio() async throws {
+    /// Declining the offer without opening it must release the recording too.
+    /// The review was the only thing that would have used the samples.
+    func testDismissingTheIndicatorUnopenedReleasesTheAudio() async throws {
         let harness = makeHarness(transcript: Self.riskyTranscript)
 
         record(harness)
-        try await waitUntil("review is requested") { harness.coordinator.state == .reviewing }
+        try await waitUntil("attention is offered") { harness.coordinator.attentionIsPending }
 
-        harness.coordinator.dismissReview()
+        harness.coordinator.dismissAttention()
 
-        XCTAssertEqual(harness.coordinator.state, .ready)
+        XCTAssertFalse(harness.coordinator.attentionIsPending)
         XCTAssertFalse(harness.coordinator.hasRetainedAudio)
     }
 
@@ -150,26 +175,95 @@ final class DictationCoordinatorReviewTests: XCTestCase {
         let harness = makeHarness(transcript: Self.riskyTranscript)
 
         record(harness)
-        try await waitUntil("review is requested") { harness.coordinator.state == .reviewing }
+        try await waitUntil("attention is offered") { harness.coordinator.attentionIsPending }
+        harness.coordinator.openReview()
 
         harness.hotkey.emit(.pressed)
 
         XCTAssertEqual(harness.coordinator.state, .starting)
         XCTAssertNil(harness.coordinator.result)
         XCTAssertFalse(harness.coordinator.hasRetainedAudio)
+        XCTAssertFalse(harness.coordinator.isShowingReview)
+        XCTAssertFalse(harness.coordinator.attentionIsPending, "an indicator that outlives its utterance means nothing")
     }
 
     /// Opening the menu re-reads authorization, and that must not knock the
     /// user out of a review they are reading.
-    func testAuthorizationRefreshDoesNotInterruptAReview() async throws {
+    func testAuthorizationRefreshDoesNotCloseAReview() async throws {
         let harness = makeHarness(transcript: Self.riskyTranscript)
 
         record(harness)
-        try await waitUntil("review is requested") { harness.coordinator.state == .reviewing }
+        try await waitUntil("attention is offered") { harness.coordinator.attentionIsPending }
+        harness.coordinator.openReview()
 
         harness.coordinator.refreshAuthorization()
 
-        XCTAssertEqual(harness.coordinator.state, .reviewing)
+        XCTAssertTrue(harness.coordinator.isShowingReview)
+    }
+
+    // MARK: - The complaint this phase came from
+
+    /// One utterance carrying both halves of the report that started Phase 5:
+    /// a messenger's name that came out right, and a word the engine mangled.
+    ///
+    /// Before, the app marked the first and missed the second — it pointed at
+    /// the word that was correct and said nothing about the one that was not,
+    /// and it did it by holding the text back until someone answered a panel.
+    /// All three of those are asserted here, because a fix to any one of them
+    /// alone would leave the complaint standing.
+    func testACorrectNameIsNotFlaggedAndAMangledWordIs() async throws {
+        var glossary = Glossary()
+        glossary.add("Флок", language: .russian)
+        let harness = makeHarness(
+            transcript: .fixture(
+                text: "вчера ррверка прошла и обсуждение перенесли во Флок",
+                profile: .russian,
+                secondsPerWord: 0.2
+            ),
+            glossary: glossary,
+            profile: .russian,
+            riskEngine: .standard(lexicon: ShapeOnlyLexicon())
+        )
+
+        record(harness)
+        try await waitUntil("result is published") { harness.coordinator.result != nil }
+
+        let result = try XCTUnwrap(harness.coordinator.result)
+        XCTAssertTrue(
+            result.flaggedSpans.contains { $0.text == "ррверка" },
+            "the word the engine mangled is what the user is told to check"
+        )
+        XCTAssertFalse(
+            result.flaggedSpans.contains { $0.text == "Флок" },
+            "a name the user put in their own dictionary is not a risk"
+        )
+        XCTAssertFalse(
+            result.highlightedSpans.contains { $0.text == "Флок" },
+            "and it is not worth an underline either"
+        )
+    }
+
+    /// The same sentence without the dictionary entry. The name is still marked
+    /// — a capitalization heuristic cannot know better — but it is marked
+    /// quietly, and it is not the reason anyone is told to look.
+    func testAnUnknownNameIsShownWithoutBeingAnnounced() async throws {
+        let harness = makeHarness(
+            transcript: .fixture(
+                text: "обсуждение перенесли во Флок",
+                profile: .russian,
+                secondsPerWord: 0.2
+            ),
+            profile: .russian,
+            riskEngine: .standard(lexicon: ShapeOnlyLexicon())
+        )
+
+        record(harness)
+        try await waitUntil("result is published") { harness.coordinator.result != nil }
+
+        let result = try XCTUnwrap(harness.coordinator.result)
+        XCTAssertTrue(result.highlightedSpans.contains { $0.text == "Флок" })
+        XCTAssertFalse(result.deservesAttention, "a capitalized word is not worth a triangle")
+        XCTAssertFalse(harness.coordinator.attentionIsPending)
     }
 
     // MARK: - Raw transcript recovery
@@ -178,7 +272,7 @@ final class DictationCoordinatorReviewTests: XCTestCase {
         let harness = makeHarness(transcript: Self.riskyTranscript)
 
         record(harness)
-        try await waitUntil("review is requested") { harness.coordinator.state == .reviewing }
+        try await waitUntil("attention is offered") { harness.coordinator.attentionIsPending }
 
         let result = try XCTUnwrap(harness.coordinator.result)
         XCTAssertEqual(result.rawText, "bitte überweise 1450 euro")
@@ -192,7 +286,7 @@ final class DictationCoordinatorReviewTests: XCTestCase {
         let harness = makeHarness(transcript: Self.riskyTranscript)
 
         record(harness)
-        try await waitUntil("review is requested") { harness.coordinator.state == .reviewing }
+        try await waitUntil("attention is offered") { harness.coordinator.attentionIsPending }
         harness.coordinator.prefersRawTranscript = true
 
         harness.hotkey.emit(.pressed)
@@ -205,7 +299,7 @@ final class DictationCoordinatorReviewTests: XCTestCase {
         let harness = makeHarness(transcript: Self.riskyTranscript)
 
         record(harness)
-        try await waitUntil("review is requested") { harness.coordinator.state == .reviewing }
+        try await waitUntil("attention is offered") { harness.coordinator.attentionIsPending }
 
         let span = try XCTUnwrap(harness.coordinator.result?.flaggedSpans.first { $0.text == "1450" })
         harness.coordinator.replay(span)
@@ -216,18 +310,19 @@ final class DictationCoordinatorReviewTests: XCTestCase {
     }
 
     /// Replay is an affordance of the review step, not a way to listen back to
-    /// a recording the app has otherwise finished with.
-    func testOnlyAFlaggedSpanCanBeReplayed() async throws {
+    /// a recording the app has otherwise finished with — so a span the review
+    /// never draws cannot be played.
+    func testOnlyASpanTheReviewShowsCanBeReplayed() async throws {
         let harness = makeHarness(transcript: Self.riskyTranscript)
 
         record(harness)
-        try await waitUntil("review is requested") { harness.coordinator.state == .reviewing }
+        try await waitUntil("attention is offered") { harness.coordinator.attentionIsPending }
 
         let result = try XCTUnwrap(harness.coordinator.result)
-        let informational = try XCTUnwrap(
-            result.spans.first { span in !result.flaggedSpans.contains(span) }
+        let hidden = try XCTUnwrap(
+            result.spans.first { span in !result.highlightedSpans.contains(span) }
         )
-        harness.coordinator.replay(informational)
+        harness.coordinator.replay(hidden)
 
         XCTAssertEqual(harness.player.playCount, 0)
     }
@@ -236,10 +331,11 @@ final class DictationCoordinatorReviewTests: XCTestCase {
         let harness = makeHarness(transcript: Self.riskyTranscript)
 
         record(harness)
-        try await waitUntil("review is requested") { harness.coordinator.state == .reviewing }
+        try await waitUntil("attention is offered") { harness.coordinator.attentionIsPending }
 
         let span = try XCTUnwrap(harness.coordinator.result?.flaggedSpans.first)
-        harness.coordinator.acceptReview()
+        harness.coordinator.openReview()
+        harness.coordinator.closeReview()
         harness.coordinator.replay(span)
 
         XCTAssertEqual(harness.player.playCount, 0)
@@ -354,7 +450,7 @@ final class DictationCoordinatorReviewTests: XCTestCase {
         try await waitUntil("risk diagnostics are recorded") { harness.coordinator.diagnostics.lastRisk != nil }
 
         let risk = try XCTUnwrap(harness.coordinator.diagnostics.lastRisk)
-        XCTAssertTrue(risk.requiresReview)
+        XCTAssertTrue(risk.deservesAttention)
         XCTAssertGreaterThan(risk.flaggedSpanCount, 0)
         XCTAssertTrue(risk.spanCategories.contains("number"))
 

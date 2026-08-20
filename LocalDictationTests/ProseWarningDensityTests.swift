@@ -22,7 +22,7 @@ final class ProseWarningDensityTests: XCTestCase {
     func testReportsDensityPerLanguage() throws {
         let report = report()
         var lines = ["", "Ordinary prose — risk engine on correct text", ""]
-        lines.append("| Language | Samples | Words | Marks | Marks/100 words | Reviews |")
+        lines.append("| Language | Samples | Words | Marks | Marks/100 words | Indicator |")
         lines.append("| --- | ---: | ---: | ---: | ---: | ---: |")
         for language in SpeechLanguage.allCases {
             guard let aggregate = report.byLanguage[language] else { continue }
@@ -30,7 +30,7 @@ final class ProseWarningDensityTests: XCTestCase {
                 """
                 | \(language.rawValue) | \(aggregate.sampleCount) | \(aggregate.wordCount) \
                 | \(aggregate.falseWarnings) | \(String(format: "%.1f", aggregate.falseWarningDensity ?? 0)) \
-                | \(String(format: "%.0f %%", (aggregate.reviewRate ?? 0) * 100)) |
+                | \(String(format: "%.0f %%", (aggregate.attentionRate ?? 0) * 100)) |
                 """
             )
         }
@@ -39,7 +39,7 @@ final class ProseWarningDensityTests: XCTestCase {
             """
             | all | \(overall.sampleCount) | \(overall.wordCount) | \(overall.falseWarnings) \
             | \(String(format: "%.1f", overall.falseWarningDensity ?? 0)) \
-            | \(String(format: "%.0f %%", (overall.reviewRate ?? 0) * 100)) |
+            | \(String(format: "%.0f %%", (overall.attentionRate ?? 0) * 100)) |
             """
         )
         lines.append("")
@@ -59,19 +59,61 @@ final class ProseWarningDensityTests: XCTestCase {
         )
     }
 
-    /// The number that matters in Phase 4: how often a sentence with nothing
-    /// wrong in it interrupts the user on the way into their document.
+    /// The number that matters in Phase 5: how often a sentence with nothing
+    /// wrong in it lights the indicator.
+    ///
+    /// Nothing interrupts any more, so this no longer measures lost time — it
+    /// measures whether the triangle still means anything. One that appears
+    /// after a quarter of ordinary sentences is one the user stops seeing, and
+    /// then it is worth less than no triangle at all.
     ///
     /// The bound is a regression guard, not a target. It is set above what the
     /// engine currently does so an unrelated change that starts marking prose
     /// fails here rather than in someone's afternoon.
-    func testOrdinaryProseRarelyInterrupts() throws {
-        let rate = try XCTUnwrap(report().overall.reviewRate)
+    func testOrdinaryProseRarelyLightsTheIndicator() throws {
+        let rate = try XCTUnwrap(report().overall.attentionRate)
         XCTAssertLessThanOrEqual(
             rate,
             0.25,
-            "more than a quarter of ordinary sentences interrupting is a review nobody reads"
+            "an indicator this common is one nobody looks at"
         )
+    }
+
+    /// The regression that started this phase, as a number.
+    ///
+    /// A correctly recognized product or person name must never be the reason
+    /// the user is told to check something. The entity heuristic still marks
+    /// them — it is a capitalization rule and cannot know better — but it is
+    /// priced below the attention threshold, so the marks stay inside a review
+    /// the user opened for another reason.
+    func testCorrectlyRecognizedNamesNeverLightTheIndicator() throws {
+        let names = BenchmarkCorpus(
+            name: "names",
+            samples: ProseCorpus.withNames.enumerated().map { offset, entry in
+                BenchmarkSample(
+                    audio: "name-\(offset).wav",
+                    reference: entry.1,
+                    language: entry.0,
+                    profile: nil
+                )
+            }
+        )
+
+        let rate = try XCTUnwrap(RiskBenchmark.runOnReferences(corpus: names).overall.attentionRate)
+        XCTAssertEqual(rate, 0, "a name that came out right is not worth interrupting anyone about")
+
+        // What the single Phase 3 threshold did with the same sentences, kept
+        // as an assertion so the improvement is a measured fact rather than a
+        // claim in a document. Six of these eight interrupted; the two that did
+        // not are German, where the capitalization heuristic is switched off
+        // because every noun there is capitalized.
+        let phase3 = try XCTUnwrap(
+            RiskBenchmark.runOnReferences(
+                corpus: names,
+                policy: ReviewPolicy(attentionThreshold: 0.5, displayThreshold: 0.5)
+            ).overall.attentionRate
+        )
+        XCTAssertEqual(phase3, 0.75, accuracy: 0.001, "the old single threshold interrupted on every name it could see")
     }
 
     func testDensityStaysWithinItsBudget() throws {
