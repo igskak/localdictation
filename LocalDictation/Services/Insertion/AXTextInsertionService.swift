@@ -15,10 +15,9 @@ import Carbon.HIToolbox
 /// Everything here runs on the main actor and synchronously, apart from two
 /// genuine waits: the pasteboard the target has to read before the previous
 /// contents go back, and the moment a written field is given to prove it kept
-/// the text. Accessibility calls to a responsive
-/// application return in well under a millisecond; the messaging timeout bounds
-/// the case where the target has hung, which is a state the user's Mac is
-/// already visibly in.
+/// the text. Accessibility calls to a responsive application return in well
+/// under a millisecond; the messaging timeout bounds the case where the target
+/// has hung, which is a state the user's Mac is already visibly in.
 @MainActor
 final class AXTextInsertionService: TextInsertionService {
     /// How long an Accessibility call to another process may take before it is
@@ -41,13 +40,6 @@ final class AXTextInsertionService: TextInsertionService {
     private let permissionService: any AccessibilityPermissionService
     private let pasteboard: any Pasteboard
 
-    /// The focused element captured together with the most recent target.
-    ///
-    /// One entry, not a table: only the newest recording can be inserted, and
-    /// keeping older references alive would keep other applications' UI objects
-    /// alive with them.
-    private var capturedElement: (targetID: UUID, element: AXUIElement)?
-
     init(
         permissionService: any AccessibilityPermissionService = AXAccessibilityPermissionService(),
         pasteboard: any Pasteboard = SystemPasteboard()
@@ -59,28 +51,17 @@ final class AXTextInsertionService: TextInsertionService {
     // MARK: - Capture
 
     func captureTarget() -> InsertionTarget? {
-        guard let application = NSWorkspace.shared.frontmostApplication else {
-            capturedElement = nil
-            return nil
-        }
+        guard let application = NSWorkspace.shared.frontmostApplication else { return nil }
         // Dictating with our own window in front means there is nothing to
         // insert into. That is not a failure: the result stays in the app and
         // the user copies it, exactly as it worked before this phase.
-        guard application.processIdentifier != ProcessInfo.processInfo.processIdentifier else {
-            capturedElement = nil
-            return nil
-        }
+        guard application.processIdentifier != ProcessInfo.processInfo.processIdentifier else { return nil }
 
         let target = InsertionTarget(
             processIdentifier: application.processIdentifier,
             bundleIdentifier: application.bundleIdentifier,
             applicationName: application.localizedName
         )
-
-        // Only readable when trust has been granted. Its absence is not fatal:
-        // the element is re-read at insertion time anyway, and this copy exists
-        // to notice that the focus moved *within* the same application.
-        capturedElement = focusedElement(of: target).map { (target.id, $0) }
 
         Log.insertion.debug("Target captured: \(target.logIdentity, privacy: .public)")
         return target
@@ -91,7 +72,6 @@ final class AXTextInsertionService: TextInsertionService {
     func insert(_ text: String, into target: InsertionTarget?) async -> InsertionOutcome {
         let element = target.flatMap(focusedElement(of:))
         let context = makeContext(target: target, focused: element)
-        defer { capturedElement = nil }
         let plan = InsertionPolicy.plan(for: context)
 
         switch plan {
@@ -127,7 +107,6 @@ final class AXTextInsertionService: TextInsertionService {
             isTrusted: permissionService.currentAuthorization.allowsInsertion,
             hasTarget: target != nil,
             targetIsCurrent: target.map(isCurrent) ?? false,
-            focusIsCurrent: focusIsUnchanged(target: target, focused: focused),
             secureInputEnabled: IsSecureEventInputEnabled(),
             focusedFieldIsSecure: false,
             hasFocusedElement: focused != nil,
@@ -144,18 +123,6 @@ final class AXTextInsertionService: TextInsertionService {
         // handled by pasting into it.
         context.acceptsDirectWrite = isSettable(focused, attribute: kAXSelectedTextAttribute)
         return context
-    }
-
-    /// Whether focus is still where it was when recording started.
-    ///
-    /// Unknowable without trust, and unknowable when either side has no
-    /// element — an application that vends no focused element cannot have moved
-    /// one. Both of those answer "unchanged", because a fallback the user
-    /// cannot explain is worse than the narrow case this is here to catch.
-    private func focusIsUnchanged(target: InsertionTarget?, focused: AXUIElement?) -> Bool {
-        guard let target, let focused else { return true }
-        guard let captured = capturedElement, captured.targetID == target.id else { return true }
-        return CFEqual(captured.element, focused)
     }
 
     private func isCurrent(_ target: InsertionTarget) -> Bool {

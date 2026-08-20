@@ -31,11 +31,12 @@ final class InsertionPolicyTests: XCTestCase {
         XCTAssertEqual(InsertionPolicy.plan(for: context), .clipboard(.targetChanged))
     }
 
-    /// Moving between fields of the same application is a wrong target too, and
-    /// says so in its own words.
-    func testMovingToAnotherFieldOfTheSameApplicationIsAlsoAWrongTarget() {
-        let context = InsertionContext(focusIsCurrent: false)
-        XCTAssertEqual(InsertionPolicy.plan(for: context), .clipboard(.focusChanged))
+    /// The other half of that rule, deliberately absent: inside the
+    /// application dictated into, the text goes wherever the caret is now.
+    /// Comparing the focused element across a transcription and a review fired
+    /// on web and Electron fields nobody had left.
+    func testMovingBetweenFieldsOfTheSameApplicationIsNotAWrongTarget() {
+        XCTAssertEqual(InsertionPolicy.plan(for: InsertionContext()), .write)
     }
 
     func testWithNothingInFocusThereIsNothingToInsertInto() {
