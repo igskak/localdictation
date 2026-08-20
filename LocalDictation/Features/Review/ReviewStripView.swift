@@ -148,16 +148,21 @@ struct ReviewStripView: View {
 
             Spacer()
 
-            Button(didCopy ? "Copied" : "Copy") {
-                let text = result.text(preferringRaw: coordinator.prefersRawTranscript)
-                let pasteboard = NSPasteboard.general
-                pasteboard.clearContents()
-                pasteboard.setString(text, forType: .string)
-                didCopy = true
-            }
-            .disabled(didCopy)
-
-            if coordinator.canInsert {
+            // Only where the text has nowhere to go on its own. With insertion
+            // available, copying is not a step the user should have to take:
+            // inserting puts the text in the field, and every path that cannot
+            // leaves it on the clipboard and says so. A copy button next to
+            // that is a second way to do the same thing, offered first.
+            if !coordinator.canInsert {
+                Button(didCopy ? "Copied" : "Copy") {
+                    let text = result.text(preferringRaw: coordinator.prefersRawTranscript)
+                    let pasteboard = NSPasteboard.general
+                    pasteboard.clearContents()
+                    pasteboard.setString(text, forType: .string)
+                    didCopy = true
+                }
+                .disabled(didCopy)
+            } else {
                 Button("Discard") {
                     coordinator.dismissReview()
                 }

@@ -96,6 +96,15 @@ first place is a smaller mechanism than putting it back.
 The menu bar panel keeps showing the last result as it does today. It is the
 place the user goes when something went wrong, not the primary surface.
 
+The panel offers one way out per direction: **Discard**, and the insert action
+named for where the text is going. It carries no **Copy** button. Copying was
+the whole of the Phase 3 exit and is now a second way to do what the primary
+button does, offered alongside it — and a user who presses it has to paste by
+hand for no reason, because every path that cannot insert already leaves the
+text on the clipboard and says so. Copy remains where insertion is impossible:
+in the menu bar's result view, and in the panel itself when the app has no
+insertion service at all.
+
 ### Accessibility first, but Accessibility is not promised
 
 Three methods, tried in order, each with a recorded outcome:
@@ -103,6 +112,9 @@ Three methods, tried in order, each with a recorded outcome:
 1. **Focused element write.** Set `kAXSelectedTextAttribute` on the focused
    element, after checking it is settable. This respects the selection, involves
    no clipboard and no synthetic events, and behaves best in native apps.
+   Accepting the write is not the same as applying it — see *A write is not
+   believed, it is checked* below — so the field is measured before and after,
+   and a write that changed nothing falls through to the next method.
 2. **Synthetic paste.** Write to the pasteboard, post ⌘V, restore the previous
    pasteboard contents. Needed where the element is not exposed or not settable
    — much of Electron, some web fields.
@@ -112,6 +124,31 @@ Three methods, tried in order, each with a recorded outcome:
 `docs/ARCHITECTURE.md` already says direct insertion is preferred but never
 promised for every target. The third method is what makes that honest: it is a
 normal outcome with its own message, not an error state.
+
+### A write is not believed, it is checked
+
+`AXUIElementSetAttributeValue` returning `success` means the element accepted
+the message, not that any text appeared. The first live session found Safari
+doing exactly that: the app logged `inserted:focusedElement into com.apple.Safari`,
+showed no notice — a successful insertion says nothing, by design — and the
+document was unchanged. The user pressed the one button on the panel and
+nothing at all happened, which is the worst outcome this phase can produce,
+because it is indistinguishable from the app being broken.
+
+So a direct write is verified against the field itself. Before writing, the
+element is asked how many characters it holds and where its insertion point is;
+afterwards it is asked again, twice — immediately, and once more after a short
+settle, because a web editor that keeps the field's contents in its own state
+can let the write through and then put its own value back. If the field reads
+exactly as it did before, the write did not land and the paste path takes over.
+
+Both numbers are non-content by construction: a length and a caret position say
+that a field changed and nothing about what is in it. Neither is stored and
+neither is logged.
+
+An element that reports neither number cannot be checked, and there the API's
+own answer stands. Pasting on top of a write that did land would insert the text
+twice, which is worse than the silence this check exists to end.
 
 ### Secure input is a refusal, and the clipboard is not a consolation prize
 

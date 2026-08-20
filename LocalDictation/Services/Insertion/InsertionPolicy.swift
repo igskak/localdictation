@@ -86,3 +86,53 @@ enum InsertionPolicy {
         return context.acceptsDirectWrite ? .write : .paste
     }
 }
+
+/// What a text element looks like from outside, in the two numbers that change
+/// when text is inserted into it.
+///
+/// Non-content by construction: a count of characters and the position of the
+/// insertion point say that the field changed, and nothing about what is in it.
+/// Neither number is stored beyond the call that reads it, and neither is
+/// logged.
+///
+/// Either half may be missing. An element that exposes no count and no
+/// selection cannot be checked, and that is recorded as absence rather than
+/// guessed at.
+struct TextFieldFingerprint: Sendable, Equatable {
+    var characterCount: Int?
+    var selectionLocation: Int?
+    var selectionLength: Int?
+
+    init(characterCount: Int? = nil, selectionLocation: Int? = nil, selectionLength: Int? = nil) {
+        self.characterCount = characterCount
+        self.selectionLocation = selectionLocation
+        self.selectionLength = selectionLength
+    }
+
+    /// Whether the element said anything at all about its text.
+    var isReadable: Bool { characterCount != nil || selectionLocation != nil }
+}
+
+/// Decides whether a direct write actually put the text in the field.
+///
+/// It exists because `AXUIElementSetAttributeValue` returning `success` is not
+/// the same as text appearing. Safari's web fields, and parts of Electron,
+/// accept the call for `AXSelectedText` and do nothing with it. The app used to
+/// believe them: it reported an insertion that had happened, showed no notice
+/// because a successful insertion says nothing, and left the user looking at an
+/// unchanged document.
+///
+/// So the element is asked what changed. Any change is enough — inserting a
+/// non-empty string moves the count, the caret, or both, and which of them
+/// moves depends on whether a selection was replaced. Only a field that reports
+/// exactly what it reported before has ignored the write.
+enum InsertionVerification {
+    static func didApply(before: TextFieldFingerprint, after: TextFieldFingerprint) -> Bool {
+        // Unverifiable, so the API's own answer stands. Falling back to a paste
+        // here would risk inserting the text twice into an element that took it
+        // and simply does not describe itself, which is worse than the silence
+        // this check exists to end.
+        guard before.isReadable, after.isReadable else { return true }
+        return before != after
+    }
+}
