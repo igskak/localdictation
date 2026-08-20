@@ -38,9 +38,18 @@ final class InsertionPolicyTests: XCTestCase {
         XCTAssertEqual(InsertionPolicy.plan(for: context), .clipboard(.focusChanged))
     }
 
-    func testWithNoTextFieldInFocusThereIsNothingToInsertInto() {
-        let context = InsertionContext(hasEditableField: false, acceptsDirectWrite: false)
+    func testWithNothingInFocusThereIsNothingToInsertInto() {
+        let context = InsertionContext(hasFocusedElement: false, acceptsDirectWrite: false)
         XCTAssertEqual(InsertionPolicy.plan(for: context), .clipboard(.noEditableField))
+    }
+
+    /// Electron and Chromium describe a focused web view as a group and say
+    /// nothing about the field inside it. The field is real, it is focused, and
+    /// it takes ⌘V — so refusing to insert on the strength of a bad
+    /// self-description left the user pasting by hand for no reason.
+    func testAFocusedElementThatDescribesNothingIsStillPastedInto() {
+        let context = InsertionContext(acceptsDirectWrite: false)
+        XCTAssertEqual(InsertionPolicy.plan(for: context), .paste)
     }
 
     // MARK: - Refusal

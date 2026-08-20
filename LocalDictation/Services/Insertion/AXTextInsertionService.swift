@@ -130,7 +130,7 @@ final class AXTextInsertionService: TextInsertionService {
             focusIsCurrent: focusIsUnchanged(target: target, focused: focused),
             secureInputEnabled: IsSecureEventInputEnabled(),
             focusedFieldIsSecure: false,
-            hasEditableField: false,
+            hasFocusedElement: focused != nil,
             acceptsDirectWrite: false
         )
 
@@ -139,22 +139,12 @@ final class AXTextInsertionService: TextInsertionService {
         let subrole = string(of: focused, attribute: kAXSubroleAttribute)
         context.focusedFieldIsSecure = subrole == (kAXSecureTextFieldSubrole as String)
 
-        let role = string(of: focused, attribute: kAXRoleAttribute)
-        let selectedTextIsSettable = isSettable(focused, attribute: kAXSelectedTextAttribute)
-        let valueIsSettable = isSettable(focused, attribute: kAXValueAttribute)
-
-        context.hasEditableField = Self.textRoles.contains(role ?? "") || selectedTextIsSettable || valueIsSettable
-        context.acceptsDirectWrite = selectedTextIsSettable
+        // The only thing left to ask the element: whether it can be written
+        // through Accessibility. Everything it cannot answer for itself is
+        // handled by pasting into it.
+        context.acceptsDirectWrite = isSettable(focused, attribute: kAXSelectedTextAttribute)
         return context
     }
-
-    /// Roles that are a text field even when the application exposes nothing as
-    /// settable. Chromium and Electron are the reason this list exists.
-    private static let textRoles: Set<String> = [
-        kAXTextFieldRole as String,
-        kAXTextAreaRole as String,
-        kAXComboBoxRole as String,
-    ]
 
     /// Whether focus is still where it was when recording started.
     ///

@@ -117,13 +117,34 @@ Three methods, tried in order, each with a recorded outcome:
    and a write that changed nothing falls through to the next method.
 2. **Synthetic paste.** Write to the pasteboard, post ⌘V, restore the previous
    pasteboard contents. Needed where the element is not exposed or not settable
-   — much of Electron, some web fields.
+   — much of Electron, some web fields — and used for **anything focused that
+   cannot be written directly**, whatever the application says about it. See
+   *An application is not asked for permission to insert* below.
 3. **Clipboard only.** The text is on the clipboard and the user is told, in one
    line, that they need to paste it.
 
 `docs/ARCHITECTURE.md` already says direct insertion is preferred but never
 promised for every target. The third method is what makes that honest: it is a
 normal outcome with its own message, not an error state.
+
+### An application is not asked for permission to insert
+
+The first version asked the focused element whether it was a text field —
+a text role, or a settable value — and fell back to the clipboard when the
+answer was no. That question turned out to be the wrong one. Electron and
+Chromium describe a focused web view as a group or a web area and say nothing
+about the field inside it, so a real, focused, perfectly writable message box
+came back as "no text field in focus" and the user was left pasting by hand.
+A live session produced exactly that against Claude for Desktop.
+
+So the only thing the element is asked now is whether it can be **written**
+through Accessibility, which decides between method 1 and method 2. Anything
+focused that cannot is pasted into. What guards an insertion is the target and
+the focus being unchanged and the secure checks — facts about where the text is
+going — and not how well the application describes itself.
+
+The clipboard remains for the case it was always about: no focused element at
+all, which is an application with no insertion point to aim at.
 
 ### A write is not believed, it is checked
 
