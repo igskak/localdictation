@@ -75,6 +75,23 @@ xcodebuild build -project LocalDictation.xcodeproj -scheme LocalDictation -desti
 xcodebuild test  -project LocalDictation.xcodeproj -scheme LocalDictation -destination 'platform=macOS,arch=arm64'
 ```
 
+### Reclaiming build cache
+
+Xcode names its `~/Library/Developer/Xcode/DerivedData` folder after the
+absolute project path, so every checkout builds into its own tree — about
+150 MB for a build, more once tests run. Repeated builds from the same path
+reuse one folder and do not grow the total, but a deleted git worktree leaves
+its tree behind forever. Prune the leftovers:
+
+```sh
+./Tools/prune_derived_data.sh           # list orphans
+./Tools/prune_derived_data.sh --delete  # remove them
+```
+
+The model weights under `~/Library/Application Support/LocalDictation/Models`
+are a separate 1.5 GB and are not build output — deleting them means
+downloading them again on next launch.
+
 ## Module layout
 
 ```text
