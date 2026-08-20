@@ -20,6 +20,23 @@ application, with automatic insertion on, and recording what happened.
 A row that reads `clipboard` is a valid, honest result. A row where text lands
 somewhere other than the focused field is a defect and blocks the phase.
 
+## What the first live session found
+
+Before any row below was filled in, ordinary use turned up the defect this table
+exists to catch, and it is recorded here because it is the reason the **Method**
+column cannot be read at face value.
+
+Dictating into Safari produced `inserted:focusedElement` in the log, no notice —
+a successful insertion says nothing — and no text in the page. Safari accepted
+the write to `AXSelectedText` and did nothing with it. The app now measures the
+field before and after a direct write and falls through to the paste path when
+nothing changed, so a row that reads `direct` means the text was seen to arrive
+rather than that an API returned `success`.
+
+When filling in a row, still check the field with your own eyes. The
+verification catches a field that reports no change; it cannot catch one that
+reports a change it did not make.
+
 ## Native
 
 | Application | Version | Method | Caret | Undo | Spacing | Notes |
