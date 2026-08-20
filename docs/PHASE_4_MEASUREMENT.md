@@ -31,6 +31,14 @@ makes it useful for recall — and what makes its density an upper bound rather
 than a typical figure. Here, figures appear at roughly the rate they appear in
 real writing, and German keeps its capitalized nouns.
 
+> **Superseded in part by Phase 5.** The numbers below were measured against a
+> corpus of 56 sentences and a single flag threshold, when a mark still
+> interrupted. The corpus has since grown by eight sentences carrying correctly
+> recognized proper nouns — the case it was missing, and the case that turned
+> out to matter most — and the threshold has been split in two. Current figures
+> are in `docs/PHASE_5.md`. What this document records that is still true is the
+> method, and the ordinal-as-date finding below.
+
 ## Result
 
 | Language | Samples | Words | Marks | Marks/100 words | Utterances reviewed |

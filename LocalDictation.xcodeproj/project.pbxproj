@@ -62,6 +62,9 @@
 		FFA6ADD443AE5F4453651BB0 /* ConfidenceRiskSignal.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEACA4A982D7D232E3E718B4 /* ConfidenceRiskSignal.swift */; };
 		1648A3535FC8AAE0263EEEE0 /* CriticalTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEA363CB294BC00302BB5966 /* CriticalTokens.swift */; };
 		EA0739209EA3FFA9EA749F16 /* EntityRiskSignal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70EE204BDA27FD9C8657194D /* EntityRiskSignal.swift */; };
+		EDE4648A528DE866E4C30C65 /* SystemLexicon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E482DAC5E14E00909067905 /* SystemLexicon.swift */; };
+		D241791C4A5964FDAA39A433 /* MalformedWordSignal.swift in Sources */ = {isa = PBXBuildFile; fileRef = B67E0C97625130F48D74064E /* MalformedWordSignal.swift */; };
+		B79220B552A6792A749544C0 /* LexiconChecking.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5295699055C63EB4B9EB1A8E /* LexiconChecking.swift */; };
 		6A12578E70E276569BA33280 /* GlossaryRiskSignal.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADE4067E38EAFFD7911D084D /* GlossaryRiskSignal.swift */; };
 		816D1F8F1F506D9D9A0990FC /* LanguageSwitchRiskSignal.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2582D3153717A7F3F7F20D0 /* LanguageSwitchRiskSignal.swift */; };
 		E13EC6C331C578FE226F8179 /* NumberRiskSignal.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3CB67B4B87497350FE556E0 /* NumberRiskSignal.swift */; };
@@ -100,6 +103,7 @@
 		622C4C3E1EDD5BD500A42432 /* ReviewPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9488B01B575AC81ED04BBC4A /* ReviewPresentationTests.swift */; };
 		9F1B343B8A48318AE4D21BCB /* RiskBenchmarkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85AC2ED16B22296764078413 /* RiskBenchmarkTests.swift */; };
 		A6231B0BE649D6550A3E608E /* RiskEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B8495B1FA5C95B53C05D8DC /* RiskEngineTests.swift */; };
+		B381A9A0B6E436AABBC94214 /* MalformedWordSignalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E99166F96C8BCF75FC20438 /* MalformedWordSignalTests.swift */; };
 		3B11D86D3FE1B11DE5BC2EDC /* RiskFalsePositiveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F588C85D049985EEBCFDD67E /* RiskFalsePositiveTests.swift */; };
 		3747EC50BAB8261D18686026 /* RiskSignalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DA48F5E9904B3D5DCD0363F /* RiskSignalTests.swift */; };
 		22EF378DC4E0031124EF54CC /* StatusPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E86BD8C693FBAC71C9573850 /* StatusPresentationTests.swift */; };
@@ -177,6 +181,9 @@
 		EEACA4A982D7D232E3E718B4 /* ConfidenceRiskSignal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfidenceRiskSignal.swift; sourceTree = "<group>"; };
 		AEA363CB294BC00302BB5966 /* CriticalTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CriticalTokens.swift; sourceTree = "<group>"; };
 		70EE204BDA27FD9C8657194D /* EntityRiskSignal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntityRiskSignal.swift; sourceTree = "<group>"; };
+		5E482DAC5E14E00909067905 /* SystemLexicon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemLexicon.swift; sourceTree = "<group>"; };
+		B67E0C97625130F48D74064E /* MalformedWordSignal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MalformedWordSignal.swift; sourceTree = "<group>"; };
+		5295699055C63EB4B9EB1A8E /* LexiconChecking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LexiconChecking.swift; sourceTree = "<group>"; };
 		ADE4067E38EAFFD7911D084D /* GlossaryRiskSignal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlossaryRiskSignal.swift; sourceTree = "<group>"; };
 		A2582D3153717A7F3F7F20D0 /* LanguageSwitchRiskSignal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageSwitchRiskSignal.swift; sourceTree = "<group>"; };
 		F3CB67B4B87497350FE556E0 /* NumberRiskSignal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NumberRiskSignal.swift; sourceTree = "<group>"; };
@@ -216,6 +223,7 @@
 		9488B01B575AC81ED04BBC4A /* ReviewPresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewPresentationTests.swift; sourceTree = "<group>"; };
 		85AC2ED16B22296764078413 /* RiskBenchmarkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiskBenchmarkTests.swift; sourceTree = "<group>"; };
 		6B8495B1FA5C95B53C05D8DC /* RiskEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiskEngineTests.swift; sourceTree = "<group>"; };
+		6E99166F96C8BCF75FC20438 /* MalformedWordSignalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MalformedWordSignalTests.swift; sourceTree = "<group>"; };
 		F588C85D049985EEBCFDD67E /* RiskFalsePositiveTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiskFalsePositiveTests.swift; sourceTree = "<group>"; };
 		7DA48F5E9904B3D5DCD0363F /* RiskSignalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiskSignalTests.swift; sourceTree = "<group>"; };
 		E86BD8C693FBAC71C9573850 /* StatusPresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusPresentationTests.swift; sourceTree = "<group>"; };
@@ -423,6 +431,9 @@
 				EEACA4A982D7D232E3E718B4 /* ConfidenceRiskSignal.swift */,
 				AEA363CB294BC00302BB5966 /* CriticalTokens.swift */,
 				70EE204BDA27FD9C8657194D /* EntityRiskSignal.swift */,
+				5E482DAC5E14E00909067905 /* SystemLexicon.swift */,
+				B67E0C97625130F48D74064E /* MalformedWordSignal.swift */,
+				5295699055C63EB4B9EB1A8E /* LexiconChecking.swift */,
 				ADE4067E38EAFFD7911D084D /* GlossaryRiskSignal.swift */,
 				A2582D3153717A7F3F7F20D0 /* LanguageSwitchRiskSignal.swift */,
 				F3CB67B4B87497350FE556E0 /* NumberRiskSignal.swift */,
@@ -538,6 +549,7 @@
 				9488B01B575AC81ED04BBC4A /* ReviewPresentationTests.swift */,
 				85AC2ED16B22296764078413 /* RiskBenchmarkTests.swift */,
 				6B8495B1FA5C95B53C05D8DC /* RiskEngineTests.swift */,
+				6E99166F96C8BCF75FC20438 /* MalformedWordSignalTests.swift */,
 				F588C85D049985EEBCFDD67E /* RiskFalsePositiveTests.swift */,
 				7DA48F5E9904B3D5DCD0363F /* RiskSignalTests.swift */,
 				E86BD8C693FBAC71C9573850 /* StatusPresentationTests.swift */,
@@ -726,6 +738,9 @@
 				FFA6ADD443AE5F4453651BB0 /* ConfidenceRiskSignal.swift in Sources */,
 				1648A3535FC8AAE0263EEEE0 /* CriticalTokens.swift in Sources */,
 				EA0739209EA3FFA9EA749F16 /* EntityRiskSignal.swift in Sources */,
+				EDE4648A528DE866E4C30C65 /* SystemLexicon.swift in Sources */,
+				D241791C4A5964FDAA39A433 /* MalformedWordSignal.swift in Sources */,
+				B79220B552A6792A749544C0 /* LexiconChecking.swift in Sources */,
 				6A12578E70E276569BA33280 /* GlossaryRiskSignal.swift in Sources */,
 				816D1F8F1F506D9D9A0990FC /* LanguageSwitchRiskSignal.swift in Sources */,
 				E13EC6C331C578FE226F8179 /* NumberRiskSignal.swift in Sources */,
@@ -771,6 +786,7 @@
 				622C4C3E1EDD5BD500A42432 /* ReviewPresentationTests.swift in Sources */,
 				9F1B343B8A48318AE4D21BCB /* RiskBenchmarkTests.swift in Sources */,
 				A6231B0BE649D6550A3E608E /* RiskEngineTests.swift in Sources */,
+				B381A9A0B6E436AABBC94214 /* MalformedWordSignalTests.swift in Sources */,
 				3B11D86D3FE1B11DE5BC2EDC /* RiskFalsePositiveTests.swift in Sources */,
 				3747EC50BAB8261D18686026 /* RiskSignalTests.swift in Sources */,
 				22EF378DC4E0031124EF54CC /* StatusPresentationTests.swift in Sources */,

@@ -25,6 +25,7 @@ final class ReviewPresentationTests: XCTestCase {
         let text = "Bitte 1450 Euro"
         let presentation = ReviewPresentation(
             text: text,
+            highlighted: [span(6..<10, weight: 0.8, text: "1450")],
             flagged: [span(6..<10, weight: 0.8, text: "1450")]
         )
 
@@ -37,6 +38,11 @@ final class ReviewPresentationTests: XCTestCase {
         let text = "Переведи 1450 евро Мюллеру"
         let presentation = ReviewPresentation(
             text: text,
+            highlighted: [
+                span(9..<13, weight: 0.8, text: "1450"),
+                span(14..<18, weight: 0.8, reason: .currency, text: "евро"),
+                span(19..<26, weight: 0.6, reason: .namedEntity, text: "Мюллеру"),
+            ],
             flagged: [
                 span(9..<13, weight: 0.8, text: "1450"),
                 span(14..<18, weight: 0.8, reason: .currency, text: "евро"),
@@ -54,6 +60,10 @@ final class ReviewPresentationTests: XCTestCase {
         let text = "Betrag 1450 Euro"
         let presentation = ReviewPresentation(
             text: text,
+            highlighted: [
+                span(7..<11, weight: 0.4, reason: .cleanupEdit(.capitalization), text: "1450"),
+                span(7..<11, weight: 0.9, reason: .number, text: "1450"),
+            ],
             flagged: [
                 span(7..<11, weight: 0.4, reason: .cleanupEdit(.capitalization), text: "1450"),
                 span(7..<11, weight: 0.9, reason: .number, text: "1450"),
@@ -75,7 +85,7 @@ final class ReviewPresentationTests: XCTestCase {
             start: 0,
             end: 0.2
         )
-        let presentation = ReviewPresentation(text: "Der Termin steht.", flagged: [removal])
+        let presentation = ReviewPresentation(text: "Der Termin steht.", highlighted: [removal], flagged: [removal])
 
         XCTAssertTrue(presentation.hasPositionOnlyMarks)
         XCTAssertTrue(presentation.segments.allSatisfy { !$0.isMarked })
@@ -85,6 +95,10 @@ final class ReviewPresentationTests: XCTestCase {
     func testEveryFlaggedSpanIsExplained() {
         let presentation = ReviewPresentation(
             text: "Bitte 1450 Euro",
+            highlighted: [
+                span(6..<10, weight: 0.8, text: "1450"),
+                span(11..<15, weight: 0.8, reason: .currency, text: "Euro"),
+            ],
             flagged: [
                 span(6..<10, weight: 0.8, text: "1450"),
                 span(11..<15, weight: 0.8, reason: .currency, text: "Euro"),
@@ -98,16 +112,17 @@ final class ReviewPresentationTests: XCTestCase {
     }
 
     func testUnflaggedTextProducesOneUnmarkedSegment() {
-        let presentation = ReviewPresentation(text: "Der Termin steht.", flagged: [])
+        let presentation = ReviewPresentation(text: "Der Termin steht.", highlighted: [], flagged: [])
 
         XCTAssertEqual(presentation.segments.count, 1)
         XCTAssertFalse(presentation.segments[0].isMarked)
-        XCTAssertEqual(presentation.summary, "Nothing to check")
+        XCTAssertEqual(presentation.summary, "Nothing flagged")
     }
 
     func testOutOfBoundsSpansAreIgnoredRatherThanTrapping() {
         let presentation = ReviewPresentation(
             text: "Kurz",
+            highlighted: [span(100..<140, weight: 0.9, text: "nonsense")],
             flagged: [span(100..<140, weight: 0.9, text: "nonsense")]
         )
 

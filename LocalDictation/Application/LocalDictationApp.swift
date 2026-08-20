@@ -18,9 +18,17 @@ struct LocalDictationApp: App {
             MenuBarView()
                 .environmentObject(coordinator)
         } label: {
+            // The indicator lives here because this is the one place that is on
+            // screen whatever the user is doing. `MenuBarExtra` renders its
+            // label as a template image, so the alert is the symbol itself
+            // rather than a badge drawn over one.
             Label(
                 "LocalDictation",
-                systemImage: StatusPresentation(state: coordinator.state, binding: coordinator.binding).systemImage
+                systemImage: StatusPresentation(
+                    state: coordinator.state,
+                    binding: coordinator.binding,
+                    attentionIsPending: coordinator.attentionIsPending
+                ).systemImage
             )
         }
         .menuBarExtraStyle(.window)

@@ -21,6 +21,18 @@ final class DictationCoordinator: ObservableObject {
     /// Set inside review when the user asks for the raw transcript back.
     /// Reset on every new utterance, so a recovery never leaks into the next one.
     @Published var prefersRawTranscript = false
+    /// Whether the last result is worth pointing at and the user has not looked
+    /// yet. This is the whole of the indicator's state: it lights the menu bar
+    /// triangle and the fading chip, and nothing about it blocks anything.
+    ///
+    /// It clears three ways — the user opens the review, the user dismisses the
+    /// chip, or the next dictation starts. A pending mark never survives into
+    /// the utterance after it, because a triangle that might be about the last
+    /// sentence or the one before it says nothing at all.
+    @Published private(set) var attentionIsPending = false
+    /// Whether the review panel is on screen. Presentation, not lifecycle: the
+    /// text is already in the user's document by the time this can be true.
+    @Published private(set) var isShowingReview = false
     @Published private(set) var transcriptionModelState: TranscriptionModelState = .unavailable("No speech engine configured", needsUserAction: true)
     /// Selected language profile. Explicit, never inferred per utterance.
     @Published var languageProfile: LanguageProfile
@@ -64,9 +76,13 @@ final class DictationCoordinator: ObservableObject {
 
     /// The captured samples, held only while something still needs them.
     ///
-    /// Its lifetime is bounded by the review decision rather than by the end of
-    /// the interaction: when the decision is "no review needed" this is cleared
-    /// at that instant, before the user has done anything at all.
+    /// A result the policy prices as quiet clears this the instant it is
+    /// analyzed, before the user has done anything at all. A result worth
+    /// pointing at keeps it, because fragment replay is the review's whole
+    /// reason for existing and the review now happens later, if at all — so the
+    /// samples live until the user closes the review or starts the next
+    /// utterance, whichever comes first. That is longer than Phase 3 held them
+    /// and it is the price of not interrupting; `docs/PHASE_5.md` records it.
     private var retainedAudio: RetainedAudio?
 
     /// The application the current utterance was spoken into, captured when
@@ -265,7 +281,8 @@ final class DictationCoordinator: ObservableObject {
         // A new utterance supersedes whatever is still being transcribed or
         // reviewed, and clears the previous result so the copy action is never
         // ambiguous about which utterance it belongs to. The retained audio of
-        // the superseded utterance goes with it.
+        // the superseded utterance goes with it, and so does any indicator
+        // still lit for it.
         cancelTranscription()
         cancelInsertion()
         fragmentPlayer?.stop()
@@ -274,6 +291,8 @@ final class DictationCoordinator: ObservableObject {
         result = nil
         prefersRawTranscript = false
         lastInsertion = nil
+        attentionIsPending = false
+        isShowingReview = false
         pendingEndReason = nil
 
         // The target is captured here, at the start, and not read again when
@@ -361,13 +380,12 @@ final class DictationCoordinator: ObservableObject {
                 voiceActivity: utterance.voiceActivity,
                 sampleRate: utterance.sampleRate
             )
-            // Held until the review decision, and no longer. Phase 3 gives the
-            // recording a lifetime bounded by that decision rather than by the
-            // end of the interaction.
+            // Held until the policy has priced the result. A quiet one releases
+            // these immediately; one worth pointing at keeps them for replay.
             retainedAudio = RetainedAudio(samples: utterance.samples, sampleRate: utterance.sampleRate)
             #if DEBUG
             // Debug-only export buffer, compiled out of every shipping build.
-            // It deliberately outlives the review decision so the last
+            // It deliberately outlives the risk decision so the last
             // utterance can still be exported by hand; the product path above
             // is the one bounded by the decision.
             lastUtteranceSamples = utterance.samples
@@ -452,6 +470,9 @@ final class DictationCoordinator: ObservableObject {
         transcript = nil
         result = nil
         prefersRawTranscript = false
+        attentionIsPending = false
+        isShowingReview = false
+        fragmentPlayer?.stop()
         releaseRetainedAudio()
     }
 
@@ -590,39 +611,60 @@ final class DictationCoordinator: ObservableObject {
 
     var canReplayFragments: Bool { fragmentPlayer != nil && retainedAudio != nil }
 
-    /// Ends a shown review. Both outcomes release the audio; they differ in
-    /// what happens to the text.
-    ///
-    /// Accepting is what authorizes the insertion — review always completes
-    /// before anything leaves the app, and a dismissal inserts nothing at all,
-    /// because dismissing is the user saying no.
-    func completeReview(_ outcome: ReviewOutcome) {
-        guard state.isReviewing else { return }
-        fragmentPlayer?.stop()
-        releaseRetainedAudio()
-        Log.application.info("Review \(outcome.rawValue, privacy: .public)")
+    /// Whether there is a review to open at all.
+    var canOpenReview: Bool { result?.hasAnythingToReview ?? false }
 
-        switch outcome {
-        case .accepted:
-            let text = result?.text(preferringRaw: prefersRawTranscript) ?? ""
-            if performInsertion(of: text) { return }
-        case .dismissed:
-            insertionTarget = nil
-        }
-        apply(.reviewCompleted)
+    /// Opens the review, and puts the indicator out.
+    ///
+    /// The indicator's only job was to get the user here. Once they have
+    /// arrived it has nothing left to say, so it clears on opening rather than
+    /// on closing — a triangle still lit behind an open review is telling the
+    /// user about the thing they are looking at.
+    func openReview() {
+        guard canOpenReview else { return }
+        attentionIsPending = false
+        guard !isShowingReview else { return }
+        isShowingReview = true
+        Log.application.info("Review opened")
     }
 
-    func acceptReview() { completeReview(.accepted) }
-    func dismissReview() { completeReview(.dismissed) }
+    /// Closes the review and releases the recording it was holding.
+    ///
+    /// This is the last thing that can need the samples, so they go here. The
+    /// user is not asked to confirm anything: the text has been in their
+    /// document since the moment it was recognized.
+    func closeReview() {
+        guard isShowingReview else { return }
+        isShowingReview = false
+        fragmentPlayer?.stop()
+        releaseRetainedAudio()
+        prefersRawTranscript = false
+        Log.application.info("Review closed")
+    }
+
+    /// Puts the indicator out without opening anything — the user glanced at
+    /// the chip and decided the text was fine. The samples go with it, because
+    /// the only thing that would have used them is the review they declined.
+    func dismissAttention() {
+        guard attentionIsPending, !isShowingReview else { return }
+        attentionIsPending = false
+        fragmentPlayer?.stop()
+        releaseRetainedAudio()
+        Log.application.info("Attention dismissed unopened")
+    }
 
     /// Replays one flagged fragment from memory.
     ///
-    /// Only a flagged span may be replayed, per `docs/PHASE_3.md`: replay is an
-    /// affordance of the review step, not a general way to listen back to a
-    /// recording the app is otherwise finished with.
+    /// Only a span the review actually shows may be replayed, per
+    /// `docs/PHASE_3.md`: replay is an affordance of the review step, not a
+    /// general way to listen back to a recording the app is otherwise finished
+    /// with. Phase 5 widens that set from the flagged spans to the highlighted
+    /// ones, because those are now what the open review puts in front of the
+    /// user — and a mark with a dead play button beside it is worse than a mark
+    /// with none.
     func replay(_ span: RiskSpan) {
         guard let fragmentPlayer, let audio = retainedAudio else { return }
-        guard let result, result.flaggedSpans.contains(span) else { return }
+        guard let result, result.highlightedSpans.contains(span) else { return }
         guard let start = span.start, let end = span.end else { return }
 
         // A word clipped exactly at its token boundary is hard to recognize, so
@@ -751,23 +793,28 @@ final class DictationCoordinator: ObservableObject {
         diagnostics.lastRisk = RiskDiagnostics(result)
         Log.application.info(
             """
-            Result ready: \(result.cleanup.edits.count) edits, \(result.spans.count) spans, \(result.flaggedSpans.count) flagged, review \(result.requiresReview ? "required" : "not needed", privacy: .public)
+            Result ready: \(result.cleanup.edits.count) edits, \(result.spans.count) spans, \(result.flaggedSpans.count) flagged, \(result.highlightedSpans.count) highlighted, attention \(result.deservesAttention ? "pending" : "none", privacy: .public)
             """
         )
 
-        if result.requiresReview {
-            guard apply(.reviewRequired) else { return }
+        if result.deservesAttention {
+            // Lit, not shown. The user finds out there is something to check
+            // from a triangle they can ignore, and the recording stays alive
+            // only because the review they may open needs it.
+            attentionIsPending = true
         } else {
-            // The decision is "nothing worth saying", so the recording's job is
-            // over. Releasing here rather than at the end of the interaction is
-            // the whole point of deciding early.
+            // Nothing worth saying, so the recording's job is over. Releasing
+            // here rather than at the end of the interaction is the whole point
+            // of deciding early.
             releaseRetainedAudio()
-            // And this is the phase's whole point: nothing worth saying means
-            // nothing is said. No window, no click — the words appear where the
-            // user was already typing.
-            if insertsAutomatically, performInsertion(of: result.cleanedText) { return }
-            apply(.transcriptionFinished)
         }
+
+        // Unconditional, and that is the change this phase exists for. Risk
+        // marks no longer stand between the user and their own document: the
+        // words appear where they were already typing, every time, and the
+        // checking is offered afterwards to whoever wants it.
+        if insertsAutomatically, performInsertion(of: result.cleanedText) { return }
+        apply(.transcriptionFinished)
     }
 
     /// Cleanup, risk marking, and the review decision for one transcript.
@@ -909,7 +956,10 @@ extension DictationCoordinator {
             // the codebase as the comparison the benchmark scores it against.
             transcriptionService: WhisperKitTranscriptionService(),
             cleanupService: ConservativeCleanupService(),
-            riskEngine: .standard(),
+            // The live engine gets the system dictionaries; the benchmark does
+            // not. See `RiskEngine.standard(weights:lexicon:)` for why the
+            // measurement deliberately runs without them.
+            riskEngine: .standard(lexicon: SystemLexicon()),
             reviewPolicy: .default,
             glossaryStore: FileGlossaryStore(),
             fragmentPlayer: AVAudioEngineFragmentPlayer(),

@@ -1,54 +1,63 @@
 import Foundation
 
-/// When the review step earns the interruption.
+/// What a result's risk marks are worth saying, and how loudly.
 ///
-/// `docs/PHASE_3.md` requires an explicit, testable policy rather than an
-/// accumulated set of conditions, because a risk engine that marks everything
-/// is worse than none: it trains the user to dismiss the strip, and then the
-/// one real error goes through.
+/// Phase 3 had one threshold doing two jobs: choosing what to highlight, and
+/// deciding whether to stand between the user and their document. Coupling
+/// them is what made the marks expensive. A capitalized word in mid-sentence
+/// is worth a highlight — it is not worth an interruption, and pricing it as
+/// though it were is exactly what teaches people to dismiss the strip without
+/// reading it. The one real error then goes through with all the others.
 ///
-/// The policy is therefore a single rule with a single number. A span is
-/// *flagged* when its weight reaches the threshold; review is shown when at
-/// least one span is flagged. Everything below the threshold is informational —
-/// visible inside a review that happens for another reason, never the cause of
-/// one.
+/// Phase 5 separates the two questions, because insertion no longer waits for
+/// anybody:
+///
+/// - `attentionThreshold` decides whether the app says anything at all. It is
+///   deliberately high, and it is the only number that can cost the user's
+///   attention. Nothing below it may ever be the reason they are told to look.
+/// - `displayThreshold` decides what is highlighted once the user has already
+///   chosen to look. It is low, because a mark on a page opened on purpose
+///   costs nothing — it is the answer to a question that was just asked.
 struct ReviewPolicy: Sendable, Equatable {
-    var flagThreshold: Double
+    var attentionThreshold: Double
+    var displayThreshold: Double
 
-    init(flagThreshold: Double = 0.5) {
-        self.flagThreshold = flagThreshold
+    init(attentionThreshold: Double = 0.8, displayThreshold: Double = 0.3) {
+        self.attentionThreshold = attentionThreshold
+        // A display threshold above the attention threshold would hide the very
+        // spans that caused the indicator to light.
+        self.displayThreshold = min(displayThreshold, attentionThreshold)
     }
 
     static let `default` = ReviewPolicy()
 
-    func isFlagged(_ span: RiskSpan) -> Bool { span.weight >= flagThreshold }
+    func deservesAttention(_ span: RiskSpan) -> Bool { span.weight >= attentionThreshold }
+    func isWorthHighlighting(_ span: RiskSpan) -> Bool { span.weight >= displayThreshold }
 }
 
-enum ReviewDecision: Sendable, Equatable {
-    /// Nothing worth saying. The result is done, no interruption, and the
-    /// audio is released at this moment rather than at the end of the
-    /// interaction.
-    case noReviewNeeded
-    case review(flagged: [RiskSpan])
+/// What one result's marks add up to.
+///
+/// Two lists rather than one, because the review answers two different
+/// questions and always did — Phase 3 simply had no way to say so. `flagged`
+/// is why the user was told to look; `highlighted` is what they see when they
+/// do, and it includes marks that would never have earned the telling.
+struct ReviewDecision: Sendable, Equatable {
+    /// Spans at or above the attention threshold. A non-empty list is exactly
+    /// the condition that lights the indicator — nothing else does.
+    let flagged: [RiskSpan]
+    /// Spans worth highlighting inside the review. A superset of `flagged`.
+    let highlighted: [RiskSpan]
 
-    var requiresReview: Bool {
-        if case .review = self { return true }
-        return false
-    }
+    /// Nothing worth saying, and nothing worth showing. The recording's job is
+    /// over at this moment rather than at the end of the interaction.
+    static let quiet = ReviewDecision(flagged: [], highlighted: [])
 
-    var flaggedSpans: [RiskSpan] {
-        if case let .review(flagged) = self { return flagged }
-        return []
-    }
+    var deservesAttention: Bool { !flagged.isEmpty }
+    /// Whether opening the review would show the user anything at all.
+    var hasAnythingToShow: Bool { !highlighted.isEmpty }
 }
 
-/// How a shown review ended.
-enum ReviewOutcome: String, Sendable, Equatable {
-    case accepted
-    case dismissed
-}
-
-/// Decides between "done" and "show review".
+/// Prices a set of spans against the policy.
 ///
 /// A pure function of its inputs, and tested as one. It performs no side
 /// effects and holds no state, so the decision cannot depend on anything that
@@ -59,8 +68,10 @@ enum ReviewCoordinator {
         policy: ReviewPolicy = .default,
         isEmptyResult: Bool = false
     ) -> ReviewDecision {
-        guard !isEmptyResult else { return .noReviewNeeded }
-        let flagged = spans.filter(policy.isFlagged)
-        return flagged.isEmpty ? .noReviewNeeded : .review(flagged: flagged)
+        guard !isEmptyResult else { return .quiet }
+        return ReviewDecision(
+            flagged: spans.filter(policy.deservesAttention),
+            highlighted: spans.filter(policy.isWorthHighlighting)
+        )
     }
 }

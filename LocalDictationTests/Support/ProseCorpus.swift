@@ -94,6 +94,30 @@ enum ProseCorpus {
         (.ukrainian, "Ми отримали 12 коментарів, здебільшого про структуру."),
     ]
 
+    /// Sentences whose proper nouns came out **right**.
+    ///
+    /// This is the case the corpus was missing, and missing it hid a real cost.
+    /// The entity signal is a capitalization heuristic, so every correctly
+    /// recognized product, company, or person name is a mark — and the corpus
+    /// above contains almost none, which made the heuristic look free when in a
+    /// working day it was the most frequently fired signal in the engine. The
+    /// complaint that started Phase 5 was precisely this: a messenger's name
+    /// marked as risky in sentence after sentence, while a genuinely mangled
+    /// word went through unmarked.
+    ///
+    /// Every name here is spelled as the speaker meant it, so every mark on one
+    /// is a false warning by construction.
+    static let withNames = [
+        (SpeechLanguage.german, "Ich habe die Notiz in Notion abgelegt und Anna Bescheid gesagt."),
+        (.german, "Der Build läuft wieder, Jenkins hat ihn heute Nacht durchgezogen."),
+        (.english, "I put the note in Notion and let Anna know."),
+        (.english, "The build is green again, Jenkins pushed it through last night."),
+        (.russian, "Я скинул заметку в Notion и написал Анне."),
+        (.russian, "Обсуждение мы перенесли во Флок, там вся команда."),
+        (.ukrainian, "Я скинув нотатку в Notion і написав Анні."),
+        (.ukrainian, "Обговорення ми перенесли у Флок, там уся команда."),
+    ]
+
     static var corpus: BenchmarkCorpus {
         var samples: [BenchmarkSample] = []
         let plain: [(SpeechLanguage, [String])] = [
@@ -118,6 +142,16 @@ enum ProseCorpus {
             samples.append(
                 BenchmarkSample(
                     audio: "\(entry.0.rawValue)-figure-\(offset).wav",
+                    reference: entry.1,
+                    language: entry.0,
+                    profile: nil
+                )
+            )
+        }
+        for (offset, entry) in withNames.enumerated() {
+            samples.append(
+                BenchmarkSample(
+                    audio: "\(entry.0.rawValue)-name-\(offset).wav",
                     reference: entry.1,
                     language: entry.0,
                     profile: nil

@@ -40,6 +40,12 @@ struct EntityRiskSignal: RiskSignal {
             // A number is already marked by its own signal, and marking it
             // twice would say the same thing in two places.
             guard !CriticalTokens.containsDigit(word.text) else { continue }
+            // A term the user added to their dictionary is a name they have
+            // already told the app about. Marking it every time it comes out
+            // correct is the false-warning budget being spent on a success, and
+            // it is what made a correctly recognized product name the most
+            // frequently marked word in a working day.
+            guard !context.isInGlossary(word.lowercased) else { continue }
             guard let first = word.text.first else { continue }
 
             if previousWasMarker, first.isUppercase {

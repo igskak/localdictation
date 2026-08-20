@@ -122,51 +122,53 @@ final class DictationCoordinatorInsertionTests: XCTestCase {
         XCTAssertEqual(harness.coordinator.retainedAudioFrameCount, 0)
     }
 
-    // MARK: - Review stands in front of insertion
+    // MARK: - Risk marks no longer stand in front of insertion
 
-    func testAFlaggedResultInsertsNothingUntilTheReviewIsAccepted() async throws {
+    /// The whole of Phase 5 in one test. A result carrying an amount used to
+    /// wait for a panel to be answered; now it goes into the document and the
+    /// checking is offered afterwards, to whoever wants it.
+    func testAFlaggedResultIsInsertedWithoutWaitingForAnybody() async throws {
         let harness = makeHarness(transcript: Self.riskyTranscript)
 
         record(harness)
-        try await waitUntil("review is requested") { harness.coordinator.state == .reviewing }
-
-        XCTAssertEqual(harness.insertion.insertCount, 0, "review always completes before insertion")
-
-        harness.coordinator.acceptReview()
         try await waitUntil("insertion finished") { harness.coordinator.lastInsertion != nil }
 
         XCTAssertEqual(harness.insertion.insertCount, 1)
         XCTAssertEqual(harness.insertion.insertedText, "Bitte überweise 1450 euro.")
         XCTAssertEqual(harness.coordinator.state, .ready)
+        XCTAssertTrue(harness.coordinator.attentionIsPending, "the offer to check outlives the insertion")
+        XCTAssertFalse(harness.coordinator.isShowingReview, "and it is an offer, not a window")
     }
 
-    /// Dismissing is the user saying no.
-    func testADismissedReviewInsertsNothing() async throws {
+    /// The cleaned text is what lands, always. The raw transcript is something
+    /// the review can show and copy, and it is no longer able to change what
+    /// went into the document — by the time anyone can ask for it, the text is
+    /// already there.
+    func testTheReviewCannotChangeWhatWasInserted() async throws {
         let harness = makeHarness(transcript: Self.riskyTranscript)
 
         record(harness)
-        try await waitUntil("review is requested") { harness.coordinator.state == .reviewing }
-
-        harness.coordinator.dismissReview()
-
-        XCTAssertEqual(harness.coordinator.state, .ready)
-        XCTAssertEqual(harness.insertion.insertCount, 0)
-        XCTAssertNil(harness.coordinator.lastInsertion)
-    }
-
-    /// A recovered raw transcript is what the user is looking at, so it is what
-    /// lands — the same rule the copy action already follows.
-    func testAcceptingAfterRecoveringTheRawTranscriptInsertsTheRawText() async throws {
-        let harness = makeHarness(transcript: Self.riskyTranscript)
-
-        record(harness)
-        try await waitUntil("review is requested") { harness.coordinator.state == .reviewing }
-
-        harness.coordinator.prefersRawTranscript = true
-        harness.coordinator.acceptReview()
         try await waitUntil("insertion finished") { harness.coordinator.lastInsertion != nil }
 
-        XCTAssertEqual(harness.insertion.insertedText, "bitte überweise 1450 euro")
+        harness.coordinator.openReview()
+        harness.coordinator.prefersRawTranscript = true
+        harness.coordinator.closeReview()
+
+        XCTAssertEqual(harness.insertion.insertCount, 1, "a review must never insert a second time")
+        XCTAssertEqual(harness.insertion.insertedText, "Bitte überweise 1450 euro.")
+    }
+
+    /// A flagged result keeps its recording, because the review it offers may
+    /// replay a fragment. That is the one place Phase 5 holds audio longer than
+    /// Phase 3 did, and it is bounded by the review rather than unbounded.
+    func testAFlaggedResultKeepsItsAudioAfterInsertion() async throws {
+        let harness = makeHarness(transcript: Self.riskyTranscript)
+
+        record(harness)
+        try await waitUntil("insertion finished") { harness.coordinator.lastInsertion != nil }
+
+        XCTAssertTrue(harness.coordinator.hasRetainedAudio)
+        XCTAssertTrue(harness.coordinator.canReplayFragments)
     }
 
     // MARK: - When automatic insertion is switched off
