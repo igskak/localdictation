@@ -23,8 +23,14 @@ struct InsertionContext: Sendable, Equatable {
     var secureInputEnabled: Bool
     /// The focused element is a password field.
     var focusedFieldIsSecure: Bool
-    /// There is a focused element that takes text at all.
-    var hasEditableField: Bool
+    /// The application vends a focused element at all.
+    ///
+    /// Not the same as it being a text field, and deliberately so. Electron
+    /// and Chromium describe a focused web view as a group or a web area and
+    /// say nothing about the field inside it — the text still goes in when it
+    /// is pasted. What this rules out is an application in which nothing is
+    /// focused, where there is no insertion point to aim at.
+    var hasFocusedElement: Bool
     /// The focused element's selected text is settable, so it can be written
     /// through Accessibility rather than pasted into.
     var acceptsDirectWrite: Bool
@@ -36,7 +42,7 @@ struct InsertionContext: Sendable, Equatable {
         focusIsCurrent: Bool = true,
         secureInputEnabled: Bool = false,
         focusedFieldIsSecure: Bool = false,
-        hasEditableField: Bool = true,
+        hasFocusedElement: Bool = true,
         acceptsDirectWrite: Bool = true
     ) {
         self.isTrusted = isTrusted
@@ -45,7 +51,7 @@ struct InsertionContext: Sendable, Equatable {
         self.focusIsCurrent = focusIsCurrent
         self.secureInputEnabled = secureInputEnabled
         self.focusedFieldIsSecure = focusedFieldIsSecure
-        self.hasEditableField = hasEditableField
+        self.hasFocusedElement = hasFocusedElement
         self.acceptsDirectWrite = acceptsDirectWrite
     }
 }
@@ -81,8 +87,16 @@ enum InsertionPolicy {
         // lands in a message that sends on Return or a terminal that runs it.
         guard context.targetIsCurrent else { return .clipboard(.targetChanged) }
         guard context.focusIsCurrent else { return .clipboard(.focusChanged) }
-        guard context.hasEditableField else { return .clipboard(.noEditableField) }
+        // Nothing is focused, so there is no insertion point to aim at.
+        guard context.hasFocusedElement else { return .clipboard(.noEditableField) }
 
+        // An element that does not call itself a text field is still pasted
+        // into. Asking the application for permission to insert was the wrong
+        // question: Electron and Chromium answer it wrongly for real, focused,
+        // perfectly writable fields, and the user is left pasting by hand into
+        // a field that would have taken ⌘V without complaint. What guards the
+        // insertion is the target and focus being unchanged and the secure
+        // checks above — not whether the application described itself well.
         return context.acceptsDirectWrite ? .write : .paste
     }
 }

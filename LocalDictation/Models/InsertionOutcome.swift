@@ -42,7 +42,7 @@ enum ClipboardReason: String, Sendable, Equatable, CaseIterable {
         case .focusChanged:
             "Copied to the clipboard: the text field you dictated into is no longer the one in focus."
         case .noEditableField:
-            "Copied to the clipboard — there was no text field in focus to insert into."
+            "Copied to the clipboard — there was nothing in focus to insert into."
         case .insertionFailed:
             "Copied to the clipboard: that application would not accept the text directly."
         }
