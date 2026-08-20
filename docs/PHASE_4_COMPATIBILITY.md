@@ -33,6 +33,12 @@ field before and after a direct write and falls through to the paste path when
 nothing changed, so a row that reads `direct` means the text was seen to arrive
 rather than that an API returned `success`.
 
+Dictating into Flock turned up the second half of the same lesson: an Electron
+application describes no focused element at all until it is asked to build an
+accessibility tree, and the app was reading that as "nothing to insert into".
+It now asks every captured target for one, and pastes into an application that
+still describes nothing.
+
 When filling in a row, still check the field with your own eyes. The
 verification catches a field that reports no change; it cannot catch one that
 reports a change it did not make.

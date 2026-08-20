@@ -39,16 +39,14 @@ final class InsertionPolicyTests: XCTestCase {
         XCTAssertEqual(InsertionPolicy.plan(for: InsertionContext()), .write)
     }
 
-    func testWithNothingInFocusThereIsNothingToInsertInto() {
-        let context = InsertionContext(hasFocusedElement: false, acceptsDirectWrite: false)
-        XCTAssertEqual(InsertionPolicy.plan(for: context), .clipboard(.noEditableField))
-    }
-
-    /// Electron and Chromium describe a focused web view as a group and say
-    /// nothing about the field inside it. The field is real, it is focused, and
-    /// it takes ⌘V — so refusing to insert on the strength of a bad
-    /// self-description left the user pasting by hand for no reason.
-    func testAFocusedElementThatDescribesNothingIsStillPastedInto() {
+    /// Everything that cannot be written through Accessibility is pasted into,
+    /// however little the application says about itself. Electron describes a
+    /// focused web view as a group and says nothing about the field inside it,
+    /// and before it is asked for an accessibility tree it describes no focus
+    /// at all — Flock did exactly that. The message box is real, it is focused,
+    /// and it takes ⌘V; refusing on the strength of a bad self-description left
+    /// the user pasting by hand for no reason.
+    func testAnApplicationThatDescribesNothingIsStillPastedInto() {
         let context = InsertionContext(acceptsDirectWrite: false)
         XCTAssertEqual(InsertionPolicy.plan(for: context), .paste)
     }

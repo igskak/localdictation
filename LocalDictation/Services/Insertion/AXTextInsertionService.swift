@@ -37,8 +37,21 @@ final class AXTextInsertionService: TextInsertionService {
     /// started the insertion.
     private static let writeSettlingDelay = Duration.milliseconds(40)
 
+    /// The Electron opt-in. Chromium builds no accessibility tree until an
+    /// assistive technology asks for one, and Electron exposes that request as
+    /// a settable attribute on the application element.
+    private static let manualAccessibilityAttribute = "AXManualAccessibility" as CFString
+
     private let permissionService: any AccessibilityPermissionService
     private let pasteboard: any Pasteboard
+
+    /// Applications already asked to build their accessibility tree.
+    ///
+    /// Only to keep the app from asking and logging on every hotkey press. A
+    /// process identifier that has been reused since means one redundant ask
+    /// that is skipped, which costs an application nothing it would not have
+    /// paid anyway the first time.
+    private var askedForAccessibilityTree: Set<pid_t> = []
 
     init(
         permissionService: any AccessibilityPermissionService = AXAccessibilityPermissionService(),
@@ -63,8 +76,36 @@ final class AXTextInsertionService: TextInsertionService {
             applicationName: application.localizedName
         )
 
+        askForAccessibilityTree(of: target)
+
         Log.insertion.debug("Target captured: \(target.logIdentity, privacy: .public)")
         return target
+    }
+
+    /// Asks an Electron application to build its accessibility tree.
+    ///
+    /// Chromium does not build one until an assistive technology asks, so a
+    /// focused, perfectly ordinary message box comes back as nothing focused at
+    /// all — which is what Flock did, and what left the text on the clipboard
+    /// with a sentence about focus the user could do nothing with. Electron
+    /// takes `AXManualAccessibility` as that request; every other application
+    /// ignores the attribute, which is why this is set without asking what the
+    /// target is.
+    ///
+    /// It is asked at the hotkey rather than at insertion because the tree is
+    /// built asynchronously. Recording, transcription, and cleanup are seconds
+    /// the application can spend building it, and by the time there is text to
+    /// insert the element is there to insert into.
+    private func askForAccessibilityTree(of target: InsertionTarget) {
+        guard permissionService.currentAuthorization.allowsInsertion else { return }
+        guard !askedForAccessibilityTree.contains(target.processIdentifier) else { return }
+        askedForAccessibilityTree.insert(target.processIdentifier)
+
+        let application = AXUIElementCreateApplication(target.processIdentifier)
+        AXUIElementSetMessagingTimeout(application, Self.messagingTimeout)
+        let status = AXUIElementSetAttributeValue(application, Self.manualAccessibilityAttribute, kCFBooleanTrue)
+        guard status == .success else { return }
+        Log.insertion.debug("Asked \(target.logIdentity, privacy: .public) for its accessibility tree")
     }
 
     // MARK: - Insertion
@@ -76,7 +117,7 @@ final class AXTextInsertionService: TextInsertionService {
 
         switch plan {
         case .write:
-            guard let element else { return copyToClipboard(text, reason: .noEditableField) }
+            guard let element else { return await paste(text, into: target) }
             if await write(text, into: element) {
                 return finish(.inserted(.focusedElement), target: target)
             }
@@ -109,7 +150,6 @@ final class AXTextInsertionService: TextInsertionService {
             targetIsCurrent: target.map(isCurrent) ?? false,
             secureInputEnabled: IsSecureEventInputEnabled(),
             focusedFieldIsSecure: false,
-            hasFocusedElement: focused != nil,
             acceptsDirectWrite: false
         )
 

@@ -17,14 +17,6 @@ struct InsertionContext: Sendable, Equatable {
     var secureInputEnabled: Bool
     /// The focused element is a password field.
     var focusedFieldIsSecure: Bool
-    /// The application vends a focused element at all.
-    ///
-    /// Not the same as it being a text field, and deliberately so. Electron
-    /// and Chromium describe a focused web view as a group or a web area and
-    /// say nothing about the field inside it — the text still goes in when it
-    /// is pasted. What this rules out is an application in which nothing is
-    /// focused, where there is no insertion point to aim at.
-    var hasFocusedElement: Bool
     /// The focused element's selected text is settable, so it can be written
     /// through Accessibility rather than pasted into.
     var acceptsDirectWrite: Bool
@@ -35,7 +27,6 @@ struct InsertionContext: Sendable, Equatable {
         targetIsCurrent: Bool = true,
         secureInputEnabled: Bool = false,
         focusedFieldIsSecure: Bool = false,
-        hasFocusedElement: Bool = true,
         acceptsDirectWrite: Bool = true
     ) {
         self.isTrusted = isTrusted
@@ -43,7 +34,6 @@ struct InsertionContext: Sendable, Equatable {
         self.targetIsCurrent = targetIsCurrent
         self.secureInputEnabled = secureInputEnabled
         self.focusedFieldIsSecure = focusedFieldIsSecure
-        self.hasFocusedElement = hasFocusedElement
         self.acceptsDirectWrite = acceptsDirectWrite
     }
 }
@@ -88,16 +78,18 @@ enum InsertionPolicy {
         // had left and sent the text to the clipboard with a sentence about
         // moving focus that the user had not done.
 
-        // Nothing is focused, so there is no insertion point to aim at.
-        guard context.hasFocusedElement else { return .clipboard(.noEditableField) }
-
-        // An element that does not call itself a text field is still pasted
-        // into. Asking the application for permission to insert was the wrong
-        // question: Electron and Chromium answer it wrongly for real, focused,
-        // perfectly writable fields, and the user is left pasting by hand into
-        // one that would have taken ⌘V without complaint. What guards the
-        // insertion is the frontmost application and the secure checks above —
-        // not how well the application describes itself.
+        // Accessibility decides only *how* the text goes in, never whether it
+        // goes in at all. A field that can be written through it is written
+        // to; everything else is pasted into, including an application that
+        // describes no focused element whatsoever — Chromium builds no tree
+        // until it is asked, and a message box nobody can see through
+        // Accessibility still takes ⌘V like any other.
+        //
+        // Asking the application for permission was the wrong question, and
+        // asking it twice — is this a text field, is anything focused — cost
+        // the user two working applications before the question was dropped.
+        // What guards the insertion is the frontmost application and the
+        // secure checks above.
         return context.acceptsDirectWrite ? .write : .paste
     }
 }
