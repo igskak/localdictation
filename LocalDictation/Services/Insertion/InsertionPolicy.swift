@@ -13,12 +13,6 @@ struct InsertionContext: Sendable, Equatable {
     var hasTarget: Bool
     /// The captured target is still alive and still frontmost.
     var targetIsCurrent: Bool
-    /// The element focused when recording started is still the focused one.
-    ///
-    /// Separate from `targetIsCurrent` because moving from the message box to
-    /// the search field of the same application is also a wrong target, and
-    /// the sentence the user reads about it is a different sentence.
-    var focusIsCurrent: Bool
     /// Some application has secure input enabled, process-wide.
     var secureInputEnabled: Bool
     /// The focused element is a password field.
@@ -39,7 +33,6 @@ struct InsertionContext: Sendable, Equatable {
         isTrusted: Bool = true,
         hasTarget: Bool = true,
         targetIsCurrent: Bool = true,
-        focusIsCurrent: Bool = true,
         secureInputEnabled: Bool = false,
         focusedFieldIsSecure: Bool = false,
         hasFocusedElement: Bool = true,
@@ -48,7 +41,6 @@ struct InsertionContext: Sendable, Equatable {
         self.isTrusted = isTrusted
         self.hasTarget = hasTarget
         self.targetIsCurrent = targetIsCurrent
-        self.focusIsCurrent = focusIsCurrent
         self.secureInputEnabled = secureInputEnabled
         self.focusedFieldIsSecure = focusedFieldIsSecure
         self.hasFocusedElement = hasFocusedElement
@@ -86,7 +78,16 @@ enum InsertionPolicy {
         // outcome available in this phase, because text meant for a document
         // lands in a message that sends on Return or a terminal that runs it.
         guard context.targetIsCurrent else { return .clipboard(.targetChanged) }
-        guard context.focusIsCurrent else { return .clipboard(.focusChanged) }
+
+        // Inside that application, the text goes wherever the caret is now.
+        // The first version also required the *field* to be the one dictated
+        // into, comparing the element focused at the hotkey against the one
+        // focused at insertion. It cost more than it bought: an AXUIElement for
+        // a web or Electron field is not stable across the seconds a
+        // transcription and a review take, so the check fired on fields nobody
+        // had left and sent the text to the clipboard with a sentence about
+        // moving focus that the user had not done.
+
         // Nothing is focused, so there is no insertion point to aim at.
         guard context.hasFocusedElement else { return .clipboard(.noEditableField) }
 
@@ -94,9 +95,9 @@ enum InsertionPolicy {
         // into. Asking the application for permission to insert was the wrong
         // question: Electron and Chromium answer it wrongly for real, focused,
         // perfectly writable fields, and the user is left pasting by hand into
-        // a field that would have taken ⌘V without complaint. What guards the
-        // insertion is the target and focus being unchanged and the secure
-        // checks above — not whether the application described itself well.
+        // one that would have taken ⌘V without complaint. What guards the
+        // insertion is the frontmost application and the secure checks above —
+        // not how well the application describes itself.
         return context.acceptsDirectWrite ? .write : .paste
     }
 }

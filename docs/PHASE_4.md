@@ -59,21 +59,25 @@ Between `⌥Space` going down and the text being ready there is transcription, a
 possibly a review the user takes seconds over. The frontmost application at the
 end of that is not reliably the one they spoke into.
 
-So the insertion target — the running application and its focused element — is
-captured at the moment capture starts, and re-validated immediately before
-insertion. If the target has changed, quit, or lost focus, **the app does not
-guess**: it falls back to the clipboard and says so.
+So the insertion target — the running application — is captured at the moment
+capture starts, and re-validated immediately before insertion. If the target has
+changed, quit, or lost focus, **the app does not guess**: it falls back to the
+clipboard and says so.
 
 A wrong target is the worst outcome available in this phase. Text meant for a
 document lands in a Slack message that sends on Return, a terminal that runs it,
 or a commit message. Compared to that, "your text is on the clipboard" is a good
 day. Wrong-target insertions are a gate at zero, not a rate to optimize.
 
-The same applies **inside** one application. Moving from the message box to the
-search field of the same window is also a wrong target, so the focused element
-is captured alongside the application and compared before insertion. It gets its
-own sentence to the user, because "you moved to a different application" would
-be false and confusing when they did not.
+Inside that application, the text goes wherever the caret is. The first version
+went further and required the *field* to be the one dictated into as well,
+comparing the focused element captured at the hotkey against the one focused at
+insertion. That check was removed: an `AXUIElement` for a web or Electron field
+is not stable across the seconds a transcription and a review take, so it fired
+on fields nobody had left, and the text went to the clipboard with a sentence
+about moving focus that the user had not done. The gate that earns its place is
+the application; between two fields of the app you dictated into, the caret is a
+better guess than a stale element reference.
 
 ### Review must not take focus
 
@@ -235,9 +239,9 @@ The measurement and what it changed are in `docs/PHASE_4_MEASUREMENT.md`.
 
 - A `TextInsertionService` protocol with an injected implementation. No AX or
   `CGEvent` call may appear outside it, so tests never touch the real system.
-- `InsertionTarget`: the captured application and focused element. Non-content by
-  construction — a bundle identifier, a process identifier, and an element
-  reference. It must be comparable, because re-validation is a comparison.
+- `InsertionTarget`: the captured application. Non-content by construction — a
+  bundle identifier, a process identifier, and a display name. It must be
+  comparable, because re-validation is a comparison.
 - `InsertionOutcome`: `inserted(method)`, `copiedToClipboard(reason)`, or
   `refused(reason)`. Every attempt produces exactly one, and every one of them is
   surfaced to the user.
