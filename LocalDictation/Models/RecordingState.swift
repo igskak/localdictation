@@ -34,6 +34,13 @@ enum RecordingFailure: Sendable, Equatable {
 /// utterance begins or the user closes the review, and released the instant the
 /// result turns out to be worth nothing.
 ///
+/// Phase 6 adds `.locked`, which is not a failure and not a permission problem:
+/// the app works, the Mac is simply not entitled to dictate until the trial is
+/// activated or a license is entered. It is modelled here for the same reason
+/// `.needsPermission` is — this machine is what decides whether a hotkey press
+/// opens a microphone, and a precondition it cannot see is a precondition that
+/// gets forgotten in one of the paths.
+///
 /// Phase 4 adds `.inserting`, which is short but not instantaneous: the paste
 /// path posts a key event and then waits for the target application to read the
 /// pasteboard. A state makes that window explicit, so a hotkey press arriving
@@ -49,6 +56,7 @@ enum RecordingState: Sendable, Equatable {
     case finishing
     case transcribing
     case inserting
+    case locked(EntitlementLock)
     case failed(RecordingFailure)
 
     var isCapturing: Bool {
@@ -86,6 +94,10 @@ enum RecordingEvent: Sendable, Equatable {
     case transcriptionFailed(String)
     case insertionStarted
     case insertionFinished
+    /// The licensing state was re-read. Carries the microphone authorization
+    /// alongside it because unlocking has to land on the right idle state, and
+    /// this machine does not remember one.
+    case entitlementResolved(EntitlementLock?, MicrophoneAuthorization)
     case hotkeyRegistrationFailed(String)
     case recoveryRequested
 }
@@ -104,9 +116,24 @@ struct RecordingStateMachine: Sendable, Equatable {
     }
 
     private(set) var state: RecordingState
+    /// The licensing precondition, held beside the state rather than inside it.
+    ///
+    /// A lock that arrives while an utterance is in flight must not become the
+    /// state — text already spoken has been paid for and has to reach the user
+    /// — but it must still be remembered, or the next press would open the
+    /// microphone anyway. Keeping it here is what lets both be true.
+    private(set) var lock: EntitlementLock?
 
-    init(state: RecordingState = .launching) {
+    init(state: RecordingState = .launching, lock: EntitlementLock? = nil) {
         self.state = state
+        self.lock = lock
+    }
+
+    /// Where the machine comes to rest when work finishes: `.ready`, unless the
+    /// Mac stopped being entitled while that work was running.
+    private var restingState: RecordingState {
+        if let lock { return .locked(lock) }
+        return .ready
     }
 
     static func state(for authorization: MicrophoneAuthorization) -> RecordingState {
@@ -124,7 +151,12 @@ struct RecordingStateMachine: Sendable, Equatable {
 
     @discardableResult
     mutating func apply(_ event: RecordingEvent) -> Outcome {
-        guard let next = Self.nextState(from: state, event: event) else {
+        // The precondition is recorded before the transition is computed, so a
+        // lock arriving mid-utterance is already in force for the event after
+        // it even when it changes no state now.
+        if case let .entitlementResolved(lock, _) = event { self.lock = lock }
+
+        guard let next = nextState(from: state, event: event) else {
             return .rejected(state, event)
         }
         let previous = state
@@ -132,11 +164,25 @@ struct RecordingStateMachine: Sendable, Equatable {
         return .transitioned(from: previous, to: next)
     }
 
-    private static func nextState(from state: RecordingState, event: RecordingEvent) -> RecordingState? {
+    private func nextState(from state: RecordingState, event: RecordingEvent) -> RecordingState? {
         // Authorization results and hotkey registration failures are accepted in
         // every non-capturing state: the OS can change them behind our back.
         switch event {
+        case let .entitlementResolved(lock, authorization):
+            // Never mid-utterance. `apply` has already stored the lock, so the
+            // next press is refused; what must not happen is the text of the
+            // utterance in flight being dropped because a trial ran out while
+            // the user was speaking it.
+            guard !state.isBusy else { return nil }
+            if let lock { return .locked(lock) }
+            if case .failed = state { return nil }
+            return Self.state(for: authorization)
+
         case let .authorizationResolved(authorization):
+            // A locked Mac stays locked whatever the microphone says. This is
+            // the one re-read that fires on every activation of the app, so
+            // letting it out of `.locked` would unlock the app by accident.
+            guard lock == nil else { return nil }
             guard !state.isCapturing else {
                 return authorization.allowsCapture ? nil : .failed(.captureInterrupted("Microphone access was revoked"))
             }
@@ -148,7 +194,15 @@ struct RecordingStateMachine: Sendable, Equatable {
 
         case let .hotkeyRegistrationFailed(detail):
             guard !state.isBusy else { return nil }
+            guard lock == nil else { return nil }
             return .failed(.hotkeyRegistration(detail))
+
+        case .hotkeyPressed where lock != nil:
+            // Pressing the key is how most users will discover the lock, so it
+            // answers rather than doing nothing — except while something is
+            // still in flight, which must finish on its own terms.
+            guard !state.isBusy else { return nil }
+            return lock.map(RecordingState.locked)
 
         default:
             break
@@ -184,7 +238,7 @@ struct RecordingStateMachine: Sendable, Equatable {
             // `.finishing` so the coordinator can stop immediately.
             return nil
         case (.finishing, .utteranceCompleted):
-            return .ready
+            return restingState
         case let (.finishing, .captureInterrupted(failure)):
             return .failed(failure)
         case let (.finishing, .captureFailed(failure)):
@@ -193,7 +247,7 @@ struct RecordingStateMachine: Sendable, Equatable {
         case (.ready, .transcriptionStarted):
             return .transcribing
         case (.transcribing, .transcriptionFinished):
-            return .ready
+            return restingState
         case let (.transcribing, .transcriptionFailed(detail)):
             return .failed(.transcription(detail))
         case (.transcribing, .hotkeyPressed):
@@ -211,7 +265,7 @@ struct RecordingStateMachine: Sendable, Equatable {
             return .inserting
 
         case (.inserting, .insertionFinished):
-            return .ready
+            return restingState
         case (.inserting, .hotkeyPressed):
             // The next dictation supersedes an insertion still settling. The
             // coordinator drops the outcome of the superseded one, so a late
@@ -223,7 +277,7 @@ struct RecordingStateMachine: Sendable, Equatable {
             return nil
 
         case (.failed, .recoveryRequested):
-            return .ready
+            return restingState
 
         default:
             return nil

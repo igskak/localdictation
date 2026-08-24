@@ -14,6 +14,15 @@ Phase 4 (system insertion and app compatibility) is complete. The text leaves th
 
 Phase 5 (verification that does not interrupt) is complete, and it came from using the app rather than from a plan. The review used to stand in front of the text and wait to be answered, and it was answering the wrong question: a correctly recognized product name was marked as risky in sentence after sentence, while `проверка` coming back as `ррверка` went through unmarked. Both are fixed, and the review no longer blocks anything. See `docs/PHASE_5.md`.
 
+Phase 6 (licensing and release) is complete on the side that lives in this repository: the trial, the ungated window, activation, offline license verification, the paywall, and the enumerated product events. Three things wait on decisions outside the code — an activation service, the Stripe checkout, and an Apple Developer Program membership for signing and notarization. See `docs/PHASE_6.md` and `docs/PHASE_6_RELEASE.md`.
+
+Four Phase 6 decisions are worth knowing before reading the code:
+
+- **A license is a signature, not a phone call.** The app carries a public key and checks a license locally, so a bought copy works on a plane, behind a proxy, and after this project's servers are gone. The cost is named rather than hidden: a key cannot be revoked remotely.
+- **A lock never costs you a sentence you have already said.** A trial that runs out mid-utterance lets that utterance finish, transcribe, and land in the document. The press *after* it is the one that is refused. The licensing precondition lives beside the recording state rather than inside it, which is what makes both true at once.
+- **What you pay a dictation for is text you received.** A press that recognized nothing does not come out of your five. Two real utterances of nine and ten seconds came back empty while Phase 4 was being measured; charging for those would be indefensible.
+- **The record on disk is plain, and that is a decision.** `license.json` is six readable fields beside the dictionary. Obfuscating it would buy a product that lies to its owner about what it stores; the real defence is that editing it can hand you a few more days of trial and can never hand you a license.
+
 Three Phase 5 decisions are worth knowing before reading the code:
 
 - **Insertion never waits for anybody.** The words go where you were typing, every time, and the checking is offered afterwards to whoever wants it. A risk mark that blocks the text costs the user on every utterance and pays back only on the rare one that is wrong; a mark that waits costs nothing. Frequent warnings are also what teaches people to dismiss warnings, and then the one that mattered goes with the rest.
@@ -31,7 +40,7 @@ Two Phase 3 decisions are worth knowing before reading the code:
 - **The deterministic signals come first and model confidence comes last.** Numbers, dates, amounts, names, dictionary near-misses, cleanup edits, and language switching are facts about the text. Model confidence is wired up and measured but carries a weight of **zero**, because Phase 2 found weak — and on Russian, negative — separation between the confidence of correct and incorrect tokens. It earns a weight from a measurement on real speech, not from an assumption.
 - **A dropped word is not chased.** If the engine swallows "не" or "nicht", no rule can flag what is absent. The app does not build a mechanism for it; the reasoning is recorded in `docs/PHASE_3.md`. The consequence is that audio replay is offered only for a marked fragment, and the recording is discarded the moment the app decides no review is needed.
 
-There is deliberately no analytics, licensing, or updater yet. The user dictionary is the only thing that persists — transcripts and audio stay in memory.
+There is deliberately no updater and nothing is transmitted. The user dictionary and the licensing record are the only things that persist — transcripts and audio stay in memory.
 
 Read these files before continuing implementation:
 
@@ -46,6 +55,8 @@ Read these files before continuing implementation:
 - `docs/PHASE_4_MEASUREMENT.md` — what the review costs on ordinary prose, and what that measurement changed.
 - `docs/PHASE_4_COMPATIBILITY.md` — which applications take text by which method.
 - `docs/PHASE_5.md` — why the review stopped interrupting, and what it cost.
+- `docs/PHASE_6.md` — the trial, the key format, and what is deliberately not built yet.
+- `docs/PHASE_6_RELEASE.md` — signing, notarization, and the update decision. None of it has been run.
 - `AGENTS.md` — repository-level engineering constraints.
 
 ## Requirements
@@ -65,6 +76,7 @@ Read these files before continuing implementation:
 6. Hold `⌥Space` to record, release to finish. The text goes into whatever you were typing in, immediately and always. If something is worth a second look, a triangle appears in the menu bar and a small chip fades in and out where you are already looking — click either to see what was marked, or ignore both.
 7. The first insertion asks for Accessibility access. Until it is granted, results are copied to the clipboard instead. **A development build loses this permission on every rebuild**, because macOS keys the grant to the code signature — expect to re-grant it after each build from Xcode.
 8. Optionally add names and terms you dictate often under **Settings → Dictionary**. A word that comes out close to one of them, but not equal to it, gets marked.
+9. The first five dictations, or the first 24 hours from the first one, need no email and no key. After that, **Settings → License** is where the trial is activated and a key is entered. A development build carries no authority key and can accept no license — run `swift Tools/licensekit.swift init` and paste its output into `LicenseAuthority` before you need one.
 
 The app is an agent-style menu bar utility (`LSUIElement = true`), so it does not show a Dock icon.
 
@@ -112,10 +124,14 @@ LocalDictation/
   Services/Review/        the review policy and decision
   Services/Glossary/      the user dictionary and its only persistence
   Features/Review/        review strip, its pure presentation, and the floating panel
+  Features/Licensing/     the license page, its pure presentation, and the offer
+  Services/Licensing/     entitlement rules, signed keys, the usage record, device identity
+  Services/Telemetry/     the enumerated product events, transmitted nowhere
   Benchmark/              corpus loading, scoring, and risk measurement (Debug builds only)
   Support/                logging and locking primitives
 Tools/
   generate_pbxproj.py     regenerates the Xcode file lists from the files on disk
+  licensekit.swift        issues license keys; the private key never enters the repository
 ```
 
 After adding or removing a source file, either add it in Xcode or run:
@@ -134,12 +150,12 @@ Audio stays in memory. Normal capture performs no file writes, and a test assert
 
 A recording's lifetime is bounded by the review decision, not by the end of the interaction: it is released the instant the app decides no review is needed, and otherwise when the review is accepted, dismissed, or superseded. Tests assert both. Replay reads those samples straight out of memory — no file and no URL is involved.
 
-The user dictionary in `~/Library/Application Support/LocalDictation/glossary.json` is the only thing written to disk. It holds terms and their language, and a test asserts nothing else can end up in it.
+Two files in `~/Library/Application Support/LocalDictation/` are the only things written to disk. `glossary.json` holds terms and their language; `license.json` holds an install identifier, when the first dictation happened, how many succeeded, the furthest date the app has seen, and the license key if there is one. A test asserts the exact field list of each.
 
 Insertion adds one place text goes and one thing the app reads. The text goes into the application you were dictating into, or onto the clipboard, and nowhere else. The app reads a single character before the caret, to decide whether a leading space is needed; it is used and dropped inside that call. Neither is ever logged. What may appear in a log line is the target's bundle identifier and how the insertion went, because compatibility cannot be debugged without them — and a test asserts nothing derived from the utterance travels with them.
 
-The single network operation is the explicit, user-initiated speech-model download. The debug WAV export is compiled only in Debug builds and writes solely to a location chosen by the user in a save panel.
+Two operations can reach the network, both user-initiated and neither carrying content: the explicit speech-model download, and pressing "Send me a key", which sends an email address and a salted hash of this Mac's hardware UUID to the activation service. Licensing itself is offline — a key is verified against a public key compiled into the app, so nothing is checked with a server at any point. Product events are enumerated in `docs/PHASE_6.md` and are currently transmitted nowhere. The debug WAV export is compiled only in Debug builds and writes solely to a location chosen by the user in a save panel.
 
 ## Distribution later
 
-The public build will be distributed from the product website, not through the Mac App Store. Before external testing it must be signed with Developer ID, use Hardened Runtime, and be notarized. Stripe licensing and release automation are outside Phase 1.
+The public build will be distributed from the product website, not through the Mac App Store. Before external testing it must be signed with Developer ID, use Hardened Runtime, and be notarized. `docs/PHASE_6_RELEASE.md` is the checklist, and nothing on it has been run — Developer ID certificates need a paid membership.

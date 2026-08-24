@@ -18,6 +18,9 @@ struct SettingsView: View {
             GlossaryView()
                 .tabItem { Label("Dictionary", systemImage: "character.book.closed") }
 
+            LicenseView()
+                .tabItem { Label("License", systemImage: "key") }
+
             DiagnosticsView()
                 .tabItem { Label("Diagnostics", systemImage: "stethoscope") }
         }
@@ -65,7 +68,7 @@ struct SettingsView: View {
             }
 
             Section("Phase") {
-                Text("Phase 4 covers Accessibility onboarding, insertion into other applications with a clipboard fallback, and the review panel that stands in front of it without taking focus. Licensing, the trial, and the paywall arrive in Phase 5.")
+                Text("Phase 6 adds the trial, activation, and licensing. Dictation itself is unchanged: the words still go straight into the application you were typing in, and everything about them still stays on this Mac.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }

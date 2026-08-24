@@ -58,6 +58,16 @@ struct MenuBarView: View {
                 InsertionOutcomeView(message: message)
             }
 
+            if presentation.showsLicenseAction {
+                LicenseLockView(
+                    presentation: LicensePresentation(state: coordinator.entitlement),
+                    openLicenseSettings: {
+                        openSettings()
+                        NSApp.activate(ignoringOtherApps: true)
+                    }
+                )
+            }
+
             if coordinator.needsAccessibilityTrust {
                 AccessibilityTrustView(
                     grant: { coordinator.requestAccessibilityTrust() },
@@ -340,6 +350,35 @@ private struct InsertionOutcomeView: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// The licensing wall, in the one place the user will look when the hotkey
+/// stopped doing anything.
+///
+/// It does not try to sell from inside a menu — the offers and the key field
+/// live in Settings, which has room for them. What this has to do is say why
+/// nothing happened and point at the door, in two lines, without the user
+/// having to guess that a dictation app can be out of trial.
+private struct LicenseLockView: View {
+    let presentation: LicensePresentation
+    let openLicenseSettings: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(presentation.headline)
+                .font(.caption.weight(.semibold))
+            Text(presentation.detail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Button(presentation.showsActivation ? "Activate…" : "Open License settings", action: openLicenseSettings)
+                .font(.caption)
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
     }
 }
 

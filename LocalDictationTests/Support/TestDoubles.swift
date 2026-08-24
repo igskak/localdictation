@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 @testable import LocalDictation
 
@@ -595,5 +596,116 @@ final class FakeTextInsertionService: TextInsertionService {
         attempts.append(Attempt(text: text, target: target))
         if let gate { try? await gate.wait() }
         return outcome
+    }
+}
+
+// MARK: - Licensing
+
+/// Usage record in memory, so no test writes into Application Support.
+final class InMemoryEntitlementStore: EntitlementStore, @unchecked Sendable {
+    private let lock = NSLock()
+    private var record: UsageRecord?
+    private(set) var saveCount = 0
+    private var failure: EntitlementStoreError?
+
+    init(_ record: UsageRecord? = nil) {
+        self.record = record
+    }
+
+    var stored: UsageRecord? { lock.withLock { record } }
+
+    func failNextSaves(with error: EntitlementStoreError) {
+        lock.withLock { failure = error }
+    }
+
+    func load() throws -> UsageRecord? { lock.withLock { record } }
+
+    func save(_ record: UsageRecord) throws {
+        try lock.withLock {
+            if let failure { throw failure }
+            self.record = record
+            saveCount += 1
+        }
+    }
+
+    var locationDescription: String { "in memory" }
+}
+
+struct FixedDeviceIdentity: DeviceIdentityProviding {
+    let deviceID: String
+
+    init(_ deviceID: String = "test-device-0001") {
+        self.deviceID = deviceID
+    }
+}
+
+/// Activation service that answers however a test wants it to.
+final class FakeActivationBackend: ActivationBackend, @unchecked Sendable {
+    private let lock = NSLock()
+    private var result: Result<String, ActivationError>
+    private(set) var requestCount = 0
+    private(set) var lastEmail: String?
+    private(set) var lastDeviceID: String?
+    let isConfigured: Bool
+
+    init(isConfigured: Bool = true, result: Result<String, ActivationError> = .failure(.notConfigured)) {
+        self.isConfigured = isConfigured
+        self.result = result
+    }
+
+    func setResult(_ result: Result<String, ActivationError>) {
+        lock.withLock { self.result = result }
+    }
+
+    func requestKey(email: String, deviceID: String) async throws -> String {
+        try lock.withLock {
+            requestCount += 1
+            lastEmail = email
+            lastDeviceID = deviceID
+            return try result.get()
+        }
+    }
+}
+
+/// Collects the product events instead of sending them, which is also what the
+/// shipping service does — see `LocalOnlyTelemetryService`.
+final class RecordingTelemetryService: ProductTelemetryService, @unchecked Sendable {
+    private let lock = NSLock()
+    private var events: [TelemetryEvent] = []
+
+    var recorded: [TelemetryEvent] { lock.withLock { events } }
+    var names: [String] { recorded.map(\.name) }
+
+    func send(_ event: TelemetryEvent) {
+        lock.withLock { events.append(event) }
+    }
+}
+
+/// Issues keys the way the real issuer will, so the verification tests exercise
+/// the shipping code path rather than a second implementation of it.
+enum TestLicenseIssuer {
+    static func makeAuthority() -> (LicenseAuthority, Curve25519.Signing.PrivateKey) {
+        let signingKey = Curve25519.Signing.PrivateKey()
+        return (LicenseAuthority(publicKey: signingKey.publicKey), signingKey)
+    }
+
+    static func issue(
+        kind: LicenseKind,
+        deviceID: String = "test-device-0001",
+        email: String = "owner@example.com",
+        issuedAt: Date = Date(timeIntervalSince1970: 1_000_000),
+        expiresAt: Date?,
+        signingKey: Curve25519.Signing.PrivateKey,
+        id: String = "lic_test"
+    ) throws -> String {
+        try LicenseKey.issue(
+            id: id,
+            email: email,
+            kind: kind,
+            deviceID: deviceID,
+            issuedAt: issuedAt,
+            expiresAt: expiresAt,
+            signingKey: signingKey
+        )
     }
 }

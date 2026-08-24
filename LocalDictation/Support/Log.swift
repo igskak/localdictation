@@ -17,4 +17,9 @@ enum Log {
     /// Insertion may log the identity of the target application — a bundle
     /// identifier is not content — and never the text that went into it.
     static let insertion = Logger(subsystem: subsystem, category: "insertion")
+    /// Licensing may log a state name, a license kind, and the reason a key was
+    /// refused. It must never log a key, an email address, or the device hash:
+    /// the first two are the user's, and the third is what makes the other two
+    /// linkable.
+    static let licensing = Logger(subsystem: subsystem, category: "licensing")
 }

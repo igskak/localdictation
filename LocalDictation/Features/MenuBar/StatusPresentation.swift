@@ -18,6 +18,10 @@ struct StatusPresentation: Sendable, Equatable {
     let showsPermissionRequest: Bool
     let showsSystemSettingsShortcut: Bool
     let showsRecoveryAction: Bool
+    /// Whether the menu should offer the way out of a licensing lock. Given a
+    /// default so the fifteen states that have nothing to do with licensing do
+    /// not each have to say so.
+    private(set) var showsLicenseAction = false
 
     /// `modelState` only changes the transcribing copy, so callers that do not
     /// have an engine can leave it alone.
@@ -143,6 +147,28 @@ struct StatusPresentation: Sendable, Equatable {
             showsSystemSettingsShortcut = false
             showsRecoveryAction = false
 
+        case let .locked(lock):
+            // The one state where the app is working perfectly and still will
+            // not do the thing. It says which of the two doors is in front of
+            // the user — an address, or a purchase — and never both.
+            switch lock {
+            case .activationRequired:
+                title = "Activate to keep going"
+                detail = "The first dictations are ungated. Add your email under Settings → License and the trial runs for fourteen days."
+            case let .expired(.trial, at):
+                title = "Trial finished"
+                detail = "The trial ended \(Self.dayFormatter.string(from: at)). A license brings it back, on this Mac and one more."
+            case let .expired(kind, at):
+                title = "\(kind.displayName) license expired"
+                detail = "It ran out \(Self.dayFormatter.string(from: at)). Renewing unlocks dictation again; nothing on this Mac was touched."
+            }
+            systemImage = "lock.circle"
+            tint = .warning
+            showsPermissionRequest = false
+            showsSystemSettingsShortcut = false
+            showsRecoveryAction = false
+            showsLicenseAction = true
+
         case let .failed(failure):
             title = "Needs attention"
             detail = failure.message
@@ -153,4 +179,11 @@ struct StatusPresentation: Sendable, Equatable {
             showsRecoveryAction = true
         }
     }
+
+    private static let dayFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter
+    }()
 }
