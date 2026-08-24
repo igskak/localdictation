@@ -49,6 +49,12 @@ final class DictationCoordinator: ObservableObject {
     /// and the words are in the document. Off is for users who want the
     /// keystroke to be theirs.
     @Published var insertsAutomatically = true
+    /// Whether this Mac may dictate, and what it should be told if not.
+    ///
+    /// Republished from `EntitlementService` rather than owned here, so the
+    /// views observe one object and the licensing rules stay in a type that can
+    /// be tested with a clock.
+    @Published private(set) var entitlement: EntitlementState = .ungated(.untouched)
 
     let binding: HotkeyBinding
 
@@ -63,6 +69,7 @@ final class DictationCoordinator: ObservableObject {
     private let fragmentPlayer: (any AudioFragmentPlayer)?
     private let accessibilityService: (any AccessibilityPermissionService)?
     private let insertionService: (any TextInsertionService)?
+    private let entitlementService: EntitlementService?
 
     private var machine = RecordingStateMachine()
     private var pollTimer: Timer?
@@ -113,6 +120,7 @@ final class DictationCoordinator: ObservableObject {
         fragmentPlayer: (any AudioFragmentPlayer)? = nil,
         accessibilityService: (any AccessibilityPermissionService)? = nil,
         insertionService: (any TextInsertionService)? = nil,
+        entitlementService: EntitlementService? = nil,
         configuration: AudioCaptureConfiguration = .default,
         binding: HotkeyBinding = .optionSpace,
         languageProfile: LanguageProfile = .default,
@@ -129,6 +137,7 @@ final class DictationCoordinator: ObservableObject {
         self.fragmentPlayer = fragmentPlayer
         self.accessibilityService = accessibilityService
         self.insertionService = insertionService
+        self.entitlementService = entitlementService
         self.configuration = configuration
         self.binding = binding
         self.languageProfile = languageProfile
@@ -143,6 +152,7 @@ final class DictationCoordinator: ObservableObject {
     /// Reads the current authorization without prompting and registers the hotkey.
     func activate() {
         loadGlossary()
+        startObservingEntitlement()
         apply(.authorizationResolved(permissionService.currentAuthorization))
         refreshAccessibilityAuthorization()
         registerHotkey()
@@ -196,6 +206,10 @@ final class DictationCoordinator: ObservableObject {
         // it is re-read even while the app is busy: this costs one cheap call
         // and is how the app notices a grant at all.
         refreshAccessibilityAuthorization()
+        // A trial can run out while the app sits in the menu bar, so the answer
+        // is re-read here too rather than only at launch. It is a comparison of
+        // dates, and it costs nothing.
+        entitlementService?.refresh()
         guard !state.isBusy else { return }
         apply(.authorizationResolved(permissionService.currentAuthorization))
         if permissionService.currentAuthorization.allowsCapture, registeredHotkey == nil {
@@ -690,6 +704,74 @@ final class DictationCoordinator: ObservableObject {
         Log.audio.debug("Retained utterance audio released")
     }
 
+    // MARK: - Licensing
+
+    /// Whether the app has a licensing service at all. Without one — the Phase
+    /// 5 world, and every test that does not care — nothing is gated.
+    var hasEntitlementService: Bool { entitlementService != nil }
+    var canRequestActivation: Bool { entitlementService?.canRequestActivation ?? false }
+    var licenseAuthorityIsConfigured: Bool { entitlementService?.authorityIsConfigured ?? false }
+    /// Shown so a user can quote it when a key has to be reissued for this Mac.
+    var deviceIdentifier: String? { entitlementService?.deviceID }
+    var licenseRecordLocation: String? { entitlementService?.recordLocationDescription }
+    var licenseStoreErrorDescription: String? { entitlementService?.storeErrorDescription }
+
+    private func startObservingEntitlement() {
+        guard let entitlementService else { return }
+        entitlementService.onChange = { [weak self] state in
+            self?.applyEntitlement(state)
+        }
+        applyEntitlement(entitlementService.state)
+    }
+
+    /// The single point where a licensing verdict reaches the dictation
+    /// machine.
+    ///
+    /// The microphone authorization travels with it because unlocking has to
+    /// land on the state the Mac is actually in — a user who activated while
+    /// microphone access was denied is not suddenly ready.
+    private func applyEntitlement(_ state: EntitlementState) {
+        entitlement = state
+        apply(.entitlementResolved(state.lock, permissionService.currentAuthorization))
+    }
+
+    /// Accepts a pasted key. Returns the failure so the view can print the one
+    /// sentence that says what to do about it.
+    @discardableResult
+    func enterLicenseKey(_ token: String) -> LicenseKeyError? {
+        guard let entitlementService else { return .noAuthority }
+        switch entitlementService.enter(key: token) {
+        case .success:
+            // Entering a key can end a lock, and the hotkey was never
+            // registered — or was released — while the app was locked.
+            refreshAuthorization()
+            return nil
+        case let .failure(error):
+            return error
+        }
+    }
+
+    func requestActivation(email: String) async -> ActivationError? {
+        guard let entitlementService else { return .notConfigured }
+        switch await entitlementService.requestActivation(email: email) {
+        case .success:
+            refreshAuthorization()
+            return nil
+        case let .failure(error):
+            return error
+        }
+    }
+
+    func removeLicense() {
+        entitlementService?.removeLicense()
+    }
+
+    func openCheckout(_ offer: TelemetryEvent.Offer) {
+        guard let url = StoreFront.checkoutURL(for: offer) else { return }
+        entitlementService?.noteCheckoutOpened(offer)
+        StoreFront.open(url)
+    }
+
     // MARK: - Glossary
 
     private func loadGlossary() {
@@ -790,6 +872,10 @@ final class DictationCoordinator: ObservableObject {
         let result = analyze(transcript)
         self.result = result
         prefersRawTranscript = false
+        // What the ungated window is spent on: text the user actually got.
+        // Counted here, before insertion, because whether the text then lands
+        // in a document or on the clipboard is not the user's doing.
+        if !result.isEmpty { entitlementService?.recordSuccessfulDictation() }
         diagnostics.lastRisk = RiskDiagnostics(result)
         Log.application.info(
             """
@@ -964,7 +1050,12 @@ extension DictationCoordinator {
             glossaryStore: FileGlossaryStore(),
             fragmentPlayer: AVAudioEngineFragmentPlayer(),
             accessibilityService: accessibility,
-            insertionService: AXTextInsertionService(permissionService: accessibility)
+            insertionService: AXTextInsertionService(permissionService: accessibility),
+            // The licensing state of this Mac, read from disk and from a
+            // signature. `LicenseAuthority.production` is empty in a
+            // development build, which means no key verifies and the ungated
+            // window is all there is — see `docs/PHASE_6.md`.
+            entitlementService: EntitlementService(store: FileEntitlementStore())
         )
     }
 }

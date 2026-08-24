@@ -1,0 +1,218 @@
+import CryptoKit
+import XCTest
+@testable import LocalDictation
+
+/// The service that holds the licensing state together: what it counts, what it
+/// stores, and what it refuses to believe from disk.
+@MainActor
+final class EntitlementServiceTests: XCTestCase {
+    private let origin = Date(timeIntervalSince1970: 1_700_000_000)
+    private let device = "test-device-0001"
+
+    private final class Clock: @unchecked Sendable {
+        private let lock = NSLock()
+        private var now: Date
+        init(_ now: Date) { self.now = now }
+        var value: Date { lock.withLock { now } }
+        func advance(_ interval: TimeInterval) { lock.withLock { now += interval } }
+        func set(_ date: Date) { lock.withLock { now = date } }
+    }
+
+    private func makeService(
+        store: InMemoryEntitlementStore = InMemoryEntitlementStore(),
+        authority: LicenseAuthority = LicenseAuthority(publicKeyBase64: ""),
+        backend: any ActivationBackend = UnconfiguredActivationBackend(),
+        telemetry: RecordingTelemetryService = RecordingTelemetryService(),
+        clock: Clock
+    ) -> EntitlementService {
+        EntitlementService(
+            store: store,
+            authority: authority,
+            deviceIdentity: FixedDeviceIdentity(device),
+            backend: backend,
+            telemetry: telemetry,
+            clock: { clock.value }
+        )
+    }
+
+    // MARK: - Counting
+
+    /// The window is spent on text the user actually received. A press that
+    /// recognized nothing is not a dictation, and the service is never told
+    /// about one — that rule lives in the coordinator and is asserted there.
+    func testFiveDictationsCloseTheWindow() {
+        let clock = Clock(origin)
+        let store = InMemoryEntitlementStore()
+        let service = makeService(store: store, clock: clock)
+
+        XCTAssertTrue(service.state.allowsDictation)
+        for _ in 0..<5 {
+            service.recordSuccessfulDictation()
+            clock.advance(60)
+        }
+
+        XCTAssertEqual(service.state, .locked(.activationRequired))
+        XCTAssertEqual(store.stored?.successfulDictations, 5)
+    }
+
+    func testTheTrialClockStartsAtTheFirstDictationAndNotAtInstall() {
+        let clock = Clock(origin)
+        let service = makeService(clock: clock)
+
+        clock.advance(30 * 86_400)
+        XCTAssertTrue(service.state.allowsDictation, "an app nobody has dictated into has not used a trial")
+
+        service.recordSuccessfulDictation()
+        XCTAssertEqual(service.trialStartedAt, origin.addingTimeInterval(30 * 86_400))
+    }
+
+    // MARK: - Keys
+
+    func testAValidKeyUnlocksAndSurvivesARelaunch() throws {
+        let clock = Clock(origin)
+        let (authority, signingKey) = TestLicenseIssuer.makeAuthority()
+        let store = InMemoryEntitlementStore()
+        let service = makeService(store: store, authority: authority, clock: clock)
+
+        for _ in 0..<5 { service.recordSuccessfulDictation() }
+        XCTAssertFalse(service.state.allowsDictation)
+
+        let token = try TestLicenseIssuer.issue(kind: .lifetime, deviceID: device, expiresAt: nil, signingKey: signingKey)
+        XCTAssertNoThrow(try service.enter(key: token).get())
+        XCTAssertEqual(service.state.license?.kind, .lifetime)
+
+        // Relaunch: same store, new service. The token is re-verified rather
+        // than trusted because it was on disk.
+        let relaunched = makeService(store: store, authority: authority, clock: clock)
+        XCTAssertEqual(relaunched.state.license?.kind, .lifetime)
+    }
+
+    func testARefusedKeyChangesNothing() {
+        let clock = Clock(origin)
+        let (authority, _) = TestLicenseIssuer.makeAuthority()
+        let store = InMemoryEntitlementStore()
+        let service = makeService(store: store, authority: authority, clock: clock)
+
+        let result = service.enter(key: "LD1.bm90LWEta2V5.bm90LWEtc2ln")
+
+        guard case .failure = result else { return XCTFail("a forged key must not be accepted") }
+        XCTAssertNil(store.stored?.licenseToken)
+        XCTAssertTrue(service.state.allowsDictation, "and the user keeps whatever they had before trying")
+    }
+
+    /// A key copied to a second Mac, or a build whose authority changed, leaves
+    /// a token on disk that no longer verifies. It is discarded rather than
+    /// shown as a license the user does not have.
+    func testATokenThatStopsVerifyingIsDropped() throws {
+        let clock = Clock(origin)
+        let (authority, signingKey) = TestLicenseIssuer.makeAuthority()
+        let store = InMemoryEntitlementStore()
+        let service = makeService(store: store, authority: authority, clock: clock)
+        let token = try TestLicenseIssuer.issue(kind: .lifetime, deviceID: device, expiresAt: nil, signingKey: signingKey)
+        XCTAssertNoThrow(try service.enter(key: token).get())
+
+        let (otherAuthority, _) = TestLicenseIssuer.makeAuthority()
+        let relaunched = makeService(store: store, authority: otherAuthority, clock: clock)
+
+        XCTAssertNil(relaunched.state.license)
+        XCTAssertNil(store.stored?.licenseToken)
+    }
+
+    func testRemovingALicenseReturnsTheMacToWhereItWas() throws {
+        let clock = Clock(origin)
+        let (authority, signingKey) = TestLicenseIssuer.makeAuthority()
+        let service = makeService(authority: authority, clock: clock)
+        for _ in 0..<5 { service.recordSuccessfulDictation() }
+        let token = try TestLicenseIssuer.issue(kind: .lifetime, deviceID: device, expiresAt: nil, signingKey: signingKey)
+        XCTAssertNoThrow(try service.enter(key: token).get())
+
+        service.removeLicense()
+
+        XCTAssertEqual(service.state, .locked(.activationRequired))
+    }
+
+    /// A trial that runs out while the app is open has to be noticed without a
+    /// relaunch, which is why the verdict is recomputed and never cached.
+    func testATrialExpiringWhileTheAppIsOpenIsNoticedOnRefresh() throws {
+        let clock = Clock(origin)
+        let (authority, signingKey) = TestLicenseIssuer.makeAuthority()
+        let expiry = origin.addingTimeInterval(EntitlementPolicy.trialDuration)
+        let service = makeService(authority: authority, clock: clock)
+        let token = try TestLicenseIssuer.issue(kind: .trial, deviceID: device, expiresAt: expiry, signingKey: signingKey)
+        XCTAssertNoThrow(try service.enter(key: token).get())
+        XCTAssertTrue(service.state.allowsDictation)
+
+        clock.set(expiry.addingTimeInterval(1))
+        service.refresh()
+
+        XCTAssertEqual(service.state, .locked(.expired(.trial, at: expiry)))
+    }
+
+    // MARK: - Activation
+
+    func testActivationSendsTheAddressAndTheDeviceAndNothingElse() async throws {
+        let clock = Clock(origin)
+        let (authority, signingKey) = TestLicenseIssuer.makeAuthority()
+        let token = try TestLicenseIssuer.issue(
+            kind: .trial,
+            deviceID: device,
+            expiresAt: origin.addingTimeInterval(EntitlementPolicy.trialDuration),
+            signingKey: signingKey
+        )
+        let backend = FakeActivationBackend(result: .success(token))
+        let service = makeService(authority: authority, backend: backend, clock: clock)
+
+        let result = await service.requestActivation(email: " owner@example.com ")
+
+        guard case .success = result else { return XCTFail("activation should have succeeded") }
+        XCTAssertEqual(backend.lastEmail, "owner@example.com")
+        XCTAssertEqual(backend.lastDeviceID, device)
+        XCTAssertEqual(service.state.license?.kind, .trial)
+    }
+
+    func testAnIncompleteAddressNeverReachesTheNetwork() async {
+        let clock = Clock(origin)
+        let backend = FakeActivationBackend()
+        let service = makeService(backend: backend, clock: clock)
+
+        let result = await service.requestActivation(email: "owner@example")
+
+        guard case let .failure(error) = result else { return XCTFail("expected a refusal") }
+        XCTAssertEqual(error, .invalidEmail)
+        XCTAssertEqual(backend.requestCount, 0)
+    }
+
+    /// What ships until there is a service: a refusal that names the other way
+    /// in, rather than a stub that pretends to have succeeded.
+    func testTheDefaultBackendRefusesInsteadOfPretending() async {
+        let clock = Clock(origin)
+        let service = makeService(clock: clock)
+
+        let result = await service.requestActivation(email: "owner@example.com")
+
+        guard case let .failure(error) = result else { return XCTFail("expected a refusal") }
+        XCTAssertEqual(error, .notConfigured)
+        XCTAssertFalse(service.canRequestActivation)
+    }
+
+    // MARK: - Telemetry
+
+    /// Every product event this app can emit comes from the licensing flow, and
+    /// none of them can carry anything the user said.
+    func testTheFunnelEventsAreTheOnesThatWereEnumerated() async throws {
+        let clock = Clock(origin)
+        let telemetry = RecordingTelemetryService()
+        let (authority, signingKey) = TestLicenseIssuer.makeAuthority()
+        let service = makeService(authority: authority, telemetry: telemetry, clock: clock)
+
+        service.recordSuccessfulDictation()
+        for _ in 0..<4 { service.recordSuccessfulDictation() }
+        let token = try TestLicenseIssuer.issue(kind: .lifetime, deviceID: device, expiresAt: nil, signingKey: signingKey)
+        XCTAssertNoThrow(try service.enter(key: token).get())
+
+        XCTAssertEqual(
+            telemetry.names,
+            ["installed", "trial_started", "paywall_shown", "license_accepted"]
+        )
+    }
+}
