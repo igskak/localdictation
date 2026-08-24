@@ -37,13 +37,33 @@ final class AXTextInsertionService: TextInsertionService {
     /// started the insertion.
     private static let writeSettlingDelay = Duration.milliseconds(40)
 
+    /// How often the frontmost application is re-read while waiting, and how
+    /// many times. Fifteen reads at 40 ms is a 600 ms grace: longer than the
+    /// system panels that steal the front and shorter than a user noticing a
+    /// delay before their text arrives.
+    private static let frontmostPollInterval = Duration.milliseconds(40)
+    private static let frontmostPollAttempts = 15
+
+    /// How long a readable field is watched for the pasted text to appear.
+    /// Fifteen reads at 40 ms again, which is well past the point where an
+    /// application under load has read the pasteboard.
+    private static let pasteVerificationAttempts = 15
+
+    /// How long the user's fingers are given to come off the modifier keys
+    /// before a synthetic ⌘V is posted anyway.
+    private static let modifierPollInterval = Duration.milliseconds(20)
+    private static let modifierPollAttempts = 5
+
     /// The Electron opt-in. Chromium builds no accessibility tree until an
     /// assistive technology asks for one, and Electron exposes that request as
-    /// a settable attribute on the application element.
-    private static let manualAccessibilityAttribute = "AXManualAccessibility" as CFString
+    /// a settable attribute on the application element. Held as a `String`
+    /// because the ask runs off the main actor, and a `CFString` cannot cross
+    /// that boundary.
+    private static let manualAccessibilityAttribute = "AXManualAccessibility"
 
     private let permissionService: any AccessibilityPermissionService
     private let pasteboard: any Pasteboard
+    private let frontmost: any FrontmostApplicationSource
 
     /// Applications already asked to build their accessibility tree.
     ///
@@ -55,16 +75,18 @@ final class AXTextInsertionService: TextInsertionService {
 
     init(
         permissionService: any AccessibilityPermissionService = AXAccessibilityPermissionService(),
-        pasteboard: any Pasteboard = SystemPasteboard()
+        pasteboard: any Pasteboard = SystemPasteboard(),
+        frontmost: any FrontmostApplicationSource = SystemFrontmostApplications()
     ) {
         self.permissionService = permissionService
         self.pasteboard = pasteboard
+        self.frontmost = frontmost
     }
 
     // MARK: - Capture
 
     func captureTarget() -> InsertionTarget? {
-        guard let application = NSWorkspace.shared.frontmostApplication else { return nil }
+        guard let application = frontmost.frontmostApplication else { return nil }
         // Dictating with our own window in front means there is nothing to
         // insert into. That is not a failure: the result stays in the app and
         // the user copies it, exactly as it worked before this phase.
@@ -96,21 +118,40 @@ final class AXTextInsertionService: TextInsertionService {
     /// built asynchronously. Recording, transcription, and cleanup are seconds
     /// the application can spend building it, and by the time there is text to
     /// insert the element is there to insert into.
+    ///
+    /// It is asked *off* the main actor because the ask is a synchronous call
+    /// into another process, and an application that does not answer costs the
+    /// whole messaging timeout. That was measured on this Mac: the hotkey went
+    /// down at 17:20:05.746 and the microphone opened at 17:20:06.325, because
+    /// Xcode took the full half second to answer — and the user's first word
+    /// went into the half second the app spent waiting. Nothing here needs the
+    /// answer, so nothing waits for it.
     private func askForAccessibilityTree(of target: InsertionTarget) {
         guard permissionService.currentAuthorization.allowsInsertion else { return }
         guard !askedForAccessibilityTree.contains(target.processIdentifier) else { return }
         askedForAccessibilityTree.insert(target.processIdentifier)
 
-        let application = AXUIElementCreateApplication(target.processIdentifier)
-        AXUIElementSetMessagingTimeout(application, Self.messagingTimeout)
-        let status = AXUIElementSetAttributeValue(application, Self.manualAccessibilityAttribute, kCFBooleanTrue)
-        guard status == .success else { return }
-        Log.insertion.debug("Asked \(target.logIdentity, privacy: .public) for its accessibility tree")
+        let processIdentifier = target.processIdentifier
+        let identity = target.logIdentity
+        let timeout = Self.messagingTimeout
+        let attribute = Self.manualAccessibilityAttribute
+        Task.detached(priority: .userInitiated) {
+            let application = AXUIElementCreateApplication(processIdentifier)
+            AXUIElementSetMessagingTimeout(application, timeout)
+            let status = AXUIElementSetAttributeValue(application, attribute as CFString, kCFBooleanTrue)
+            guard status == .success else { return }
+            Log.insertion.debug("Asked \(identity, privacy: .public) for its accessibility tree")
+        }
     }
 
     // MARK: - Insertion
 
     func insert(_ text: String, into target: InsertionTarget?) async -> InsertionOutcome {
+        // Only worth waiting for when the wait can change the answer. Without
+        // trust the text goes to the clipboard whoever is in front.
+        if let target, permissionService.currentAuthorization.allowsInsertion {
+            _ = await waitForTargetToComeBack(target)
+        }
         let element = target.flatMap(focusedElement(of:))
         let context = makeContext(target: target, focused: element)
         let plan = InsertionPolicy.plan(for: context)
@@ -147,7 +188,7 @@ final class AXTextInsertionService: TextInsertionService {
         var context = InsertionContext(
             isTrusted: permissionService.currentAuthorization.allowsInsertion,
             hasTarget: target != nil,
-            targetIsCurrent: target.map(isCurrent) ?? false,
+            targetIsCurrent: target.map { isCurrent($0) } ?? false,
             secureInputEnabled: IsSecureEventInputEnabled(),
             focusedFieldIsSecure: false,
             acceptsDirectWrite: false
@@ -165,9 +206,66 @@ final class AXTextInsertionService: TextInsertionService {
         return context
     }
 
-    private func isCurrent(_ target: InsertionTarget) -> Bool {
-        guard let frontmost = NSWorkspace.shared.frontmostApplication else { return false }
-        return frontmost.processIdentifier == target.processIdentifier && !frontmost.isTerminated
+    /// Whether the application spoken into is still the one in front.
+    ///
+    /// The failure is logged with the identity of whatever is in front instead,
+    /// because "you moved to a different application" is a sentence the user
+    /// can only act on if it is true, and the only way to find out that it was
+    /// not is to know which application the check actually saw. Both halves are
+    /// bundle identifiers and process identifiers: application identity, never
+    /// anything read out of a window.
+    private func isCurrent(_ target: InsertionTarget, logFailure: Bool = true) -> Bool {
+        guard let application = frontmost.frontmostApplication else {
+            if logFailure {
+                Log.insertion.debug("Nothing is frontmost; target \(target.logIdentity, privacy: .public) treated as gone")
+            }
+            return false
+        }
+        guard application.processIdentifier == target.processIdentifier, !application.isTerminated else {
+            if logFailure {
+                Log.insertion.debug(
+                    """
+                    Target \(target.logIdentity, privacy: .public) is not frontmost; \
+                    in front is \(application.logIdentity, privacy: .public)
+                    """
+                )
+            }
+            return false
+        }
+        return true
+    }
+
+    /// Gives a target that is not in front a moment to come back, and says
+    /// whether it did.
+    ///
+    /// System windows take the front without the user going anywhere. The log
+    /// on this Mac has `com.apple.loginwindow` in front of a messenger twice
+    /// inside six seconds while its owner did nothing but type, and a Wi-Fi
+    /// prompt, a Touch ID sheet, or a screen-lock panel does the same. Reading
+    /// the frontmost application once, at the instant the text happens to be
+    /// ready, turns any of those into "you moved to a different application" —
+    /// a sentence that is both wrong and impossible to act on.
+    ///
+    /// Waiting is safe in the way that guessing is not. The text still only
+    /// ever goes to the application it was spoken into; the wait only decides
+    /// how long that application is allowed to be behind a system panel. It
+    /// costs nothing in the normal case, where the first read succeeds.
+    @discardableResult
+    func waitForTargetToComeBack(_ target: InsertionTarget) async -> Bool {
+        if isCurrent(target, logFailure: false) { return true }
+
+        for attempt in 1...Self.frontmostPollAttempts {
+            try? await Task.sleep(for: Self.frontmostPollInterval)
+            guard isCurrent(target, logFailure: false) else { continue }
+            Log.insertion.debug(
+                """
+                Target \(target.logIdentity, privacy: .public) came back to the front \
+                after \(attempt, privacy: .public) polls
+                """
+            )
+            return true
+        }
+        return false
     }
 
     // MARK: - Methods
@@ -243,12 +341,16 @@ final class AXTextInsertionService: TextInsertionService {
             return copyToClipboard(text, reason: .insertionFailed)
         }
 
-        let prefix = focusedElement(of: target)
+        let element = focusedElement(of: target)
+        let prefix = element
             .flatMap(characterBeforeCaret(in:))
             .map { InsertionSpacing.prefix(forCharacterBefore: $0, text: text) } ?? ""
+        let before = element.map(fingerprint(of:))
 
         let snapshot = pasteboard.snapshot()
         let ourChangeCount = pasteboard.write(prefix + text)
+
+        await waitForModifiersToClear()
 
         guard postCommandV(source: source) else {
             // Nothing was pasted, so the text stays on the pasteboard for the
@@ -256,9 +358,68 @@ final class AXTextInsertionService: TextInsertionService {
             return .copiedToClipboard(.insertionFailed)
         }
 
-        try? await Task.sleep(for: Self.pasteSettlingDelay)
+        guard await pasteLanded(in: element, before: before) else {
+            // The field is readable and says it is unchanged: the ⌘V went
+            // somewhere that did nothing with it. The text is deliberately
+            // left on the pasteboard rather than restored away from the user,
+            // and the outcome says so instead of reporting an insertion the
+            // way a swallowed direct write once did.
+            Log.insertion.debug("The paste did not reach the field")
+            return .copiedToClipboard(.insertionFailed)
+        }
+
         pasteboard.restore(snapshot, ifChangeCountIs: ourChangeCount)
         return finish(.inserted(.syntheticPaste), target: target)
+    }
+
+    /// Waits for the pasted text to appear, and says whether it did.
+    ///
+    /// This replaces a flat 200 ms sleep, which was a bet that every
+    /// application reads the pasteboard within 200 ms of the ⌘V. One that is
+    /// busy, or that is talking to a virtual machine or a remote desktop, reads
+    /// it later — and by then the previous pasteboard contents are back and the
+    /// user's dictation is gone with no notice, because the app had already
+    /// called it an insertion.
+    ///
+    /// So a field that describes itself is watched instead: any change to its
+    /// length or its caret means the paste arrived, and the pasteboard goes
+    /// back the moment it does — sooner than 200 ms in the common case. A field
+    /// that describes nothing cannot be watched, so it gets the settling delay
+    /// and the benefit of the doubt, exactly as an unverifiable direct write
+    /// does.
+    private func pasteLanded(in element: AXUIElement?, before: TextFieldFingerprint?) async -> Bool {
+        guard let element, let before, before.isReadable else {
+            try? await Task.sleep(for: Self.pasteSettlingDelay)
+            return true
+        }
+
+        for _ in 1...Self.pasteVerificationAttempts {
+            try? await Task.sleep(for: Self.frontmostPollInterval)
+            if InsertionVerification.didApply(before: before, after: fingerprint(of: element)) { return true }
+        }
+        return false
+    }
+
+    /// Waits for the user's fingers to come off the modifier keys.
+    ///
+    /// A synthetic ⌘V arrives at the target carrying whatever is physically
+    /// held down with it. With Shift still down that is ⇧⌘V, which is "paste
+    /// and match style" in one application, "paste as plain text" in another,
+    /// and a Markdown preview in a third; with Option it is a different
+    /// command again. Insertion normally happens a second or more after the
+    /// hotkey is released, so this wait usually returns on its first look.
+    private func waitForModifiersToClear() async {
+        for _ in 1...Self.modifierPollAttempts {
+            guard !heldModifiers.isEmpty else { return }
+            try? await Task.sleep(for: Self.modifierPollInterval)
+        }
+        Log.insertion.debug("Modifier keys are still down; pasting anyway")
+    }
+
+    /// The modifiers that change what ⌘V means. Caps lock is not one of them.
+    private var heldModifiers: CGEventFlags {
+        CGEventSource.flagsState(.combinedSessionState)
+            .intersection([.maskCommand, .maskShift, .maskAlternate, .maskControl])
     }
 
     private func postCommandV(source: CGEventSource) -> Bool {
@@ -343,5 +504,19 @@ final class AXTextInsertionService: TextInsertionService {
         var settable = DarwinBoolean(false)
         let status = AXUIElementIsAttributeSettable(element, attribute as CFString, &settable)
         return status == .success && settable.boolValue
+    }
+}
+
+/// The real frontmost application, read from `NSWorkspace`.
+@MainActor
+final class SystemFrontmostApplications: FrontmostApplicationSource {
+    var frontmostApplication: FrontmostApplication? {
+        guard let application = NSWorkspace.shared.frontmostApplication else { return nil }
+        return FrontmostApplication(
+            processIdentifier: application.processIdentifier,
+            bundleIdentifier: application.bundleIdentifier,
+            localizedName: application.localizedName,
+            isTerminated: application.isTerminated
+        )
     }
 }

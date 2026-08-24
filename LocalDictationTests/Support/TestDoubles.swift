@@ -505,6 +505,58 @@ final class FakeAccessibilityPermissionService: AccessibilityPermissionService, 
     }
 }
 
+/// The frontmost application, scripted read by read.
+///
+/// A target that disappears behind a system panel and comes back is the case
+/// worth testing, and it cannot be staged against the real window server: the
+/// panels that do it — a screen lock, a Touch ID sheet, `loginwindow` — are not
+/// summonable from a test.
+@MainActor
+final class FakeFrontmostApplicationSource: FrontmostApplicationSource {
+    /// One entry per read. The last entry answers every read after it, so a
+    /// short script stands for a steady state.
+    var reads: [FrontmostApplication?]
+    private(set) var readCount = 0
+
+    init(_ reads: [FrontmostApplication?]) {
+        self.reads = reads
+    }
+
+    var frontmostApplication: FrontmostApplication? {
+        defer { readCount += 1 }
+        guard !reads.isEmpty else { return nil }
+        return readCount < reads.count ? reads[readCount] : reads[reads.count - 1]
+    }
+}
+
+/// The pasteboard, in memory, so no test writes to the user's clipboard.
+@MainActor
+final class FakePasteboard: Pasteboard {
+    private(set) var contents: String?
+    private(set) var writes: [String] = []
+    private(set) var restoreCount = 0
+    var changeCount = 0
+
+    func snapshot() -> PasteboardSnapshot {
+        PasteboardSnapshot(string: contents, changeCount: changeCount)
+    }
+
+    @discardableResult
+    func write(_ string: String) -> Int {
+        contents = string
+        writes.append(string)
+        changeCount += 1
+        return changeCount
+    }
+
+    func restore(_ snapshot: PasteboardSnapshot, ifChangeCountIs expected: Int) {
+        guard changeCount == expected else { return }
+        restoreCount += 1
+        contents = snapshot.string
+        changeCount += 1
+    }
+}
+
 /// Insertion service that records what it was asked to insert and where,
 /// without an Accessibility call, a synthetic key event, or a write to the
 /// user's real pasteboard.

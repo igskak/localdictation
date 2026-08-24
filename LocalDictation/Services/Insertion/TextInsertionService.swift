@@ -25,6 +25,48 @@ protocol TextInsertionService: AnyObject {
     func insert(_ text: String, into target: InsertionTarget?) async -> InsertionOutcome
 }
 
+/// An application as the insertion path needs to see it.
+///
+/// Identity and liveness, and nothing about its windows or their contents —
+/// the same non-content rule as `InsertionTarget`, for the same reason.
+struct FrontmostApplication: Sendable, Equatable {
+    let processIdentifier: pid_t
+    let bundleIdentifier: String?
+    /// The name macOS shows for the application, carried because the user is
+    /// told which application their text went into. Never logged.
+    let localizedName: String?
+    let isTerminated: Bool
+
+    init(
+        processIdentifier: pid_t,
+        bundleIdentifier: String? = nil,
+        localizedName: String? = nil,
+        isTerminated: Bool = false
+    ) {
+        self.processIdentifier = processIdentifier
+        self.bundleIdentifier = bundleIdentifier
+        self.localizedName = localizedName
+        self.isTerminated = isTerminated
+    }
+
+    /// Identity for logs: a bundle identifier where there is one, and never a
+    /// window title or a localized name.
+    var logIdentity: String { bundleIdentifier ?? "pid:\(processIdentifier)" }
+}
+
+/// Which application is in front, behind a protocol.
+///
+/// It exists so that waiting for a target to come back to the front is a tested
+/// behaviour rather than a hope. That wait is the difference between a message
+/// box that takes the text and a sentence about switching applications the user
+/// never switched, and it cannot be exercised at all if the only way to read
+/// the frontmost application is to ask the real window server.
+@MainActor
+protocol FrontmostApplicationSource: AnyObject {
+    /// The application in front at this instant, or `nil` when there is none.
+    var frontmostApplication: FrontmostApplication? { get }
+}
+
 /// The one thing the app is allowed to invent about the surroundings.
 ///
 /// Whether a leading space is needed depends on the character before the caret,

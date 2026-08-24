@@ -43,6 +43,84 @@ When filling in a row, still check the field with your own eyes. The
 verification catches a field that reports no change; it cannot catch one that
 reports a change it did not make.
 
+## Ways the text can fail to arrive
+
+The table below is filled in one application at a time. This section is the
+other half of the same question: the *kinds* of failure the insertion path can
+produce, which application is likely to show each one, and whether anything
+stands in the way today. It is written from the code and from the unified log on
+the development Mac, and every measurement quoted here has a timestamp.
+
+### Closed
+
+- **A system panel in front.** `com.apple.loginwindow` took the front from a
+  messenger twice inside six seconds on 2026-08-20 while its user did nothing
+  but type. Read once, that is "you moved to a different application" and the
+  text goes to the clipboard. A target that is not in front now gets 600 ms to
+  come back.
+- **An application that reads the pasteboard slowly.** The previous contents
+  went back after a flat 200 ms whether the target had read them or not, so a
+  busy Electron app, a virtual machine, or a remote desktop could lose the
+  dictation with no notice. A readable field is now watched for up to 600 ms,
+  the pasteboard goes back as soon as the text lands, and a field that reports
+  itself unchanged is reported as *not* inserted.
+- **A modifier still held.** The synthetic ⌘V carries whatever the user is
+  physically holding, and ⇧⌘V or ⌥⌘V means something else in most editors. The
+  paste now waits up to 100 ms for the modifiers to clear.
+- **A write the application swallows.** Safari and parts of Electron accept a
+  write to `AXSelectedText` and ignore it. Measured again on 2026-08-20 in
+  Claude for Desktop: `The element accepted the write and did not change` →
+  `falling back to paste` → inserted.
+- **An Electron application that describes nothing.** Chromium builds no
+  accessibility tree until asked. Every captured target is now asked, and one
+  that still describes nothing is pasted into.
+- **The first word of a dictation.** Not an insertion failure, but the same
+  complaint from the user's side. Asking for the accessibility tree is a
+  synchronous call into another process, and on 2026-08-20 Xcode took the full
+  half-second messaging timeout to answer it: the hotkey went down at
+  17:20:05.746 and the microphone opened at 17:20:06.325. The ask no longer
+  blocks the hotkey.
+
+### Open
+
+Each of these is a real way for a dictation not to arrive. None is fixed, and
+the first two are decisions rather than defects.
+
+- **LocalDictation itself in front.** Dictating with the menu bar panel or
+  Settings open captures no target, so the text goes to the clipboard with
+  "there was no other application to put it in". Observed on 2026-08-20 at
+  17:33:33. Remembering the last application that was in front would insert
+  where the user expects — at the cost of activating another application, which
+  is a visible window switch and needs a decision before it is built.
+- **System-wide secure input stuck on.** `IsSecureEventInputEnabled()` is
+  process-wide, and applications are known to leave it on after a password
+  field, or when they exit while one is focused. While it is on, *every*
+  dictation everywhere is refused with "an application has secure input
+  enabled" — the worst failure mode in this list, because it looks like the app
+  is broken rather than careful. The refusal is deliberate and protects a
+  password field; what to do about a stuck flag is a separate decision.
+- **A target Accessibility cannot see into.** Remote desktop clients, virtual
+  machine guests, XQuartz and X11 applications, some Java and Qt applications:
+  the focused element is either absent or unreadable, so the paste cannot be
+  verified and the app reports an insertion it could not confirm. In a guest OS,
+  ⌘V may not even be the paste shortcut. This is the honest limit of the
+  approach and belongs in the table as a row, not in the code as a promise.
+- **An application where ⌘V is not "paste text".** Finder pastes files, an image
+  editor pastes a layer, a read-only view does nothing. The verification catches
+  it where the focused element is readable, and cannot elsewhere.
+- **A terminal, and a modal editor inside one.** ⌘V in Terminal arrives as
+  keystrokes, and in `vim`'s normal mode keystrokes are commands. The Terminal
+  section below already asks for this decision; it is worth taking before the
+  matrix is called done.
+- **A clipboard manager.** Every paste-path insertion puts the dictation on the
+  system pasteboard for a moment, and a clipboard manager keeps it. The change
+  count guard also means our text stays on the pasteboard when a manager writes
+  during the paste, instead of being restored away.
+- **A dictation that transcribes to nothing.** Two utterances of 8.8 s and
+  10.1 s on 2026-08-20 at 17:19 produced `0 tokens`. Insertion is skipped for
+  empty text and `ReviewCoordinator` returns `.quiet`, so the app says nothing
+  at all — which the user reads as "it did not insert".
+
 ## Native
 
 | Application | Version | Method | Caret | Undo | Spacing | Notes |
@@ -67,11 +145,18 @@ elements and often take different paths.
 
 The applications the paste path exists for.
 
+Two rows below were taken from the unified log rather than from someone watching
+the field, so their **Caret**, **Undo**, and **Spacing** columns say `not
+checked` rather than guessing. The log can say the text arrived; only a person
+can say it arrived in the right place.
+
 | Application | Version | Method | Caret | Undo | Spacing | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | Slack | | | | | | |
 | Notion | | | | | | |
 | VS Code | | | | | | |
+| Flock | | paste | not checked | not checked | not checked | 2026-08-20 17:46:47, `inserted:syntheticPaste into to.go.osx`. No direct write offered — the element is not settable. Two `loginwindow` activations in the same minute are why the target now gets a grace period |
+| Claude for Desktop | | paste | not checked | not checked | not checked | 2026-08-20 17:47:17. Direct write accepted and swallowed, caught by the before/after measurement, pasted instead |
 
 ## IDEs
 

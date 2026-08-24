@@ -69,6 +69,23 @@ document lands in a Slack message that sends on Return, a terminal that runs it,
 or a commit message. Compared to that, "your text is on the clipboard" is a good
 day. Wrong-target insertions are a gate at zero, not a rate to optimize.
 
+#### A system panel in front is not the user moving away
+
+Re-validating once, at the instant the text happens to be ready, turned out to
+be too literal a reading of "still frontmost". macOS puts its own windows in
+front without the user going anywhere: the unified log on the development Mac
+has `com.apple.loginwindow` in front of a messenger twice inside six seconds
+while its owner did nothing but type, and a Touch ID sheet, a Wi-Fi prompt, or a
+screen lock does the same. Read once, any of those becomes "you moved to a
+different application" — wrong, and impossible to act on.
+
+So a target that is not in front is given 600 ms to come back, re-read every
+40 ms. This weakens nothing: the text still only ever goes into the application
+it was spoken into, and waiting is safe in the way that guessing is not. It
+changes only how long that application is allowed to sit behind a system panel.
+A user who really did switch applications waits 600 ms for their sentence about
+the clipboard instead of getting it instantly.
+
 Inside that application, the text goes wherever the caret is. The first version
 went further and required the *field* to be the one dictated into as well,
 comparing the focused element captured at the hotkey against the one focused at
@@ -120,10 +137,28 @@ Three methods, tried in order, each with a recorded outcome:
    believed, it is checked* below — so the field is measured before and after,
    and a write that changed nothing falls through to the next method.
 2. **Synthetic paste.** Write to the pasteboard, post ⌘V, restore the previous
-   pasteboard contents. Needed where the element is not exposed or not settable
-   — much of Electron, some web fields — and used for **anything focused that
-   cannot be written directly**, whatever the application says about it. See
-   *An application is not asked for permission to insert* below.
+   pasteboard contents once the paste has been **seen to land**. Needed where
+   the element is not exposed or not settable — much of Electron, some web
+   fields — and used for **anything focused that cannot be written directly**,
+   whatever the application says about it. See *An application is not asked for
+   permission to insert* below.
+
+   Restoring after a fixed delay was a bet that every application reads the
+   pasteboard within it. One that is busy, or that is talking to a virtual
+   machine or a remote desktop, reads it later — and by then the previous
+   contents are back and the user's dictation is gone, with no notice, because
+   the app had already called it an insertion. So a readable field is watched
+   for up to 600 ms and the pasteboard goes back the moment the text arrives,
+   which is usually sooner than the old fixed wait. A field that reports itself
+   unchanged for the whole window did not get the text, and says so instead of
+   reporting an insertion. A field that describes nothing at all cannot be
+   watched, so it gets the settling delay and the benefit of the doubt, exactly
+   as an unverifiable direct write does.
+
+   The ⌘V also waits for the user's fingers to come off the modifier keys.
+   A synthetic ⌘V carries whatever is physically held down with it, and ⇧⌘V is
+   "paste and match style" in one application, "paste as plain text" in another,
+   and a Markdown preview in a third.
 3. **Clipboard only.** The text is on the clipboard and the user is told, in one
    line, that they need to paste it.
 
