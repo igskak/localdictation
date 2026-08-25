@@ -136,19 +136,28 @@ on is a transport, not a design.
 The private key never enters the repository and never enters the app.
 
 ```sh
+# once, and it has been done — see below
 swift Tools/licensekit.swift init
-# prints the line to paste into LicenseAuthority, and writes the private half
-# to ~/.localdictation/license-signing-key
 
+# per Mac
 swift Tools/licensekit.swift issue --device <id> --email you@example.com --kind lifetime
 ```
 
 The Mac's identifier is in **Settings → License → This Mac**.
 
-`LicenseAuthority.productionPublicKeyBase64` is empty until `init` has been run
-and its output pasted in, which means **a development build accepts no license
-at all** and says so in Settings. That is deliberate: a build that licensed
-itself would make the whole path untested.
+`init` has been run once, and `LicenseAuthority.productionPublicKeyBase64`
+carries the public half — so every build of this repository verifies keys signed
+by the private half in `~/.localdictation/license-signing-key`. That file is the
+product's signing identity from here on: **it is not in the repository, it is
+not in the app, and losing it means no further key can be issued for a license
+already sold.** Replacing it invalidates every key issued against the old one,
+so it should change exactly once more, if ever — when issuing moves to whatever
+serves customers.
+
+A build whose authority is empty accepts no license at all and says so in
+Settings, which is what a fork or a stripped build gets. The gate is never
+switched off for a development build: one that licensed itself would leave the
+whole path untested.
 
 The tool writes the token's JSON by hand — it is the server side, and it will
 one day be a server. `LicenseIssuerToolTests` runs it for real, with a signing
