@@ -27,6 +27,7 @@ LocalDictation.xcodeproj/project.xcworkspace/xcuserdata/
 # Marketing strategy notes stay local (competitor spend, CPL gates, unit economics)
 /docs/LANDING.md
 /docs/LANDING_IMPLEMENTATION.md
+/docs/GTM.md
 
 # Release artefacts from docs/PHASE_6_RELEASE.md — archives, exports, and the
 # signed disk image are build output and are never committed.
