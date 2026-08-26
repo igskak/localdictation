@@ -81,6 +81,21 @@ the development Mac, and every measurement quoted here has a timestamp.
   17:20:05.746 and the microphone opened at 17:20:06.325. The ask no longer
   blocks the hotkey.
 
+### Closed since this table was written
+
+- **A dictation that transcribes to nothing.** Two utterances of 8.8 s and
+  10.1 s on 2026-08-20 at 17:19 produced `0 tokens`, and the app said nothing at
+  all — insertion is skipped for empty text and `ReviewCoordinator` returns
+  `.quiet`, which the user reads as "it did not insert". It now says which of the
+  two silences it was: a microphone that never reached speech level names the
+  input device, and speech that came back empty names the language profile it
+  was asked in. See `docs/REFINEMENTS.md`.
+- **A device that changes mid-sentence.** Not on this list when it was written,
+  and the worst of the lot: `AVAudioEngineConfigurationChange` — AirPods
+  connecting, a dock being plugged in — dropped the recording and discarded the
+  captured audio into a `.failed` state. The recording now ends where the device
+  went away and is still finished, transcribed, and delivered.
+
 ### Open
 
 Each of these is a real way for a dictation not to arrive. None is fixed, and
@@ -95,10 +110,12 @@ the first two are decisions rather than defects.
 - **System-wide secure input stuck on.** `IsSecureEventInputEnabled()` is
   process-wide, and applications are known to leave it on after a password
   field, or when they exit while one is focused. While it is on, *every*
-  dictation everywhere is refused with "an application has secure input
-  enabled" — the worst failure mode in this list, because it looks like the app
-  is broken rather than careful. The refusal is deliberate and protects a
-  password field; what to do about a stuck flag is a separate decision.
+  dictation everywhere is refused — the worst failure mode in this list, because
+  it looks like the app is broken rather than careful. The refusal now names the
+  application holding the flag and the two things that clear it, which makes the
+  state legible; it does not resolve it. The refusal is deliberate and protects a
+  password field, and what to do about a flag nobody is holding any more is still
+  a separate decision.
 - **A target Accessibility cannot see into.** Remote desktop clients, virtual
   machine guests, XQuartz and X11 applications, some Java and Qt applications:
   the focused element is either absent or unreadable, so the paste cannot be
@@ -116,10 +133,6 @@ the first two are decisions rather than defects.
   system pasteboard for a moment, and a clipboard manager keeps it. The change
   count guard also means our text stays on the pasteboard when a manager writes
   during the paste, instead of being restored away.
-- **A dictation that transcribes to nothing.** Two utterances of 8.8 s and
-  10.1 s on 2026-08-20 at 17:19 produced `0 tokens`. Insertion is skipped for
-  empty text and `ReviewCoordinator` returns `.quiet`, so the app says nothing
-  at all — which the user reads as "it did not insert".
 
 ## Native
 
