@@ -184,6 +184,11 @@ than registered.
   the capture is stopped exactly once.
 - Every path through changing a shortcut, including the two refusals and the
   settings window closing mid-capture.
+- The settings window and the menu rendered through real AppKit layout, in the
+  states where the new rows appear. `ReviewPanelControllerTests` exists because
+  a SwiftUI view crashed the app the first time it appeared while every unit
+  test passed, and three new sections is exactly the kind of thing that repeats
+  it.
 
 ## One test was wrong rather than one behaviour
 
