@@ -99,6 +99,68 @@ final class SecureInputRefusalTests: XCTestCase {
         )
     }
 
+    // MARK: - Saying so before a dictation is spent on it
+
+    private func coordinator(secureInput: SecureInputState) -> DictationCoordinator {
+        let coordinator = DictationCoordinator(
+            permissionService: FakeMicrophonePermissionService(authorization: .authorized),
+            hotkeyService: FakeHotkeyService(),
+            captureService: FakeAudioCaptureService(),
+            secureInputSource: FakeSecureInputSource(secureInput)
+        )
+        coordinator.activate()
+        return coordinator
+    }
+
+    func testTheMenuSaysWhoIsBlockingDictationBeforeAnyIsSpentOnIt() throws {
+        let coordinator = coordinator(
+            secureInput: SecureInputState(
+                isEnabled: true,
+                holderName: "1Password",
+                holderBundleIdentifier: "com.1password.1password"
+            )
+        )
+
+        let warning = try XCTUnwrap(coordinator.secureInputWarning)
+        XCTAssertTrue(warning.contains("1Password"))
+    }
+
+    func testWithSecureInputOffTheMenuSaysNothingAboutIt() {
+        XCTAssertNil(coordinator(secureInput: .off).secureInputWarning)
+    }
+
+    func testTheWarningFollowsTheFlagWithoutARestart() {
+        let source = FakeSecureInputSource(.off)
+        let coordinator = DictationCoordinator(
+            permissionService: FakeMicrophonePermissionService(authorization: .authorized),
+            hotkeyService: FakeHotkeyService(),
+            captureService: FakeAudioCaptureService(),
+            secureInputSource: source
+        )
+        coordinator.activate()
+        XCTAssertNil(coordinator.secureInputWarning)
+
+        source.secureInputState = SecureInputState(isEnabled: true, holderName: "Terminal")
+        // What opening the menu does.
+        coordinator.refreshAuthorization()
+
+        XCTAssertNotNil(coordinator.secureInputWarning)
+    }
+
+    /// Without a source — every test that does not care, and the Phase 5 world
+    /// — nothing is warned about and nothing breaks.
+    func testWithoutASourceThereIsNoWarning() {
+        let coordinator = DictationCoordinator(
+            permissionService: FakeMicrophonePermissionService(authorization: .authorized),
+            hotkeyService: FakeHotkeyService(),
+            captureService: FakeAudioCaptureService()
+        )
+        coordinator.activate()
+
+        XCTAssertNil(coordinator.secureInputWarning)
+        XCTAssertFalse(coordinator.secureInput.isEnabled)
+    }
+
     // MARK: - The decision
 
     func testSecureInputOutranksEverythingElseIncludingTrust() {

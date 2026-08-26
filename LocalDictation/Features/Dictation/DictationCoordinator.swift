@@ -61,6 +61,14 @@ final class DictationCoordinator: ObservableObject {
     @Published private(set) var glossaryErrorDescription: String?
     /// Accessibility trust, which gates insertion and nothing else.
     @Published private(set) var accessibilityAuthorization: AccessibilityAuthorization = .notTrusted
+    /// Whether some application is holding secure input, and which.
+    ///
+    /// Read where the user is already asking why nothing works — opening the
+    /// menu — rather than only when an insertion is refused. The refusal
+    /// comes after a whole recording and a transcription, which is a long
+    /// way to travel to be told the answer was knowable before the key was
+    /// pressed.
+    @Published private(set) var secureInput: SecureInputState = .off
     /// How the last finished result left the app, or `nil` when none has.
     @Published private(set) var lastInsertion: InsertionOutcome?
     /// Whether a result that needs no review goes straight into the target.
@@ -107,6 +115,7 @@ final class DictationCoordinator: ObservableObject {
     private let insertionService: (any TextInsertionService)?
     private let entitlementService: EntitlementService?
     private let preferencesStore: (any PreferencesStore)?
+    private let secureInputSource: (any SecureInputSource)?
 
     private var machine = RecordingStateMachine()
     private var pollTimer: Timer?
@@ -162,6 +171,7 @@ final class DictationCoordinator: ObservableObject {
         insertionService: (any TextInsertionService)? = nil,
         entitlementService: EntitlementService? = nil,
         preferencesStore: (any PreferencesStore)? = nil,
+        secureInputSource: (any SecureInputSource)? = nil,
         configuration: AudioCaptureConfiguration = .default,
         binding: HotkeyBinding = .optionSpace,
         activation: RecordingActivation = .pushToTalk,
@@ -181,6 +191,7 @@ final class DictationCoordinator: ObservableObject {
         self.insertionService = insertionService
         self.entitlementService = entitlementService
         self.preferencesStore = preferencesStore
+        self.secureInputSource = secureInputSource
         self.configuration = configuration
         self.binding = binding
         self.activation = activation
@@ -200,6 +211,7 @@ final class DictationCoordinator: ObservableObject {
         startObservingEntitlement()
         apply(.authorizationResolved(permissionService.currentAuthorization))
         refreshAccessibilityAuthorization()
+        refreshSecureInput()
         registerHotkey()
         loadInstalledModel()
     }
@@ -251,6 +263,7 @@ final class DictationCoordinator: ObservableObject {
         // it is re-read even while the app is busy: this costs one cheap call
         // and is how the app notices a grant at all.
         refreshAccessibilityAuthorization()
+        refreshSecureInput()
         // A trial can run out while the app sits in the menu bar, so the answer
         // is re-read here too rather than only at launch. It is a comparison of
         // dates, and it costs nothing.
@@ -795,6 +808,32 @@ final class DictationCoordinator: ObservableObject {
 
     /// Read by the test that asserts the watch ends when the answer arrives.
     var isWatchingForAccessibilityTrust: Bool { trustPollTimer != nil }
+
+    /// Re-reads the process-wide secure input flag.
+    ///
+    /// `IsSecureEventInputEnabled()` is a cheap call and the holder is only
+    /// looked up when the flag is actually on, so this costs nothing on the
+    /// path it runs on — every activation of the app, and every time the
+    /// menu is opened.
+    private func refreshSecureInput() {
+        guard let secureInputSource else { return }
+        let resolved = secureInputSource.secureInputState
+        guard resolved != secureInput else { return }
+        secureInput = resolved
+        Log.insertion.info(
+            "Secure input is now \(resolved.isEnabled, privacy: .public), holder \(resolved.logIdentity ?? "unnamed", privacy: .public)"
+        )
+    }
+
+    /// The sentence for a Mac where nothing can be inserted at all, or `nil`
+    /// when insertion is possible.
+    var secureInputWarning: String? {
+        guard secureInput.isEnabled else { return nil }
+        guard let holder = secureInput.holderName else {
+            return "An application has secure input enabled. Until it stops, dictation is refused everywhere on this Mac — nothing is inserted and nothing is copied."
+        }
+        return "\(holder) has secure input enabled. Until it stops, dictation is refused everywhere on this Mac. Switching to it and clicking into an ordinary field usually clears it; quitting it always does."
+    }
 
     /// Shows the system prompt. Trust is granted out of band, so the answer
     /// arrives through `refreshAuthorization()` when the user comes back.
@@ -1365,6 +1404,10 @@ extension DictationCoordinator {
         // One trust reader, shared: the coordinator shows the state and the
         // insertion service gates on it, and two readers could disagree.
         let accessibility = AXAccessibilityPermissionService()
+        // One secure-input reader, shared with the insertion service for the
+        // same reason there is one trust reader: the menu warning and the
+        // refusal must never disagree about which application is holding it.
+        let secureInput = SystemSecureInput()
         return DictationCoordinator(
             permissionService: AVCaptureMicrophonePermissionService(),
             hotkeyService: CarbonHotkeyService(),
@@ -1383,7 +1426,7 @@ extension DictationCoordinator {
             glossaryStore: FileGlossaryStore(),
             fragmentPlayer: AVAudioEngineFragmentPlayer(),
             accessibilityService: accessibility,
-            insertionService: AXTextInsertionService(permissionService: accessibility),
+            insertionService: AXTextInsertionService(permissionService: accessibility, secureInput: secureInput),
             // The licensing state of this Mac, read from disk and from a
             // signature. `LicenseAuthority.production` is empty in a
             // development build, which means no key verifies and the ungated
@@ -1392,7 +1435,8 @@ extension DictationCoordinator {
             // The third and last thing this app writes to disk. Everything in
             // it is a choice the user made about the app, and none of it is
             // derived from anything that was said.
-            preferencesStore: FilePreferencesStore()
+            preferencesStore: FilePreferencesStore(),
+            secureInputSource: secureInput
         )
     }
 }

@@ -53,6 +53,14 @@ only be raised by focusing a password field or by an application that leaks it,
 so the refusal a user is most likely to meet was the one behaviour in the
 insertion path with no test at all.
 
+The menu says it too, before a dictation is spent finding out. A refusal
+arrives after a whole recording and a transcription, which is a long way to
+travel to be told the answer was knowable before the key was pressed — and the
+menu is the first place someone looks when an app has stopped working. The
+warning sits above the Accessibility offer, because while secure input is on,
+granting Accessibility changes nothing, and an offer to fix the wrong thing is
+how someone spends ten minutes in System Settings and still cannot dictate.
+
 **The stuck-flag decision is still open.** The refusal is deliberate and protects
 a password field. What to do about an application that exits leaving the flag on
 is a separate question, and naming the holder does not answer it — it only makes

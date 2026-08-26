@@ -71,6 +71,16 @@ struct MenuBarView: View {
                 )
             }
 
+            // Above the Accessibility ask on purpose: while secure input is
+            // on, granting Accessibility changes nothing, and an offer to fix
+            // the wrong thing is how someone spends ten minutes in System
+            // Settings and still cannot dictate.
+            if let warning = coordinator.secureInputWarning {
+                SecureInputWarningView(message: warning) {
+                    coordinator.refreshAuthorization()
+                }
+            }
+
             if coordinator.needsAccessibilityTrust {
                 AccessibilityTrustView(
                     grant: { coordinator.requestAccessibilityTrust() },
@@ -382,6 +392,36 @@ private struct LicenseLockView: View {
         .padding(8)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+/// The one state where the app is working and nothing it does can reach the
+/// screen.
+///
+/// Secure input is process-wide: while it is on, no application may observe or
+/// synthesize keyboard events, which is what protects a password field and what
+/// makes dictation impossible. The user sees an app that has simply stopped, so
+/// the menu — the first place they look — says who is holding it rather than
+/// waiting for a refusal to explain it after the next recording.
+private struct SecureInputWarningView: View {
+    let message: String
+    let recheck: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label("Dictation is blocked right now", systemImage: "lock.laptopcomputer")
+                .font(.caption.weight(.semibold))
+            Text(message)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Button("Re-check", action: recheck)
+                .font(.caption)
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
     }
 }
 
