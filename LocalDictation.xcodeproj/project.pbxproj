@@ -37,6 +37,7 @@
 		6C82E866A8610466DACC41AA /* MicrophoneAuthorization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CC22E27C7AE376A0CF8D3C3 /* MicrophoneAuthorization.swift */; };
 		90751A3050D2EFE94BA87407 /* RecordingState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D671677EF4FF3624738FDFC /* RecordingState.swift */; };
 		92ED47651D4A07C0289DB122 /* RiskSpan.swift in Sources */ = {isa = PBXBuildFile; fileRef = C287194FE0B653DE3595D32D /* RiskSpan.swift */; };
+		36638E88079D49EB064848CA /* SilentResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6D27CE5CBD406805F669C47 /* SilentResult.swift */; };
 		47C813FD1517A1C76692F240 /* TextEdit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38CC7EAD001A63029F5D132B /* TextEdit.swift */; };
 		7B293BF897F512EA34B42CB4 /* Transcript.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDFF07432E88A4FCF6A468BC /* Transcript.swift */; };
 		BDB39D59A313699034F15BBB /* AVAudioEngineCaptureService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43036023D6E7B1D0871E8147 /* AVAudioEngineCaptureService.swift */; };
@@ -126,6 +127,7 @@
 		A6231B0BE649D6550A3E608E /* RiskEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B8495B1FA5C95B53C05D8DC /* RiskEngineTests.swift */; };
 		3B11D86D3FE1B11DE5BC2EDC /* RiskFalsePositiveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F588C85D049985EEBCFDD67E /* RiskFalsePositiveTests.swift */; };
 		3747EC50BAB8261D18686026 /* RiskSignalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DA48F5E9904B3D5DCD0363F /* RiskSignalTests.swift */; };
+		451E4794E9068DE25AF17979 /* SilentDictationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8FF10F6BBAD099AD8CD800B /* SilentDictationTests.swift */; };
 		22EF378DC4E0031124EF54CC /* StatusPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E86BD8C693FBAC71C9573850 /* StatusPresentationTests.swift */; };
 		DCA9312AF17CF278E8DB91AC /* AsyncWait.swift in Sources */ = {isa = PBXBuildFile; fileRef = A42E49F87196B5889B35F6B5 /* AsyncWait.swift */; };
 		3FA22DA31B1B4E82011933CC /* ProseCorpus.swift in Sources */ = {isa = PBXBuildFile; fileRef = E93FDCDFC5EE1B630F3C27E1 /* ProseCorpus.swift */; };
@@ -177,6 +179,7 @@
 		8CC22E27C7AE376A0CF8D3C3 /* MicrophoneAuthorization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicrophoneAuthorization.swift; sourceTree = "<group>"; };
 		3D671677EF4FF3624738FDFC /* RecordingState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingState.swift; sourceTree = "<group>"; };
 		C287194FE0B653DE3595D32D /* RiskSpan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiskSpan.swift; sourceTree = "<group>"; };
+		E6D27CE5CBD406805F669C47 /* SilentResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SilentResult.swift; sourceTree = "<group>"; };
 		38CC7EAD001A63029F5D132B /* TextEdit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextEdit.swift; sourceTree = "<group>"; };
 		DDFF07432E88A4FCF6A468BC /* Transcript.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transcript.swift; sourceTree = "<group>"; };
 		43036023D6E7B1D0871E8147 /* AVAudioEngineCaptureService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AVAudioEngineCaptureService.swift; sourceTree = "<group>"; };
@@ -267,6 +270,7 @@
 		6B8495B1FA5C95B53C05D8DC /* RiskEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiskEngineTests.swift; sourceTree = "<group>"; };
 		F588C85D049985EEBCFDD67E /* RiskFalsePositiveTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiskFalsePositiveTests.swift; sourceTree = "<group>"; };
 		7DA48F5E9904B3D5DCD0363F /* RiskSignalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiskSignalTests.swift; sourceTree = "<group>"; };
+		A8FF10F6BBAD099AD8CD800B /* SilentDictationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SilentDictationTests.swift; sourceTree = "<group>"; };
 		E86BD8C693FBAC71C9573850 /* StatusPresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusPresentationTests.swift; sourceTree = "<group>"; };
 		A42E49F87196B5889B35F6B5 /* AsyncWait.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncWait.swift; sourceTree = "<group>"; };
 		E93FDCDFC5EE1B630F3C27E1 /* ProseCorpus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProseCorpus.swift; sourceTree = "<group>"; };
@@ -392,6 +396,7 @@
 				8CC22E27C7AE376A0CF8D3C3 /* MicrophoneAuthorization.swift */,
 				3D671677EF4FF3624738FDFC /* RecordingState.swift */,
 				C287194FE0B653DE3595D32D /* RiskSpan.swift */,
+				E6D27CE5CBD406805F669C47 /* SilentResult.swift */,
 				38CC7EAD001A63029F5D132B /* TextEdit.swift */,
 				DDFF07432E88A4FCF6A468BC /* Transcript.swift */,
 			);
@@ -638,6 +643,7 @@
 				6B8495B1FA5C95B53C05D8DC /* RiskEngineTests.swift */,
 				F588C85D049985EEBCFDD67E /* RiskFalsePositiveTests.swift */,
 				7DA48F5E9904B3D5DCD0363F /* RiskSignalTests.swift */,
+				A8FF10F6BBAD099AD8CD800B /* SilentDictationTests.swift */,
 				E86BD8C693FBAC71C9573850 /* StatusPresentationTests.swift */,
 				DAAC7BAE20CE48F6E592FCAB /* TelemetryBoundaryTests.swift */,
 				E94829641CB3C55B08DEC72F /* TranscriptTests.swift */,
@@ -800,6 +806,7 @@
 				6C82E866A8610466DACC41AA /* MicrophoneAuthorization.swift in Sources */,
 				90751A3050D2EFE94BA87407 /* RecordingState.swift in Sources */,
 				92ED47651D4A07C0289DB122 /* RiskSpan.swift in Sources */,
+				36638E88079D49EB064848CA /* SilentResult.swift in Sources */,
 				47C813FD1517A1C76692F240 /* TextEdit.swift in Sources */,
 				7B293BF897F512EA34B42CB4 /* Transcript.swift in Sources */,
 				BDB39D59A313699034F15BBB /* AVAudioEngineCaptureService.swift in Sources */,
@@ -896,6 +903,7 @@
 				A6231B0BE649D6550A3E608E /* RiskEngineTests.swift in Sources */,
 				3B11D86D3FE1B11DE5BC2EDC /* RiskFalsePositiveTests.swift in Sources */,
 				3747EC50BAB8261D18686026 /* RiskSignalTests.swift in Sources */,
+				451E4794E9068DE25AF17979 /* SilentDictationTests.swift in Sources */,
 				22EF378DC4E0031124EF54CC /* StatusPresentationTests.swift in Sources */,
 				DCA9312AF17CF278E8DB91AC /* AsyncWait.swift in Sources */,
 				3FA22DA31B1B4E82011933CC /* ProseCorpus.swift in Sources */,

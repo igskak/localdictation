@@ -43,6 +43,7 @@ final class ReviewPanelController {
     private var visibilityObserver: AnyCancellable?
     private var outcomeObserver: AnyCancellable?
     private var attentionObserver: AnyCancellable?
+    private var silenceObserver: AnyCancellable?
     private var contentObserver: AnyCancellable?
 
     init(coordinator: DictationCoordinator) {
@@ -61,6 +62,16 @@ final class ReviewPanelController {
                 Task { @MainActor in self?.presentAftermath() }
             }
         attentionObserver = coordinator.$attentionIsPending
+            .removeDuplicates()
+            .sink { [weak self] _ in
+                Task { @MainActor in self?.presentAftermath() }
+            }
+        // The press that produced nothing. It reaches the same panel as a
+        // clipboard fallback because it is the same kind of thing: the one
+        // sentence the app owes the user when the words did not appear where
+        // they were typing, said where they are already looking rather than in
+        // a menu they have no reason to open.
+        silenceObserver = coordinator.$silentResult
             .removeDuplicates()
             .sink { [weak self] _ in
                 Task { @MainActor in self?.presentAftermath() }
@@ -171,7 +182,9 @@ final class ReviewPanelController {
     private func presentAftermath() {
         noticeDismissal?.cancel()
 
-        let message = coordinator.lastInsertion?.message
+        // At most one of these can be set: an empty result never reaches an
+        // insertion, and an insertion outcome only exists where there was text.
+        let message = coordinator.lastInsertion?.message ?? coordinator.silentResult?.message
         let attention = coordinator.attentionIsPending ? coordinator.result?.flaggedSpans.count ?? 0 : 0
         guard message != nil || attention > 0 else {
             hideNotice()
@@ -210,6 +223,7 @@ final class ReviewPanelController {
             dismiss: { [weak self] in
                 self?.hideNotice()
                 self?.coordinator.dismissAttention()
+                self?.coordinator.dismissSilentResult()
             }
         )
     }

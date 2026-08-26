@@ -10,7 +10,8 @@ struct MenuBarView: View {
             state: coordinator.state,
             binding: coordinator.binding,
             modelState: coordinator.transcriptionModelState,
-            attentionIsPending: coordinator.attentionIsPending
+            attentionIsPending: coordinator.attentionIsPending,
+            silentResult: coordinator.silentResult
         )
     }
 

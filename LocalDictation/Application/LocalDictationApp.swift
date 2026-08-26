@@ -27,7 +27,8 @@ struct LocalDictationApp: App {
                 systemImage: StatusPresentation(
                     state: coordinator.state,
                     binding: coordinator.binding,
-                    attentionIsPending: coordinator.attentionIsPending
+                    attentionIsPending: coordinator.attentionIsPending,
+                    silentResult: coordinator.silentResult
                 ).systemImage
             )
         }

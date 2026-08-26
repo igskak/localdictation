@@ -31,16 +31,37 @@ struct StatusPresentation: Sendable, Equatable {
     /// else is happening; painted over "Recording" or "Transcribing" it would
     /// be describing the previous utterance while the user is producing the
     /// next one, which is the one thing an indicator must never do.
+    ///
+    /// `silentResult` is bound by the same rule, for the same reason, and the
+    /// two can never both be set: a result with no text in it has no spans to
+    /// flag. It is second in the order anyway, so a marked result is never
+    /// hidden behind a notice about an empty one.
     init(
         state: RecordingState,
         binding: HotkeyBinding,
         modelState: TranscriptionModelState = .ready,
-        attentionIsPending: Bool = false
+        attentionIsPending: Bool = false,
+        silentResult: SilentResult? = nil
     ) {
         if state == .ready, attentionIsPending {
             title = "Worth a look"
             detail = "Some fragments in the last result are worth checking. The text is already in place."
             systemImage = "exclamationmark.triangle"
+            tint = .warning
+            showsPermissionRequest = false
+            showsSystemSettingsShortcut = false
+            showsRecoveryAction = false
+            return
+        }
+
+        // A press that came back with nothing. Saying "Ready" here is true and
+        // useless: the user knows they spoke, and what they need to be told is
+        // that the app heard them and got nothing, rather than that it is
+        // waiting for them to start.
+        if state == .ready, let silentResult {
+            title = silentResult.title
+            detail = silentResult.message
+            systemImage = silentResult.systemImage
             tint = .warning
             showsPermissionRequest = false
             showsSystemSettingsShortcut = false

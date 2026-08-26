@@ -33,6 +33,14 @@ final class DictationCoordinator: ObservableObject {
     /// Whether the review panel is on screen. Presentation, not lifecycle: the
     /// text is already in the user's document by the time this can be true.
     @Published private(set) var isShowingReview = false
+    /// Why the last press produced no text, when it produced none.
+    ///
+    /// The counterpart of `attentionIsPending` for the opposite outcome. A
+    /// result with nothing in it inserts nothing, needs no review, and used to
+    /// leave the app saying nothing at all — which is indistinguishable from
+    /// the hotkey not working. It clears the same way the indicator does: the
+    /// user dismisses it, or the next dictation starts.
+    @Published private(set) var silentResult: SilentResult?
     @Published private(set) var transcriptionModelState: TranscriptionModelState = .unavailable("No speech engine configured", needsUserAction: true)
     /// Selected language profile. Explicit, never inferred per utterance.
     @Published var languageProfile: LanguageProfile
@@ -306,6 +314,7 @@ final class DictationCoordinator: ObservableObject {
         prefersRawTranscript = false
         lastInsertion = nil
         attentionIsPending = false
+        silentResult = nil
         isShowingReview = false
         pendingEndReason = nil
 
@@ -417,7 +426,63 @@ final class DictationCoordinator: ObservableObject {
         if let utterance, startTranscription(for: utterance) {
             return
         }
+        noteCaptureProducedNothing(utterance)
         releaseRetainedAudio()
+    }
+
+    // MARK: - Silence
+
+    /// Says so when a press ends with nothing to transcribe.
+    ///
+    /// Only where there is an engine: without one the app never offered
+    /// recognition, and a notice about it would describe a feature that is not
+    /// there. Never on top of a failure either — that already has its own
+    /// sentence, and two explanations for one press is one more than the user
+    /// can act on.
+    private func noteCaptureProducedNothing(_ utterance: CapturedUtterance?) {
+        guard transcriptionService != nil else { return }
+        if case .failed = state { return }
+        guard utterance?.samples.isEmpty ?? true else { return }
+        noteSilence(
+            .nothingHeard(
+                duration: utterance?.duration ?? 0,
+                peakLevel: utterance?.peakLevel ?? 0,
+                inputDeviceName: diagnostics.format?.inputDeviceName
+            )
+        )
+    }
+
+    /// Prices an empty result: a microphone that heard nothing, or an engine
+    /// that recognized nothing in what it did hear.
+    ///
+    /// The detector's own answer decides. `speechStart` is set the moment
+    /// consecutive windows clear the speech threshold, so its absence is this
+    /// Mac saying it never heard speech at all — a different problem from an
+    /// engine returning no words, and one with a different fix.
+    private func silence(for transcript: Transcript) -> SilentResult {
+        let summary = diagnostics.lastUtterance
+        let duration = summary?.duration ?? transcript.audioDuration
+        guard summary?.speechStart != nil else {
+            return .nothingHeard(
+                duration: duration,
+                peakLevel: summary?.peakLevel ?? 0,
+                inputDeviceName: diagnostics.format?.inputDeviceName
+            )
+        }
+        return .nothingRecognized(duration: duration, profileLabel: transcript.profile.displayName)
+    }
+
+    private func noteSilence(_ silence: SilentResult) {
+        silentResult = silence
+        Log.application.info("Dictation produced nothing: \(silence.logLabel, privacy: .public)")
+    }
+
+    /// Puts the notice out without waiting for the next dictation — the
+    /// counterpart of `dismissAttention` for the press that produced nothing.
+    func dismissSilentResult() {
+        guard silentResult != nil else { return }
+        silentResult = nil
+        Log.application.info("Silent-result notice dismissed")
     }
 
     // MARK: - Transcription
@@ -485,6 +550,7 @@ final class DictationCoordinator: ObservableObject {
         result = nil
         prefersRawTranscript = false
         attentionIsPending = false
+        silentResult = nil
         isShowingReview = false
         fragmentPlayer?.stop()
         releaseRetainedAudio()
@@ -882,6 +948,13 @@ final class DictationCoordinator: ObservableObject {
             Result ready: \(result.cleanup.edits.count) edits, \(result.spans.count) spans, \(result.flaggedSpans.count) flagged, \(result.highlightedSpans.count) highlighted, attention \(result.deservesAttention ? "pending" : "none", privacy: .public)
             """
         )
+
+        if result.isEmpty {
+            // Nothing to insert and nothing to review, so this notice is the
+            // only thing the app will say about a press the user made and
+            // heard back nothing from.
+            noteSilence(silence(for: transcript))
+        }
 
         if result.deservesAttention {
             // Lit, not shown. The user finds out there is something to check
