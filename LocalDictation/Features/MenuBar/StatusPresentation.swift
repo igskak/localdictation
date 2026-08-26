@@ -42,12 +42,28 @@ struct StatusPresentation: Sendable, Equatable {
         modelState: TranscriptionModelState = .ready,
         attentionIsPending: Bool = false,
         silentResult: SilentResult? = nil,
+        captureInterruption: String? = nil,
         activation: RecordingActivation = .pushToTalk
     ) {
         if state == .ready, attentionIsPending {
             title = "Worth a look"
             detail = "Some fragments in the last result are worth checking. The text is already in place."
             systemImage = "exclamationmark.triangle"
+            tint = .warning
+            showsPermissionRequest = false
+            showsSystemSettingsShortcut = false
+            showsRecoveryAction = false
+            return
+        }
+
+        // A recording the system ended. It comes before the silence notice
+        // because it explains one: a device that was unplugged mid-sentence is
+        // why nothing came back, and "nothing was heard" would send the user to
+        // check a microphone that was working until it left.
+        if state == .ready, let captureInterruption {
+            title = "Recording ended early"
+            detail = captureInterruption
+            systemImage = "mic.badge.xmark"
             tint = .warning
             showsPermissionRequest = false
             showsSystemSettingsShortcut = false

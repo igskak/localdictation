@@ -42,6 +42,15 @@ final class DictationCoordinator: ObservableObject {
     /// the hotkey not working. It clears the same way the indicator does: the
     /// user dismisses it, or the next dictation starts.
     @Published private(set) var silentResult: SilentResult?
+    /// Why a recording ended before the user finished it, when one did.
+    ///
+    /// A recording is not the interruption's to throw away. An input device
+    /// changing mid-sentence — AirPods connecting, a dock being plugged in,
+    /// a headset going to sleep — used to end the utterance in `.failed`
+    /// with the captured audio discarded, which is the app taking back words
+    /// the user had already said. `docs/PHASE_6.md` states the rule for a
+    /// trial running out mid-utterance, and it is the same rule.
+    @Published private(set) var captureInterruption: AudioCaptureError?
     @Published private(set) var transcriptionModelState: TranscriptionModelState = .unavailable("No speech engine configured", needsUserAction: true)
     /// Selected language profile. Explicit, never inferred per utterance,
     /// and remembered: a four-language product that forgets which two you
@@ -468,6 +477,7 @@ final class DictationCoordinator: ObservableObject {
         lastInsertion = nil
         attentionIsPending = false
         silentResult = nil
+        captureInterruption = nil
         isShowingReview = false
         pendingEndReason = nil
 
@@ -626,8 +636,23 @@ final class DictationCoordinator: ObservableObject {
     }
 
     private func noteSilence(_ silence: SilentResult) {
+        // A recording the system ended already has its sentence, and it is
+        // the more useful one: "the input device changed" explains an empty
+        // result, where "nothing was heard" sends the user to look at a
+        // microphone that was working until it was unplugged.
+        guard captureInterruption == nil else { return }
         silentResult = silence
         Log.application.info("Dictation produced nothing: \(silence.logLabel, privacy: .public)")
+    }
+
+    /// The sentence for a recording the system ended, when one was.
+    var captureInterruptionMessage: String? { captureInterruption?.interruptionMessage }
+
+    /// Puts the interruption notice out. Cleared by the next dictation anyway;
+    /// this is for the user who has read it and wants their menu bar back.
+    func dismissCaptureInterruption() {
+        guard captureInterruption != nil else { return }
+        captureInterruption = nil
     }
 
     /// Puts the notice out without waiting for the next dictation — the
@@ -1234,15 +1259,37 @@ final class DictationCoordinator: ObservableObject {
         guard state.isCapturing else { return }
         diagnostics.lastErrorDescription = error.message
         Log.audio.error("Capture interrupted: \(error.message, privacy: .public)")
-        guard apply(.captureInterrupted(.captureInterrupted(error.message))) else { return }
-        stopPolling()
 
-        let wasRunning = captureIsRunning
-        captureIsRunning = false
+        switch state {
+        case .recording:
+            // There is speech in the buffer. It ends here — the device it
+            // was being recorded from is gone — but it ends the way a
+            // released key ends it: the utterance is finished, transcribed,
+            // and delivered, and the reason is said afterwards rather than
+            // instead. Discarding it was the app taking back words the user
+            // had already said, which is the one thing `docs/PHASE_6.md`
+            // spends a section refusing to do for a trial that runs out.
+            captureInterruption = error
+            guard apply(.hotkeyReleased) else { return }
+            stopPolling()
+            finishCapture(reason: .interrupted)
 
-        if wasRunning {
-            let service = captureService
-            Task { _ = await service.stop(reason: .interrupted) }
+        case .finishing:
+            // A stop is already in flight. The recording is not ended twice,
+            // and the reason still reaches the user.
+            captureInterruption = error
+
+        default:
+            // `.starting`: the engine never opened, so there is nothing to
+            // save and the failure is the whole story.
+            guard apply(.captureInterrupted(.captureInterrupted(error.message))) else { return }
+            stopPolling()
+            let wasRunning = captureIsRunning
+            captureIsRunning = false
+            if wasRunning {
+                let service = captureService
+                Task { _ = await service.stop(reason: .interrupted) }
+            }
         }
     }
 

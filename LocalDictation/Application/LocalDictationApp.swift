@@ -28,7 +28,8 @@ struct LocalDictationApp: App {
                     state: coordinator.state,
                     binding: coordinator.binding,
                     attentionIsPending: coordinator.attentionIsPending,
-                    silentResult: coordinator.silentResult
+                    silentResult: coordinator.silentResult,
+                    captureInterruption: coordinator.captureInterruptionMessage
                 ).systemImage
             )
         }
