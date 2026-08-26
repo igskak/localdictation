@@ -11,7 +11,8 @@ struct MenuBarView: View {
             binding: coordinator.binding,
             modelState: coordinator.transcriptionModelState,
             attentionIsPending: coordinator.attentionIsPending,
-            silentResult: coordinator.silentResult
+            silentResult: coordinator.silentResult,
+            activation: coordinator.activation
         )
     }
 

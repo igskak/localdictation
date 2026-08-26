@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 
 /// Orchestrates permission, hotkey, and capture services into the Phase 1 slice:
@@ -42,8 +43,10 @@ final class DictationCoordinator: ObservableObject {
     /// user dismisses it, or the next dictation starts.
     @Published private(set) var silentResult: SilentResult?
     @Published private(set) var transcriptionModelState: TranscriptionModelState = .unavailable("No speech engine configured", needsUserAction: true)
-    /// Selected language profile. Explicit, never inferred per utterance.
-    @Published var languageProfile: LanguageProfile
+    /// Selected language profile. Explicit, never inferred per utterance,
+    /// and remembered: a four-language product that forgets which two you
+    /// speak is a product that asks the same question every morning.
+    @Published var languageProfile: LanguageProfile { didSet { persistPreferences() } }
     /// The user's vocabulary — the only state in the app that survives a launch.
     @Published private(set) var glossary: Glossary = .empty
     @Published private(set) var glossaryErrorDescription: String?
@@ -56,7 +59,7 @@ final class DictationCoordinator: ObservableObject {
     /// On by default, because that is the phase's whole point: speak, release,
     /// and the words are in the document. Off is for users who want the
     /// keystroke to be theirs.
-    @Published var insertsAutomatically = true
+    @Published var insertsAutomatically = true { didSet { persistPreferences() } }
     /// Whether this Mac may dictate, and what it should be told if not.
     ///
     /// Republished from `EntitlementService` rather than owned here, so the
@@ -64,7 +67,23 @@ final class DictationCoordinator: ObservableObject {
     /// be tested with a clock.
     @Published private(set) var entitlement: EntitlementState = .ungated(.untouched)
 
-    let binding: HotkeyBinding
+    /// The key combination that records, and how it behaves.
+    ///
+    /// Published rather than constant from here on: ⌥Space is a default, not
+    /// a law, and on a Mac where something else already owns it the app was
+    /// previously unusable with no way out from inside it.
+    @Published private(set) var binding: HotkeyBinding
+    /// Hold to talk, or press twice. `docs/PRODUCT_SCOPE.md` has listed both
+    /// since the first draft.
+    @Published private(set) var activation: RecordingActivation
+    /// Set when settings could not be read or written. Never fatal: the app
+    /// dictates perfectly well with defaults it could not save.
+    @Published private(set) var preferencesErrorDescription: String?
+    /// Whether the app is waiting for the user to press the combination they
+    /// want. The current shortcut is unregistered for the duration, so what
+    /// they press reaches the settings window instead of opening a
+    /// microphone.
+    @Published private(set) var isCapturingHotkey = false
 
     private let permissionService: any MicrophonePermissionService
     private let hotkeyService: any HotkeyService
@@ -78,6 +97,7 @@ final class DictationCoordinator: ObservableObject {
     private let accessibilityService: (any AccessibilityPermissionService)?
     private let insertionService: (any TextInsertionService)?
     private let entitlementService: EntitlementService?
+    private let preferencesStore: (any PreferencesStore)?
 
     private var machine = RecordingStateMachine()
     private var pollTimer: Timer?
@@ -88,6 +108,9 @@ final class DictationCoordinator: ObservableObject {
     /// Incremented whenever a transcription is started or superseded. A result
     /// carrying a stale generation is dropped instead of being published.
     private var transcriptionGeneration = 0
+    /// Set while settings are being applied from the store, so the property
+    /// observers that persist them do not write the file back as it is read.
+    private var isApplyingPreferences = false
 
     /// The captured samples, held only while something still needs them.
     ///
@@ -129,8 +152,10 @@ final class DictationCoordinator: ObservableObject {
         accessibilityService: (any AccessibilityPermissionService)? = nil,
         insertionService: (any TextInsertionService)? = nil,
         entitlementService: EntitlementService? = nil,
+        preferencesStore: (any PreferencesStore)? = nil,
         configuration: AudioCaptureConfiguration = .default,
         binding: HotkeyBinding = .optionSpace,
+        activation: RecordingActivation = .pushToTalk,
         languageProfile: LanguageProfile = .default,
         pollInterval: TimeInterval = 0.1
     ) {
@@ -146,8 +171,10 @@ final class DictationCoordinator: ObservableObject {
         self.accessibilityService = accessibilityService
         self.insertionService = insertionService
         self.entitlementService = entitlementService
+        self.preferencesStore = preferencesStore
         self.configuration = configuration
         self.binding = binding
+        self.activation = activation
         self.languageProfile = languageProfile
         self.pollInterval = pollInterval
     }
@@ -159,6 +186,7 @@ final class DictationCoordinator: ObservableObject {
 
     /// Reads the current authorization without prompting and registers the hotkey.
     func activate() {
+        loadPreferences()
         loadGlossary()
         startObservingEntitlement()
         apply(.authorizationResolved(permissionService.currentAuthorization))
@@ -220,7 +248,7 @@ final class DictationCoordinator: ObservableObject {
         entitlementService?.refresh()
         guard !state.isBusy else { return }
         apply(.authorizationResolved(permissionService.currentAuthorization))
-        if permissionService.currentAuthorization.allowsCapture, registeredHotkey == nil {
+        if permissionService.currentAuthorization.allowsCapture, registeredHotkey == nil, !isCapturingHotkey {
             registerHotkey()
         }
     }
@@ -238,7 +266,7 @@ final class DictationCoordinator: ObservableObject {
         apply(.permissionRequestStarted)
         let resolved = await permissionService.requestAccess()
         apply(.authorizationResolved(resolved))
-        if resolved.allowsCapture, registeredHotkey == nil {
+        if resolved.allowsCapture, registeredHotkey == nil, !isCapturingHotkey {
             registerHotkey()
         }
     }
@@ -252,7 +280,7 @@ final class DictationCoordinator: ObservableObject {
     func recoverFromFailure() {
         guard case .failed = state else { return }
         apply(.recoveryRequested)
-        if registeredHotkey == nil {
+        if registeredHotkey == nil, !isCapturingHotkey {
             registerHotkey()
         }
         apply(.authorizationResolved(permissionService.currentAuthorization))
@@ -261,19 +289,130 @@ final class DictationCoordinator: ObservableObject {
     // MARK: - Hotkey
 
     private func registerHotkey() {
-        do {
-            try hotkeyService.register(binding) { [weak self] event in
-                self?.receiveHotkeyEvent(event)
-            }
-            registeredHotkey = binding
-        } catch let error as HotkeyRegistrationError {
+        if let error = tryRegister(binding) {
             registeredHotkey = nil
             Log.hotkey.error("Hotkey registration failed: \(error.message, privacy: .public)")
             apply(.hotkeyRegistrationFailed(error.message))
+        }
+    }
+
+    /// Registers a binding and reports what went wrong, without touching any
+    /// state beyond `registeredHotkey`.
+    ///
+    /// Separated from `registerHotkey` so a *new* binding can be tried while
+    /// the old one is still known. Carbon has no way to ask whether a
+    /// combination is free — the only way to find out is to register it — so
+    /// the app has to be able to fail and put the working shortcut back.
+    private func tryRegister(_ candidate: HotkeyBinding) -> HotkeyRegistrationError? {
+        do {
+            try hotkeyService.register(candidate) { [weak self] event in
+                self?.receiveHotkeyEvent(event)
+            }
+            registeredHotkey = candidate
+            return nil
+        } catch let error as HotkeyRegistrationError {
+            registeredHotkey = nil
+            return error
         } catch {
             registeredHotkey = nil
-            apply(.hotkeyRegistrationFailed("\(error)"))
+            return .registrationFailed(status: 0)
         }
+    }
+
+    /// Changes the shortcut, or explains why it could not be changed.
+    ///
+    /// The old binding goes back the instant the new one is refused, and the
+    /// user is left with a working app and a sentence — not with a shortcut
+    /// that silently stopped existing because they picked one macOS had
+    /// already taken.
+    @discardableResult
+    func changeHotkey(to candidate: HotkeyBinding) -> HotkeyRegistrationError? {
+        guard candidate != binding else { return nil }
+        // A shortcut with no modifier is registered system-wide against a
+        // bare key, which takes that key away from every application on the
+        // Mac including this one's own text fields.
+        guard !candidate.modifiers.isEmpty else { return .noModifier }
+
+        let previous = binding
+        if let error = tryRegister(candidate) {
+            Log.hotkey.error("Hotkey change refused: \(error.message, privacy: .public)")
+            // Put the working one back. `tryRegister` unregisters before it
+            // registers, so at this point nothing is listening at all.
+            if let restoreError = tryRegister(previous) {
+                apply(.hotkeyRegistrationFailed(restoreError.message))
+            }
+            return error
+        }
+
+        binding = candidate
+        persistPreferences()
+        Log.hotkey.info("Hotkey changed to \(candidate.displayString, privacy: .public)")
+        // Registration failure is a state, so a successful change has to
+        // clear it or the app stays broken-looking after it is fixed.
+        if case .failed(.hotkeyRegistration) = state { recoverFromFailure() }
+        return nil
+    }
+
+    func resetHotkey() {
+        isCapturingHotkey = false
+        if binding == .optionSpace {
+            if registeredHotkey == nil { registerHotkey() }
+            return
+        }
+        changeHotkey(to: .optionSpace)
+    }
+
+    /// Starts listening for the combination the user wants.
+    ///
+    /// The current shortcut is unregistered first, and that is the whole
+    /// point: a registered Carbon hotkey consumes its combination before any
+    /// window sees it, so leaving it in place would mean the one shortcut
+    /// the user cannot press while choosing is the one they already have —
+    /// and pressing it would start recording into the settings window.
+    func beginHotkeyCapture() {
+        guard !isCapturingHotkey else { return }
+        isCapturingHotkey = true
+        hotkeyService.unregister()
+        registeredHotkey = nil
+    }
+
+    /// Stops listening and puts the existing shortcut back.
+    ///
+    /// Called for the escape key, for the cancel button, and when the
+    /// settings window goes away — the last of those matters most, because a
+    /// window closed mid-capture would otherwise leave the app with no
+    /// shortcut at all and no sign of why.
+    func cancelHotkeyCapture() {
+        guard isCapturingHotkey else { return }
+        isCapturingHotkey = false
+        registerHotkey()
+    }
+
+    /// Takes the combination the user pressed.
+    @discardableResult
+    func finishHotkeyCapture(with candidate: HotkeyBinding) -> HotkeyRegistrationError? {
+        guard isCapturingHotkey else { return changeHotkey(to: candidate) }
+        isCapturingHotkey = false
+
+        guard !candidate.modifiers.isEmpty else {
+            // Nothing was registered while capturing, so the old shortcut
+            // has to go back before the refusal is reported.
+            registerHotkey()
+            return .noModifier
+        }
+        guard candidate != binding else {
+            registerHotkey()
+            return nil
+        }
+        return changeHotkey(to: candidate)
+    }
+
+    /// Switches between holding the key and pressing it twice.
+    func setActivation(_ activation: RecordingActivation) {
+        guard activation != self.activation else { return }
+        self.activation = activation
+        persistPreferences()
+        Log.hotkey.info("Recording activation is now \(activation.rawValue, privacy: .public)")
     }
 
     /// Hotkey callbacks arrive on the main thread from the Carbon event target.
@@ -287,11 +426,25 @@ final class DictationCoordinator: ObservableObject {
     }
 
     private func handle(_ event: HotkeyEvent) {
-        switch event {
-        case .pressed:
-            beginCapture()
-        case .released:
-            endCapture(reason: .hotkeyRelease)
+        switch activation {
+        case .pushToTalk:
+            switch event {
+            case .pressed:
+                beginCapture()
+            case .released:
+                endCapture(reason: .hotkeyRelease)
+            }
+
+        case .toggle:
+            // Only the press carries meaning. Letting go of the key that
+            // started the recording must not end it, which is the whole
+            // difference between the two modes.
+            guard event == .pressed else { return }
+            if state.isCapturing {
+                endCapture(reason: .hotkeyRelease)
+            } else {
+                beginCapture()
+            }
         }
     }
 
@@ -838,6 +991,63 @@ final class DictationCoordinator: ObservableObject {
         StoreFront.open(url)
     }
 
+    // MARK: - Preferences
+
+    var preferencesLocationDescription: String? { preferencesStore?.locationDescription }
+
+    /// Reads the settings file, if there is a store at all.
+    ///
+    /// A store that cannot be read leaves the defaults in place and records
+    /// why in a line the user can see. Refusing to start over a preferences
+    /// file would be the app treating its own settings as more important
+    /// than the thing it exists to do.
+    private func loadPreferences() {
+        guard let preferencesStore else { return }
+        do {
+            apply(try preferencesStore.load())
+            preferencesErrorDescription = nil
+        } catch {
+            preferencesErrorDescription = (error as? PreferencesStoreError)?.message ?? error.localizedDescription
+            Log.application.error("Settings load failed: \(self.preferencesErrorDescription ?? "", privacy: .public)")
+        }
+    }
+
+    private func apply(_ preferences: Preferences) {
+        isApplyingPreferences = true
+        defer { isApplyingPreferences = false }
+        // A stored binding with no modifier could only come from someone
+        // editing the file by hand, and registering it would take a bare key
+        // away from every application on the Mac.
+        if !preferences.hotkeyBinding.modifiers.isEmpty {
+            binding = preferences.hotkeyBinding
+        }
+        activation = preferences.activation
+        languageProfile = preferences.languageProfile
+        insertsAutomatically = preferences.insertsAutomatically
+    }
+
+    private var currentPreferences: Preferences {
+        Preferences(
+            hotkeyKeyCode: binding.keyCode,
+            hotkeyModifiers: binding.modifiers.rawValue,
+            hotkeyKeyLabel: binding.keyLabel,
+            activation: activation,
+            languageProfile: languageProfile,
+            insertsAutomatically: insertsAutomatically
+        )
+    }
+
+    private func persistPreferences() {
+        guard let preferencesStore, !isApplyingPreferences else { return }
+        do {
+            try preferencesStore.save(currentPreferences)
+            preferencesErrorDescription = nil
+        } catch {
+            preferencesErrorDescription = (error as? PreferencesStoreError)?.message ?? error.localizedDescription
+            Log.application.error("Settings save failed: \(self.preferencesErrorDescription ?? "", privacy: .public)")
+        }
+    }
+
     // MARK: - Glossary
 
     private func loadGlossary() {
@@ -1128,7 +1338,11 @@ extension DictationCoordinator {
             // signature. `LicenseAuthority.production` is empty in a
             // development build, which means no key verifies and the ungated
             // window is all there is — see `docs/PHASE_6.md`.
-            entitlementService: EntitlementService(store: FileEntitlementStore())
+            entitlementService: EntitlementService(store: FileEntitlementStore()),
+            // The third and last thing this app writes to disk. Everything in
+            // it is a choice the user made about the app, and none of it is
+            // derived from anything that was said.
+            preferencesStore: FilePreferencesStore()
         )
     }
 }

@@ -41,7 +41,8 @@ struct StatusPresentation: Sendable, Equatable {
         binding: HotkeyBinding,
         modelState: TranscriptionModelState = .ready,
         attentionIsPending: Bool = false,
-        silentResult: SilentResult? = nil
+        silentResult: SilentResult? = nil,
+        activation: RecordingActivation = .pushToTalk
     ) {
         if state == .ready, attentionIsPending {
             title = "Worth a look"
@@ -110,7 +111,7 @@ struct StatusPresentation: Sendable, Equatable {
 
         case .ready:
             title = "Ready"
-            detail = "Hold \(binding.displayString) to record."
+            detail = Self.startInstruction(binding, activation)
             systemImage = "waveform.circle"
             tint = .ready
             showsPermissionRequest = false
@@ -128,7 +129,7 @@ struct StatusPresentation: Sendable, Equatable {
 
         case .recording:
             title = "Recording"
-            detail = "Release \(binding.displayString) to finish."
+            detail = Self.finishInstruction(binding, activation)
             systemImage = "waveform.circle.fill"
             tint = .active
             showsPermissionRequest = false
@@ -152,7 +153,7 @@ struct StatusPresentation: Sendable, Equatable {
             title = modelState.isPreparing ? "Waiting for the speech model" : "Transcribing"
             detail = modelState.isPreparing
                 ? "Your recording is held in memory. Transcription starts the moment the model finishes loading."
-                : "Recognizing speech on this Mac. Hold \(binding.displayString) to start the next one."
+                : "Recognizing speech on this Mac. \(Self.startInstruction(binding, activation))"
             systemImage = "waveform.badge.magnifyingglass"
             tint = .active
             showsPermissionRequest = false
@@ -198,6 +199,26 @@ struct StatusPresentation: Sendable, Equatable {
             showsPermissionRequest = false
             showsSystemSettingsShortcut = false
             showsRecoveryAction = true
+        }
+    }
+
+    /// How to begin, in the mode the user actually chose.
+    ///
+    /// The instruction is the only place the difference between the two
+    /// modes is visible, and getting it wrong is worse than saying nothing:
+    /// "Release ⌥Space to finish" in toggle mode tells the user to do the
+    /// one thing that will not work.
+    private static func startInstruction(_ binding: HotkeyBinding, _ activation: RecordingActivation) -> String {
+        switch activation {
+        case .pushToTalk: "Hold \(binding.displayString) to record."
+        case .toggle: "Press \(binding.displayString) to start recording."
+        }
+    }
+
+    private static func finishInstruction(_ binding: HotkeyBinding, _ activation: RecordingActivation) -> String {
+        switch activation {
+        case .pushToTalk: "Release \(binding.displayString) to finish."
+        case .toggle: "Press \(binding.displayString) again to finish."
         }
     }
 
