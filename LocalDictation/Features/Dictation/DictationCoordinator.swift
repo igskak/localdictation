@@ -1029,7 +1029,7 @@ final class DictationCoordinator: ObservableObject {
     private func loadPreferences() {
         guard let preferencesStore else { return }
         do {
-            apply(try preferencesStore.load())
+            applyPreferences(try preferencesStore.load())
             preferencesErrorDescription = nil
         } catch {
             preferencesErrorDescription = (error as? PreferencesStoreError)?.message ?? error.localizedDescription
@@ -1037,7 +1037,7 @@ final class DictationCoordinator: ObservableObject {
         }
     }
 
-    private func apply(_ preferences: Preferences) {
+    private func applyPreferences(_ preferences: Preferences) {
         isApplyingPreferences = true
         defer { isApplyingPreferences = false }
         // A stored binding with no modifier could only come from someone
@@ -1275,9 +1275,12 @@ final class DictationCoordinator: ObservableObject {
             finishCapture(reason: .interrupted)
 
         case .finishing:
-            // A stop is already in flight. The recording is not ended twice,
-            // and the reason still reaches the user.
-            captureInterruption = error
+            // A stop is already in flight, so the recording is not ended twice.
+            // No notice either: either an interruption put the app here and the
+            // notice is already set, or the user released the key and the
+            // recording ended because they said so. Telling them the microphone
+            // ended it would be describing something that did not happen.
+            break
 
         default:
             // `.starting`: the engine never opened, so there is nothing to

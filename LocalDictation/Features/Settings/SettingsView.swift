@@ -181,7 +181,7 @@ struct SettingsView: View {
             }
 
             Section {
-                Text("Trailing silence is reported, never used to trim captured speech. Changes apply to the next recording; Phase 1 keeps settings in memory only.")
+                Text("Trailing silence is reported, never used to trim captured speech. Changes apply to the next recording. These thresholds are the one thing in Settings that is not written to disk — they are tuning, and they start from the defaults on every launch.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
@@ -402,6 +402,19 @@ private struct HotkeyRecorderRow: View {
     @State private var failure: String?
 
     var body: some View {
+        Group {
+            content
+        }
+        // The monitor is a system-wide registration, not a piece of view state:
+        // a settings window closed mid-capture would leave it installed,
+        // swallowing every key this app's windows ever see afterwards. The
+        // coordinator's own cancel does not cover this — it puts the shortcut
+        // back and knows nothing about the monitor.
+        .onDisappear { stopCapture(cancelling: true) }
+    }
+
+    @ViewBuilder
+    private var content: some View {
         LabeledContent("Shortcut") {
             HStack(spacing: 8) {
                 Text(coordinator.isCapturingHotkey ? "Press a combination…" : coordinator.binding.displayString)
@@ -445,6 +458,8 @@ private struct HotkeyRecorderRow: View {
 
     private func startCapture() {
         failure = nil
+        // Defensive: one monitor at a time, whatever the view did.
+        removeMonitor()
         coordinator.beginHotkeyCapture()
         monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             capture(event)

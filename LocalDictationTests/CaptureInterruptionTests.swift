@@ -79,6 +79,20 @@ final class CaptureInterruptionTests: XCTestCase {
         XCTAssertTrue(message.contains("already said was kept"))
     }
 
+    /// A recording the user ended by releasing the key is not the device's to
+    /// take credit for, even when a device change lands during the stop.
+    func testAnInterruptionDuringANormalFinishBlamesNobody() async throws {
+        let harness = makeHarness(transcript: Self.spoken)
+        harness.hotkey.emit(.pressed)
+        try await waitUntil("recording starts") { harness.coordinator.state == .recording }
+
+        harness.hotkey.emit(.released)
+        harness.capture.triggerInterruption(.inputDeviceChanged)
+
+        try await waitUntil("the app settles") { harness.coordinator.state == .ready }
+        XCTAssertNil(harness.coordinator.captureInterruption)
+    }
+
     func testTheCaptureIsStoppedExactlyOnce() async throws {
         let harness = makeHarness(transcript: Self.spoken)
         harness.hotkey.emit(.pressed)
