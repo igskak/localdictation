@@ -52,12 +52,31 @@ enum RefusalReason: String, Sendable, Equatable, CaseIterable {
     case secureField
     case secureInput
 
-    var message: String {
+    /// The sentence the user reads.
+    ///
+    /// Secure input takes a holder because the bare fact is unusable. It is a
+    /// single process-wide flag, so while it is on *every* dictation everywhere
+    /// is refused — `docs/PHASE_4_COMPATIBILITY.md` calls that the worst
+    /// failure mode in the insertion path, because it looks like this app is
+    /// broken rather than careful. "An application has secure input enabled",
+    /// said to someone with thirty applications open, is a description of a
+    /// problem with no action attached to it. A name is the action.
+    func message(holder: String? = nil) -> String {
         switch self {
         case .secureField:
-            "Nothing was inserted: the focus is in a password field. The text is here and was not copied."
+            return "Nothing was inserted: the focus is in a password field. The text is here and was not copied."
         case .secureInput:
-            "Nothing was inserted: an application has secure input enabled. The text is here and was not copied."
+            guard let holder else {
+                return """
+                Nothing was inserted: an application has secure input enabled, which blocks dictation \
+                everywhere until it stops. The text is here and was not copied.
+                """
+            }
+            return """
+            Nothing was inserted: \(holder) has secure input enabled, which blocks dictation everywhere \
+            until it stops. Switching to it and clicking into an ordinary field usually clears it; \
+            quitting it always does. The text is here and was not copied.
+            """
         }
     }
 }
@@ -65,7 +84,10 @@ enum RefusalReason: String, Sendable, Equatable, CaseIterable {
 enum InsertionOutcome: Sendable, Equatable {
     case inserted(InsertionMethod)
     case copiedToClipboard(ClipboardReason)
-    case refused(RefusalReason)
+    /// A refusal, and the application responsible where the system names one.
+    /// Only secure input has a holder; a password field is the one the user is
+    /// already looking at.
+    case refused(RefusalReason, holder: String? = nil)
 
     var didInsert: Bool {
         if case .inserted = self { return true }
@@ -85,7 +107,7 @@ enum InsertionOutcome: Sendable, Equatable {
         switch self {
         case .inserted: nil
         case let .copiedToClipboard(reason): reason.message
-        case let .refused(reason): reason.message
+        case let .refused(reason, holder): reason.message(holder: holder)
         }
     }
 
@@ -94,7 +116,7 @@ enum InsertionOutcome: Sendable, Equatable {
         switch self {
         case let .inserted(method): "inserted:\(method.rawValue)"
         case let .copiedToClipboard(reason): "clipboard:\(reason.rawValue)"
-        case let .refused(reason): "refused:\(reason.rawValue)"
+        case let .refused(reason, _): "refused:\(reason.rawValue)"
         }
     }
 }

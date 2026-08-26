@@ -531,6 +531,21 @@ final class FakeFrontmostApplicationSource: FrontmostApplicationSource {
 }
 
 /// The pasteboard, in memory, so no test writes to the user's clipboard.
+/// Secure input, scripted.
+///
+/// The real flag can only be raised by focusing a password field or by an
+/// application that leaves it on, and neither can be arranged from a test — so
+/// the one refusal the user is most likely to meet would otherwise be the one
+/// behaviour with no coverage at all.
+@MainActor
+final class FakeSecureInputSource: SecureInputSource {
+    var secureInputState: SecureInputState
+
+    init(_ state: SecureInputState = .off) {
+        secureInputState = state
+    }
+}
+
 @MainActor
 final class FakePasteboard: Pasteboard {
     private(set) var contents: String?
