@@ -1,63 +1,65 @@
 import Foundation
 
-/// The MVP speech languages from `docs/PRODUCT_SCOPE.md`.
-enum SpeechLanguage: String, CaseIterable, Sendable, Equatable, Codable {
-    case german = "de"
-    case english = "en"
-    case russian = "ru"
-    case ukrainian = "uk"
-
-    var displayName: String {
-        switch self {
-        case .german: "German"
-        case .english: "English"
-        case .russian: "Russian"
-        case .ukrainian: "Ukrainian"
-        }
-    }
-
-    /// BCP-47 tag for engines that want a locale rather than a bare language code.
-    var localeIdentifier: String {
-        switch self {
-        case .german: "de-DE"
-        case .english: "en-US"
-        case .russian: "ru-RU"
-        case .ukrainian: "uk-UA"
-        }
-    }
-
-    /// Cyrillic-script languages need different text normalization in the
-    /// benchmark scorer than Latin-script ones.
-    var usesCyrillicScript: Bool {
-        self == .russian || self == .ukrainian
-    }
-}
-
-/// An explicit, user-selected language profile.
+/// The languages the user speaks, in the order that matters to them.
 ///
-/// The product deliberately does not promise arbitrary four-language detection
-/// inside a single utterance. A profile names either one language or one of the
-/// priority pairs, and that choice is passed to the engine explicitly.
+/// Through Phase 6 this was a primary language and an optional second one,
+/// chosen from eight combinations the product had decided in advance. Since
+/// Phase 7 it is an ordered, deduplicated, non-empty set drawn from every
+/// language the engine knows: a user who speaks three says three, and a user
+/// who speaks one says one.
+///
+/// Order is not cosmetic. The first language is **preferred** — the fallback
+/// when the engine has no opinion about an utterance, and the tie-break when it
+/// has two. Everything else about the set is unordered in meaning.
+///
+/// The type still answers `primary`, `isMixed`, `contains`, `displayName`, and
+/// `shortLabel` the way it always did, because the risk engine, the glossary,
+/// the transcript, and the benchmark ask it those questions and none of them
+/// needed to learn a new vocabulary for this change.
 struct LanguageProfile: Sendable, Equatable, Hashable, Identifiable, Codable {
-    let primary: SpeechLanguage
-    /// Second language of a priority mixed profile, if this is one.
-    let secondary: SpeechLanguage?
+    /// Never empty, never duplicated, ordered with the preferred language first.
+    private(set) var languages: [SpeechLanguage]
 
-    var id: String {
-        guard let secondary else { return primary.rawValue }
-        return "\(primary.rawValue)+\(secondary.rawValue)"
+    /// The only initializer that cannot produce an empty profile, which is why
+    /// it is the one everything else funnels through.
+    init(_ first: SpeechLanguage, _ rest: SpeechLanguage...) {
+        languages = Self.normalized([first] + rest)
     }
 
-    var isMixed: Bool { secondary != nil }
-
-    var languages: [SpeechLanguage] {
-        guard let secondary else { return [primary] }
-        return [primary, secondary]
+    /// Nil for an empty list. A profile naming no language is not a profile the
+    /// engine could be asked for, and defaulting silently to something would
+    /// pick a language on the user's behalf.
+    init?(languages: [SpeechLanguage]) {
+        let normalized = Self.normalized(languages)
+        guard !normalized.isEmpty else { return nil }
+        self.languages = normalized
     }
+
+    /// The Phase 6 shape, kept because a corpus manifest and a good many tests
+    /// are written in it.
+    init(primary: SpeechLanguage, secondary: SpeechLanguage? = nil) {
+        languages = Self.normalized([primary] + (secondary.map { [$0] } ?? []))
+    }
+
+    /// Removes duplicates while keeping first appearance, which is what makes
+    /// "preferred" survive a user selecting the same language twice.
+    private static func normalized(_ languages: [SpeechLanguage]) -> [SpeechLanguage] {
+        var seen: Set<SpeechLanguage> = []
+        return languages.filter { seen.insert($0).inserted }
+    }
+
+    /// The preferred language: the fallback and the tie-break.
+    var primary: SpeechLanguage { languages[0] }
+
+    /// Whether the engine has to decide which language an utterance is in.
+    var isMixed: Bool { languages.count > 1 }
+
+    /// Codes joined with `+`, which is the shape Phase 2 corpora already use to
+    /// name a profile: `de+en`, `ru+en+uk`.
+    var id: String { languages.map(\.rawValue).joined(separator: "+") }
 
     var displayName: String {
-        guard let secondary else { return primary.displayName }
-        return "\(primary.displayName) + \(secondary.displayName)"
+        languages.map(\.displayName).joined(separator: " + ")
     }
 
     /// Short label for compact UI, e.g. "DE+EN".
@@ -69,28 +71,101 @@ struct LanguageProfile: Sendable, Equatable, Hashable, Identifiable, Codable {
         languages.contains(language)
     }
 
+    // MARK: - Editing
+
+    /// The profile with this language added, preferred language unchanged.
+    func including(_ language: SpeechLanguage) -> LanguageProfile {
+        guard !contains(language) else { return self }
+        return LanguageProfile(languages: languages + [language]) ?? self
+    }
+
+    /// The profile without this language, or nil when it was the last one.
+    ///
+    /// Returning nil rather than an empty profile is what lets the picker
+    /// refuse the deselection instead of discovering afterwards that the user
+    /// has no language at all.
+    func excluding(_ language: SpeechLanguage) -> LanguageProfile? {
+        LanguageProfile(languages: languages.filter { $0 != language })
+    }
+
+    /// The profile with this language first, adding it if it was not selected.
+    func preferring(_ language: SpeechLanguage) -> LanguageProfile {
+        LanguageProfile(languages: [language] + languages) ?? self
+    }
+
     // MARK: - Single-language profiles
 
-    static let german = LanguageProfile(primary: .german, secondary: nil)
-    static let english = LanguageProfile(primary: .english, secondary: nil)
-    static let russian = LanguageProfile(primary: .russian, secondary: nil)
-    static let ukrainian = LanguageProfile(primary: .ukrainian, secondary: nil)
+    static let german = LanguageProfile(.german)
+    static let english = LanguageProfile(.english)
+    static let russian = LanguageProfile(.russian)
+    static let ukrainian = LanguageProfile(.ukrainian)
 
-    // MARK: - Priority mixed profiles
+    // MARK: - The combinations Phase 6 shipped
 
-    static let germanEnglish = LanguageProfile(primary: .german, secondary: .english)
-    static let russianUkrainian = LanguageProfile(primary: .russian, secondary: .ukrainian)
-    static let russianEnglish = LanguageProfile(primary: .russian, secondary: .english)
-    static let ukrainianEnglish = LanguageProfile(primary: .ukrainian, secondary: .english)
+    static let germanEnglish = LanguageProfile(.german, .english)
+    static let russianUkrainian = LanguageProfile(.russian, .ukrainian)
+    static let russianEnglish = LanguageProfile(.russian, .english)
+    static let ukrainianEnglish = LanguageProfile(.ukrainian, .english)
 
     static let single: [LanguageProfile] = [.german, .english, .russian, .ukrainian]
     static let mixed: [LanguageProfile] = [.germanEnglish, .russianUkrainian, .russianEnglish, .ukrainianEnglish]
+    /// The eight the product used to offer. Still what the benchmark corpora
+    /// name, and no longer the whole of what a user may choose.
     static let all: [LanguageProfile] = single + mixed
 
-    /// The initial market is Germany, and DE+EN is the first priority pair.
+    /// What a first run gets before the user has said anything. The initial
+    /// market is Germany; `docs/PHASE_7.md` is what replaces this with an
+    /// answer from the person using it.
     static let `default` = LanguageProfile.germanEnglish
 
+    /// Parses an identifier of the `ru+en+uk` shape. Nil when any code is one
+    /// the engine does not know, so a hand-edited corpus manifest fails loudly.
     static func profile(id: String) -> LanguageProfile? {
-        all.first { $0.id == id }
+        let codes = id.split(separator: "+").map(String.init)
+        guard !codes.isEmpty else { return nil }
+        let languages = codes.compactMap(SpeechLanguage.init(rawValue:))
+        guard languages.count == codes.count else { return nil }
+        return LanguageProfile(languages: languages)
+    }
+}
+
+/// Encoded as `{"languages": ["ru", "en"]}`, and decoded from either that or
+/// the Phase 6 `{"primary": "ru", "secondary": "en"}`.
+///
+/// Reading the older shape is not politeness. `preferences.json` holds the
+/// languages a user chose, and a decoder that did not recognize the file it
+/// wrote last week would take that choice away silently — the user would find
+/// out by dictating a sentence and getting it back in the wrong language.
+extension LanguageProfile {
+    private enum CodingKeys: String, CodingKey {
+        case languages
+        case primary
+        case secondary
+    }
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        if let languages = try container.decodeIfPresent([SpeechLanguage].self, forKey: .languages) {
+            guard let profile = LanguageProfile(languages: languages) else {
+                throw DecodingError.dataCorrupted(
+                    DecodingError.Context(
+                        codingPath: container.codingPath,
+                        debugDescription: "A language profile has to name at least one language"
+                    )
+                )
+            }
+            self = profile
+            return
+        }
+
+        let primary = try container.decode(SpeechLanguage.self, forKey: .primary)
+        let secondary = try container.decodeIfPresent(SpeechLanguage.self, forKey: .secondary)
+        self.init(primary: primary, secondary: secondary)
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(languages, forKey: .languages)
     }
 }

@@ -22,10 +22,17 @@ struct EntityRiskSignal: RiskSignal {
         .ukrainian: ["пан", "пані", "добродій", "доктор", "професор"],
     ]
 
-    /// Capitalization says nothing about nouns in German, so the mid-sentence
-    /// heuristic is switched off there rather than tuned.
+    /// Capitalization says nothing about nouns in a language that capitalizes
+    /// all of them, so the mid-sentence heuristic is switched off there rather
+    /// than tuned.
+    ///
+    /// A property of the language since Phase 7 rather than a test for German.
+    /// The rule itself needs nothing else — a capital in the middle of a
+    /// sentence means a name in every language that capitalizes only names, and
+    /// never fires at all in a script that has no capitals — so this is one of
+    /// the few signals an unverified language keeps.
     static func usesCapitalizationHeuristic(_ language: SpeechLanguage) -> Bool {
-        language != .german
+        !language.capitalizesNouns
     }
 
     func spans(in context: RiskContext) -> [RawRiskSpan] {

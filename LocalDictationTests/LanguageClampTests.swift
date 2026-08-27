@@ -56,8 +56,14 @@ final class LanguageClampTests: XCTestCase {
 
     /// A stray language is detectable exactly, because Whisper names what it
     /// picked — no guessing from the text is involved.
-    func testAStrayLanguageIsNotAMemberOfTheProfile() {
-        XCTAssertNil(SpeechLanguage(rawValue: "pl"))
+    ///
+    /// Since Phase 7 Polish is a language a user may select, so "stray" is a
+    /// fact about this profile rather than about the app's vocabulary. That is
+    /// the point of the clamp: it asks whether the user chose this language,
+    /// not whether the product has heard of it.
+    func testAStrayLanguageIsNotAMemberOfTheProfile() throws {
+        let polish = try XCTUnwrap(SpeechLanguage(rawValue: "pl"))
+        XCTAssertFalse(LanguageProfile.ukrainianEnglish.contains(polish))
         XCTAssertFalse(LanguageProfile.ukrainianEnglish.contains(.russian))
         XCTAssertTrue(LanguageProfile.ukrainianEnglish.contains(.english))
     }

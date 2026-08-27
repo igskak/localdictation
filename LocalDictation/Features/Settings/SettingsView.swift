@@ -12,6 +12,9 @@ struct SettingsView: View {
             generalTab
                 .tabItem { Label("General", systemImage: "gearshape") }
 
+            LanguagesView()
+                .tabItem { Label("Languages", systemImage: "globe") }
+
             boundaryTab
                 .tabItem { Label("Boundary", systemImage: "waveform") }
 
@@ -59,7 +62,6 @@ struct SettingsView: View {
                 Text("Audio stays in memory on this Mac. Nothing is written to disk during normal capture and nothing is sent to a network service. A recording is discarded as soon as the app decides no review is needed, and otherwise when the review ends.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
-                LabeledContent("MVP languages", value: "DE, EN, RU, UK")
             }
 
             Section("Insertion") {
@@ -296,6 +298,27 @@ struct DiagnosticsView: View {
     #endif
 }
 
+/// The languages the user speaks, after the first run has asked.
+///
+/// The same editor as the first-run window, because it is the same question. A
+/// tab of its own rather than a section in General: a hundred languages is a
+/// list, and a list does not belong inside a form of switches.
+private struct LanguagesView: View {
+    @EnvironmentObject private var coordinator: DictationCoordinator
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            LanguageSelectionEditor(selection: $coordinator.languageProfile)
+
+            Text("Selecting more languages costs nothing on a sentence the engine can hear clearly. It costs on the short ones: two words in Russian and two in Ukrainian look much alike, and the more languages are in play the more often one of those lands in the wrong one.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(16)
+    }
+}
+
 /// The user's vocabulary, scoped by language.
 ///
 /// The only screen in the app that writes anything to disk. It stores terms and
@@ -304,7 +327,9 @@ struct GlossaryView: View {
     @EnvironmentObject private var coordinator: DictationCoordinator
 
     @State private var term = ""
-    @State private var language: SpeechLanguage = .german
+    /// Nil until the user picks one, which is what lets the picker follow the
+    /// preferred language instead of a hardcoded German.
+    @State private var language: SpeechLanguage?
 
     var body: some View {
         Form {
@@ -312,8 +337,12 @@ struct GlossaryView: View {
                 HStack {
                     TextField("Name, product, or term", text: $term)
                         .onSubmit(add)
-                    Picker("", selection: $language) {
-                        ForEach(SpeechLanguage.allCases, id: \.self) { language in
+                    Picker("", selection: chosenLanguage) {
+                        // The languages the user speaks, not a fixed four. A
+                        // term is scoped by language, so offering a language
+                        // they never dictate in would file it where no
+                        // utterance can reach it.
+                        ForEach(coordinator.languageProfile.languages) { language in
                             Text(language.rawValue.uppercased()).tag(language)
                         }
                     }
@@ -328,7 +357,10 @@ struct GlossaryView: View {
                     .foregroundStyle(.secondary)
             }
 
-            ForEach(SpeechLanguage.allCases, id: \.self) { language in
+            // Every language that has terms, including one the user has since
+            // deselected: a list that hid them would look like the terms were
+            // gone, and they are not.
+            ForEach(languagesWithTerms) { language in
                 let entries = coordinator.glossary.entries(for: language)
                 if !entries.isEmpty {
                     Section(language.displayName) {
@@ -380,8 +412,28 @@ struct GlossaryView: View {
         .formStyle(.grouped)
     }
 
+    /// The language a new term is filed under: the one the user picked, while
+    /// they still speak it, and otherwise their preferred language.
+    private var chosenLanguage: Binding<SpeechLanguage> {
+        Binding(
+            get: {
+                guard let language, coordinator.languageProfile.contains(language) else {
+                    return coordinator.languageProfile.primary
+                }
+                return language
+            },
+            set: { language = $0 }
+        )
+    }
+
+    /// Every language that has terms in it, including one the user has since
+    /// deselected — a list that hid those would look like the terms were gone.
+    private var languagesWithTerms: [SpeechLanguage] {
+        Set(coordinator.glossary.entries.map(\.language)).sorted()
+    }
+
     private func add() {
-        guard coordinator.addGlossaryTerm(term, language: language) else { return }
+        guard coordinator.addGlossaryTerm(term, language: chosenLanguage.wrappedValue) else { return }
         term = ""
     }
 }

@@ -205,7 +205,7 @@ enum BenchmarkRunner {
         }
 
         var byLanguage: [SpeechLanguage: BenchmarkAggregate] = [:]
-        for language in SpeechLanguage.allCases {
+        for language in Set(results.map(\.language)).sorted() {
             let subset = results.filter { $0.language == language }
             guard !subset.isEmpty else { continue }
             byLanguage[language] = .combining(subset, threshold: confidenceThreshold)
@@ -295,7 +295,7 @@ extension BenchmarkReport {
         lines.append("| Language | Samples | WER | CER | Numeric ER | RTF | Confidence separation | Risk recall @ \(number(overall.confidenceThreshold)) | False warnings |")
         lines.append("| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
 
-        for language in SpeechLanguage.allCases {
+        for language in byLanguage.keys.sorted() {
             guard let aggregate = byLanguage[language] else { continue }
             lines.append(
                 "| \(language.displayName) | \(aggregate.sampleCount) | \(percent(aggregate.word.rate)) | "

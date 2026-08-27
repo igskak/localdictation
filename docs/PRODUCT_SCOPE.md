@@ -19,26 +19,18 @@ The messaging hierarchy is:
 - Payments: Stripe Managed Payments, with Stripe acting as Merchant of Record, subject to account availability and product eligibility before checkout implementation.
 - No Mac App Store dependency in the MVP.
 
-## MVP language scope
+## Language scope
 
-Supported speech languages:
+The user names the languages they speak, once, at first run, choosing from every language the speech engine knows. There are two tiers and the difference is visible in the picker:
 
-- German (`de`)
-- English (`en`)
-- Russian (`ru`)
-- Ukrainian (`uk`)
+- **Verified** — German (`de`), English (`en`), Russian (`ru`), Ukrainian (`uk`). Recognition, conservative cleanup, and every risk signal, measured in `docs/PHASE_2_BENCHMARK.md` and `docs/PHASE_3_MEASUREMENT.md`. The initial market is Germany, so German and English are what a fresh install starts with.
+- **Available** — every other language the engine carries. Recognition, plus the rules that rest on nothing this product had to measure. Filler removal, the malformed-word rule, and the letter-level language evidence stay off rather than fire on a language nobody checked.
 
-Priority mixed-language combinations:
-
-- German and English
-- Russian and Ukrainian
-- Russian and English
-- Ukrainian and English
-
-The app should use explicit language profiles rather than promise arbitrary four-language detection in every utterance.
+The selection is explicit and ordered: the first language is preferred, and it decides a phrase too short for the engine to be sure about. Every utterance is decoded as one of the selected languages and never as one that was not selected. The app does not promise to hear an arbitrary mixture of them inside a single utterance — one utterance is one language, chosen from the engine's own ranking. See `docs/PHASE_7.md`.
 
 ## MVP product scope
 
+- A first-run language selection, changeable at any time, plus a temporary pin to one of the selected languages.
 - Global push-to-talk and toggle recording modes.
 - Local microphone capture and VAD.
 - Local STT.
@@ -59,7 +51,7 @@ The app should use explicit language profiles rather than promise arbitrary four
 - Windows support.
 - Persistent recording history by default.
 - Cloud inference.
-- Polish language support.
+- Polish, or any other language, in the verified tier: a corpus, filler and title tables, and a measured false-warning rate. Polish is recognized today; it is not measured.
 
 ## Commercial assumptions
 

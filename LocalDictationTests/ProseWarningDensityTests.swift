@@ -24,7 +24,7 @@ final class ProseWarningDensityTests: XCTestCase {
         var lines = ["", "Ordinary prose — risk engine on correct text", ""]
         lines.append("| Language | Samples | Words | Marks | Marks/100 words | Indicator |")
         lines.append("| --- | ---: | ---: | ---: | ---: | ---: |")
-        for language in SpeechLanguage.allCases {
+        for language in SpeechLanguage.verified {
             guard let aggregate = report.byLanguage[language] else { continue }
             lines.append(
                 """

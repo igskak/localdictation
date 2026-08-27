@@ -52,10 +52,31 @@ final class DictationCoordinator: ObservableObject {
     /// trial running out mid-utterance, and it is the same rule.
     @Published private(set) var captureInterruption: AudioCaptureError?
     @Published private(set) var transcriptionModelState: TranscriptionModelState = .unavailable("No speech engine configured", needsUserAction: true)
-    /// Selected language profile. Explicit, never inferred per utterance,
-    /// and remembered: a four-language product that forgets which two you
-    /// speak is a product that asks the same question every morning.
-    @Published var languageProfile: LanguageProfile { didSet { persistPreferences() } }
+    /// The languages the user speaks. Explicit, never inferred per utterance,
+    /// and remembered: a product that forgets which languages you speak is a
+    /// product that asks the same question every morning.
+    @Published var languageProfile: LanguageProfile {
+        didSet {
+            // A pin naming a language the user has just deselected is a pin to
+            // a language they no longer speak.
+            if let pinnedLanguage, !languageProfile.contains(pinnedLanguage) {
+                self.pinnedLanguage = nil
+            }
+            persistPreferences()
+        }
+    }
+    /// One language, for now, without changing the set.
+    ///
+    /// For the hour someone spends writing a single German document. It is not
+    /// a preference and is never written to disk: the set the user chose is the
+    /// thing the app remembers, and a temporary override that outlived a launch
+    /// would quietly become the answer to a question they answered differently.
+    @Published var pinnedLanguage: SpeechLanguage?
+    /// Whether the user has ever been asked which languages they speak.
+    ///
+    /// False on a first run and on a settings file written before Phase 7,
+    /// which is what puts the picker in front of someone exactly once.
+    @Published private(set) var hasChosenLanguages = false
     /// The user's vocabulary — the only state in the app that survives a launch.
     @Published private(set) var glossary: Glossary = .empty
     @Published private(set) var glossaryErrorDescription: String?
@@ -199,6 +220,13 @@ final class DictationCoordinator: ObservableObject {
         self.pollInterval = pollInterval
     }
 
+    /// What the engine is actually asked for: the chosen set, or the one
+    /// language pinned over it.
+    var effectiveProfile: LanguageProfile {
+        guard let pinnedLanguage, languageProfile.contains(pinnedLanguage) else { return languageProfile }
+        return LanguageProfile(pinnedLanguage)
+    }
+
     var transcriptionEngineName: String? { transcriptionService?.displayName }
     var hasTranscriptionEngine: Bool { transcriptionService != nil }
 
@@ -225,7 +253,7 @@ final class DictationCoordinator: ObservableObject {
     /// who waits and a user who never notices.
     private func loadInstalledModel() {
         guard let transcriptionService else { return }
-        let profile = languageProfile
+        let profile = effectiveProfile
         Task { [weak self] in
             let state = await transcriptionService.modelState(for: profile)
             guard let self else { return }
@@ -685,7 +713,7 @@ final class DictationCoordinator: ObservableObject {
     /// competing download.
     func prepareTranscriptionModel() async {
         guard let transcriptionService else { return }
-        let profile = languageProfile
+        let profile = effectiveProfile
         transcriptionModelState = .preparing(ModelPreparation(phase: .loading))
         // Logged on both ends. Preparing a cold model runs for minutes, and
         // without a start and a finish there is no way to tell a slow load from
@@ -733,7 +761,7 @@ final class DictationCoordinator: ObservableObject {
 
     func refreshTranscriptionModelState() async {
         guard let transcriptionService else { return }
-        transcriptionModelState = await transcriptionService.modelState(for: languageProfile)
+        transcriptionModelState = await transcriptionService.modelState(for: effectiveProfile)
     }
 
     func clearTranscript() {
@@ -1088,6 +1116,24 @@ final class DictationCoordinator: ObservableObject {
         activation = preferences.activation
         languageProfile = preferences.languageProfile
         insertsAutomatically = preferences.insertsAutomatically
+        hasChosenLanguages = preferences.hasChosenLanguages
+    }
+
+    /// Whether the first-run language picker still has to be shown.
+    var needsLanguageSetup: Bool { !hasChosenLanguages }
+
+    /// Records the answer to the first-run question, once.
+    ///
+    /// Both fields move together, and the file is written once for the pair:
+    /// a profile saved without the flag would put the picker back in front of
+    /// the user at the next launch, having already taken their answer.
+    func completeLanguageSetup(with profile: LanguageProfile) {
+        isApplyingPreferences = true
+        languageProfile = profile
+        hasChosenLanguages = true
+        isApplyingPreferences = false
+        persistPreferences()
+        Log.application.info("Language selection recorded: \(profile.shortLabel, privacy: .public)")
     }
 
     private var currentPreferences: Preferences {
@@ -1097,7 +1143,8 @@ final class DictationCoordinator: ObservableObject {
             hotkeyKeyLabel: binding.keyLabel,
             activation: activation,
             languageProfile: languageProfile,
-            insertsAutomatically: insertsAutomatically
+            insertsAutomatically: insertsAutomatically,
+            hasChosenLanguages: hasChosenLanguages
         )
     }
 
@@ -1162,7 +1209,7 @@ final class DictationCoordinator: ObservableObject {
         guard let transcriptionService else { return false }
         guard !utterance.samples.isEmpty else { return false }
 
-        let profile = languageProfile
+        let profile = effectiveProfile
         guard transcriptionService.supports(profile) else {
             guard apply(.transcriptionStarted) else { return false }
             apply(.transcriptionFailed(TranscriptionError.unsupportedProfile(profile).message))

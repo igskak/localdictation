@@ -56,7 +56,7 @@ struct BenchmarkCorpus: Sendable, Codable, Equatable {
     }
 
     var languages: [SpeechLanguage] {
-        SpeechLanguage.allCases.filter { language in samples.contains { $0.language == language } }
+        Set(samples.map(\.language)).sorted()
     }
 
     /// Decodes one sample into the same normalized form the live capture path
