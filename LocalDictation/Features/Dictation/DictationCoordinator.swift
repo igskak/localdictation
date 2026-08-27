@@ -52,10 +52,15 @@ final class DictationCoordinator: ObservableObject {
     /// trial running out mid-utterance, and it is the same rule.
     @Published private(set) var captureInterruption: AudioCaptureError?
     @Published private(set) var transcriptionModelState: TranscriptionModelState = .unavailable("No speech engine configured", needsUserAction: true)
-    /// Selected language profile. Explicit, never inferred per utterance,
-    /// and remembered: a four-language product that forgets which two you
-    /// speak is a product that asks the same question every morning.
+    /// The languages the user speaks. Explicit, never inferred per utterance,
+    /// and remembered: a product that forgets which languages you speak is a
+    /// product that asks the same question every morning.
     @Published var languageProfile: LanguageProfile { didSet { persistPreferences() } }
+    /// Whether the user has ever been asked which languages they speak.
+    ///
+    /// False on a first run and on a settings file written before Phase 7,
+    /// which is what puts the picker in front of someone exactly once.
+    @Published private(set) var hasChosenLanguages = false
     /// The user's vocabulary — the only state in the app that survives a launch.
     @Published private(set) var glossary: Glossary = .empty
     @Published private(set) var glossaryErrorDescription: String?
@@ -1088,6 +1093,24 @@ final class DictationCoordinator: ObservableObject {
         activation = preferences.activation
         languageProfile = preferences.languageProfile
         insertsAutomatically = preferences.insertsAutomatically
+        hasChosenLanguages = preferences.hasChosenLanguages
+    }
+
+    /// Whether the first-run language picker still has to be shown.
+    var needsLanguageSetup: Bool { !hasChosenLanguages }
+
+    /// Records the answer to the first-run question, once.
+    ///
+    /// Both fields move together, and the file is written once for the pair:
+    /// a profile saved without the flag would put the picker back in front of
+    /// the user at the next launch, having already taken their answer.
+    func completeLanguageSetup(with profile: LanguageProfile) {
+        isApplyingPreferences = true
+        languageProfile = profile
+        hasChosenLanguages = true
+        isApplyingPreferences = false
+        persistPreferences()
+        Log.application.info("Language selection recorded: \(profile.shortLabel, privacy: .public)")
     }
 
     private var currentPreferences: Preferences {
@@ -1097,7 +1120,8 @@ final class DictationCoordinator: ObservableObject {
             hotkeyKeyLabel: binding.keyLabel,
             activation: activation,
             languageProfile: languageProfile,
-            insertsAutomatically: insertsAutomatically
+            insertsAutomatically: insertsAutomatically,
+            hasChosenLanguages: hasChosenLanguages
         )
     }
 

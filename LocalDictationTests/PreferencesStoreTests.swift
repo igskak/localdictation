@@ -26,7 +26,7 @@ final class PreferencesStoreTests: XCTestCase {
         FilePreferencesStore(url: directory.appendingPathComponent("preferences.json"))
     }
 
-    func testTheFileHoldsSixFieldsAndNothingElse() throws {
+    func testTheFileHoldsSevenFieldsAndNothingElse() throws {
         let store = store()
         try store.save(.default)
 
@@ -42,8 +42,47 @@ final class PreferencesStoreTests: XCTestCase {
                 "activation",
                 "languageProfile",
                 "insertsAutomatically",
+                "hasChosenLanguages",
             ]
         )
+    }
+
+    /// A file written by a Phase 6 build. Everything in it has to survive, and
+    /// the field it does not have has to read as "this user has not been asked
+    /// which languages they speak" — because they have not.
+    func testASettingsFileFromAnOlderBuildKeepsItsLanguages() throws {
+        let store = store()
+        try Data(
+            """
+            {
+              "activation" : "toggle",
+              "hotkeyKeyCode" : 38,
+              "hotkeyKeyLabel" : "J",
+              "hotkeyModifiers" : 1048576,
+              "insertsAutomatically" : false,
+              "languageProfile" : { "primary" : "ru", "secondary" : "uk" }
+            }
+            """.utf8
+        ).write(to: store.url)
+
+        let loaded = try store.load()
+
+        XCTAssertEqual(loaded.languageProfile, .russianUkrainian)
+        XCTAssertEqual(loaded.activation, .toggle)
+        XCTAssertEqual(loaded.hotkeyKeyLabel, "J")
+        XCTAssertFalse(loaded.insertsAutomatically)
+        XCTAssertFalse(loaded.hasChosenLanguages)
+    }
+
+    func testASelectionOfThreeLanguagesSurvivesAReload() throws {
+        let store = store()
+        var preferences = Preferences.default
+        preferences.languageProfile = LanguageProfile(.russian, .english, .ukrainian)
+        preferences.hasChosenLanguages = true
+
+        try store.save(preferences)
+
+        XCTAssertEqual(try store.load(), preferences)
     }
 
     func testSettingsSurviveAReload() throws {
@@ -134,6 +173,31 @@ final class CoordinatorPreferencesTests: XCTestCase {
         coordinator.languageProfile = .ukrainianEnglish
 
         XCTAssertEqual(store.stored.languageProfile, .ukrainianEnglish)
+    }
+
+    /// The picker appears once. Saving the answer without the flag would put
+    /// the question back in front of the user having already taken their reply.
+    func testAnsweringTheFirstRunQuestionIsRememberedWithTheAnswer() {
+        let store = InMemoryPreferencesStore()
+        let (coordinator, _) = makeCoordinator(store)
+        XCTAssertTrue(coordinator.needsLanguageSetup)
+
+        coordinator.completeLanguageSetup(with: LanguageProfile(.russian, .english, .ukrainian))
+
+        XCTAssertFalse(coordinator.needsLanguageSetup)
+        XCTAssertEqual(store.stored.languageProfile, LanguageProfile(.russian, .english, .ukrainian))
+        XCTAssertTrue(store.stored.hasChosenLanguages)
+        XCTAssertEqual(store.saveCount, 1, "One answer is one write")
+    }
+
+    func testAUserWhoHasAnsweredIsNotAskedAgain() {
+        var stored = Preferences.default
+        stored.languageProfile = LanguageProfile(.german)
+        stored.hasChosenLanguages = true
+
+        let (coordinator, _) = makeCoordinator(InMemoryPreferencesStore(stored))
+
+        XCTAssertFalse(coordinator.needsLanguageSetup)
     }
 
     func testReadingTheSettingsDoesNotWriteThemBack() {

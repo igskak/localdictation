@@ -124,6 +124,7 @@
 		91140B0C67A9B52D852DD81B /* LanguageCatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED38AAFE2C96518C7471C040 /* LanguageCatalogTests.swift */; };
 		BB30DE6BD616F21BBAD45F44 /* LanguageClampTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFAF03F283177CC72A4BAF1C /* LanguageClampTests.swift */; };
 		410F5E48B4F7A821905F3268 /* LanguageIdentifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97A3333ED87ACC8B15E62DBF /* LanguageIdentifierTests.swift */; };
+		9059378FAEF84795200973B6 /* LanguageProfileTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B57A2F909608DB65C80CB50D /* LanguageProfileTests.swift */; };
 		C513E5630D8B6216A1FDA8CA /* LicenseIssuerToolTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6721C129DF8031189B04D9BB /* LicenseIssuerToolTests.swift */; };
 		B5DA4CCD800BF9EBE0F130D6 /* LicenseKeyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 900CB9FF803A2F7BAB1FA8DF /* LicenseKeyTests.swift */; };
 		6CD8735535789D6C492F023A /* LicensePresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 954BAEF33D5B6ACB2C187FE5 /* LicensePresentationTests.swift */; };
@@ -283,6 +284,7 @@
 		ED38AAFE2C96518C7471C040 /* LanguageCatalogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageCatalogTests.swift; sourceTree = "<group>"; };
 		BFAF03F283177CC72A4BAF1C /* LanguageClampTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageClampTests.swift; sourceTree = "<group>"; };
 		97A3333ED87ACC8B15E62DBF /* LanguageIdentifierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageIdentifierTests.swift; sourceTree = "<group>"; };
+		B57A2F909608DB65C80CB50D /* LanguageProfileTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageProfileTests.swift; sourceTree = "<group>"; };
 		6721C129DF8031189B04D9BB /* LicenseIssuerToolTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseIssuerToolTests.swift; sourceTree = "<group>"; };
 		900CB9FF803A2F7BAB1FA8DF /* LicenseKeyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseKeyTests.swift; sourceTree = "<group>"; };
 		954BAEF33D5B6ACB2C187FE5 /* LicensePresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicensePresentationTests.swift; sourceTree = "<group>"; };
@@ -688,6 +690,7 @@
 				ED38AAFE2C96518C7471C040 /* LanguageCatalogTests.swift */,
 				BFAF03F283177CC72A4BAF1C /* LanguageClampTests.swift */,
 				97A3333ED87ACC8B15E62DBF /* LanguageIdentifierTests.swift */,
+				B57A2F909608DB65C80CB50D /* LanguageProfileTests.swift */,
 				6721C129DF8031189B04D9BB /* LicenseIssuerToolTests.swift */,
 				900CB9FF803A2F7BAB1FA8DF /* LicenseKeyTests.swift */,
 				954BAEF33D5B6ACB2C187FE5 /* LicensePresentationTests.swift */,
@@ -964,6 +967,7 @@
 				91140B0C67A9B52D852DD81B /* LanguageCatalogTests.swift in Sources */,
 				BB30DE6BD616F21BBAD45F44 /* LanguageClampTests.swift in Sources */,
 				410F5E48B4F7A821905F3268 /* LanguageIdentifierTests.swift in Sources */,
+				9059378FAEF84795200973B6 /* LanguageProfileTests.swift in Sources */,
 				C513E5630D8B6216A1FDA8CA /* LicenseIssuerToolTests.swift in Sources */,
 				B5DA4CCD800BF9EBE0F130D6 /* LicenseKeyTests.swift in Sources */,
 				6CD8735535789D6C492F023A /* LicensePresentationTests.swift in Sources */,
