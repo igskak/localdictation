@@ -147,8 +147,15 @@ final class CaptureInterruptionTests: XCTestCase {
         try await waitUntil("recording starts") { harness.coordinator.state == .recording }
         harness.capture.triggerInterruption(.inputDeviceChanged)
         try await waitUntil("the notice appears") { harness.coordinator.captureInterruption != nil }
+        // The interrupted utterance is still transcribed — its words were
+        // already said — and a press while that is in flight is not a next
+        // dictation, it is a press the machine refuses. Waiting for the app to
+        // be ready is the difference between testing the rule and testing how
+        // busy the machine was.
+        try await waitUntil("the app settles") { harness.coordinator.state == .ready }
 
         harness.hotkey.emit(.pressed)
+        try await waitUntil("the next recording starts") { harness.coordinator.state == .recording }
 
         XCTAssertNil(harness.coordinator.captureInterruption)
     }

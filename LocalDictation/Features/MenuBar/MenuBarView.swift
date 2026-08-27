@@ -26,7 +26,10 @@ struct MenuBarView: View {
             }
 
             if coordinator.hasTranscriptionEngine {
-                LanguageProfilePicker(selection: $coordinator.languageProfile)
+                LanguagePinPicker(
+                    profile: coordinator.languageProfile,
+                    pinned: $coordinator.pinnedLanguage
+                )
 
                 if !coordinator.transcriptionModelState.isReady {
                     ModelStateView(state: coordinator.transcriptionModelState) {
@@ -117,7 +120,7 @@ struct MenuBarView: View {
             coordinator.refreshAuthorization()
             Task { await coordinator.refreshTranscriptionModelState() }
         }
-        .onChange(of: coordinator.languageProfile) {
+        .onChange(of: coordinator.effectiveProfile) {
             Task { await coordinator.refreshTranscriptionModelState() }
         }
     }
@@ -230,23 +233,32 @@ private struct LastUtteranceView: View {
     }
 }
 
-private struct LanguageProfilePicker: View {
-    @Binding var selection: LanguageProfile
+/// The selected languages, and the temporary pin over them.
+///
+/// Through Phase 6 this was a picker over eight combinations, because choosing
+/// a combination per dictation was how a mixed profile worked. Since Phase 7
+/// the set is chosen once, in Settings, and the only per-session decision left
+/// is the narrow one this offers: for now, only this language. A single-language
+/// set has nothing to pin, so it says what it is and offers nothing.
+private struct LanguagePinPicker: View {
+    let profile: LanguageProfile
+    @Binding var pinned: SpeechLanguage?
 
     var body: some View {
-        Picker("Language", selection: $selection) {
-            Section("Single") {
-                ForEach(LanguageProfile.single) { profile in
-                    Text(profile.displayName).tag(profile)
+        if profile.isMixed {
+            Picker("Language", selection: $pinned) {
+                Text("Any of \(profile.shortLabel)").tag(SpeechLanguage?.none)
+                ForEach(profile.languages) { language in
+                    Text("Only \(language.displayName)").tag(SpeechLanguage?.some(language))
                 }
             }
-            Section("Mixed") {
-                ForEach(LanguageProfile.mixed) { profile in
-                    Text(profile.displayName).tag(profile)
-                }
+            .font(.caption)
+        } else {
+            LabeledContent("Language") {
+                Text(profile.primary.displayName)
             }
+            .font(.caption)
         }
-        .font(.caption)
     }
 }
 

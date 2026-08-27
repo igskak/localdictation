@@ -12,6 +12,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// anything of ours.
     private var reviewPanel: ReviewPanelController?
 
+    /// Owns the first-run language question. Nil once it has been answered,
+    /// which for a returning user is before the app ever runs.
+    private var languageSetup: LanguageSetupWindowController?
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         Log.application.info("LocalDictation launched as a menu bar utility")
@@ -19,6 +23,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             reviewPanel = ReviewPanelController(coordinator: coordinator)
         }
         Self.coordinator?.activate()
+        // After `activate`, which is what reads the settings file: whether the
+        // question has been answered is a fact from disk, not an assumption
+        // about how new this installation is.
+        if let coordinator = Self.coordinator, coordinator.needsLanguageSetup {
+            let setup = LanguageSetupWindowController(coordinator: coordinator)
+            languageSetup = setup
+            setup.presentIfNeeded()
+        }
     }
 
     func applicationDidBecomeActive(_ notification: Notification) {
