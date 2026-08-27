@@ -31,8 +31,8 @@ struct LanguageProfile: Sendable, Equatable, Hashable, Identifiable, Codable {
     /// pick a language on the user's behalf.
     init?(languages: [SpeechLanguage]) {
         let normalized = Self.normalized(languages)
-        guard let first = normalized.first else { return nil }
-        self.languages = [first] + normalized.dropFirst()
+        guard !normalized.isEmpty else { return nil }
+        self.languages = normalized
     }
 
     /// The Phase 6 shape, kept because a corpus manifest and a good many tests
