@@ -116,6 +116,24 @@ The rule that is deliberately absent is stickiness that outlives evidence. A
 confident distribution always wins over the previous language, so switching
 languages mid-session costs one clear sentence, never a setting.
 
+### Only Continue answers the question
+
+This was decided the other way first, and one live launch was enough to
+disprove it. The reasoning had been that the app has always had a language
+profile, so there is nothing to cancel into and the red button may as well
+record what is on screen.
+
+What that missed is that a window can be closed without ever having been read.
+The app is an accessory with no Dock icon: its one question can open behind a
+full-screen editor or on another Space, and be closed by someone tidying their
+screen. On the first real launch that is exactly what happened — German and
+English were recorded, which the user had never chosen, and the question was
+never asked again.
+
+So closing records nothing and the next launch asks again, the window opens
+floating and on the active Space, and the log says which of the two happened.
+A question that can be answered by accident is not a question.
+
 ### The engine may be told one language for a while, without changing the set
 
 The menu carries a temporary pin: *Auto*, or one of the selected languages.
@@ -163,8 +181,8 @@ The set the user chose stays the thing the app remembers.
   with anyway.
 - The picker offers every language the engine knows, separates the four verified
   ones, and refuses to leave the user with none selected.
-- Closing the window records the selection on screen, and the question is not
-  asked again.
+- Closing the window records nothing, and the next launch asks again. Only
+  Continue answers.
 - A `preferences.json` written by a Phase 6 build keeps its languages.
 - With one language selected, no language detection runs at all.
 - With several selected, the decoded language is always one of them — asserted

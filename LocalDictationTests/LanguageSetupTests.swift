@@ -81,10 +81,10 @@ final class LanguageSetupTests: XCTestCase {
         try await settle()
     }
 
-    /// Closing the window is an answer. There is nothing to cancel into: the
-    /// app has always had a profile, and the question is about replacing a
-    /// default nobody chose.
-    func testClosingTheWindowRecordsTheSelectionOnScreen() async throws {
+    /// From the first live launch: the window was closed without ever having
+    /// been read, and closing used to count as an answer. It recorded German
+    /// and English — which nobody had chosen — and never asked again.
+    func testClosingTheWindowAnswersNothing() async throws {
         let store = InMemoryPreferencesStore()
         let coordinator = makeCoordinator(store)
         let controller = LanguageSetupWindowController(coordinator: coordinator)
@@ -94,9 +94,42 @@ final class LanguageSetupTests: XCTestCase {
         controller.window?.close()
         try await settle()
 
+        XCTAssertTrue(coordinator.needsLanguageSetup, "The next launch has to ask again")
+        XCTAssertFalse(store.stored.hasChosenLanguages)
+        XCTAssertEqual(store.saveCount, 0, "A question nobody answered writes nothing")
+    }
+
+    func testContinueIsWhatRecordsTheAnswer() async throws {
+        let store = InMemoryPreferencesStore()
+        let coordinator = makeCoordinator(store)
+        let controller = LanguageSetupWindowController(coordinator: coordinator)
+        controller.presentIfNeeded()
+        try await settle()
+
+        controller.confirmSelection()
+        try await settle()
+
         XCTAssertFalse(coordinator.needsLanguageSetup)
         XCTAssertTrue(store.stored.hasChosenLanguages)
-        XCTAssertEqual(store.stored.languageProfile, .default, "The selection on screen was the one the app had")
+        XCTAssertEqual(store.stored.languageProfile, .default)
+        XCTAssertFalse(controller.isAsking, "Answering closes the question")
+    }
+
+    /// Answering and then closing is one answer, not an answer followed by a
+    /// question left open.
+    func testAnsweringThenClosingRecordsOnce() async throws {
+        let store = InMemoryPreferencesStore()
+        let coordinator = makeCoordinator(store)
+        let controller = LanguageSetupWindowController(coordinator: coordinator)
+        controller.presentIfNeeded()
+        try await settle()
+
+        controller.confirmSelection()
+        controller.confirmSelection()
+        try await settle()
+
+        XCTAssertEqual(store.saveCount, 1)
+        XCTAssertFalse(coordinator.needsLanguageSetup)
     }
 
     func testAnAnsweredQuestionIsNotAskedAgain() async throws {

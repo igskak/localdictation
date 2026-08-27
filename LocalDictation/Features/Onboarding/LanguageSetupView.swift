@@ -2,10 +2,10 @@ import SwiftUI
 
 /// The selection while it is being made.
 ///
-/// Owned by the window controller rather than by the view, so closing the
-/// window with the red button records the same answer the Continue button
-/// would. A first-run question with a valid answer on screen should not have a
-/// way to be dismissed into nothing.
+/// Owned by the window controller rather than by the view, so the selection
+/// survives the view being rebuilt and the controller can read it when Continue
+/// is pressed. Closing the window answers nothing — see
+/// `LanguageSetupWindowController`.
 @MainActor
 final class LanguageSetupModel: ObservableObject {
     @Published var selection: LanguageProfile
