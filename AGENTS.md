@@ -4,7 +4,7 @@
 
 - Content processing is strictly local-first. Never send audio, transcripts, vocabulary, clipboard contents, application contents, risky fragments, or other content-derived data to a remote service.
 - The app may send only explicitly enumerated non-content product and marketing events plus minimal technical metadata required for activation, licensing, funnel measurement, payments, and updates. Every transmitted field, purpose, recipient, and retention period must be disclosed in the privacy policy and the relevant product terms. General diagnostics remain local unless the user explicitly opts in to sharing them.
-- Supported MVP speech languages are German, English, Russian, and Ukrainian.
+- The user selects the languages they speak, at first run, from every language the speech engine knows. German, English, Russian, and Ukrainian are the verified tier: recognition, conservative cleanup, and every risk signal, measured. Every other language gets recognition, and each rule calibrated per language stays off there rather than guessing. Promoting a language into the verified tier means a corpus and a measured false-warning rate, not a flag. See `docs/PHASE_7.md`.
 - Verification is a core product promise. Never hide uncertain recognition or semantic rewrites behind a polished result.
 - Audio is memory-only by default. Do not persist recordings unless a later requirement explicitly introduces an opt-in feature.
 

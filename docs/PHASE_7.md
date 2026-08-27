@@ -156,10 +156,15 @@ The set the user chose stays the thing the app remembers.
 
 ## Acceptance criteria
 
-- A first run with no settings file opens the picker, and dictation does not
-  start behind it.
-- The picker offers every language the engine knows, marks the four verified
+- A first run with no settings file opens the picker, and a settings file from
+  a Phase 6 build opens it too — a stored default is not an answer. Dictation is
+  not blocked behind it: the question has a valid answer on screen from the
+  moment it appears, and on a first run there are no model weights to dictate
+  with anyway.
+- The picker offers every language the engine knows, separates the four verified
   ones, and refuses to leave the user with none selected.
+- Closing the window records the selection on screen, and the question is not
+  asked again.
 - A `preferences.json` written by a Phase 6 build keeps its languages.
 - With one language selected, no language detection runs at all.
 - With several selected, the decoded language is always one of them — asserted

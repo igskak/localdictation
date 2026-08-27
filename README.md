@@ -16,6 +16,14 @@ Phase 5 (verification that does not interrupt) is complete, and it came from usi
 
 Phase 6 (licensing and release) is complete on the side that lives in this repository: the trial, the ungated window, activation, offline license verification, the paywall, and the enumerated product events. Three things wait on decisions outside the code — an activation service, the Stripe checkout, and an Apple Developer Program membership for signing and notarization. See `docs/PHASE_6.md` and `docs/PHASE_6_RELEASE.md`.
 
+Phase 7 (the languages a person actually speaks) is complete. The eight
+combinations the product used to offer are gone: the user names the languages
+they speak, at first run, from every language the engine knows, and every
+utterance is decoded as one of them and never as one that was not chosen.
+German, English, Russian, and Ukrainian remain the verified tier — the rest are
+recognized, and the rules calibrated per language stay off rather than guess.
+See `docs/PHASE_7.md`.
+
 After Phase 6, a round of refinements closed the gaps between what the app
 promised and what it did. The app now says something when a dictation comes back
 empty, names the application holding secure input, keeps the words when a
@@ -108,10 +116,10 @@ Read these files before continuing implementation:
 2. Select the `LocalDictation` scheme and `My Mac` destination.
 3. In Signing & Capabilities, choose a Personal Team if Xcode requires one for local execution. A paid Apple Developer Program membership is not required for local development.
 4. Build and run, then open the menu bar item and grant microphone access.
-5. Choose a language profile and press **Prepare speech model…**. The first run downloads roughly 600 MB of Whisper weights into `~/Library/Application Support/LocalDictation/Models`. This is the only network access in the app, it is a one-way fetch of a static asset, and it never runs without this explicit action.
+5. The first launch asks which languages you speak. Pick as many as you use — there is nothing to switch between afterwards, and **Settings → Languages** changes it later. Then press **Prepare speech model…**. The first run downloads roughly 600 MB of Whisper weights into `~/Library/Application Support/LocalDictation/Models`. This is the only network access in the app, it is a one-way fetch of a static asset, and it never runs without this explicit action.
 6. Hold `⌥Space` to record, release to finish. The text goes into whatever you were typing in, immediately and always. If something is worth a second look, a triangle appears in the menu bar and a small chip fades in and out where you are already looking — click either to see what was marked, or ignore both. If a press comes back with no text at all, the app says which of the two silences it was rather than saying nothing.
 7. The first insertion asks for Accessibility access. Until it is granted, results are copied to the clipboard instead. **A development build loses this permission on every rebuild**, because macOS keys the grant to the code signature — expect to re-grant it after each build from Xcode.
-8. Under **Settings → General** you can change the shortcut, switch to pressing it twice instead of holding it, and have the app open at login. The shortcut needs at least one of `⌘ ⌥ ⌃ ⇧`; a combination something else already owns is refused and the working one stays. Opening at login needs the app to live in `/Applications` — macOS will not make a login item out of a build running from Xcode, and says so.
+8. The menu carries one per-session choice: *Any of RU+EN+UK*, or *Only Russian* for the hour you spend on one document. It is never written to disk. Under **Settings → General** you can change the shortcut, switch to pressing it twice instead of holding it, and have the app open at login. The shortcut needs at least one of `⌘ ⌥ ⌃ ⇧`; a combination something else already owns is refused and the working one stays. Opening at login needs the app to live in `/Applications` — macOS will not make a login item out of a build running from Xcode, and says so.
 9. Optionally add names and terms you dictate often under **Settings → Dictionary**. A word that comes out close to one of them, but not equal to it, gets marked.
 10. The first five dictations, or the first 24 hours from the first one, need no email and no key. After that, **Settings → License** is where a key is entered. Issue yourself one with `swift Tools/licensekit.swift issue --device <id> --email you@example.com --kind lifetime`, taking the identifier from **Settings → License → This Mac**. Signing requires the private key in `~/.localdictation/`; the public half is already compiled in, so any build of this repository accepts keys issued against it.
 
@@ -147,7 +155,9 @@ downloading them again on next launch.
 LocalDictation/
   Application/            app entry point and AppKit delegate
   Features/Dictation/     DictationCoordinator, the orchestration state owner
+  Features/Languages/     the language picker, shared by first run and settings
   Features/MenuBar/       menu bar UI and pure status presentation
+  Features/Onboarding/    the first-run language question and its window
   Features/Settings/      settings and developer diagnostics
   Models/                 recording state machine, utterance, diagnostics
   Services/Permissions/   microphone authorization boundary
@@ -160,7 +170,7 @@ LocalDictation/
   Services/Risk/          the six risk signals and the engine combining them
   Services/Review/        the review policy and decision
   Services/Glossary/      the user dictionary and its persistence
-  Services/Preferences/   the shortcut, the mode, the profile, and where they live
+  Services/Preferences/   the shortcut, the mode, the languages, and where they live
   Features/Review/        review strip, its pure presentation, and the floating panel
   Features/Licensing/     the license page, its pure presentation, and the offer
   Services/Licensing/     entitlement rules, signed keys, the usage record, device identity
@@ -189,7 +199,7 @@ Audio stays in memory. Normal capture performs no file writes, and a test assert
 
 A recording's lifetime is bounded by the review decision, not by the end of the interaction: it is released the instant the app decides no review is needed, and otherwise when the review is accepted, dismissed, or superseded. Tests assert both. Replay reads those samples straight out of memory — no file and no URL is involved.
 
-Three files in `~/Library/Application Support/LocalDictation/` are the only things written to disk. `glossary.json` holds terms and their language; `license.json` holds an install identifier, when the first dictation happened, how many succeeded, the furthest date the app has seen, and the license key if there is one; `preferences.json` holds the shortcut's key code, modifiers, and label, the recording mode, the language profile, and whether insertion is automatic. A test asserts the exact field list of each.
+Three files in `~/Library/Application Support/LocalDictation/` are the only things written to disk. `glossary.json` holds terms and their language; `license.json` holds an install identifier, when the first dictation happened, how many succeeded, the furthest date the app has seen, and the license key if there is one; `preferences.json` holds the shortcut's key code, modifiers, and label, the recording mode, the languages the user speaks, whether insertion is automatic, and whether the first-run language question has been answered. A test asserts the exact field list of each.
 
 Nothing in `preferences.json` is derived from anything that was said. It is a settings file rather than a `UserDefaults` domain on purpose: everything this app writes belongs in one directory the user can open, and a preference the app will not show its owner is a preference the app is keeping from them.
 
