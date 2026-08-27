@@ -428,7 +428,7 @@ enum RiskBenchmark {
         failures: [String]
     ) -> RiskReport {
         var byLanguage: [SpeechLanguage: RiskAggregate] = [:]
-        for language in SpeechLanguage.allCases {
+        for language in Set(results.map(\.language)).sorted() {
             let subset = results.filter { $0.language == language }
             guard !subset.isEmpty else { continue }
             byLanguage[language] = .combining(subset)
@@ -471,7 +471,7 @@ extension RiskReport {
         lines.append("| Language | Samples | Critical errors | Recall | Dropped (unmarkable) | False warnings / 100 words | Semantic preservation | Review shown |")
         lines.append("| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
 
-        for language in SpeechLanguage.allCases {
+        for language in byLanguage.keys.sorted() {
             guard let aggregate = byLanguage[language] else { continue }
             lines.append(
                 "| \(language.displayName) | \(aggregate.sampleCount) | \(aggregate.criticalErrors) | "

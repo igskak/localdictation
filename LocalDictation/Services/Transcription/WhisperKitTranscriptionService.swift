@@ -61,9 +61,15 @@ actor WhisperKitTranscriptionService: TranscriptionService {
         self.modelVariant = modelVariant
     }
 
-    /// Whisper is multilingual across every profile the MVP supports.
+    /// Whisper is multilingual across every language this app can name.
+    ///
+    /// `SpeechLanguage` is closed over `LanguageCatalog`, which is Whisper's own
+    /// language list, so there is no profile this engine cannot be asked for.
+    /// The method stays because the protocol has engines that cannot say the
+    /// same — `AppleSpeechTranscriptionService` binds one recognizer to one
+    /// locale and depends on what macOS has installed.
     nonisolated func supports(_ profile: LanguageProfile) -> Bool {
-        profile.languages.allSatisfy { SpeechLanguage.allCases.contains($0) }
+        true
     }
 
     func modelState(for profile: LanguageProfile) async -> TranscriptionModelState {

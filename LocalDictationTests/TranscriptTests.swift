@@ -104,7 +104,7 @@ final class TranscriptTests: XCTestCase {
 
 final class LanguageProfileTests: XCTestCase {
     func testEveryMVPLanguageHasAProfile() {
-        XCTAssertEqual(Set(LanguageProfile.single.map(\.primary)), Set(SpeechLanguage.allCases))
+        XCTAssertEqual(Set(LanguageProfile.single.map(\.primary)), Set(SpeechLanguage.verified))
     }
 
     func testPriorityMixedProfilesMatchProductScope() {
@@ -133,9 +133,9 @@ final class LanguageProfileTests: XCTestCase {
         XCTAssertEqual(LanguageProfile.default, .germanEnglish)
     }
 
-    func testCyrillicScriptFlagCoversOnlyRussianAndUkrainian() {
+    func testCyrillicScriptFlagCoversOnlyRussianAndUkrainianAmongTheVerifiedFour() {
         XCTAssertEqual(
-            Set(SpeechLanguage.allCases.filter(\.usesCyrillicScript)),
+            Set(SpeechLanguage.verified.filter(\.usesCyrillicScript)),
             [.russian, .ukrainian]
         )
     }

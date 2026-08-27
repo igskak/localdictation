@@ -1,38 +1,5 @@
 import Foundation
 
-/// The MVP speech languages from `docs/PRODUCT_SCOPE.md`.
-enum SpeechLanguage: String, CaseIterable, Sendable, Equatable, Codable {
-    case german = "de"
-    case english = "en"
-    case russian = "ru"
-    case ukrainian = "uk"
-
-    var displayName: String {
-        switch self {
-        case .german: "German"
-        case .english: "English"
-        case .russian: "Russian"
-        case .ukrainian: "Ukrainian"
-        }
-    }
-
-    /// BCP-47 tag for engines that want a locale rather than a bare language code.
-    var localeIdentifier: String {
-        switch self {
-        case .german: "de-DE"
-        case .english: "en-US"
-        case .russian: "ru-RU"
-        case .ukrainian: "uk-UA"
-        }
-    }
-
-    /// Cyrillic-script languages need different text normalization in the
-    /// benchmark scorer than Latin-script ones.
-    var usesCyrillicScript: Bool {
-        self == .russian || self == .ukrainian
-    }
-}
-
 /// An explicit, user-selected language profile.
 ///
 /// The product deliberately does not promise arbitrary four-language detection

@@ -313,7 +313,7 @@ struct GlossaryView: View {
                     TextField("Name, product, or term", text: $term)
                         .onSubmit(add)
                     Picker("", selection: $language) {
-                        ForEach(SpeechLanguage.allCases, id: \.self) { language in
+                        ForEach(SpeechLanguage.verified, id: \.self) { language in
                             Text(language.rawValue.uppercased()).tag(language)
                         }
                     }
@@ -328,7 +328,7 @@ struct GlossaryView: View {
                     .foregroundStyle(.secondary)
             }
 
-            ForEach(SpeechLanguage.allCases, id: \.self) { language in
+            ForEach(SpeechLanguage.verified, id: \.self) { language in
                 let entries = coordinator.glossary.entries(for: language)
                 if !entries.isEmpty {
                     Section(language.displayName) {

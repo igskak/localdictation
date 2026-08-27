@@ -178,7 +178,7 @@ final class RiskBenchmarkTests: XCTestCase {
     }
 
     func testMarkdownReportsEveryLanguageAndTheWeights() {
-        let results = SpeechLanguage.allCases.map { language in
+        let results = SpeechLanguage.verified.map { language in
             score(reference: "eins zwei", hypothesis: "eins zwei", language: language)
         }
         let report = RiskReport(
@@ -191,13 +191,13 @@ final class RiskBenchmarkTests: XCTestCase {
             results: results,
             overall: .combining(results),
             byLanguage: Dictionary(
-                uniqueKeysWithValues: SpeechLanguage.allCases.enumerated().map { ($1, RiskAggregate.combining([results[$0]])) }
+                uniqueKeysWithValues: SpeechLanguage.verified.enumerated().map { ($1, RiskAggregate.combining([results[$0]])) }
             ),
             failures: ["de/1.wav: unsupported"]
         )
 
         let markdown = report.markdown()
-        for language in SpeechLanguage.allCases {
+        for language in SpeechLanguage.verified {
             XCTAssertTrue(markdown.contains("| \(language.displayName) |"))
         }
         XCTAssertTrue(markdown.contains("model-confidence weight 0.00"))
