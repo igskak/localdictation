@@ -24,10 +24,15 @@ LocalDictation.xcodeproj/project.xcworkspace/xcuserdata/
 # The marketing site is a separate repository: igskak/localdictation-website
 /website/
 
-# Marketing strategy notes stay local (competitor spend, CPL gates, unit economics)
+# Marketing and commercial strategy notes stay local: competitor spend, CPL
+# gates, unit economics, pricing, who the customer is, and where to sell next.
 /docs/LANDING.md
 /docs/LANDING_IMPLEMENTATION.md
 /docs/GTM.md
+/docs/MONETIZATION.md
+/docs/MODEL_V2.md
+/docs/ICP_B2B.md
+/docs/EU_EXPANSION.md
 
 # Release artefacts from docs/PHASE_6_RELEASE.md — archives, exports, and the
 # signed disk image are build output and are never committed.
