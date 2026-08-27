@@ -82,11 +82,21 @@ enum LanguageIdentifier {
     /// Script mismatch is the strong case: a Latin word inside a Russian-only
     /// profile is either a real language switch or a misrecognition, and both
     /// are worth seeing.
+    ///
+    /// A language written in neither script — Japanese, Arabic, Greek — makes
+    /// the question unanswerable rather than false, so a profile naming one
+    /// reports a match and this signal stays quiet. Before Phase 7 every
+    /// non-Cyrillic language was treated as Latin, which was true of the four
+    /// languages that existed then and is not true of a hundred.
     static func scriptMatches(_ word: String, profile: LanguageProfile) -> Bool {
         let script = script(of: word)
         guard script != .neutral else { return true }
         return profile.languages.contains { language in
-            (language.usesCyrillicScript ? TextScript.cyrillic : TextScript.latin) == script
+            switch language.script {
+            case .latin: script == .latin
+            case .cyrillic: script == .cyrillic
+            case .other: true
+            }
         }
     }
 }

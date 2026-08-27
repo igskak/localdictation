@@ -44,6 +44,14 @@ struct MalformedWordSignal: RiskSignal {
     private static let minimumLength = 4
 
     func spans(in context: RiskContext) -> [RawRiskSpan] {
+        // Every rule below is calibrated on the four languages this product
+        // measures, down to the alphabet: the vowel table is Latin-basic plus
+        // the German umlauts and the Ukrainian і/ї/є, so Polish `łódź` reads as
+        // a word with no vowel in it and Czech `dům` as one more consonant run.
+        // Marking those would be the failure this signal exists to prevent,
+        // committed against a user the measurement never covered. An unverified
+        // language gets recognition and no shape rule. `docs/PHASE_7.md`.
+        guard context.language.isVerified else { return [] }
         guard lexicon.supports(context.language) else { return [] }
 
         var spans: [RawRiskSpan] = []

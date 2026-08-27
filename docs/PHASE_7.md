@@ -30,9 +30,12 @@ against. That distinction survives this phase rather than being erased by it:
 - **Verified** — German, English, Russian, Ukrainian. Recognition, conservative
   cleanup, and every risk signal, measured in `docs/PHASE_2_BENCHMARK.md` and
   `docs/PHASE_3_MEASUREMENT.md`.
-- **Available** — the other ninety-six. Recognition only. Filler removal, the
-  name heuristics, and the malformed-word rule are calibrated per language and
-  are switched off rather than guessed at.
+- **Available** — the other ninety-six. Recognition, plus the rules that rest on
+  something this product did not have to measure: whitespace and punctuation
+  spacing, a script mismatch, an acronym, a capital letter in a language that
+  capitalizes only names. Filler removal, the malformed-word rule, and the
+  letter-level language evidence are calibrated per language and are switched
+  off rather than guessed at.
 
 A product whose promise is "never hide uncertain recognition" cannot quietly
 serve a language whose uncertainty it does not know how to mark. So the two
@@ -123,12 +126,14 @@ The set the user chose stays the thing the app remembers.
 ### The unverified ninety-six degrade in named places
 
 - Filler removal already keys off a per-language table and finds nothing.
-- The malformed-word rule's consonant-run test is calibrated on the verified
-  languages and is switched off elsewhere; the rest of the signal was already
-  gated on the system having a spelling dictionary.
+- The malformed-word rule is off entirely. Not only its consonant-run test: the
+  vowel table it judges shape against is Latin-basic plus the German umlauts and
+  the Ukrainian і/ї/є, so Polish `łódź` reads as a word with no vowel in it. Half
+  a rule aimed at the wrong alphabet is worse than none.
 - The name heuristic's "a capital letter mid-sentence is a name" rule assumes a
   language that does not capitalize its nouns. That is now a property of the
-  language — German and Luxembourgish capitalize — rather than `!= .german`.
+  language — German and Luxembourgish capitalize — rather than `!= .german`, and
+  it is the one heuristic an unverified language keeps.
 - `LanguageIdentifier` proves a language switch from script and from letters
   that exist in one language of a pair and not the other. Both are meaningful
   only for Latin and Cyrillic; a profile naming a language in any other script

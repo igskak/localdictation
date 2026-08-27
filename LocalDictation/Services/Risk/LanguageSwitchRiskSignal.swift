@@ -26,6 +26,15 @@ struct LanguageSwitchRiskSignal: RiskSignal {
                 return RawRiskSpan(reason: .languageSwitch(identified), range: word.range)
             }
 
+            // The letter rules read `ä ö ü ß` as German, `і ї є ґ` as
+            // Ukrainian, and `ы ъ э ё` as Russian, which is exact among the
+            // four languages they were written for and wrong the moment a
+            // fifth is selected: Swedish `för` is not a German word, and
+            // Bulgarian is full of `ъ`. Where the profile names a language
+            // this product has not measured, the script mismatch above is all
+            // the evidence there is, and this signal says nothing rather than
+            // something it cannot support.
+            guard context.profile.languages.allSatisfy(\.isVerified) else { return nil }
             guard let identified = LanguageIdentifier.language(of: word.text) else { return nil }
             guard identified != context.language else { return nil }
             return RawRiskSpan(reason: .languageSwitch(identified), range: word.range)
