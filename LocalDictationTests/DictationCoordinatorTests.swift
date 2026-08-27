@@ -157,7 +157,12 @@ final class DictationCoordinatorTests: XCTestCase {
         XCTAssertTrue(presentation.showsRecoveryAction)
     }
 
-    func testDeviceInterruptionStopsCaptureAndStaysRecoverable() async throws {
+    /// An interruption tears the capture down and leaves the app usable. It no
+    /// longer goes through `.failed` to get there: a device that changes while
+    /// the user is speaking ends the recording, and the audio already in the
+    /// buffer is finished rather than thrown away. `CaptureInterruptionTests`
+    /// covers what then happens to it; this asserts the capture side.
+    func testDeviceInterruptionStopsCaptureAndLeavesTheAppUsable() async throws {
         let (coordinator, _, hotkey, capture) = makeCoordinator()
         coordinator.activate()
 
@@ -165,14 +170,15 @@ final class DictationCoordinatorTests: XCTestCase {
         try await waitUntil("recording starts") { coordinator.state == .recording }
 
         capture.triggerInterruption(.inputDeviceChanged)
-        try await waitUntil("interruption surfaces") {
-            coordinator.state == .failed(.captureInterrupted(AudioCaptureError.inputDeviceChanged.message))
-        }
         try await waitUntil("capture is torn down") { capture.stopCount == 1 }
-        XCTAssertEqual(capture.stopReasons, [.interrupted])
+        try await waitUntil("the app settles") { coordinator.state == .ready }
 
-        coordinator.recoverFromFailure()
-        XCTAssertEqual(coordinator.state, .ready)
+        XCTAssertEqual(capture.stopReasons, [.interrupted])
+        XCTAssertEqual(coordinator.captureInterruption, .inputDeviceChanged)
+        XCTAssertEqual(
+            coordinator.diagnostics.lastErrorDescription,
+            AudioCaptureError.inputDeviceChanged.message
+        )
     }
 
     func testMaximumDurationEndsUtterance() async throws {

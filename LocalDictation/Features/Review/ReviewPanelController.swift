@@ -43,6 +43,8 @@ final class ReviewPanelController {
     private var visibilityObserver: AnyCancellable?
     private var outcomeObserver: AnyCancellable?
     private var attentionObserver: AnyCancellable?
+    private var silenceObserver: AnyCancellable?
+    private var interruptionObserver: AnyCancellable?
     private var contentObserver: AnyCancellable?
 
     init(coordinator: DictationCoordinator) {
@@ -61,6 +63,24 @@ final class ReviewPanelController {
                 Task { @MainActor in self?.presentAftermath() }
             }
         attentionObserver = coordinator.$attentionIsPending
+            .removeDuplicates()
+            .sink { [weak self] _ in
+                Task { @MainActor in self?.presentAftermath() }
+            }
+        // The press that produced nothing. It reaches the same panel as a
+        // clipboard fallback because it is the same kind of thing: the one
+        // sentence the app owes the user when the words did not appear where
+        // they were typing, said where they are already looking rather than in
+        // a menu they have no reason to open.
+        silenceObserver = coordinator.$silentResult
+            .removeDuplicates()
+            .sink { [weak self] _ in
+                Task { @MainActor in self?.presentAftermath() }
+            }
+        // A recording the system ended. The user was speaking when it
+        // happened, so they are looking at the document rather than at a
+        // menu bar, and this is the only place they will read it.
+        interruptionObserver = coordinator.$captureInterruption
             .removeDuplicates()
             .sink { [weak self] _ in
                 Task { @MainActor in self?.presentAftermath() }
@@ -171,7 +191,16 @@ final class ReviewPanelController {
     private func presentAftermath() {
         noticeDismissal?.cancel()
 
-        let message = coordinator.lastInsertion?.message
+        // Two of these can hold at once. A recording that ended when the
+        // microphone changed can still have produced text that then went to
+        // the clipboard, and the user needs both sentences: why it stopped,
+        // and where what it produced went. The other two are exclusive — an
+        // empty result never reaches an insertion at all.
+        let sentences = [
+            coordinator.captureInterruptionMessage,
+            coordinator.lastInsertion?.message ?? coordinator.silentResult?.message,
+        ].compactMap { $0 }
+        let message = sentences.isEmpty ? nil : sentences.joined(separator: "\n\n")
         let attention = coordinator.attentionIsPending ? coordinator.result?.flaggedSpans.count ?? 0 : 0
         guard message != nil || attention > 0 else {
             hideNotice()
@@ -210,6 +239,8 @@ final class ReviewPanelController {
             dismiss: { [weak self] in
                 self?.hideNotice()
                 self?.coordinator.dismissAttention()
+                self?.coordinator.dismissSilentResult()
+                self?.coordinator.dismissCaptureInterruption()
             }
         )
     }

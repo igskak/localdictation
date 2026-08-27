@@ -1,6 +1,6 @@
+import AppKit
 import SwiftUI
 #if DEBUG
-import AppKit
 import UniformTypeIdentifiers
 #endif
 
@@ -30,10 +30,29 @@ struct SettingsView: View {
 
     private var generalTab: some View {
         Form {
-            Section("Dictation") {
-                LabeledContent("Push-to-talk", value: coordinator.binding.displayString)
-                LabeledContent("Hotkey", value: coordinator.registeredHotkey == nil ? "Not registered" : "Registered")
-                LabeledContent("Status", value: StatusPresentation(state: coordinator.state, binding: coordinator.binding).title)
+            Section("Shortcut") {
+                HotkeyRecorderRow()
+                Picker("Mode", selection: activationBinding) {
+                    ForEach(RecordingActivation.allCases) { activation in
+                        Text(activation.displayName).tag(activation)
+                    }
+                }
+                Text(coordinator.activation.explanation)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                LabeledContent(
+                    "Status",
+                    value: StatusPresentation(
+                        state: coordinator.state,
+                        binding: coordinator.binding,
+                        activation: coordinator.activation
+                    ).title
+                )
+            }
+
+            Section("Startup") {
+                LaunchAtLoginRow()
             }
 
             Section("Privacy") {
@@ -71,9 +90,34 @@ struct SettingsView: View {
                 Text("Phase 6 adds the trial, activation, and licensing. Dictation itself is unchanged: the words still go straight into the application you were typing in, and everything about them still stays on this Mac.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
+                if let location = coordinator.preferencesLocationDescription {
+                    LabeledContent("Settings file", value: location)
+                        .font(.caption)
+                }
+                if let error = coordinator.preferencesErrorDescription {
+                    Text(error)
+                        .font(.callout)
+                        .foregroundStyle(.orange)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
         }
         .formStyle(.grouped)
+        .onDisappear {
+            // A settings window closed mid-capture would otherwise leave the
+            // app with no shortcut registered and no sign of why.
+            coordinator.cancelHotkeyCapture()
+        }
+    }
+
+    /// The picker needs a two-way binding; the coordinator owns the value and
+    /// persists it, so the setter goes through its method rather than writing
+    /// the property.
+    private var activationBinding: Binding<RecordingActivation> {
+        Binding(
+            get: { coordinator.activation },
+            set: { coordinator.setActivation($0) }
+        )
     }
 
     private var boundaryTab: some View {
@@ -137,7 +181,7 @@ struct SettingsView: View {
             }
 
             Section {
-                Text("Trailing silence is reported, never used to trim captured speech. Changes apply to the next recording; Phase 1 keeps settings in memory only.")
+                Text("Trailing silence is reported, never used to trim captured speech. Changes apply to the next recording. These thresholds are the one thing in Settings that is not written to disk — they are tuning, and they start from the defaults on every launch.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
@@ -339,5 +383,163 @@ struct GlossaryView: View {
     private func add() {
         guard coordinator.addGlossaryTerm(term, language: language) else { return }
         term = ""
+    }
+}
+
+/// The control that takes a new shortcut.
+///
+/// A local key monitor rather than a first-responder `NSView`: the app already
+/// has one global hotkey mechanism, and adding a second event path for a
+/// control the user touches twice a year is more machinery than the job needs.
+/// The monitor only ever runs while the button has been pressed, it consumes
+/// the key so nothing else in the settings window reacts to it, and the
+/// coordinator has unregistered the existing shortcut for the duration — so
+/// what the user presses is what they get, including the shortcut they already
+/// have.
+private struct HotkeyRecorderRow: View {
+    @EnvironmentObject private var coordinator: DictationCoordinator
+    @State private var monitor: Any?
+    @State private var failure: String?
+
+    var body: some View {
+        Group {
+            content
+        }
+        // The monitor is a system-wide registration, not a piece of view state:
+        // a settings window closed mid-capture would leave it installed,
+        // swallowing every key this app's windows ever see afterwards. The
+        // coordinator's own cancel does not cover this — it puts the shortcut
+        // back and knows nothing about the monitor.
+        .onDisappear { stopCapture(cancelling: true) }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        LabeledContent("Shortcut") {
+            HStack(spacing: 8) {
+                Text(coordinator.isCapturingHotkey ? "Press a combination…" : coordinator.binding.displayString)
+                    .font(.body.monospaced())
+                    .foregroundStyle(coordinator.isCapturingHotkey ? Color.accentColor : .primary)
+
+                Spacer()
+
+                if coordinator.isCapturingHotkey {
+                    Button("Cancel") { stopCapture(cancelling: true) }
+                } else {
+                    Button("Change…") { startCapture() }
+                    Button("Reset") {
+                        failure = nil
+                        coordinator.resetHotkey()
+                    }
+                    .disabled(coordinator.binding == .optionSpace)
+                }
+            }
+        }
+
+        if coordinator.registeredHotkey == nil, !coordinator.isCapturingHotkey {
+            Text("The shortcut is not registered, so the hotkey does nothing. Pick another combination.")
+                .font(.callout)
+                .foregroundStyle(.orange)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+
+        if let failure {
+            Text(failure)
+                .font(.callout)
+                .foregroundStyle(.orange)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+
+        Text("At least one of ⌘ ⌥ ⌃ ⇧ is required. A bare key would be taken away from every application on this Mac.")
+            .font(.callout)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func startCapture() {
+        failure = nil
+        // Defensive: one monitor at a time, whatever the view did.
+        removeMonitor()
+        coordinator.beginHotkeyCapture()
+        monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            capture(event)
+            // Swallowed: a settings window that types the user's shortcut into
+            // whatever had focus is not what they asked for.
+            return nil
+        }
+    }
+
+    private func capture(_ event: NSEvent) {
+        if event.keyCode == 53 { // Escape leaves the shortcut alone.
+            stopCapture(cancelling: true)
+            return
+        }
+
+        let candidate = HotkeyBinding(
+            keyCode: UInt32(event.keyCode),
+            modifiers: HotkeyModifiers(event.modifierFlags),
+            keyLabel: HotkeyKeyLabel.label(
+                forKeyCode: event.keyCode,
+                characters: event.charactersIgnoringModifiers
+            )
+        )
+
+        removeMonitor()
+        if let error = coordinator.finishHotkeyCapture(with: candidate) {
+            failure = "\(candidate.displayString) cannot be used: \(error.message)."
+        } else {
+            failure = nil
+        }
+    }
+
+    private func stopCapture(cancelling: Bool) {
+        removeMonitor()
+        if cancelling { coordinator.cancelHotkeyCapture() }
+    }
+
+    private func removeMonitor() {
+        guard let monitor else { return }
+        NSEvent.removeMonitor(monitor)
+        self.monitor = nil
+    }
+}
+
+/// Whether the app is there when the user logs in.
+private struct LaunchAtLoginRow: View {
+    @StateObject private var controller = LaunchAtLoginController()
+
+    var body: some View {
+        Toggle(
+            "Open at login",
+            isOn: Binding(
+                get: { controller.state.isEnabled },
+                set: { controller.setEnabled($0) }
+            )
+        )
+        .disabled(isRefused)
+
+        Text("An app with no Dock icon is one nobody remembers to open, and a hotkey belonging to an app that is not running reads as a broken hotkey.")
+            .font(.callout)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+
+        if let explanation = controller.state.explanation {
+            Text(explanation)
+                .font(.callout)
+                .foregroundStyle(.orange)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if controller.state == .requiresApproval {
+                HStack {
+                    Button("Open Login Items") { controller.openSystemSettings() }
+                    Button("Re-check") { controller.refresh() }
+                }
+            }
+        }
+    }
+
+    private var isRefused: Bool {
+        if case .unavailable = controller.state { return true }
+        return controller.state == .requiresApproval
     }
 }

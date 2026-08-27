@@ -15,7 +15,15 @@ Unchanged and still open:
   German speech.
 - Ten minutes of repeated short recordings without memory growth. Phase 3 adds
   a retained audio buffer, so this now has a specific thing to check.
-- Unplugging or switching the input device mid-recording.
+  `RepeatedDictationTests` settles the structural half — sixty dictations,
+  quiet and flagged, never hold more than one utterance's audio — but what ten
+  minutes actually costs in memory still needs a person and a microphone.
+- Unplugging or switching the input device mid-recording. The behaviour is now
+  specified and tested with fakes: the recording ends there and the words
+  already spoken are still transcribed and delivered
+  (`CaptureInterruptionTests`, `docs/REFINEMENTS.md`). Whether real hardware
+  raises `AVAudioEngineConfigurationChange` where it is expected to is the part
+  a test cannot answer.
 
 ## 1. Automated (no microphone, no model)
 

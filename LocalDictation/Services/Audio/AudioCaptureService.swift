@@ -48,6 +48,25 @@ enum AudioCaptureError: Error, Sendable, Equatable {
             "No recording is in progress"
         }
     }
+
+    /// What to tell the user when this ended a recording they were in the
+    /// middle of.
+    ///
+    /// Separate from `message`, which is a technical description for
+    /// diagnostics and logs. This one has a job the other cannot do: say that
+    /// the recording stopped *and* that what had already been said was kept,
+    /// because otherwise the sentence reads as "your dictation was lost" and
+    /// the user starts over on text that is already in their document.
+    var interruptionMessage: String {
+        switch self {
+        case .inputDeviceChanged:
+            "The microphone changed while you were speaking, so the recording ended there. Whatever you had already said was kept."
+        case .noInputDevice:
+            "The microphone went away while you were speaking, so the recording ended there. Whatever you had already said was kept."
+        default:
+            "The recording ended early: \(message.lowercased()). Whatever you had already said was kept."
+        }
+    }
 }
 
 /// Capture boundary. Implementations must keep audio in a bounded in-memory

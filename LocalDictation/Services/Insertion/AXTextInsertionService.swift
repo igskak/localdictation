@@ -64,6 +64,7 @@ final class AXTextInsertionService: TextInsertionService {
     private let permissionService: any AccessibilityPermissionService
     private let pasteboard: any Pasteboard
     private let frontmost: any FrontmostApplicationSource
+    private let secureInput: any SecureInputSource
 
     /// Applications already asked to build their accessibility tree.
     ///
@@ -76,11 +77,13 @@ final class AXTextInsertionService: TextInsertionService {
     init(
         permissionService: any AccessibilityPermissionService = AXAccessibilityPermissionService(),
         pasteboard: any Pasteboard = SystemPasteboard(),
-        frontmost: any FrontmostApplicationSource = SystemFrontmostApplications()
+        frontmost: any FrontmostApplicationSource = SystemFrontmostApplications(),
+        secureInput: any SecureInputSource = SystemSecureInput()
     ) {
         self.permissionService = permissionService
         self.pasteboard = pasteboard
         self.frontmost = frontmost
+        self.secureInput = secureInput
     }
 
     // MARK: - Capture
@@ -176,20 +179,31 @@ final class AXTextInsertionService: TextInsertionService {
             return copyToClipboard(text, reason: reason)
 
         case let .refuse(reason):
-            // The one outcome that leaves the pasteboard untouched.
-            Log.insertion.info("Insertion refused: \(reason.rawValue, privacy: .public)")
-            return .refused(reason)
+            // The one outcome that leaves the pasteboard untouched. Only
+            // secure input has a holder to name — a password field is the
+            // one the user is already looking at. The log gets the bundle
+            // identifier and the user gets the name: the identifier is what
+            // a support conversation can act on, and the name is what is
+            // written on the user's own screen.
+            let holder = reason == .secureInput ? context.secureInputHolderName : nil
+            let identity = reason == .secureInput ? (secureInput.secureInputState.logIdentity ?? "unnamed") : "-"
+            Log.insertion.info("Insertion refused: \(reason.rawValue, privacy: .public), holder \(identity, privacy: .public)")
+            return .refused(reason, holder: holder)
         }
     }
 
     // MARK: - Context
 
     private func makeContext(target: InsertionTarget?, focused: AXUIElement?) -> InsertionContext {
+        // Read once, so the refusal the user is shown and the state the
+        // decision was taken on are the same read rather than two.
+        let secure = secureInput.secureInputState
         var context = InsertionContext(
             isTrusted: permissionService.currentAuthorization.allowsInsertion,
             hasTarget: target != nil,
             targetIsCurrent: target.map { isCurrent($0) } ?? false,
-            secureInputEnabled: IsSecureEventInputEnabled(),
+            secureInputEnabled: secure.isEnabled,
+            secureInputHolderName: secure.holderName,
             focusedFieldIsSecure: false,
             acceptsDirectWrite: false
         )

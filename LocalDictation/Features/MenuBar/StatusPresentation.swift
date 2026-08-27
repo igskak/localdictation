@@ -31,16 +31,54 @@ struct StatusPresentation: Sendable, Equatable {
     /// else is happening; painted over "Recording" or "Transcribing" it would
     /// be describing the previous utterance while the user is producing the
     /// next one, which is the one thing an indicator must never do.
+    ///
+    /// `silentResult` is bound by the same rule, for the same reason, and the
+    /// two can never both be set: a result with no text in it has no spans to
+    /// flag. It is second in the order anyway, so a marked result is never
+    /// hidden behind a notice about an empty one.
     init(
         state: RecordingState,
         binding: HotkeyBinding,
         modelState: TranscriptionModelState = .ready,
-        attentionIsPending: Bool = false
+        attentionIsPending: Bool = false,
+        silentResult: SilentResult? = nil,
+        captureInterruption: String? = nil,
+        activation: RecordingActivation = .pushToTalk
     ) {
         if state == .ready, attentionIsPending {
             title = "Worth a look"
             detail = "Some fragments in the last result are worth checking. The text is already in place."
             systemImage = "exclamationmark.triangle"
+            tint = .warning
+            showsPermissionRequest = false
+            showsSystemSettingsShortcut = false
+            showsRecoveryAction = false
+            return
+        }
+
+        // A recording the system ended. It comes before the silence notice
+        // because it explains one: a device that was unplugged mid-sentence is
+        // why nothing came back, and "nothing was heard" would send the user to
+        // check a microphone that was working until it left.
+        if state == .ready, let captureInterruption {
+            title = "Recording ended early"
+            detail = captureInterruption
+            systemImage = "mic.badge.xmark"
+            tint = .warning
+            showsPermissionRequest = false
+            showsSystemSettingsShortcut = false
+            showsRecoveryAction = false
+            return
+        }
+
+        // A press that came back with nothing. Saying "Ready" here is true and
+        // useless: the user knows they spoke, and what they need to be told is
+        // that the app heard them and got nothing, rather than that it is
+        // waiting for them to start.
+        if state == .ready, let silentResult {
+            title = silentResult.title
+            detail = silentResult.message
+            systemImage = silentResult.systemImage
             tint = .warning
             showsPermissionRequest = false
             showsSystemSettingsShortcut = false
@@ -89,7 +127,7 @@ struct StatusPresentation: Sendable, Equatable {
 
         case .ready:
             title = "Ready"
-            detail = "Hold \(binding.displayString) to record."
+            detail = Self.startInstruction(binding, activation)
             systemImage = "waveform.circle"
             tint = .ready
             showsPermissionRequest = false
@@ -107,7 +145,7 @@ struct StatusPresentation: Sendable, Equatable {
 
         case .recording:
             title = "Recording"
-            detail = "Release \(binding.displayString) to finish."
+            detail = Self.finishInstruction(binding, activation)
             systemImage = "waveform.circle.fill"
             tint = .active
             showsPermissionRequest = false
@@ -131,7 +169,7 @@ struct StatusPresentation: Sendable, Equatable {
             title = modelState.isPreparing ? "Waiting for the speech model" : "Transcribing"
             detail = modelState.isPreparing
                 ? "Your recording is held in memory. Transcription starts the moment the model finishes loading."
-                : "Recognizing speech on this Mac. Hold \(binding.displayString) to start the next one."
+                : "Recognizing speech on this Mac. \(Self.startInstruction(binding, activation))"
             systemImage = "waveform.badge.magnifyingglass"
             tint = .active
             showsPermissionRequest = false
@@ -177,6 +215,26 @@ struct StatusPresentation: Sendable, Equatable {
             showsPermissionRequest = false
             showsSystemSettingsShortcut = false
             showsRecoveryAction = true
+        }
+    }
+
+    /// How to begin, in the mode the user actually chose.
+    ///
+    /// The instruction is the only place the difference between the two
+    /// modes is visible, and getting it wrong is worse than saying nothing:
+    /// "Release ⌥Space to finish" in toggle mode tells the user to do the
+    /// one thing that will not work.
+    private static func startInstruction(_ binding: HotkeyBinding, _ activation: RecordingActivation) -> String {
+        switch activation {
+        case .pushToTalk: "Hold \(binding.displayString) to record."
+        case .toggle: "Press \(binding.displayString) to start recording."
+        }
+    }
+
+    private static func finishInstruction(_ binding: HotkeyBinding, _ activation: RecordingActivation) -> String {
+        switch activation {
+        case .pushToTalk: "Release \(binding.displayString) to finish."
+        case .toggle: "Press \(binding.displayString) again to finish."
         }
     }
 

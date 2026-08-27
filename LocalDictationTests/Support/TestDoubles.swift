@@ -44,8 +44,10 @@ final class FakeHotkeyService: HotkeyService, @unchecked Sendable {
     private var handler: (@Sendable (HotkeyEvent) -> Void)?
     private var binding: HotkeyBinding?
     private var registrationError: (any Error)?
+    private var oneShotError: (any Error)?
     private(set) var registerCount = 0
     private(set) var unregisterCount = 0
+    private(set) var registeredBindings: [HotkeyBinding] = []
 
     init(registrationError: (any Error)? = nil) {
         self.registrationError = registrationError
@@ -59,9 +61,21 @@ final class FakeHotkeyService: HotkeyService, @unchecked Sendable {
         lock.withLock { registrationError = error }
     }
 
+    /// Fails exactly one registration, so a test can watch the app refuse a
+    /// combination and put the working one back — which needs the second
+    /// registration to succeed.
+    func failNextRegistration(with error: any Error) {
+        lock.withLock { oneShotError = error }
+    }
+
     func register(_ binding: HotkeyBinding, handler: @escaping @Sendable (HotkeyEvent) -> Void) throws {
         let error: (any Error)? = lock.withLock {
             registerCount += 1
+            registeredBindings.append(binding)
+            if let oneShot = oneShotError {
+                oneShotError = nil
+                return oneShot
+            }
             return registrationError
         }
         if let error { throw error }
@@ -531,6 +545,57 @@ final class FakeFrontmostApplicationSource: FrontmostApplicationSource {
 }
 
 /// The pasteboard, in memory, so no test writes to the user's clipboard.
+/// The login-item registration, scripted.
+///
+/// The real one writes to the user's login items and refuses outright for a
+/// build running from Xcode, so neither of its interesting answers can be
+/// produced by a test that uses it.
+@MainActor
+final class FakeLoginItemService: LoginItemService {
+    private(set) var state: LoginItemState
+    private(set) var calls: [Bool] = []
+    private(set) var openedSystemSettings = 0
+    private var refusal: String?
+
+    init(_ state: LoginItemState = .disabled) {
+        self.state = state
+    }
+
+    func refuse(with reason: String) {
+        refusal = reason
+    }
+
+    @discardableResult
+    func setEnabled(_ enabled: Bool) -> LoginItemState {
+        calls.append(enabled)
+        if let refusal {
+            state = .unavailable(refusal)
+            return state
+        }
+        state = enabled ? .enabled : .disabled
+        return state
+    }
+
+    func openSystemSettings() {
+        openedSystemSettings += 1
+    }
+}
+
+/// Secure input, scripted.
+///
+/// The real flag can only be raised by focusing a password field or by an
+/// application that leaves it on, and neither can be arranged from a test — so
+/// the one refusal the user is most likely to meet would otherwise be the one
+/// behaviour with no coverage at all.
+@MainActor
+final class FakeSecureInputSource: SecureInputSource {
+    var secureInputState: SecureInputState
+
+    init(_ state: SecureInputState = .off) {
+        secureInputState = state
+    }
+}
+
 @MainActor
 final class FakePasteboard: Pasteboard {
     private(set) var contents: String?

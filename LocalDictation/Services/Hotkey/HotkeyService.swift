@@ -40,6 +40,10 @@ enum HotkeyEvent: String, Sendable, Equatable {
 enum HotkeyRegistrationError: Error, Sendable, Equatable {
     /// Another application or the system already owns this combination.
     case alreadyInUse
+    /// A combination with no modifier in it. Registering one takes a bare key
+    /// away from every application on the Mac, including this app's own text
+    /// fields, so it is refused before it reaches the system rather than after.
+    case noModifier
     case handlerInstallationFailed(status: Int32)
     case registrationFailed(status: Int32)
 
@@ -47,6 +51,8 @@ enum HotkeyRegistrationError: Error, Sendable, Equatable {
         switch self {
         case .alreadyInUse:
             "the shortcut is already used by macOS or another app"
+        case .noModifier:
+            "a shortcut needs at least one of ⌘ ⌥ ⌃ ⇧, or it would take that key away from every app"
         case let .handlerInstallationFailed(status):
             "the event handler could not be installed (OSStatus \(status))"
         case let .registrationFailed(status):

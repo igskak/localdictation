@@ -16,6 +16,41 @@ Phase 5 (verification that does not interrupt) is complete, and it came from usi
 
 Phase 6 (licensing and release) is complete on the side that lives in this repository: the trial, the ungated window, activation, offline license verification, the paywall, and the enumerated product events. Three things wait on decisions outside the code — an activation service, the Stripe checkout, and an Apple Developer Program membership for signing and notarization. See `docs/PHASE_6.md` and `docs/PHASE_6_RELEASE.md`.
 
+After Phase 6, a round of refinements closed the gaps between what the app
+promised and what it did. The app now says something when a dictation comes back
+empty, names the application holding secure input, keeps the words when a
+microphone changes mid-sentence, records in either of the two modes the scope
+has always listed, lets the shortcut be changed, and opens at login. See
+`docs/REFINEMENTS.md`.
+
+Six refinement decisions are worth knowing before reading the code:
+
+- **Silence is an answer, and the app owes the user one.** A press that
+  recognized nothing inserted nothing, needed no review, and said nothing at
+  all — which is indistinguishable from a hotkey that did not work. It now says
+  which of the two silences it was: a microphone that never reached speech level
+  names the input device, and speech that came back empty names the language
+  profile it was asked in.
+- **A name is the action.** "An application has secure input enabled" describes
+  a problem to someone with thirty applications open and gives them nothing to
+  do about it. The app now asks the window server who is holding the flag.
+- **A changed microphone does not take back words already said.** The rule Phase
+  6 wrote for a trial running out mid-utterance is the same rule here. The
+  recording ends where the device went away, but it ends the way a released key
+  ends it: finished, transcribed, delivered, and the reason said afterwards
+  rather than instead.
+- **⌥Space is a default, not a law.** Carbon offers no way to ask whether a
+  combination is free, so the change path is built around failing: the working
+  shortcut goes back the instant a new one is refused. A shortcut with no
+  modifier is refused before it reaches the system, because registering one
+  takes a bare key away from every application on the Mac.
+- **Two recording modes are not two preferences about one thing.** Push-to-talk
+  is a key held for the length of a sentence; toggle is two presses around a
+  paragraph. Nobody holds a key for four minutes.
+- **Settings that do not survive a launch are not settings.** So there is a
+  third file in Application Support beside the dictionary and the licensing
+  record. It is JSON, readable, six fields, and a test asserts the list.
+
 Four Phase 6 decisions are worth knowing before reading the code:
 
 - **A license is a signature, not a phone call.** The app carries a public key and checks a license locally, so a bought copy works on a plane, behind a proxy, and after this project's servers are gone. The cost is named rather than hidden: a key cannot be revoked remotely.
@@ -40,7 +75,7 @@ Two Phase 3 decisions are worth knowing before reading the code:
 - **The deterministic signals come first and model confidence comes last.** Numbers, dates, amounts, names, dictionary near-misses, cleanup edits, and language switching are facts about the text. Model confidence is wired up and measured but carries a weight of **zero**, because Phase 2 found weak — and on Russian, negative — separation between the confidence of correct and incorrect tokens. It earns a weight from a measurement on real speech, not from an assumption.
 - **A dropped word is not chased.** If the engine swallows "не" or "nicht", no rule can flag what is absent. The app does not build a mechanism for it; the reasoning is recorded in `docs/PHASE_3.md`. The consequence is that audio replay is offered only for a marked fragment, and the recording is discarded the moment the app decides no review is needed.
 
-There is deliberately no updater and nothing is transmitted. The user dictionary and the licensing record are the only things that persist — transcripts and audio stay in memory.
+There is deliberately no updater and nothing is transmitted. The user dictionary, the licensing record, and the settings file are the only things that persist — transcripts and audio stay in memory.
 
 Read these files before continuing implementation:
 
@@ -57,6 +92,7 @@ Read these files before continuing implementation:
 - `docs/PHASE_5.md` — why the review stopped interrupting, and what it cost.
 - `docs/PHASE_6.md` — the trial, the key format, and what is deliberately not built yet.
 - `docs/PHASE_6_RELEASE.md` — signing, notarization, and the update decision. None of it has been run.
+- `docs/REFINEMENTS.md` — what the app now says when a dictation produces nothing, who is named when insertion is refused, and the three settings that reach disk.
 - `AGENTS.md` — repository-level engineering constraints.
 
 ## Requirements
@@ -73,10 +109,11 @@ Read these files before continuing implementation:
 3. In Signing & Capabilities, choose a Personal Team if Xcode requires one for local execution. A paid Apple Developer Program membership is not required for local development.
 4. Build and run, then open the menu bar item and grant microphone access.
 5. Choose a language profile and press **Prepare speech model…**. The first run downloads roughly 600 MB of Whisper weights into `~/Library/Application Support/LocalDictation/Models`. This is the only network access in the app, it is a one-way fetch of a static asset, and it never runs without this explicit action.
-6. Hold `⌥Space` to record, release to finish. The text goes into whatever you were typing in, immediately and always. If something is worth a second look, a triangle appears in the menu bar and a small chip fades in and out where you are already looking — click either to see what was marked, or ignore both.
+6. Hold `⌥Space` to record, release to finish. The text goes into whatever you were typing in, immediately and always. If something is worth a second look, a triangle appears in the menu bar and a small chip fades in and out where you are already looking — click either to see what was marked, or ignore both. If a press comes back with no text at all, the app says which of the two silences it was rather than saying nothing.
 7. The first insertion asks for Accessibility access. Until it is granted, results are copied to the clipboard instead. **A development build loses this permission on every rebuild**, because macOS keys the grant to the code signature — expect to re-grant it after each build from Xcode.
-8. Optionally add names and terms you dictate often under **Settings → Dictionary**. A word that comes out close to one of them, but not equal to it, gets marked.
-9. The first five dictations, or the first 24 hours from the first one, need no email and no key. After that, **Settings → License** is where a key is entered. Issue yourself one with `swift Tools/licensekit.swift issue --device <id> --email you@example.com --kind lifetime`, taking the identifier from **Settings → License → This Mac**. Signing requires the private key in `~/.localdictation/`; the public half is already compiled in, so any build of this repository accepts keys issued against it.
+8. Under **Settings → General** you can change the shortcut, switch to pressing it twice instead of holding it, and have the app open at login. The shortcut needs at least one of `⌘ ⌥ ⌃ ⇧`; a combination something else already owns is refused and the working one stays. Opening at login needs the app to live in `/Applications` — macOS will not make a login item out of a build running from Xcode, and says so.
+9. Optionally add names and terms you dictate often under **Settings → Dictionary**. A word that comes out close to one of them, but not equal to it, gets marked.
+10. The first five dictations, or the first 24 hours from the first one, need no email and no key. After that, **Settings → License** is where a key is entered. Issue yourself one with `swift Tools/licensekit.swift issue --device <id> --email you@example.com --kind lifetime`, taking the identifier from **Settings → License → This Mac**. Signing requires the private key in `~/.localdictation/`; the public half is already compiled in, so any build of this repository accepts keys issued against it.
 
 The app is an agent-style menu bar utility (`LSUIElement = true`), so it does not show a Dock icon.
 
@@ -122,11 +159,13 @@ LocalDictation/
   Services/Cleanup/       conservative cleanup and the edit map
   Services/Risk/          the six risk signals and the engine combining them
   Services/Review/        the review policy and decision
-  Services/Glossary/      the user dictionary and its only persistence
+  Services/Glossary/      the user dictionary and its persistence
+  Services/Preferences/   the shortcut, the mode, the profile, and where they live
   Features/Review/        review strip, its pure presentation, and the floating panel
   Features/Licensing/     the license page, its pure presentation, and the offer
   Services/Licensing/     entitlement rules, signed keys, the usage record, device identity
   Services/Telemetry/     the enumerated product events, transmitted nowhere
+  Services/Launch/        whether the app opens at login
   Benchmark/              corpus loading, scoring, and risk measurement (Debug builds only)
   Support/                logging and locking primitives
 Tools/
@@ -150,7 +189,11 @@ Audio stays in memory. Normal capture performs no file writes, and a test assert
 
 A recording's lifetime is bounded by the review decision, not by the end of the interaction: it is released the instant the app decides no review is needed, and otherwise when the review is accepted, dismissed, or superseded. Tests assert both. Replay reads those samples straight out of memory — no file and no URL is involved.
 
-Two files in `~/Library/Application Support/LocalDictation/` are the only things written to disk. `glossary.json` holds terms and their language; `license.json` holds an install identifier, when the first dictation happened, how many succeeded, the furthest date the app has seen, and the license key if there is one. A test asserts the exact field list of each.
+Three files in `~/Library/Application Support/LocalDictation/` are the only things written to disk. `glossary.json` holds terms and their language; `license.json` holds an install identifier, when the first dictation happened, how many succeeded, the furthest date the app has seen, and the license key if there is one; `preferences.json` holds the shortcut's key code, modifiers, and label, the recording mode, the language profile, and whether insertion is automatic. A test asserts the exact field list of each.
+
+Nothing in `preferences.json` is derived from anything that was said. It is a settings file rather than a `UserDefaults` domain on purpose: everything this app writes belongs in one directory the user can open, and a preference the app will not show its owner is a preference the app is keeping from them.
+
+Insertion reads one more thing than it used to. When it refuses because secure input is on, it asks the window server which process is holding the flag, so the refusal can name the application instead of describing a state. The name reaches the user; the log keeps the bundle identifier, as it does for the target.
 
 Insertion adds one place text goes and one thing the app reads. The text goes into the application you were dictating into, or onto the clipboard, and nowhere else. The app reads a single character before the caret, to decide whether a leading space is needed; it is used and dropped inside that call. Neither is ever logged. What may appear in a log line is the target's bundle identifier and how the insertion went, because compatibility cannot be debugged without them — and a test asserts nothing derived from the utterance travels with them.
 

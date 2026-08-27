@@ -15,6 +15,11 @@ struct InsertionContext: Sendable, Equatable {
     var targetIsCurrent: Bool
     /// Some application has secure input enabled, process-wide.
     var secureInputEnabled: Bool
+    /// The name of the application holding secure input, when the window
+    /// server names one. Carried through the decision rather than read at the
+    /// end, so the sentence the user gets is about the state the refusal was
+    /// actually taken on.
+    var secureInputHolderName: String?
     /// The focused element is a password field.
     var focusedFieldIsSecure: Bool
     /// The focused element's selected text is settable, so it can be written
@@ -26,6 +31,7 @@ struct InsertionContext: Sendable, Equatable {
         hasTarget: Bool = true,
         targetIsCurrent: Bool = true,
         secureInputEnabled: Bool = false,
+        secureInputHolderName: String? = nil,
         focusedFieldIsSecure: Bool = false,
         acceptsDirectWrite: Bool = true
     ) {
@@ -33,6 +39,7 @@ struct InsertionContext: Sendable, Equatable {
         self.hasTarget = hasTarget
         self.targetIsCurrent = targetIsCurrent
         self.secureInputEnabled = secureInputEnabled
+        self.secureInputHolderName = secureInputHolderName
         self.focusedFieldIsSecure = focusedFieldIsSecure
         self.acceptsDirectWrite = acceptsDirectWrite
     }
