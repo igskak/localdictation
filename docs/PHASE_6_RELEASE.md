@@ -118,9 +118,15 @@ things that can leave the Mac is:
 | What | When | To whom | Why |
 | --- | --- | --- | --- |
 | Whisper model weights request | The user presses "Prepare speech model…" | Hugging Face (WhisperKit's host) | Fetching a static asset. One way; nothing is uploaded |
-| Email address + device hash | The user presses "Send me a key" | The activation service (does not exist yet) | Issuing a license key |
+| Email address + device hash | The user presses "Send me a key" | The activation service (`Service/`) | Issuing a license key |
+| A license key the user already holds | The user presses "Remove from this Mac" | The same service | Freeing one of the two Macs the license covers |
 | The ten product events in `docs/PHASE_6.md` | Not transmitted today | — | Funnel measurement, when a collector exists |
 
 Audio, transcripts, the dictionary, clipboard contents, the names of
 applications dictated into, and everything derived from any of them appear
 nowhere on that list, and a test asserts the shape of the last row.
+
+The policy itself is written: `docs/PRIVACY.md`, with `PrivacyDisclosureTests`
+parsing the request body out of it and comparing the keys to the ones the
+encoder actually produces. A field added to the wire without a line in that
+document fails the app's test suite.

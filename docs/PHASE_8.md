@@ -223,20 +223,39 @@ quiet week.
 ## What remains in this repository
 
 Small, and mostly one line each — which is the point of doing the client half
-first.
+first. Struck through as they land; the two that are left both wait on money
+rather than on code.
 
-1. `ActivationEndpoint.production` — the URL. `HTTPActivationBackendTests.testTheShippingBuildHasNoEndpoint`
-   asserts it is `nil` today; that test flips to asserting an `https` scheme.
+1. ~~`ActivationEndpoint.production` — the URL.~~ Still `nil`, and it stays that
+   way until there is a deployment to name. Everything behind it is built and
+   tested; `Service/README.md` has the staging recipe and the one-line change.
 2. `StoreFront.lifetimeCheckout`, `annualCheckout`, `websiteURL` — three URLs,
-   after D2. The Buy buttons enable themselves.
-3. "Remove from this Mac" calls `/v1/devices/release` when configured.
-4. The lifetime update rule, after D6, reading `License.issuedAt` against the
-   running version.
-5. A transport for `ProductTelemetryService`, after D7, plus wherever consent is
-   asked.
-6. The privacy policy row for the activation call, which the app can now
-   actually make.
-7. `docs/PHASE_6_RELEASE.md`, executed rather than written.
+   after D2. **The only remaining code change, and it is three constants.** The
+   Buy buttons enable themselves, and the webhook that answers them is written.
+3. ~~"Remove from this Mac" calls `/v1/devices/release` when configured.~~ Done.
+   The service is told first, because the key is the only proof this Mac holds,
+   and the local removal happens whatever the answer was.
+4. ~~The lifetime update rule, after D6.~~ Done — `LifetimeUpdatePolicy`. It
+   decides nothing today, because there has only ever been one major version,
+   and a test says so.
+5. A transport for `ProductTelemetryService`, after D7 — which says not yet, and
+   for the first release that is the whole of the work.
+6. ~~The privacy policy row for the activation call.~~ Done — `docs/PRIVACY.md`,
+   with `PrivacyDisclosureTests` parsing the documented request body and
+   comparing it to the one the encoder produces.
+7. `docs/PHASE_6_RELEASE.md`, executed rather than written. Waits on D1.
+
+Two things not on the original list turned out to be part of it:
+
+- **A locked Mac was opening the microphone.** `.hotkeyPressed` is accepted by
+  the state machine while locked — it transitions to `.locked`, which announces
+  the wall — and the capture path read that acceptance as permission. The test
+  that was meant to catch it asserted the start count synchronously, and capture
+  starts from a task, so it asserted that the task had not run yet.
+- **Nothing appeared when a press was refused.** The whole wall lived in the
+  menu and in Settings, so a stranger pressed the key, got nothing, and
+  concluded the app was broken. A refused press now opens the License page in a
+  window, and only a refused press does.
 
 ### Testing against something before there is something
 
@@ -245,6 +264,19 @@ a tunnel with a real certificate (`cloudflared tunnel`) or deploy the service to
 a staging hostname and point a Debug build at it. Do not add an "allow insecure
 in Debug" flag: the one thing that must never differ between the build that was
 tested and the build that ships is which addresses it will send an email to.
+
+## Where this stands
+
+| Criterion | State |
+| --- | --- |
+| A stranger activates, nobody at this end touches anything | Built end to end; unproven until there is a deployment |
+| Second Mac issued, third refused, releasing lets it in | `Service/test/release.test.mjs`, and the endpoint the app calls |
+| Pressing "Send me a key" twice mails one key, one slot | `Service/test/activate.test.mjs` |
+| A service key verifies through `LicenseKey.verify`, all three kinds | `ActivationServiceParityTests`, on every run, plus a byte-for-byte drift check where Node is present |
+| Buying then "Send my key" unlocks that Mac | `Service/test/webhook.test.mjs`; the field paths need one real event from the provider |
+| No network: told, and dictation unaffected | Phase 6, unchanged |
+| The service stores nothing outside the table | `schema.sql`, asserted by a test that reads `PRAGMA table_info` |
+| Notarized Developer ID build | Waits on D1 |
 
 ## Acceptance criteria
 

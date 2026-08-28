@@ -25,4 +25,5 @@
 - Keep system APIs behind adapters so tests do not trigger OS permission dialogs or require a microphone.
 - Treat denied and restricted permissions as normal states with actionable UI.
 - Verify the Xcode project with `xcodebuild` after every implementation slice when full Xcode is available.
+- The activation service in `Service/` has its own suite: run `npm test` there after changing it. It has no dependencies and installs nothing. Changing what it issues means re-running `npm run fixture` and committing the result, or `ActivationServiceParityTests` fails in the app.
 - Preserve unrelated user changes.
