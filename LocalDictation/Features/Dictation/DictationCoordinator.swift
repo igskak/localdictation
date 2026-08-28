@@ -1475,10 +1475,15 @@ extension DictationCoordinator {
             accessibilityService: accessibility,
             insertionService: AXTextInsertionService(permissionService: accessibility, secureInput: secureInput),
             // The licensing state of this Mac, read from disk and from a
-            // signature. `LicenseAuthority.production` is empty in a
-            // development build, which means no key verifies and the ungated
-            // window is all there is — see `docs/PHASE_6.md`.
-            entitlementService: EntitlementService(store: FileEntitlementStore()),
+            // signature. The authority key is compiled in, so a key issued by
+            // `Tools/licensekit.swift` verifies here; the activation service
+            // that would mail one out does not exist yet, which is why the
+            // backend is whatever `ActivationEndpoint` currently names — see
+            // `docs/PHASE_6.md` and `docs/PHASE_8.md`.
+            entitlementService: EntitlementService(
+                store: FileEntitlementStore(),
+                backend: ActivationEndpoint.backend()
+            ),
             // The third and last thing this app writes to disk. Everything in
             // it is a choice the user made about the app, and none of it is
             // derived from anything that was said.

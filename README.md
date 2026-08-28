@@ -14,7 +14,7 @@ Phase 4 (system insertion and app compatibility) is complete. The text leaves th
 
 Phase 5 (verification that does not interrupt) is complete, and it came from using the app rather than from a plan. The review used to stand in front of the text and wait to be answered, and it was answering the wrong question: a correctly recognized product name was marked as risky in sentence after sentence, while `проверка` coming back as `ррверка` went through unmarked. Both are fixed, and the review no longer blocks anything. See `docs/PHASE_5.md`.
 
-Phase 6 (licensing and release) is complete on the side that lives in this repository: the trial, the ungated window, activation, offline license verification, the paywall, and the enumerated product events. Three things wait on decisions outside the code — an activation service, the Stripe checkout, and an Apple Developer Program membership for signing and notarization. See `docs/PHASE_6.md` and `docs/PHASE_6_RELEASE.md`.
+Phase 6 (licensing and release) is complete on the side that lives in this repository: the trial, the ungated window, activation, offline license verification, the paywall, and the enumerated product events. The client half of the activation call is written and tested against a stub server, so turning it on is one URL. Three things wait on decisions outside the code — the activation service itself, the checkout, and an Apple Developer Program membership for signing and notarization. `docs/PHASE_8.md` specifies all three and the order to take them in; see also `docs/PHASE_6.md` and `docs/PHASE_6_RELEASE.md`.
 
 Phase 7 (the languages a person actually speaks) is complete. The eight
 combinations the product used to offer are gone: the user names the languages
@@ -59,11 +59,12 @@ Six refinement decisions are worth knowing before reading the code:
   third file in Application Support beside the dictionary and the licensing
   record. It is JSON, readable, six fields, and a test asserts the list.
 
-Four Phase 6 decisions are worth knowing before reading the code:
+Five Phase 6 decisions are worth knowing before reading the code:
 
 - **A license is a signature, not a phone call.** The app carries a public key and checks a license locally, so a bought copy works on a plane, behind a proxy, and after this project's servers are gone. The cost is named rather than hidden: a key cannot be revoked remotely.
 - **A lock never costs you a sentence you have already said.** A trial that runs out mid-utterance lets that utterance finish, transcribe, and land in the document. The press *after* it is the one that is refused. The licensing precondition lives beside the recording state rather than inside it, which is what makes both true at once.
 - **What you pay a dictation for is text you received.** A press that recognized nothing does not come out of your five. Two real utterances of nine and ten seconds came back empty while Phase 4 was being measured; charging for those would be indefensible.
+- **The wall is announced before it arrives.** The menu says how many ungated dictations are left once the first one has been spent, and says that a trial ends before it ends. Someone who discovers a licensing window by pressing the hotkey and getting nothing has been surprised by their own software; the countdown lives where they already look rather than only on a settings page nobody opens to find out something is about to break.
 - **The record on disk is plain, and that is a decision.** `license.json` is six readable fields beside the dictionary. Obfuscating it would buy a product that lies to its owner about what it stores; the real defence is that editing it can hand you a few more days of trial and can never hand you a license.
 
 Three Phase 5 decisions are worth knowing before reading the code:
@@ -99,6 +100,7 @@ Read these files before continuing implementation:
 - `docs/PHASE_4_COMPATIBILITY.md` — which applications take text by which method.
 - `docs/PHASE_5.md` — why the review stopped interrupting, and what it cost.
 - `docs/PHASE_6.md` — the trial, the key format, and what is deliberately not built yet.
+- `docs/PHASE_8.md` — the activation service, the checkout, and the release, as one specification with the wire contract frozen.
 - `docs/PHASE_6_RELEASE.md` — signing, notarization, and the update decision. None of it has been run.
 - `docs/REFINEMENTS.md` — what the app now says when a dictation produces nothing, who is named when insertion is refused, and the three settings that reach disk.
 - `AGENTS.md` — repository-level engineering constraints.

@@ -18,7 +18,8 @@ final class SettingsViewLayoutTests: XCTestCase {
     private func makeCoordinator(
         preferences: Preferences = .default,
         secureInput: SecureInputState = .off,
-        hotkeyFailure: (any Error)? = nil
+        hotkeyFailure: (any Error)? = nil,
+        entitlement: EntitlementService? = nil
     ) -> DictationCoordinator {
         let hotkey = FakeHotkeyService()
         if let hotkeyFailure { hotkey.failRegistration(with: hotkeyFailure) }
@@ -30,6 +31,7 @@ final class SettingsViewLayoutTests: XCTestCase {
             glossaryStore: InMemoryGlossaryStore(.empty),
             accessibilityService: FakeAccessibilityPermissionService(authorization: .trusted),
             insertionService: FakeTextInsertionService(),
+            entitlementService: entitlement,
             preferencesStore: InMemoryPreferencesStore(preferences),
             secureInputSource: FakeSecureInputSource(secureInput)
         )
@@ -99,6 +101,29 @@ final class SettingsViewLayoutTests: XCTestCase {
         let coordinator = makeCoordinator(
             secureInput: SecureInputState(isEnabled: true, holderName: "1Password")
         )
+        try await renderMenu(coordinator)
+    }
+
+    /// The countdown row, laid out for real. It is the one licensing view that
+    /// appears while everything else in the menu is also on screen, so it is
+    /// the one most likely to be laid out next to something it was never seen
+    /// beside.
+    func testTheMenuLaysOutWithTheEntitlementCountdown() async throws {
+        let coordinator = makeCoordinator(entitlement: makeEntitlementService(dictationsSpent: 4))
+
+        XCTAssertNotNil(EntitlementNotice(state: coordinator.entitlement))
+        try await renderMenu(coordinator)
+    }
+
+    /// And the wall itself, which replaces it.
+    func testTheMenuLaysOutWithTheLicensingWall() async throws {
+        let coordinator = makeCoordinator(entitlement: makeEntitlementService(dictationsSpent: 5))
+
+        XCTAssertEqual(coordinator.entitlement, .locked(.activationRequired))
+        try await renderMenu(coordinator)
+    }
+
+    private func renderMenu(_ coordinator: DictationCoordinator) async throws {
         let hosting = NSHostingView(rootView: MenuBarView().environmentObject(coordinator))
         hosting.frame = NSRect(x: 0, y: 0, width: 360, height: 600)
         hosting.layoutSubtreeIfNeeded()
@@ -106,5 +131,18 @@ final class SettingsViewLayoutTests: XCTestCase {
         XCTAssertGreaterThan(hosting.fittingSize.height, 0)
         hosting.removeFromSuperview()
         try await settle()
+    }
+
+    /// A licensing service that has already spent part of the ungated window,
+    /// without a clock or a file.
+    private func makeEntitlementService(dictationsSpent: Int) -> EntitlementService {
+        let service = EntitlementService(
+            store: InMemoryEntitlementStore(),
+            authority: LicenseAuthority(publicKeyBase64: ""),
+            deviceIdentity: FixedDeviceIdentity("0123456789abcdef0123456789abcdef"),
+            telemetry: RecordingTelemetryService()
+        )
+        for _ in 0..<dictationsSpent { service.recordSuccessfulDictation() }
+        return service
     }
 }

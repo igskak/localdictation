@@ -72,6 +72,18 @@ struct MenuBarView: View {
                         NSApp.activate(ignoringOtherApps: true)
                     }
                 )
+            } else if let notice = EntitlementNotice(state: coordinator.entitlement) {
+                // The warning before the wall. `EntitlementNotice` returns
+                // `nil` for every state that has nothing urgent to say, so this
+                // is empty for a lifetime license, for a trial with a week
+                // left, and for a Mac that has not dictated yet.
+                EntitlementNoticeView(
+                    notice: notice,
+                    openLicenseSettings: {
+                        openSettings()
+                        NSApp.activate(ignoringOtherApps: true)
+                    }
+                )
             }
 
             // Above the Accessibility ask on purpose: while secure input is
@@ -404,6 +416,37 @@ private struct LicenseLockView: View {
         .padding(8)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+/// The countdown, in the menu, while the app still works.
+///
+/// Quieter than the lock it precedes — no coloured background until the last
+/// press or the last day — because it is not a refusal. It is the app saying
+/// what is about to happen, at the only moment when the user can still do
+/// something about it without losing a sentence.
+private struct EntitlementNoticeView: View {
+    let notice: EntitlementNotice
+    let openLicenseSettings: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label(notice.headline, systemImage: notice.symbol)
+                .font(.caption.weight(.semibold))
+            Text(notice.detail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Button(notice.actionTitle, action: openLicenseSettings)
+                .font(.caption)
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            notice.isPressing ? Color.orange.opacity(0.12) : Color.secondary.opacity(0.08),
+            in: RoundedRectangle(cornerRadius: 8)
+        )
     }
 }
 
