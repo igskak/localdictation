@@ -153,7 +153,7 @@ struct LicenseView: View {
             ) { coordinator.openCheckout(.annual) }
 
             if !StoreFront.isOpen {
-                Text("Checkout is not open yet. When it is, these buttons hand the purchase to Stripe in your browser — the app never sees a card number.")
+                Text("Checkout is not open yet. When it is, these buttons open the payment page in your browser — the app never sees a card number, and the key still comes back here, to this Mac.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
