@@ -17,6 +17,8 @@ src/
   worker.js     the router, and the health check
   activate.js   POST /v1/activate: the whole of what a person can be told
   release.js    POST /v1/devices/release: the key is the proof
+  webhook.js    POST /v1/purchases/webhook: money becoming an entitlement
+  providers.js  Paddle and Stripe, behind one shape
   token.js      the frozen payload, byte for byte
   signing.js    Ed25519, and the check that the secret matches the shipped app
   store.js      every row, and every question asked of one
@@ -77,6 +79,9 @@ npx wrangler secret put LICENSE_SIGNING_KEY
 
 # The mail provider's key (Resend or Postmark).
 npx wrangler secret put MAIL_API_KEY
+
+# The payment provider's webhook signing secret, once D2 is executed.
+npx wrangler secret put WEBHOOK_SECRET
 
 npx wrangler deploy
 ```
@@ -158,6 +163,19 @@ One column is not in that document's table: `mailed_at`. It is what makes
 "pressing Send me a key twice mails one key" true, and what lets a key whose
 first delivery failed be sent by the next press instead of being lost.
 
+## The one thing here that has not been run for real
+
+`src/providers.js` reads each provider's documented payload: which field the
+buyer's address is in, which one names the price, and what a refund looks like.
+Those paths need an account to confirm, and there is not one yet — so `parse`
+returns `null` rather than guessing when it cannot find an address, the webhook
+answers `202` and logs it, and the provider stops retrying while somebody looks.
+
+Send one test event from the provider's dashboard before the first real sale,
+and check that `/v1/purchases/webhook` answers `{"applied":true}`. Everything
+else in this service is covered by `npm test`; this is the one thing a test
+cannot know.
+
 ## The endpoints
 
 | | | |
@@ -165,7 +183,7 @@ first delivery failed be sent by the next press instead of being lost.
 | `POST /v1/activate` | The one call the app makes. Contract frozen in `docs/PHASE_8.md` | built |
 | `GET /v1/health` | Database, signing key, and whether that key matches the app | built |
 | `POST /v1/devices/release` | Frees one of the two Macs. Possession of the key is the proof | built |
-| `POST /v1/purchases/webhook` | Provider-signed, idempotent on the event id | waits on D2 |
+| `POST /v1/purchases/webhook` | Provider-signed, idempotent on the event id | built; needs D2's account |
 
 The order is `docs/PHASE_8.md`'s: the trial path first, because it is the one a
 stranger walks and the only one that needs nothing bought, decided, or signed up

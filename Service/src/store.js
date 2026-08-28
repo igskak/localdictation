@@ -49,6 +49,10 @@ export class Store {
     return this.first(`SELECT * FROM licenses WHERE id = ?`, [id]);
   }
 
+  async licenseByOrder(orderID) {
+    return this.first(`SELECT * FROM licenses WHERE provider_order_id = ? LIMIT 1`, [orderID]);
+  }
+
   /// Has this address ever had a trial? Asked of every trial ever issued, live
   /// or expired, because the answer "your fourteen days are over" is exactly
   /// what an expired one means.

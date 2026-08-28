@@ -10,6 +10,8 @@ import { Store } from "./store.js";
 import { importSigningKey, importVerifyingKey, signingKeyMatchesAuthority } from "./signing.js";
 import { activate } from "./activate.js";
 import { release } from "./release.js";
+import { handleEvent } from "./webhook.js";
+import { providerFor, signatureHeader } from "./providers.js";
 import { createMailer } from "./mailer.js";
 
 /// Structured, one line per event, and never an address. The key id is what a
@@ -51,6 +53,11 @@ export default {
     if (route === "/v1/devices/release") {
       if (request.method !== "POST") return json(405, { error: "method_not_allowed" });
       return handleRelease(request, env, ctx);
+    }
+
+    if (route === "/v1/purchases/webhook") {
+      if (request.method !== "POST") return json(405, { error: "method_not_allowed" });
+      return handleWebhook(request, env);
     }
 
     return json(404, { error: "not_found" });
@@ -119,6 +126,62 @@ async function handleRelease(request, env, ctx) {
 
   return json(result.status, result.body, result.headers ?? {});
 }
+
+/// The signature is over the body **as it arrived**, so this is the one route
+/// that reads text before it reads JSON. Parsing and re-serializing first is how
+/// a signature check quietly becomes decoration.
+async function handleWebhook(request, env) {
+  const log = makeLog("/v1/purchases/webhook");
+  const provider = providerFor(env);
+  if (!provider) {
+    log("no payment provider configured");
+    return json(503, { error: "not_configured" });
+  }
+
+  const body = await request.text();
+  if (body.length > MAXIMUM_WEBHOOK_BYTES) return json(413, { error: "too_large" });
+
+  const now = Math.floor(Date.now() / 1000);
+  const verified = await provider.verify({
+    header: signatureHeader(provider, request),
+    body,
+    secret: env.WEBHOOK_SECRET,
+    now,
+  });
+  if (!verified) {
+    log("signature refused", { provider: provider.name });
+    return json(401, { error: "bad_signature" });
+  }
+
+  let event;
+  try {
+    event = JSON.parse(body);
+  } catch {
+    return json(400, { error: "invalid_request" });
+  }
+
+  try {
+    const result = await handleEvent({
+      event,
+      provider,
+      env,
+      store: new Store(env.DB),
+      now,
+      mailer: createMailer(env, log),
+      log,
+    });
+    return json(result.status, result.body);
+  } catch (error) {
+    // A 500 is what makes the provider redeliver, which is what should happen:
+    // the event id has been claimed only if the write got that far.
+    log("webhook failed", { reason: String(error?.message ?? "error") });
+    return json(500, { error: "internal" });
+  }
+}
+
+/// Providers send fat events. This is far above any of them and far below
+/// anything worth reading into memory by accident.
+const MAXIMUM_WEBHOOK_BYTES = 128 * 1024;
 
 /// Deliberately more than "the process is running": the failure that matters is
 /// silent. A wrong signing secret issues keys that verify on nobody's Mac while

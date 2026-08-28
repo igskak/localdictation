@@ -5,7 +5,7 @@
   "type": "module",
   "description": "The LocalDictation activation service: issues signed license keys, one per Mac.",
   "scripts": {
-    "test": "node --test --experimental-sqlite test/",
+    "test": "node --test test/*.test.mjs",
     "fixture": "node tools/parity-fixture.mjs",
     "dev": "npx wrangler dev",
     "deploy": "npx wrangler deploy"
