@@ -263,6 +263,7 @@ extension EntitlementLock {
         switch self {
         case .activationRequired: "activationRequired"
         case let .expired(kind, _): "expired:\(kind.rawValue)"
+        case let .updateRequired(covered, running): "updateRequired:\(covered)<\(running)"
         }
     }
 
@@ -270,6 +271,7 @@ extension EntitlementLock {
         switch self {
         case .activationRequired: .activationRequired
         case let .expired(kind, _): kind == .trial ? .trialExpired : .licenseExpired
+        case .updateRequired: .updateRequired
         }
     }
 }

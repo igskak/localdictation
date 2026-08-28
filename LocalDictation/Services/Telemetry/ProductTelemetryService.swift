@@ -41,6 +41,8 @@ enum TelemetryEvent: Sendable, Equatable {
         case activationRequired
         case trialExpired
         case licenseExpired
+        /// A lifetime license on a major version it did not buy.
+        case updateRequired
     }
 
     enum Offer: String, Sendable, Equatable {

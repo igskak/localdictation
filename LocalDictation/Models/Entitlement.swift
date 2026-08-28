@@ -64,6 +64,14 @@ enum EntitlementLock: Sendable, Equatable {
     case activationRequired
     /// A dated license reached its date.
     case expired(LicenseKind, at: Date)
+    /// A lifetime license, on a major version it did not buy.
+    ///
+    /// `docs/PHASE_8_DECISIONS.md` D6 sold "lifetime" as the purchased major
+    /// version and every minor update to it, so this is the one refusal in the
+    /// product that is not about time. It carries both numbers because the
+    /// sentence the user needs names both: what they own, and what they are
+    /// running.
+    case updateRequired(coveredMajor: Int, runningMajor: Int)
 }
 
 /// How much of the ungated window is left.
@@ -108,6 +116,7 @@ enum EntitlementState: Sendable, Equatable {
     var wantsPurchase: Bool {
         switch self {
         case let .locked(.expired(kind, _)): kind != .lifetime
+        case .locked(.updateRequired): true
         case .locked(.activationRequired): false
         case let .licensed(license): license.kind == .trial
         case .ungated: false

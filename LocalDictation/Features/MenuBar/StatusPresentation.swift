@@ -199,6 +199,9 @@ struct StatusPresentation: Sendable, Equatable {
             case let .expired(kind, at):
                 title = "\(kind.displayName) license expired"
                 detail = "It ran out \(Self.dayFormatter.string(from: at)). Renewing unlocks dictation again; nothing on this Mac was touched."
+            case let .updateRequired(covered, running):
+                title = "This version is newer than your license"
+                detail = "Your lifetime license covers version \(covered) and every update to it. This is version \(running). Version \(covered) keeps working forever."
             }
             systemImage = "lock.circle"
             tint = .warning

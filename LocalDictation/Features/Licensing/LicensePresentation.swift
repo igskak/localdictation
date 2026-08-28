@@ -75,7 +75,11 @@ struct LicensePresentation: Sendable, Equatable {
             case .lifetime:
                 showsOffers = false
                 headline = "Lifetime license"
-                detail = "Licensed to \(license.email). This Mac needs nothing further — no renewal, and no connection."
+                detail = """
+                Licensed to \(license.email). This Mac needs nothing further — no renewal, and no \
+                connection. It covers version \(LifetimeUpdatePolicy.coveredMajor(issuedAt: license.issuedAt)) \
+                and every update to it.
+                """
             }
 
         case let .locked(lock):
@@ -108,6 +112,21 @@ struct LicensePresentation: Sendable, Equatable {
                 detail = """
                 It ran out on \(Self.moment.string(from: at)). Renewing unlocks dictation again on \
                 this Mac; nothing local was removed.
+                """
+                retrieveInstead()
+
+            // The one refusal in this product that is not about time. The
+            // sentence has to carry the thing the user actually owns, because
+            // they do own something and it still works — just not this build.
+            case let .updateRequired(covered, running):
+                symbol = "arrow.down.circle"
+                showsOffers = true
+                showsActivation = false
+                headline = "This version is newer than your license"
+                detail = """
+                Your lifetime license covers version \(covered) and every update to it, forever. \
+                This is version \(running). Download version \(covered) again from the website and \
+                it works exactly as it did — or move to version \(running) below.
                 """
                 retrieveInstead()
             }

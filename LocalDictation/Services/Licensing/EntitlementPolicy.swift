@@ -65,12 +65,27 @@ enum EntitlementPolicy {
 
     /// The one decision. `license` is already verified — signature and device
     /// are the key reader's job, not the policy's.
-    static func evaluate(record: UsageRecord, license: License?, now: Date) -> EntitlementState {
+    ///
+    /// `runningVersion` is a parameter rather than a lookup so this stays a pure
+    /// function of its arguments. It is only read for a lifetime license, and
+    /// only because of what "lifetime" was sold as — see `LifetimeUpdatePolicy`.
+    static func evaluate(
+        record: UsageRecord,
+        license: License?,
+        now: Date,
+        runningVersion: String = AppVersion.short
+    ) -> EntitlementState {
         let now = record.effectiveNow(now)
 
         if let license {
             if license.isExpired(at: now) {
                 return .locked(.expired(license.kind, at: license.expiresAt ?? now))
+            }
+            if case let .superseded(covered, running) = LifetimeUpdatePolicy.standing(
+                for: license,
+                runningVersion: runningVersion
+            ) {
+                return .locked(.updateRequired(coveredMajor: covered, runningMajor: running))
             }
             return .licensed(license)
         }

@@ -141,7 +141,7 @@ struct LicenseView: View {
             OfferRow(
                 title: "Lifetime",
                 price: StoreFront.lifetimePrice,
-                detail: "Paid once. Covers two Macs and every update to this major version.",
+                detail: LifetimeUpdatePolicy.promise(),
                 isOpen: StoreFront.lifetimeCheckout != nil
             ) { coordinator.openCheckout(.lifetime) }
 
