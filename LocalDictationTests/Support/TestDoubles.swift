@@ -730,6 +730,26 @@ final class FakeActivationBackend: ActivationBackend, @unchecked Sendable {
             return try result.get()
         }
     }
+
+    // MARK: - Releasing a Mac
+
+    private var releaseError: ActivationError?
+    private(set) var releaseCount = 0
+    private(set) var releasedKey: String?
+    private(set) var releasedDeviceID: String?
+
+    func setReleaseError(_ error: ActivationError?) {
+        lock.withLock { releaseError = error }
+    }
+
+    func releaseDevice(key: String, deviceID: String) async throws {
+        try lock.withLock {
+            releaseCount += 1
+            releasedKey = key
+            releasedDeviceID = deviceID
+            if let releaseError { throw releaseError }
+        }
+    }
 }
 
 /// Collects the product events instead of sending them, which is also what the

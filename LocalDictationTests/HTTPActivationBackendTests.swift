@@ -150,6 +150,58 @@ final class HTTPActivationBackendTests: XCTestCase {
         XCTAssertTrue(message.contains("too large"))
     }
 
+    // MARK: - Giving a Mac back
+
+    /// One service, one constant. The release endpoint is a sibling of the
+    /// activation one so the two cannot end up pointing at different
+    /// deployments.
+    func testTheReleaseEndpointIsASiblingOfTheActivationOne() {
+        XCTAssertEqual(
+            HTTPActivationBackend.siblingRelease(of: endpoint).absoluteString,
+            "https://activation.example.com/v1/devices/release"
+        )
+    }
+
+    /// Two fields again, and the key is one this service issued going back to
+    /// the service that issued it.
+    func testTheReleaseRequestCarriesTheKeyTheDeviceAndNothingElse() async throws {
+        StubActivationProtocol.respond(status: 200, json: ["released": "true"])
+        try await makeBackend().releaseDevice(key: validKey, deviceID: device)
+
+        let request = try XCTUnwrap(StubActivationProtocol.lastRequest)
+        XCTAssertEqual(request.url?.path, "/v1/devices/release")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "User-Agent"), "LocalDictation")
+
+        let sent = try XCTUnwrap(StubActivationProtocol.lastBody)
+        let fields = try XCTUnwrap(JSONSerialization.jsonObject(with: sent) as? [String: String])
+        XCTAssertEqual(fields.keys.sorted(), DeviceReleaseRequestBody.allowedFields)
+        XCTAssertEqual(fields["key"], validKey)
+        XCTAssertEqual(fields["device"], device)
+    }
+
+    func testAReleaseThatWasRefusedSaysWhy() async {
+        StubActivationProtocol.respond(status: 403, json: [
+            "error": "device_mismatch",
+            "message": "That key was issued for a different Mac, so nothing was released."
+        ])
+        do {
+            try await makeBackend().releaseDevice(key: validKey, deviceID: device)
+            XCTFail("expected a refusal")
+        } catch {
+            XCTAssertEqual(error as? ActivationError, .rejected("That key was issued for a different Mac, so nothing was released."))
+        }
+    }
+
+    func testAReleaseAgainstAServiceHavingABadDayIsTemporary() async {
+        StubActivationProtocol.respond(status: 503, body: Data())
+        do {
+            try await makeBackend().releaseDevice(key: validKey, deviceID: device)
+            XCTFail("expected a refusal")
+        } catch {
+            guard case .unreachable? = error as? ActivationError else { return XCTFail("expected unreachable") }
+        }
+    }
+
     // MARK: - Configuration
 
     /// An email address and a device identifier over cleartext is the thing
@@ -161,6 +213,13 @@ final class HTTPActivationBackendTests: XCTestCase {
 
         do {
             _ = try await backend.requestKey(email: email, deviceID: device)
+            XCTFail("expected a refusal")
+        } catch {
+            XCTAssertEqual(error as? ActivationError, .notConfigured)
+        }
+
+        do {
+            try await backend.releaseDevice(key: validKey, deviceID: device)
             XCTFail("expected a refusal")
         } catch {
             XCTAssertEqual(error as? ActivationError, .notConfigured)

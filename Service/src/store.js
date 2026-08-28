@@ -106,6 +106,20 @@ export class Store {
     ]);
   }
 
+  /// The license a key belongs to, found the way the key itself describes it:
+  /// the address it was issued to, the slot it named, and the key id inside it.
+  /// A key whose slot has already been released still finds its license, which
+  /// is what makes releasing twice a no-op rather than an error.
+  async licenseForKey(email, keyID, device) {
+    return this.first(
+      `SELECT licenses.* FROM licenses
+         JOIN device_slots ON device_slots.license_id = licenses.id
+        WHERE licenses.email = ? AND device_slots.device = ? AND device_slots.key_id = ?
+        LIMIT 1`,
+      [email, device, keyID],
+    );
+  }
+
   async liveSlotCount(licenseID) {
     const row = await this.first(
       `SELECT COUNT(*) AS count FROM device_slots WHERE license_id = ? AND released_at IS NULL`,

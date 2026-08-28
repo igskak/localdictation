@@ -16,6 +16,7 @@ working.
 src/
   worker.js     the router, and the health check
   activate.js   POST /v1/activate: the whole of what a person can be told
+  release.js    POST /v1/devices/release: the key is the proof
   token.js      the frozen payload, byte for byte
   signing.js    Ed25519, and the check that the secret matches the shipped app
   store.js      every row, and every question asked of one
@@ -163,7 +164,7 @@ first delivery failed be sent by the next press instead of being lost.
 | --- | --- | --- |
 | `POST /v1/activate` | The one call the app makes. Contract frozen in `docs/PHASE_8.md` | built |
 | `GET /v1/health` | Database, signing key, and whether that key matches the app | built |
-| `POST /v1/devices/release` | Frees one of the two Macs. Possession of the key is the proof | not yet |
+| `POST /v1/devices/release` | Frees one of the two Macs. Possession of the key is the proof | built |
 | `POST /v1/purchases/webhook` | Provider-signed, idempotent on the event id | waits on D2 |
 
 The order is `docs/PHASE_8.md`'s: the trial path first, because it is the one a

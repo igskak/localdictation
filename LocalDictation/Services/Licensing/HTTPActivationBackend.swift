@@ -40,6 +40,7 @@ struct HTTPActivationBackend: ActivationBackend {
     static let maximumResponseBytes = 8 * 1024
 
     private let endpoint: URL
+    private let releaseEndpoint: URL
     private let session: URLSession
 
     /// `isConfigured` is false for a plain-HTTP endpoint rather than silently
@@ -47,9 +48,20 @@ struct HTTPActivationBackend: ActivationBackend {
     /// connection is exactly the thing this product promises not to do, and a
     /// misconfiguration should look like an unfinished build, not like a
     /// working one.
-    init(endpoint: URL, session: URLSession? = nil) {
+    init(endpoint: URL, releaseEndpoint: URL? = nil, session: URLSession? = nil) {
         self.endpoint = endpoint
+        self.releaseEndpoint = releaseEndpoint ?? Self.siblingRelease(of: endpoint)
         self.session = session ?? Self.makeSession()
+    }
+
+    /// `.../v1/activate` and `.../v1/devices/release` are one service, so there
+    /// is one constant to fill in rather than two that could disagree about
+    /// which deployment they point at.
+    static func siblingRelease(of endpoint: URL) -> URL {
+        endpoint
+            .deletingLastPathComponent()
+            .appendingPathComponent("devices")
+            .appendingPathComponent("release")
     }
 
     var isConfigured: Bool { endpoint.scheme?.lowercased() == "https" }
@@ -127,11 +139,59 @@ struct HTTPActivationBackend: ActivationBackend {
         }
     }
 
+    /// Hands one of the two Macs back.
+    ///
+    /// The answer is deliberately thin: released or not. There is nothing for
+    /// the app to read out of a success, and the local half has already been
+    /// decided by the time this is called.
+    func releaseDevice(key: String, deviceID: String) async throws {
+        guard isConfigured else { throw ActivationError.notConfigured }
+
+        var request = URLRequest(url: releaseEndpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("LocalDictation", forHTTPHeaderField: "User-Agent")
+        request.httpBody = try Self.releaseBody(key: key, deviceID: deviceID)
+
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            throw ActivationError.unreachable(error.localizedDescription)
+        }
+
+        guard let http = response as? HTTPURLResponse else {
+            throw ActivationError.unreachable("the reply was not an HTTP response")
+        }
+        guard data.count <= Self.maximumResponseBytes else {
+            throw ActivationError.rejected("The activation service replied with something unreadable.")
+        }
+
+        switch http.statusCode {
+        case 200...299:
+            return
+        case 429:
+            throw ActivationError.unreachable("it is asking us to wait a moment. Try again shortly.")
+        case 500...599:
+            throw ActivationError.unreachable("it answered with an error (\(http.statusCode)).")
+        default:
+            throw ActivationReply(data).error(status: http.statusCode)
+        }
+    }
+
     /// The request body, alone, so a test can assert its shape without a server.
     static func body(email: String, deviceID: String) throws -> Data {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
         return try encoder.encode(ActivationRequestBody(device: deviceID, email: email))
+    }
+
+    static func releaseBody(key: String, deviceID: String) throws -> Data {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        return try encoder.encode(DeviceReleaseRequestBody(device: deviceID, key: key))
     }
 }
 
@@ -141,6 +201,15 @@ struct ActivationRequestBody: Codable, Sendable, Equatable {
     let email: String
 
     static let allowedFields = ["device", "email"]
+}
+
+/// The other two-field body. The key is one this service issued, going back to
+/// the service that issued it, so it tells it nothing it did not already write.
+struct DeviceReleaseRequestBody: Codable, Sendable, Equatable {
+    let device: String
+    let key: String
+
+    static let allowedFields = ["device", "key"]
 }
 
 /// What came back, read defensively.

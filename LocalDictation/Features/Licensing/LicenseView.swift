@@ -12,6 +12,7 @@ struct LicenseView: View {
     @State private var email = ""
     @State private var key = ""
     @State private var isRequesting = false
+    @State private var isReleasing = false
     @State private var notice: Notice?
 
     private enum Notice: Equatable {
@@ -119,10 +120,10 @@ struct LicenseView: View {
                     .disabled(key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
                 if coordinator.entitlement.license != nil {
-                    Button("Remove from this Mac") {
-                        coordinator.removeLicense()
-                        notice = .success("The license was removed from this Mac. The key itself is still good — use it here again, or on another Mac.")
+                    Button(isReleasing ? "Removing…" : "Remove from this Mac") {
+                        Task { await releaseFromThisMac() }
                     }
+                    .disabled(isReleasing)
                 }
             }
 
@@ -188,6 +189,32 @@ struct LicenseView: View {
         } else {
             key = ""
             notice = .success("The key was accepted on this Mac.")
+        }
+    }
+
+    /// Three outcomes, three sentences. The one that matters is the middle one:
+    /// the license is gone from this Mac and the slot is not free, so the user
+    /// has to be told what to do about it rather than left believing they have
+    /// a Mac back.
+    private func releaseFromThisMac() async {
+        isReleasing = true
+        defer { isReleasing = false }
+
+        switch await coordinator.releaseLicenseFromThisMac() {
+        case .releasedEverywhere:
+            notice = .success(
+                "The license was removed from this Mac and the Mac was released, so another one can take its place. "
+                    + "The key itself is still good."
+            )
+        case .removedLocally:
+            notice = .success(
+                "The license was removed from this Mac. The key itself is still good — use it here again, or on another Mac."
+            )
+        case let .removedLocallyOnly(reason):
+            notice = .failure(
+                "Removed from this Mac, but the service could not be told, so this Mac still counts as one of your two. "
+                    + "Keep the key from your email: enter it here again and press Remove when you are back online. (\(reason))"
+            )
         }
     }
 

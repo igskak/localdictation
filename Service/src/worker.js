@@ -7,8 +7,9 @@
 
 import { json, readJSON, clientAddress } from "./http.js";
 import { Store } from "./store.js";
-import { importSigningKey, signingKeyMatchesAuthority } from "./signing.js";
+import { importSigningKey, importVerifyingKey, signingKeyMatchesAuthority } from "./signing.js";
 import { activate } from "./activate.js";
+import { release } from "./release.js";
 import { createMailer } from "./mailer.js";
 
 /// Structured, one line per event, and never an address. The key id is what a
@@ -47,6 +48,11 @@ export default {
       return handleActivate(request, env, ctx);
     }
 
+    if (route === "/v1/devices/release") {
+      if (request.method !== "POST") return json(405, { error: "method_not_allowed" });
+      return handleRelease(request, env, ctx);
+    }
+
     return json(404, { error: "not_found" });
   },
 };
@@ -79,6 +85,36 @@ async function handleActivate(request, env, ctx) {
 
   // Counters are the only place an IP appears and they do not outlive a day.
   // Swept after the answer has gone out rather than in front of it.
+  ctx?.waitUntil?.(store.forgetOldCounters(now).catch(() => {}));
+
+  return json(result.status, result.body, result.headers ?? {});
+}
+
+async function handleRelease(request, env, ctx) {
+  const log = makeLog("/v1/devices/release");
+  const body = await readJSON(request);
+  if (!body) return json(400, { error: "invalid_request", message: "That request was not something this service could read." });
+
+  const store = new Store(env.DB);
+  const now = Math.floor(Date.now() / 1000);
+
+  let result;
+  try {
+    result = await release({
+      body,
+      store,
+      now,
+      clientIP: clientAddress(request),
+      // The public half, which is all this check needs. Nothing about freeing a
+      // slot requires the ability to sign.
+      verifyingKey: await importVerifyingKey(env.LICENSE_PUBLIC_KEY ?? ""),
+      log,
+    });
+  } catch (error) {
+    log("release failed", { reason: String(error?.message ?? "error") });
+    return json(500, { error: "internal" });
+  }
+
   ctx?.waitUntil?.(store.forgetOldCounters(now).catch(() => {}));
 
   return json(result.status, result.body, result.headers ?? {});

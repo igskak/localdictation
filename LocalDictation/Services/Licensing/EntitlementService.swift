@@ -185,6 +185,37 @@ final class EntitlementService {
         }
     }
 
+    /// Takes the license off this Mac and, where there is a service to tell,
+    /// gives the device slot back so another Mac can have it.
+    ///
+    /// The order is the point. The service is told **first**, because the key is
+    /// the only proof this Mac holds that the slot is its to release, and
+    /// removing it locally first would throw that proof away before using it.
+    /// The local removal then happens whatever the answer was: the local half is
+    /// the user's, and a server having a bad day is not a reason to strand
+    /// somebody with a license they cannot move.
+    func releaseFromThisMac() async -> DeviceReleaseOutcome {
+        guard let token = record.licenseToken else { return .removedLocally }
+        guard backend.isConfigured else {
+            removeLicense()
+            return .removedLocally
+        }
+
+        var outcome = DeviceReleaseOutcome.releasedEverywhere
+        do {
+            try await backend.releaseDevice(key: token, deviceID: deviceID)
+            Log.licensing.info("Device slot released")
+        } catch let error as ActivationError {
+            Log.licensing.notice("Device slot could not be released: \(error.failureReason.rawValue, privacy: .public)")
+            outcome = .removedLocallyOnly(error.message)
+        } catch {
+            outcome = .removedLocallyOnly(ActivationError.unreachable(error.localizedDescription).message)
+        }
+
+        removeLicense()
+        return outcome
+    }
+
     /// Removes the license from this Mac. The key itself stays valid — this is
     /// how a user moves a Mac out of their two, not a punishment.
     func removeLicense() {

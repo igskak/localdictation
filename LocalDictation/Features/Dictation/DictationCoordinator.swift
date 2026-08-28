@@ -1077,6 +1077,13 @@ final class DictationCoordinator: ObservableObject {
         entitlementService?.removeLicense()
     }
 
+    /// The button in Settings. Tells the service first, so the slot actually
+    /// comes free, and removes the license here either way.
+    func releaseLicenseFromThisMac() async -> DeviceReleaseOutcome {
+        guard let entitlementService else { return .removedLocally }
+        return await entitlementService.releaseFromThisMac()
+    }
+
     func openCheckout(_ offer: TelemetryEvent.Offer) {
         guard let url = StoreFront.checkoutURL(for: offer) else { return }
         entitlementService?.noteCheckoutOpened(offer)

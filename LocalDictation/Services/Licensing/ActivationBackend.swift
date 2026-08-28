@@ -1,5 +1,23 @@
 import Foundation
 
+/// What happened when a user took the license off this Mac.
+///
+/// Two outcomes rather than one, because there are two halves and only one of
+/// them is this Mac's to decide. The local half always happens — a server
+/// having a bad day is not a reason to strand somebody with a license they
+/// cannot move — and the user is told, in the same breath, whether the slot on
+/// the other side actually came free.
+enum DeviceReleaseOutcome: Sendable, Equatable {
+    /// Removed here, and there was nothing to tell: no service configured, or
+    /// no license on this Mac to begin with.
+    case removedLocally
+    /// Removed here and released there. Another Mac can take the slot.
+    case releasedEverywhere
+    /// Removed here; the service could not be told, and this Mac still counts
+    /// against the two. Carries the sentence the user reads.
+    case removedLocallyOnly(String)
+}
+
 enum ActivationError: Error, Sendable, Equatable {
     /// No activation endpoint is compiled into this build.
     case notConfigured
@@ -37,6 +55,15 @@ protocol ActivationBackend: Sendable {
     var isConfigured: Bool { get }
     /// Returns a signed key for this Mac, or throws something the user can act on.
     func requestKey(email: String, deviceID: String) async throws -> String
+
+    /// Gives one of the two Macs a license covers back.
+    ///
+    /// The key is the proof, and it is the only proof there is: an endpoint that
+    /// freed a slot on an address alone would let anyone who can guess a
+    /// stranger's address evict their Mac. So the key goes back to the service
+    /// that issued it — it carries nothing the service did not already write
+    /// into it — and the service checks the signature before believing a word.
+    func releaseDevice(key: String, deviceID: String) async throws
 }
 
 /// What a build ships with until there is a service to talk to.
@@ -48,6 +75,10 @@ struct UnconfiguredActivationBackend: ActivationBackend {
     var isConfigured: Bool { false }
 
     func requestKey(email: String, deviceID: String) async throws -> String {
+        throw ActivationError.notConfigured
+    }
+
+    func releaseDevice(key: String, deviceID: String) async throws {
         throw ActivationError.notConfigured
     }
 }

@@ -195,6 +195,83 @@ final class EntitlementServiceTests: XCTestCase {
         XCTAssertFalse(service.canRequestActivation)
     }
 
+    // MARK: - Giving a Mac back
+
+    /// The order is what is being asserted. The key is the only proof this Mac
+    /// holds, so it has to reach the service before it is thrown away.
+    func testReleasingTellsTheServiceBeforeItRemovesTheKey() async throws {
+        let clock = Clock(origin)
+        let (authority, signingKey) = TestLicenseIssuer.makeAuthority()
+        let backend = FakeActivationBackend()
+        let service = makeService(authority: authority, backend: backend, clock: clock)
+        let token = try TestLicenseIssuer.issue(kind: .lifetime, deviceID: device, expiresAt: nil, signingKey: signingKey)
+        XCTAssertNoThrow(try service.enter(key: token).get())
+
+        let outcome = await service.releaseFromThisMac()
+
+        XCTAssertEqual(outcome, .releasedEverywhere)
+        XCTAssertEqual(backend.releaseCount, 1)
+        XCTAssertEqual(backend.releasedKey, token)
+        XCTAssertEqual(backend.releasedDeviceID, device)
+        XCTAssertNil(service.state.license)
+    }
+
+    /// A server having a bad day is not a reason to strand somebody with a
+    /// license they cannot move. The local half happens anyway, and the user is
+    /// told the slot did not come free.
+    func testAServiceThatCannotBeReachedStillLetsTheMacGo() async throws {
+        let clock = Clock(origin)
+        let (authority, signingKey) = TestLicenseIssuer.makeAuthority()
+        let backend = FakeActivationBackend()
+        backend.setReleaseError(.unreachable("no network"))
+        let service = makeService(authority: authority, backend: backend, clock: clock)
+        for _ in 0..<5 { service.recordSuccessfulDictation() }
+        let token = try TestLicenseIssuer.issue(kind: .lifetime, deviceID: device, expiresAt: nil, signingKey: signingKey)
+        XCTAssertNoThrow(try service.enter(key: token).get())
+
+        let outcome = await service.releaseFromThisMac()
+
+        guard case let .removedLocallyOnly(message) = outcome else {
+            return XCTFail("expected the local-only outcome, got \(outcome)")
+        }
+        XCTAssertTrue(message.contains("no network"))
+        XCTAssertNil(service.state.license)
+        // The Mac goes back to exactly where it was before the key arrived,
+        // which for a used-up window is the wall.
+        XCTAssertEqual(service.state, .locked(.activationRequired))
+        XCTAssertEqual(backend.releaseCount, 1)
+    }
+
+    /// A build with no service configured removes the license and says nothing
+    /// about slots, because it has nothing to say about them.
+    func testWithNoServiceReleasingIsJustRemoving() async throws {
+        let clock = Clock(origin)
+        let (authority, signingKey) = TestLicenseIssuer.makeAuthority()
+        let backend = FakeActivationBackend(isConfigured: false)
+        let service = makeService(authority: authority, backend: backend, clock: clock)
+        let token = try TestLicenseIssuer.issue(kind: .lifetime, deviceID: device, expiresAt: nil, signingKey: signingKey)
+        XCTAssertNoThrow(try service.enter(key: token).get())
+
+        let outcome = await service.releaseFromThisMac()
+
+        XCTAssertEqual(outcome, .removedLocally)
+        XCTAssertEqual(backend.releaseCount, 0)
+        XCTAssertNil(service.state.license)
+    }
+
+    /// Nothing to release, nothing sent. Pressing the button on a Mac that has
+    /// no license must not spend a slot on the service.
+    func testReleasingWithoutALicenseTellsNobody() async {
+        let clock = Clock(origin)
+        let backend = FakeActivationBackend()
+        let service = makeService(backend: backend, clock: clock)
+
+        let outcome = await service.releaseFromThisMac()
+
+        XCTAssertEqual(outcome, .removedLocally)
+        XCTAssertEqual(backend.releaseCount, 0)
+    }
+
     // MARK: - Telemetry
 
     /// Every product event this app can emit comes from the licensing flow, and
