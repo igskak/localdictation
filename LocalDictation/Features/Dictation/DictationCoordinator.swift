@@ -503,6 +503,17 @@ final class DictationCoordinator: ObservableObject {
     private func beginCapture() {
         guard apply(.hotkeyPressed) else { return }
 
+        // The lock is a precondition, and it is read here rather than inferred
+        // from the line above. `.hotkeyPressed` on a locked Mac is *accepted* —
+        // it transitions to `.locked`, which announces the wall — and reading
+        // that acceptance as permission is how a Mac with no entitlement opens
+        // a microphone. It did, for one release; `DictationCoordinatorLicensingTests`
+        // now waits long enough to see it.
+        guard !state.isLocked else {
+            refuseForLicensing()
+            return
+        }
+
         // A new utterance supersedes whatever is still being transcribed or
         // reviewed, and clears the previous result so the copy action is never
         // ambiguous about which utterance it belongs to. The retained audio of
@@ -1041,9 +1052,14 @@ final class DictationCoordinator: ObservableObject {
     /// The microphone authorization travels with it because unlocking has to
     /// land on the state the Mac is actually in — a user who activated while
     /// microphone access was denied is not suddenly ready.
+    /// Called after every recomputation of the licensing state, so whoever owns
+    /// a window about it can close it when it stops being true.
+    var onEntitlementChanged: (@MainActor (EntitlementState) -> Void)?
+
     private func applyEntitlement(_ state: EntitlementState) {
         entitlement = state
         apply(.entitlementResolved(state.lock, permissionService.currentAuthorization))
+        onEntitlementChanged?(state)
     }
 
     /// Accepts a pasted key. Returns the failure so the view can print the one
@@ -1071,6 +1087,21 @@ final class DictationCoordinator: ObservableObject {
         case let .failure(error):
             return error
         }
+    }
+
+    /// A hotkey press that licensing refused.
+    ///
+    /// Called on the press rather than when the lock arrives, because a window
+    /// that appears while somebody is typing in another application is an
+    /// interruption and this is an answer. The user asked a question — they
+    /// pressed the key — and this is the only place the app can answer it: an
+    /// agent has no Dock icon to bounce and no window of its own.
+    var onDictationRefusedByLicensing: (@MainActor () -> Void)?
+
+    private func refuseForLicensing() {
+        guard let lock = entitlement.lock else { return }
+        Log.licensing.notice("Dictation refused: \(lock.logLabel, privacy: .public)")
+        onDictationRefusedByLicensing?()
     }
 
     func removeLicense() {

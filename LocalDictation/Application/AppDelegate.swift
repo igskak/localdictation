@@ -16,11 +16,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// which for a returning user is before the app ever runs.
     private var languageSetup: LanguageSetupWindowController?
 
+    /// Owns the window a refused hotkey press opens. Like the review panel, it
+    /// has to live outside the menu bar scene: it appears while the user is in
+    /// another application and has clicked nothing of ours.
+    private var activation: ActivationWindowController?
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         Log.application.info("LocalDictation launched as a menu bar utility")
         if let coordinator = Self.coordinator {
             reviewPanel = ReviewPanelController(coordinator: coordinator)
+
+            // The one thing a locked user reliably does is press the hotkey, so
+            // that press is where the app answers. Wired before `activate`, so
+            // a press cannot arrive with nowhere to go.
+            let activation = ActivationWindowController(coordinator: coordinator)
+            self.activation = activation
+            coordinator.onDictationRefusedByLicensing = { [weak activation] in
+                activation?.present()
+            }
+            coordinator.onEntitlementChanged = { [weak activation] _ in
+                activation?.dismissIfEntitled()
+            }
         }
         Self.coordinator?.activate()
         // After `activate`, which is what reads the settings file: whether the

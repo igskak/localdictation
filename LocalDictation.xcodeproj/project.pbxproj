@@ -17,6 +17,7 @@
 		0A6936319B6C5D5454562E93 /* TranscriptionScorer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C606A05F36237CE4C778FDF7 /* TranscriptionScorer.swift */; };
 		0D08AD4E50471C449902CA63 /* DictationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = F48804D0EBAC4DA1D2A077D3 /* DictationCoordinator.swift */; };
 		354D11B418BE6C9525446FF0 /* LanguageSelectionEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98324665D26EF5FF86B46775 /* LanguageSelectionEditor.swift */; };
+		AD373B52A490B3DB93000313 /* ActivationWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB57BFA49090CEF5A3DEA1E4 /* ActivationWindowController.swift */; };
 		DA9C5556C76B3BE910570ABA /* EntitlementNotice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6582E471D8A1C94DD4100CEB /* EntitlementNotice.swift */; };
 		21E725559A584F29BB361363 /* LicensePresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = E951DC4E8F6BB3F6CD44A63C /* LicensePresentation.swift */; };
 		5F5C0D8DCF4F722ED1291781 /* LicenseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2606DC92558E0D5A80BB09B6 /* LicenseView.swift */; };
@@ -189,6 +190,7 @@
 		C606A05F36237CE4C778FDF7 /* TranscriptionScorer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionScorer.swift; sourceTree = "<group>"; };
 		F48804D0EBAC4DA1D2A077D3 /* DictationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationCoordinator.swift; sourceTree = "<group>"; };
 		98324665D26EF5FF86B46775 /* LanguageSelectionEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageSelectionEditor.swift; sourceTree = "<group>"; };
+		CB57BFA49090CEF5A3DEA1E4 /* ActivationWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivationWindowController.swift; sourceTree = "<group>"; };
 		6582E471D8A1C94DD4100CEB /* EntitlementNotice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntitlementNotice.swift; sourceTree = "<group>"; };
 		E951DC4E8F6BB3F6CD44A63C /* LicensePresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicensePresentation.swift; sourceTree = "<group>"; };
 		2606DC92558E0D5A80BB09B6 /* LicenseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseView.swift; sourceTree = "<group>"; };
@@ -403,6 +405,7 @@
 		36C525AA94D2B09167D66843 /* Licensing */ = {
 			isa = PBXGroup;
 			children = (
+				CB57BFA49090CEF5A3DEA1E4 /* ActivationWindowController.swift */,
 				6582E471D8A1C94DD4100CEB /* EntitlementNotice.swift */,
 				E951DC4E8F6BB3F6CD44A63C /* LicensePresentation.swift */,
 				2606DC92558E0D5A80BB09B6 /* LicenseView.swift */,
@@ -908,6 +911,7 @@
 				0A6936319B6C5D5454562E93 /* TranscriptionScorer.swift in Sources */,
 				0D08AD4E50471C449902CA63 /* DictationCoordinator.swift in Sources */,
 				354D11B418BE6C9525446FF0 /* LanguageSelectionEditor.swift in Sources */,
+				AD373B52A490B3DB93000313 /* ActivationWindowController.swift in Sources */,
 				DA9C5556C76B3BE910570ABA /* EntitlementNotice.swift in Sources */,
 				21E725559A584F29BB361363 /* LicensePresentation.swift in Sources */,
 				5F5C0D8DCF4F722ED1291781 /* LicenseView.swift in Sources */,

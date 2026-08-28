@@ -70,6 +70,17 @@ enum RecordingState: Sendable, Equatable {
 
     var isTranscribing: Bool { self == .transcribing }
 
+    /// The licensing precondition, read off the state.
+    ///
+    /// A caller that has just applied `.hotkeyPressed` has to ask this rather
+    /// than trust that the event was accepted: a press on a locked Mac *is*
+    /// accepted, and what it transitions to is `.locked` — the announcement,
+    /// not permission to record.
+    var isLocked: Bool {
+        if case .locked = self { return true }
+        return false
+    }
+
     var isInserting: Bool { self == .inserting }
 
     /// States whose progress must not be clobbered by an authorization re-read
@@ -201,6 +212,14 @@ struct RecordingStateMachine: Sendable, Equatable {
             // Pressing the key is how most users will discover the lock, so it
             // answers rather than doing nothing — except while something is
             // still in flight, which must finish on its own terms.
+            //
+            // The answer is `.locked`, and it is an announcement rather than a
+            // permission. Whoever applied this event must read the state it
+            // produced before opening a microphone: this returns a transition,
+            // and a caller that treats "the event was accepted" as "the press
+            // was allowed" records on a Mac that is not entitled to. There is a
+            // test for exactly that, and it exists because that is what
+            // happened.
             guard !state.isBusy else { return nil }
             return lock.map(RecordingState.locked)
 

@@ -115,9 +115,40 @@ final class DictationCoordinatorLicensingTests: XCTestCase {
 
         harness.hotkey.emit(.pressed)
         harness.hotkey.emit(.released)
+        // Waited for on purpose. Capture is started from a task, so asserting
+        // straight after the press asserts that the task has not run yet rather
+        // than that it will not record — which is exactly the shape this test
+        // had while a locked Mac was quietly opening the microphone.
+        try await Task.sleep(nanoseconds: 200_000_000)
 
         XCTAssertEqual(harness.capture.startCount, startsBefore, "a locked Mac must not record")
         XCTAssertEqual(harness.coordinator.state, .locked(.activationRequired))
+    }
+
+    /// The press is where the app answers, so the press is where the answer is
+    /// asked for. Anything else — a timer, a window at launch — would be an
+    /// interruption rather than a reply.
+    func testARefusedPressAsksForTheActivationWindow() async throws {
+        let harness = makeHarness()
+        var refusals = 0
+        harness.coordinator.onDictationRefusedByLicensing = { refusals += 1 }
+
+        for _ in 0..<5 {
+            try await dictate(harness)
+            harness.coordinator.clearTranscript()
+        }
+        try await waitUntil("locked") { harness.coordinator.state == .locked(.activationRequired) }
+        XCTAssertEqual(refusals, 0, "the five dictations that were allowed asked for nothing")
+
+        harness.hotkey.emit(.pressed)
+        harness.hotkey.emit(.released)
+        XCTAssertEqual(refusals, 1)
+
+        // And a second press asks again: the user has repeated the question, so
+        // repeating the answer is right. The window itself does not stack.
+        harness.hotkey.emit(.pressed)
+        harness.hotkey.emit(.released)
+        XCTAssertEqual(refusals, 2)
     }
 
     /// A press that recognized nothing produced no value, so it costs nothing.
