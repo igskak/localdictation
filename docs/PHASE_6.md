@@ -124,7 +124,11 @@ on is a transport, not a design.
   the other way in, rather than pretending to succeed. A stub that silently
   worked would make every activation test pass and ship the product broken. The
   contract it will implement is one call: email plus device hash in, a signed
-  key out, and nothing else in either direction.
+  key out, and nothing else in either direction. That contract is now written
+  down and implemented on this side — `HTTPActivationBackend` makes the call,
+  `HTTPActivationBackendTests` pins every answer it can get, and
+  `ActivationEndpoint.production` is the single `nil` that turns it on. The
+  service it will talk to is specified in `docs/PHASE_8.md`.
 - **A checkout.** `docs/PRODUCT_SCOPE.md` makes Stripe Managed Payments
   conditional on availability and product eligibility in the project account,
   and neither is confirmed. `StoreFront`'s two URLs are `nil`, the Buy buttons
@@ -190,7 +194,9 @@ xcodebuild test -project LocalDictation.xcodeproj -scheme LocalDictation -destin
 ## What is still open
 
 - The activation service, and with it the counting of the two Macs a license
-  covers. Until it exists, activation is a key issued by hand.
+  covers. Until it exists, activation is a key issued by hand. `docs/PHASE_8.md`
+  is its specification, along with the frozen wire contract the client already
+  implements.
 - Checkout, which waits on the Stripe account decision recorded in
   `docs/PRODUCT_SCOPE.md`.
 - Signing, notarization, and updates: `docs/PHASE_6_RELEASE.md`, none of it run.
