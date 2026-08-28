@@ -13,6 +13,27 @@ struct LicensePresentation: Sendable, Equatable {
     let showsOffers: Bool
     /// Whether the email-for-a-key form is the thing to do now.
     let showsActivation: Bool
+    /// Whether the address form should be reachable even though it is not what
+    /// this state leads with.
+    ///
+    /// A paid key is issued for a Mac, and at the moment of purchase nobody
+    /// knows which Mac that is — so a license bought in a browser becomes a key
+    /// on this machine only when the owner's address is handed to the service
+    /// from inside the app. Without this, someone who has just paid on an
+    /// expired trial sees the offers they have already taken and has nowhere to
+    /// type the address they paid with.
+    ///
+    /// Given a default, like `StatusPresentation.showsLicenseAction`, so the
+    /// states with nothing to fetch do not each have to say so.
+    private(set) var offersKeyRetrieval = false
+    /// What the form is called, what its button says, and the sentence under
+    /// it. All three travel with the flag because which of the two errands the
+    /// form is running changes all three, and copy in this file is testable.
+    private(set) var activationTitle = "Activate the trial"
+    private(set) var activationButtonTitle = "Send me a key"
+    private(set) var activationHint = "The address and an identifier for this Mac are the only things sent, "
+        + "and they are sent only when you press the button. No audio, no text, and nothing from your "
+        + "dictionary ever leaves this Mac."
     let symbol: String
 
     init(state: EntitlementState, now: Date = Date()) {
@@ -45,10 +66,12 @@ struct LicensePresentation: Sendable, Equatable {
                 showsOffers = true
                 headline = "Trial, activated"
                 detail = Self.remaining(license, now: now, suffix: "A license keeps it after that, on this Mac and one more.")
+                retrieveInstead()
             case .annual:
                 showsOffers = false
                 headline = "Annual license"
                 detail = Self.remaining(license, now: now, suffix: "Licensed to \(license.email).")
+                retrieveInstead()
             case .lifetime:
                 showsOffers = false
                 headline = "Lifetime license"
@@ -76,6 +99,7 @@ struct LicensePresentation: Sendable, Equatable {
                 Fourteen days ran out on \(Self.moment.string(from: at)). Your dictionary and \
                 settings are untouched and come straight back with a license.
                 """
+                retrieveInstead()
             case let .expired(kind, at):
                 symbol = "lock"
                 showsOffers = true
@@ -85,8 +109,20 @@ struct LicensePresentation: Sendable, Equatable {
                 It ran out on \(Self.moment.string(from: at)). Renewing unlocks dictation again on \
                 this Mac; nothing local was removed.
                 """
+                retrieveInstead()
             }
         }
+    }
+
+    /// Turns the form from "start a trial" into "fetch what I already own" —
+    /// the same one call to the same service, a different errand.
+    private mutating func retrieveInstead() {
+        offersKeyRetrieval = true
+        activationTitle = "Already bought a license?"
+        activationButtonTitle = "Send my key"
+        activationHint = "The address you bought with fetches a key for this Mac. It and an identifier "
+            + "for this Mac are the only things sent, and only when you press the button — no audio, "
+            + "no text, and nothing from your dictionary."
     }
 
     private static func remaining(_ license: License, now: Date, suffix: String) -> String {

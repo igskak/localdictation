@@ -70,6 +70,62 @@ final class LicensePresentationTests: XCTestCase {
         XCTAssertTrue(presentation.showsOffers)
     }
 
+    // MARK: - Fetching a license that was bought elsewhere
+
+    /// A paid key names a Mac, and a browser does not know which Mac. So the
+    /// address form has to stay reachable everywhere a user might already own
+    /// something this machine has no key for — without ever becoming the thing
+    /// an expired trial leads with.
+    func testAnExpiredTrialCanStillFetchAKeyThatWasBought() {
+        let presentation = LicensePresentation(state: .locked(.expired(.trial, at: now)), now: now)
+
+        XCTAssertTrue(presentation.offersKeyRetrieval)
+        XCTAssertFalse(presentation.showsActivation, "the offer still leads")
+        XCTAssertEqual(presentation.activationButtonTitle, "Send my key")
+        XCTAssertTrue(presentation.activationHint.contains("bought with"))
+    }
+
+    func testAnActivatedTrialCanFetchTheLicenseThatReplacesIt() {
+        let presentation = LicensePresentation(state: .licensed(makeLicense(kind: .trial)), now: now)
+
+        XCTAssertTrue(presentation.offersKeyRetrieval)
+    }
+
+    func testAnExpiredAnnualLicenseCanFetchItsRenewal() {
+        let presentation = LicensePresentation(state: .locked(.expired(.annual, at: now)), now: now)
+
+        XCTAssertTrue(presentation.offersKeyRetrieval)
+    }
+
+    /// Two forms doing the same thing, one above the other. The states that
+    /// already lead with the form have nothing to retrieve.
+    func testTheFormIsNeverOfferedTwice() {
+        for state in [EntitlementState.ungated(.untouched), .locked(.activationRequired)] {
+            let presentation = LicensePresentation(state: state, now: now)
+            XCTAssertTrue(presentation.showsActivation)
+            XCTAssertFalse(presentation.offersKeyRetrieval)
+            XCTAssertEqual(presentation.activationButtonTitle, "Send me a key")
+        }
+    }
+
+    func testALifetimeLicenseHasNothingLeftToFetch() {
+        let presentation = LicensePresentation(state: .licensed(makeLicense(kind: .lifetime)), now: now)
+
+        XCTAssertFalse(presentation.offersKeyRetrieval)
+        XCTAssertFalse(presentation.showsActivation)
+    }
+
+    private func makeLicense(kind: LicenseKind) -> License {
+        License(
+            id: "lic",
+            email: "owner@example.com",
+            kind: kind,
+            deviceID: "device",
+            issuedAt: now,
+            expiresAt: kind == .lifetime ? nil : now.addingTimeInterval(5 * 86_400)
+        )
+    }
+
     /// The status line the menu bar shows, which is the only licensing text
     /// most users will ever read.
     func testTheMenuBarSaysWhichDoorIsInFront() {

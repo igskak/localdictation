@@ -27,7 +27,11 @@ struct LicenseView: View {
         Form {
             standing
 
-            if presentation.showsActivation {
+            // The form appears when it is the thing to do, and also when the
+            // user may be holding a license this Mac has not been given a key
+            // for — but in the second case only if there is a service to ask,
+            // because a form that can only refuse is worse than no form.
+            if presentation.showsActivation || (presentation.offersKeyRetrieval && coordinator.canRequestActivation) {
                 activation
             }
 
@@ -76,13 +80,13 @@ struct LicenseView: View {
     }
 
     private var activation: some View {
-        Section("Activate the trial") {
+        Section(presentation.activationTitle) {
             TextField("Email address", text: $email, prompt: Text("you@example.com"))
                 .textFieldStyle(.roundedBorder)
                 .disabled(isRequesting)
 
             HStack {
-                Button(isRequesting ? "Sending…" : "Send me a key") {
+                Button(isRequesting ? "Sending…" : presentation.activationButtonTitle) {
                     Task { await requestActivation() }
                 }
                 .disabled(isRequesting || email.isEmpty || !coordinator.canRequestActivation)
@@ -94,7 +98,7 @@ struct LicenseView: View {
 
             Text(
                 coordinator.canRequestActivation
-                    ? "The address and an identifier for this Mac are the only things sent, and they are sent only when you press the button. No audio, no text, and nothing from your dictionary ever leaves this Mac."
+                    ? presentation.activationHint
                     : "This build has no activation service yet. Paste a key below instead — that path works offline and is what the app checks in either case."
             )
             .font(.callout)
@@ -188,12 +192,20 @@ struct LicenseView: View {
     }
 
     private func requestActivation() async {
+        // Read before the call: a successful one changes the state, and the
+        // sentence afterwards has to describe the errand the user actually ran
+        // rather than where they ended up.
+        let wasRetrieval = presentation.offersKeyRetrieval
         isRequesting = true
         defer { isRequesting = false }
         if let error = await coordinator.requestActivation(email: email) {
             notice = .failure(error.message)
         } else {
-            notice = .success("Activated. The trial runs for fourteen days from your first dictation.")
+            notice = .success(
+                wasRetrieval
+                    ? "The key for this Mac was accepted."
+                    : "Activated. The trial runs for fourteen days from your first dictation."
+            )
         }
     }
 }
