@@ -99,6 +99,43 @@ final class LicenseIssuerToolTests: XCTestCase {
         XCTAssertEqual(days, 14)
     }
 
+    /// The hand issuer and the service issue into the same format, so the tool
+    /// is held to the same frozen payload `ActivationServiceParityTests` holds
+    /// `Service/` to: compact, lexicographic, whole seconds.
+    ///
+    /// The rule that costs something is the last one. `timeIntervalSince1970`
+    /// is a `Double`, and a key with a fractional timestamp is a key whose bytes
+    /// no other implementation of this format will reproduce.
+    func testTheToolWritesTheFrozenPayload() throws {
+        try run(["init"])
+        let token = try run([
+            "issue", "--device", "0123456789abcdef0123456789abcdef",
+            "--email", "owner@example.com", "--kind", "annual"
+        ]).trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let encoded = String(token.split(separator: ".")[1])
+        let data = try XCTUnwrap(Data(base64URLEncoded: encoded))
+        let json = try XCTUnwrap(String(data: data, encoding: .utf8))
+
+        XCTAssertFalse(json.contains(" "), "the payload is compact")
+        // A decimal point between two digits, anywhere. Checked on the text
+        // rather than on decoded numbers because it is the text that is signed,
+        // and `1700092800.0` and `1700092800` decode to the same `Double` and
+        // to different bytes.
+        XCTAssertNil(
+            json.range(of: "[0-9]\\.[0-9]", options: .regularExpression),
+            "the timestamps are whole seconds: \(json)"
+        )
+
+        let fields = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        XCTAssertEqual(fields.keys.sorted(), ["device", "email", "expires", "id", "issued", "kind"])
+
+        let positions = ["device", "email", "expires", "id", "issued", "kind"]
+            .compactMap { json.range(of: "\"\($0)\":")?.lowerBound }
+        XCTAssertEqual(positions.count, 6)
+        XCTAssertEqual(positions, positions.sorted(), "keys are in lexicographic order")
+    }
+
     /// The tool refuses to overwrite a signing key, because doing so would
     /// invalidate every license already sold.
     func testTheToolRefusesToReplaceASigningKey() throws {

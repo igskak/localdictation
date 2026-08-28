@@ -99,7 +99,11 @@ func runIssue() {
         fail("--kind must be trial, annual, or lifetime.")
     }
 
-    let issued = Date()
+    // Whole seconds, deliberately. `docs/PHASE_8.md` freezes the payload, and a
+    // fractional value encodes differently in Swift and in JavaScript — the
+    // service that will take this tool's place has to be able to emit the same
+    // bytes, and the signature is over the bytes.
+    let issued = Date(timeIntervalSince1970: Date().timeIntervalSince1970.rounded(.down))
     var expires: Date?
     switch kind {
     case "trial":
@@ -116,10 +120,10 @@ func runIssue() {
         "\"device\":\"\(device)\"",
         "\"email\":\"\(email)\"",
         "\"id\":\"\(UUID().uuidString.lowercased())\"",
-        "\"issued\":\(issued.timeIntervalSince1970)",
+        "\"issued\":\(Int(issued.timeIntervalSince1970))",
         "\"kind\":\"\(kind)\""
     ]
-    if let expires { fields.append("\"expires\":\(expires.timeIntervalSince1970)") }
+    if let expires { fields.append("\"expires\":\(Int(expires.timeIntervalSince1970))") }
     let payload = Data("{\(fields.sorted().joined(separator: ","))}".utf8)
 
     let signingKey = loadSigningKey()

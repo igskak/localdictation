@@ -108,13 +108,18 @@ enum LicenseKey {
         expiresAt: Date?,
         signingKey: Curve25519.Signing.PrivateKey
     ) throws -> String {
+        // Whole seconds. `docs/PHASE_8.md` freezes the payload that way because
+        // the signature is over the bytes and a fractional value encodes
+        // differently in Swift and in JavaScript. The *reader* above stays
+        // liberal — a key issued before this rule existed still verifies — but
+        // nothing in this repository signs one any more.
         let payload = Payload(
             id: id,
             email: email,
             kind: kind,
             device: deviceID,
-            issued: issuedAt.timeIntervalSince1970,
-            expires: expiresAt?.timeIntervalSince1970
+            issued: issuedAt.timeIntervalSince1970.rounded(.down),
+            expires: expiresAt?.timeIntervalSince1970.rounded(.down)
         )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
