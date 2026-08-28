@@ -8,7 +8,18 @@ import SwiftUI
 /// `LanguageSetupWindowController`.
 @MainActor
 final class LanguageSetupModel: ObservableObject {
+    /// Which of the two first-run screens is up.
+    ///
+    /// One window rather than two, because they are one errand: the question,
+    /// and then what to do now that it is answered. A second window would be a
+    /// second thing to dismiss.
+    enum Step: Sendable, Equatable {
+        case languages
+        case ready
+    }
+
     @Published var selection: LanguageProfile
+    @Published var step: Step = .languages
 
     init(selection: LanguageProfile) {
         self.selection = selection
@@ -52,5 +63,27 @@ struct LanguageSetupView: View {
         }
         .padding(20)
         .frame(width: 520, height: 620)
+    }
+}
+
+/// The two first-run screens, in one window.
+///
+/// Split from `LanguageSetupView` rather than folded into it so the question
+/// stays a view over a selection and nothing else — it is the one thing in this
+/// window that has to lay out a hundred rows, and `LanguageSetupTests` renders
+/// it on its own for exactly that reason.
+struct FirstRunView: View {
+    @ObservedObject var model: LanguageSetupModel
+    @ObservedObject var coordinator: DictationCoordinator
+    let confirm: () -> Void
+    let finish: () -> Void
+
+    var body: some View {
+        switch model.step {
+        case .languages:
+            LanguageSetupView(model: model, confirm: confirm)
+        case .ready:
+            FirstRunReadyView(coordinator: coordinator, finish: finish)
+        }
     }
 }

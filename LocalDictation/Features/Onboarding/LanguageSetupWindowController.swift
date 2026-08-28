@@ -35,7 +35,7 @@ final class LanguageSetupWindowController: NSObject, NSWindowDelegate {
         super.init()
     }
 
-    /// Shows the question, if it has not been answered.
+    /// Shows the first run, if the question has not been answered.
     ///
     /// Safe to call more than once: a second call while the window is up brings
     /// it forward rather than building another one.
@@ -53,9 +53,14 @@ final class LanguageSetupWindowController: NSObject, NSWindowDelegate {
             backing: .buffered,
             defer: false
         )
-        window.title = "Languages"
+        window.title = "LocalDictation"
         window.contentView = NSHostingView(
-            rootView: LanguageSetupView(model: model) { [weak self] in self?.confirmSelection() }
+            rootView: FirstRunView(
+                model: model,
+                coordinator: coordinator,
+                confirm: { [weak self] in self?.confirmSelection() },
+                finish: { [weak self] in self?.finish() }
+            )
         )
         window.delegate = self
         window.isReleasedWhenClosed = false
@@ -76,15 +81,31 @@ final class LanguageSetupWindowController: NSObject, NSWindowDelegate {
 
     /// What the Continue button does, and the only thing that answers the
     /// question. Internal so a test can press it without a click.
+    ///
+    /// It does not close the window. The answer is recorded and the window moves
+    /// on to the half of the first run that used to be missing entirely — what
+    /// the hotkey is, what macOS will ask for, and what happens after the fifth
+    /// dictation.
     func confirmSelection() {
         guard !isAnswered else { return }
         isAnswered = true
         coordinator.completeLanguageSetup(with: model.selection)
+        model.step = .ready
+    }
+
+    /// The end of the first run. Closing the window by hand does the same
+    /// thing — nothing here is a second question, so nothing here can be left
+    /// unanswered.
+    func finish() {
         window?.close()
     }
 
-    /// Whether the question is on screen.
-    var isAsking: Bool { window?.isVisible == true }
+    /// Whether the question is on screen. The second screen is not a question,
+    /// so it does not count as asking one.
+    var isAsking: Bool { window?.isVisible == true && model.step == .languages }
+
+    /// Whether the window is up at all, in either of its two states.
+    var isPresenting: Bool { window?.isVisible == true }
 
     func windowWillClose(_ notification: Notification) {
         window = nil

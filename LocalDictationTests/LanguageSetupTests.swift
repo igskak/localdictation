@@ -113,6 +113,40 @@ final class LanguageSetupTests: XCTestCase {
         XCTAssertTrue(store.stored.hasChosenLanguages)
         XCTAssertEqual(store.stored.languageProfile, .default)
         XCTAssertFalse(controller.isAsking, "Answering closes the question")
+        XCTAssertTrue(controller.isPresenting, "and hands the window to what to do next")
+
+        controller.finish()
+        try await settle()
+        XCTAssertFalse(controller.isPresenting)
+    }
+
+    /// The half of the first run that used to be missing. A menu bar utility
+    /// with no Dock icon and no window has to say what the hotkey is, or the
+    /// person who just installed it has nothing to press.
+    func testWhatToDoNextLaysOutAndNamesTheHotkey() async throws {
+        let coordinator = makeCoordinator(InMemoryPreferencesStore())
+        let size = render(FirstRunReadyView(coordinator: coordinator) {})
+
+        XCTAssertGreaterThan(size.width, 0)
+        XCTAssertGreaterThan(size.height, 0)
+        XCTAssertEqual(coordinator.binding.displayString, "\u{2325}Space")
+    }
+
+    /// Closing the second screen is not an unanswered question, so it must not
+    /// bring the first one back at the next launch.
+    func testClosingAfterTheAnswerDoesNotReopenTheQuestion() async throws {
+        let store = InMemoryPreferencesStore()
+        let coordinator = makeCoordinator(store)
+        let controller = LanguageSetupWindowController(coordinator: coordinator)
+        controller.presentIfNeeded()
+        try await settle()
+
+        controller.confirmSelection()
+        controller.window?.close()
+        try await settle()
+
+        XCTAssertFalse(coordinator.needsLanguageSetup)
+        XCTAssertTrue(store.stored.hasChosenLanguages)
     }
 
     /// Answering and then closing is one answer, not an answer followed by a
