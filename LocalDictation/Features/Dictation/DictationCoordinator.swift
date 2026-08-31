@@ -105,6 +105,15 @@ final class DictationCoordinator: ObservableObject {
     /// be tested with a clock.
     @Published private(set) var entitlement: EntitlementState = .ungated(.untouched)
 
+    /// Bumped every time a press asks for something a locked Mac cannot give.
+    ///
+    /// A counter and not a flag: the second press of a person who closed the
+    /// window and tried again is a second request, and a flag would swallow it.
+    /// What the counter does *not* decide is whether anything is shown — the
+    /// window controller owns that, and `notePaywallShown` is what says the
+    /// price actually reached a screen.
+    @Published private(set) var paywallRequests = 0
+
     /// The key combination that records, and how it behaves.
     ///
     /// Published rather than constant from here on: ⌥Space is a default, not
@@ -501,6 +510,21 @@ final class DictationCoordinator: ObservableObject {
     // MARK: - Capture
 
     private func beginCapture() {
+        // A locked Mac answers the press instead of recording it.
+        //
+        // The machine is applied first and its verdict respected: a lock that
+        // arrived mid-utterance leaves the words in flight alone, so a press
+        // that lands during one is refused here as everywhere else. What must
+        // not happen is falling through to the guard below, where a `.locked ->
+        // .locked` transition reads as success — that opened the microphone on
+        // a Mac that is not allowed to record at all, and left it open, because
+        // every event that would have closed it is refused in `.locked`.
+        if entitlement.lock != nil {
+            guard apply(.hotkeyPressed) else { return }
+            paywallRequests += 1
+            return
+        }
+
         guard apply(.hotkeyPressed) else { return }
 
         // A new utterance supersedes whatever is still being transcribed or
@@ -1075,6 +1099,16 @@ final class DictationCoordinator: ObservableObject {
 
     func removeLicense() {
         entitlementService?.removeLicense()
+    }
+
+    /// Called by whoever put the price on the screen, and by nobody else.
+    ///
+    /// `paywall_shown` used to be sent when the Mac became locked, which is a
+    /// different fact and a much commoner one: a Mac can lock at launch, in the
+    /// background, with nothing visible. The number that matters commercially
+    /// is how many people saw a price, so it is counted where a price is drawn.
+    func notePaywallShown() {
+        entitlementService?.notePaywallShown()
     }
 
     func openCheckout(_ offer: TelemetryEvent.Offer) {
