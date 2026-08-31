@@ -20,6 +20,7 @@
 		21E725559A584F29BB361363 /* LicensePresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = E951DC4E8F6BB3F6CD44A63C /* LicensePresentation.swift */; };
 		5F5C0D8DCF4F722ED1291781 /* LicenseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2606DC92558E0D5A80BB09B6 /* LicenseView.swift */; };
 		71DF2BCEB0D36970DB0F39DD /* StoreFront.swift in Sources */ = {isa = PBXBuildFile; fileRef = B196D95CBF732E9FD874013E /* StoreFront.swift */; };
+		9A1C77E30B54D2A6F1E30011 /* PaywallWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1C77E30B54D2A6F1E30022 /* PaywallWindowController.swift */; };
 		D6BB1190558CDC9619E29770 /* MenuBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1242C2836357BAEED2AC427F /* MenuBarView.swift */; };
 		CDA3C6B4ACB4B26F7671A075 /* StatusPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9348BA768C69D02E8ABDD273 /* StatusPresentation.swift */; };
 		D027F225CF196FFE19418759 /* LanguageSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 127FF204D665A5A417C088FB /* LanguageSetupView.swift */; };
@@ -105,6 +106,7 @@
 		D3221E590B4F1C12099CF2B2 /* Log.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9AFA856A5F080EB146F03F7 /* Log.swift */; };
 		C7DB64B09DC1F01009BA0C8F /* UnfairLock.swift in Sources */ = {isa = PBXBuildFile; fileRef = E67803C1BDBA55E09FB2398D /* UnfairLock.swift */; };
 		44E9E90EFB94DE133E6A0034 /* ANEBundleCacheSweeperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D784F80297AE0F946E638E7C /* ANEBundleCacheSweeperTests.swift */; };
+		9A1C77E30B54D2A6F1E30033 /* PaywallWindowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A1C77E30B54D2A6F1E30044 /* PaywallWindowTests.swift */; };
 		C937D4ED9D4E903CB5486478 /* AXTextInsertionServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEBB6912DC8B4D653A074834 /* AXTextInsertionServiceTests.swift */; };
 		3C6766FB84D9FB7521A6A7AF /* AudioFormatConverterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E724DC5B9AB291F8DE43FC73 /* AudioFormatConverterTests.swift */; };
 		15CED33DBC5D93E4502DB6E9 /* BenchmarkRunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF1EB70F3CC77FC666095A7 /* BenchmarkRunnerTests.swift */; };
@@ -189,6 +191,7 @@
 		E951DC4E8F6BB3F6CD44A63C /* LicensePresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicensePresentation.swift; sourceTree = "<group>"; };
 		2606DC92558E0D5A80BB09B6 /* LicenseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseView.swift; sourceTree = "<group>"; };
 		B196D95CBF732E9FD874013E /* StoreFront.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreFront.swift; sourceTree = "<group>"; };
+		9A1C77E30B54D2A6F1E30022 /* PaywallWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallWindowController.swift; sourceTree = "<group>"; };
 		1242C2836357BAEED2AC427F /* MenuBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarView.swift; sourceTree = "<group>"; };
 		9348BA768C69D02E8ABDD273 /* StatusPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusPresentation.swift; sourceTree = "<group>"; };
 		127FF204D665A5A417C088FB /* LanguageSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageSetupView.swift; sourceTree = "<group>"; };
@@ -275,6 +278,7 @@
 		E67803C1BDBA55E09FB2398D /* UnfairLock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnfairLock.swift; sourceTree = "<group>"; };
 		9A4FDC8856930DF37DE4B6C2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		D784F80297AE0F946E638E7C /* ANEBundleCacheSweeperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ANEBundleCacheSweeperTests.swift; sourceTree = "<group>"; };
+		9A1C77E30B54D2A6F1E30044 /* PaywallWindowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallWindowTests.swift; sourceTree = "<group>"; };
 		BEBB6912DC8B4D653A074834 /* AXTextInsertionServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AXTextInsertionServiceTests.swift; sourceTree = "<group>"; };
 		E724DC5B9AB291F8DE43FC73 /* AudioFormatConverterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFormatConverterTests.swift; sourceTree = "<group>"; };
 		3DF1EB70F3CC77FC666095A7 /* BenchmarkRunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BenchmarkRunnerTests.swift; sourceTree = "<group>"; };
@@ -400,6 +404,7 @@
 				E951DC4E8F6BB3F6CD44A63C /* LicensePresentation.swift */,
 				2606DC92558E0D5A80BB09B6 /* LicenseView.swift */,
 				B196D95CBF732E9FD874013E /* StoreFront.swift */,
+				9A1C77E30B54D2A6F1E30022 /* PaywallWindowController.swift */,
 			);
 			path = Licensing;
 			sourceTree = "<group>";
@@ -707,6 +712,7 @@
 			isa = PBXGroup;
 			children = (
 				D784F80297AE0F946E638E7C /* ANEBundleCacheSweeperTests.swift */,
+				9A1C77E30B54D2A6F1E30044 /* PaywallWindowTests.swift */,
 				BEBB6912DC8B4D653A074834 /* AXTextInsertionServiceTests.swift */,
 				E724DC5B9AB291F8DE43FC73 /* AudioFormatConverterTests.swift */,
 				3DF1EB70F3CC77FC666095A7 /* BenchmarkRunnerTests.swift */,
@@ -902,6 +908,7 @@
 				21E725559A584F29BB361363 /* LicensePresentation.swift in Sources */,
 				5F5C0D8DCF4F722ED1291781 /* LicenseView.swift in Sources */,
 				71DF2BCEB0D36970DB0F39DD /* StoreFront.swift in Sources */,
+				9A1C77E30B54D2A6F1E30011 /* PaywallWindowController.swift in Sources */,
 				D6BB1190558CDC9619E29770 /* MenuBarView.swift in Sources */,
 				CDA3C6B4ACB4B26F7671A075 /* StatusPresentation.swift in Sources */,
 				D027F225CF196FFE19418759 /* LanguageSetupView.swift in Sources */,
@@ -994,6 +1001,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				44E9E90EFB94DE133E6A0034 /* ANEBundleCacheSweeperTests.swift in Sources */,
+				9A1C77E30B54D2A6F1E30033 /* PaywallWindowTests.swift in Sources */,
 				C937D4ED9D4E903CB5486478 /* AXTextInsertionServiceTests.swift in Sources */,
 				3C6766FB84D9FB7521A6A7AF /* AudioFormatConverterTests.swift in Sources */,
 				15CED33DBC5D93E4502DB6E9 /* BenchmarkRunnerTests.swift in Sources */,

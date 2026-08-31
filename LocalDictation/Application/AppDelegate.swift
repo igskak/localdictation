@@ -16,11 +16,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// which for a returning user is before the app ever runs.
     private var languageSetup: LanguageSetupWindowController?
 
+    /// Owns the paywall. It lives here for the same reason the review panel
+    /// does: a press that finds the Mac locked happens while the user is in
+    /// another application, and there is no menu bar window open to host the
+    /// answer.
+    private var paywall: PaywallWindowController?
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         Log.application.info("LocalDictation launched as a menu bar utility")
         if let coordinator = Self.coordinator {
             reviewPanel = ReviewPanelController(coordinator: coordinator)
+            // Before `activate`: the entitlement is evaluated in there, and a
+            // Mac that launches already locked should have a listener for the
+            // first press rather than for the second.
+            paywall = PaywallWindowController(coordinator: coordinator)
         }
         Self.coordinator?.activate()
         // After `activate`, which is what reads the settings file: whether the

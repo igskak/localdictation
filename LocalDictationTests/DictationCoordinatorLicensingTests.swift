@@ -112,12 +112,60 @@ final class DictationCoordinatorLicensingTests: XCTestCase {
         }
         try await waitUntil("locked") { harness.coordinator.state == .locked(.activationRequired) }
         let startsBefore = harness.capture.startCount
+        let stopsBefore = harness.capture.stopCount
 
         harness.hotkey.emit(.pressed)
         harness.hotkey.emit(.released)
+        // The start is inside a `Task`, so an assertion on the next line runs
+        // before the microphone would have opened and passes whatever the
+        // coordinator does. This test read that way once, and underneath it a
+        // locked press opened the microphone and never closed it: `.locked ->
+        // .locked` is a transition, a transition reads as success, and every
+        // event that would have ended the capture is refused in `.locked`.
+        try await settle()
 
         XCTAssertEqual(harness.capture.startCount, startsBefore, "a locked Mac must not record")
+        XCTAssertEqual(harness.capture.stopCount, stopsBefore, "nothing was started, so nothing needed stopping")
         XCTAssertEqual(harness.coordinator.state, .locked(.activationRequired))
+    }
+
+    /// The press is the ask, and the ask is what the price answers.
+    func testALockedPressAsksForThePaywall() async throws {
+        let harness = makeHarness()
+        for _ in 0..<5 {
+            try await dictate(harness)
+            harness.coordinator.clearTranscript()
+        }
+        try await waitUntil("locked") { harness.coordinator.state == .locked(.activationRequired) }
+        // Becoming locked is not a request. A Mac can lock in the background,
+        // at launch, with nobody looking at it.
+        XCTAssertEqual(harness.coordinator.paywallRequests, 0)
+
+        harness.hotkey.emit(.pressed)
+        harness.hotkey.emit(.released)
+        try await settle()
+        XCTAssertEqual(harness.coordinator.paywallRequests, 1)
+
+        // Someone who closed the window and pressed again is asking again.
+        harness.hotkey.emit(.pressed)
+        harness.hotkey.emit(.released)
+        try await settle()
+        XCTAssertEqual(harness.coordinator.paywallRequests, 2)
+    }
+
+    /// A working Mac is never sold to.
+    func testAnUnlockedPressAsksForNothing() async throws {
+        let harness = makeHarness()
+        try await dictate(harness)
+
+        XCTAssertEqual(harness.coordinator.paywallRequests, 0)
+        XCTAssertEqual(harness.coordinator.entitlement.lock, nil)
+    }
+
+    /// Long enough for a `Task` enqueued by the press to have run. Anything
+    /// asserted about capture straight after an emit is asserted too early.
+    private func settle() async throws {
+        try await Task.sleep(nanoseconds: 150_000_000)
     }
 
     /// A press that recognized nothing produced no value, so it costs nothing.

@@ -58,6 +58,13 @@ Six refinement decisions are worth knowing before reading the code:
 - **Settings that do not survive a launch are not settings.** So there is a
   third file in Application Support beside the dictionary and the licensing
   record. It is JSON, readable, six fields, and a test asserts the list.
+- **A locked Mac no longer opens the microphone, and the press is where the
+  price is named.** `.locked -> .locked` read as a successful transition, so a
+  press after the trial ended started a recording nothing could stop. The
+  precondition is now checked before the microphone, and the press that finds
+  the Mac locked brings up the offers instead — `paywall_shown` moved to the
+  window that draws them, so the event means a person saw a price rather than a
+  Mac having quietly locked in the background.
 
 Four Phase 6 decisions are worth knowing before reading the code:
 

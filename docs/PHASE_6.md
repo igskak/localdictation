@@ -64,6 +64,11 @@ license**, because a license is a signature.
 
 ### The lock is a precondition of dictation, not a phase of it
 
+> Amended after release. The precondition was stored beside the state, but the
+> press was not checked against it before the microphone opened — see
+> `docs/REFINEMENTS.md`, "A locked Mac no longer opens the microphone". The
+> paragraph below describes what the design intended and what now holds.
+
 `RecordingState` gains `.locked`, for the same reason it has
 `.needsPermission`: this machine is what decides whether a hotkey press opens a
 microphone, and a precondition it cannot see is one that gets forgotten in one
@@ -104,7 +109,7 @@ compiler rather than by whoever writes the next call site. The complete list:
 | `activation_failed` | reason | it did not |
 | `license_accepted` | kind | a key verified on this Mac |
 | `license_rejected` | reason | a key did not |
-| `paywall_shown` | trigger | the Mac became locked |
+| `paywall_shown` | trigger | the paywall window put the offers on screen |
 | `checkout_opened` | offer | the user went to buy |
 | `entitlement_lapsed` | kind | a dated license reached its date |
 
