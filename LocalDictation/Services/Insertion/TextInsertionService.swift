@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 
 /// The boundary between the app's text and the rest of the system.
@@ -65,6 +66,41 @@ struct FrontmostApplication: Sendable, Equatable {
 protocol FrontmostApplicationSource: AnyObject {
     /// The application in front at this instant, or `nil` when there is none.
     var frontmostApplication: FrontmostApplication? { get }
+}
+
+/// Whether macOS will let this app press a key on the user's behalf.
+///
+/// Separate from Accessibility trust because macOS treats it separately, and
+/// the two come apart in a way that is invisible from inside the app.
+/// `AXIsProcessTrusted()` is answered once for the life of the process, so an
+/// app that was trusted when it launched goes on reading and writing focused
+/// elements; permission to *synthesize* an event is checked by the window
+/// server on every post, against the code signature the application has now. An
+/// application replaced by a new build — every rebuild during development, and
+/// every update the user installs — no longer matches the signature its grant
+/// was recorded against, and the two answers diverge.
+///
+/// Nothing about that is visible from `CGEventPost`, which returns `Void`: the
+/// key event is dropped, the window server logs `Sender is prohibited from
+/// synthesizing events` where only `log show` will find it, and the app is left
+/// to conclude from an unchanged field that the target application ignored the
+/// paste. That conclusion was wrong, and it was the sentence the user got.
+///
+/// `CGPreflightPostEventAccess()` is the same question asked before the post,
+/// where the answer can still be turned into something to do about it.
+@MainActor
+protocol EventSynthesisSource: AnyObject {
+    var canSynthesizeEvents: Bool { get }
+}
+
+@MainActor
+final class SystemEventSynthesis: EventSynthesisSource {
+    /// Preflight only. The asking variant, `CGRequestPostEventAccess()`, would
+    /// raise a system prompt from inside an insertion — in the middle of the
+    /// second where the user is waiting for their sentence to appear, which is
+    /// the worst moment available to interrupt them. The refusal names the
+    /// setting instead, and the user goes there when it suits them.
+    var canSynthesizeEvents: Bool { CGPreflightPostEventAccess() }
 }
 
 /// The one thing the app is allowed to invent about the surroundings.

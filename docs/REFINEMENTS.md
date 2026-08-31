@@ -271,3 +271,33 @@ one is a product decision rather than a defect:
   approach.
 - **A clipboard manager.** Every paste-path insertion puts the dictation on the
   pasteboard for a moment, and a manager keeps it.
+
+## A blocked ⌘V says it is blocked
+
+The app posted a synthetic ⌘V, watched the field, saw nothing change, and told
+the user that the application would not accept the text directly. For a whole
+session that sentence was false in every particular: the window server was
+dropping the key event before it left this Mac, and the target application was
+never asked.
+
+The two permissions look like one from inside the process and are not.
+`AXIsProcessTrusted()` is answered once at launch and holds for the life of the
+process; the right to *synthesize* an event is checked on every post against the
+signature the application has now. Replace the application — a rebuild, an
+update — and the grant recorded against the old signature stops applying to the
+new one while the checkbox in System Settings stays ticked. `CGEventPost`
+returns `Void`, so nothing about that reaches the app.
+
+`CGPreflightPostEventAccess()` is the same question asked where the answer is
+still useful. It is asked twice, on purpose: in `InsertionPolicy`, where a paste
+is chosen, and again at the top of `AXTextInsertionService.paste(_:into:)`,
+because the Electron path arrives there through a swallowed direct write rather
+than through the policy — and the application that reaches the paste by the
+fallback was the one getting the wrong sentence.
+
+The preflight is the checking variant and not `CGRequestPostEventAccess()`,
+which raises a system prompt. Raising one mid-insertion would interrupt the
+user in the second they are waiting for their sentence to appear. The refusal
+names the setting instead, and the text stays on the pasteboard rather than
+being restored away: until the permission is back, the user's own ⌘V is the
+only way in.

@@ -25,6 +25,9 @@ struct InsertionContext: Sendable, Equatable {
     /// The focused element's selected text is settable, so it can be written
     /// through Accessibility rather than pasted into.
     var acceptsDirectWrite: Bool
+    /// macOS will let the app post a synthetic ⌘V. Distinct from `isTrusted`,
+    /// which the app can hold while this is false — see `EventSynthesisSource`.
+    var canSynthesizeEvents: Bool
 
     init(
         isTrusted: Bool = true,
@@ -33,7 +36,8 @@ struct InsertionContext: Sendable, Equatable {
         secureInputEnabled: Bool = false,
         secureInputHolderName: String? = nil,
         focusedFieldIsSecure: Bool = false,
-        acceptsDirectWrite: Bool = true
+        acceptsDirectWrite: Bool = true,
+        canSynthesizeEvents: Bool = true
     ) {
         self.isTrusted = isTrusted
         self.hasTarget = hasTarget
@@ -42,6 +46,7 @@ struct InsertionContext: Sendable, Equatable {
         self.secureInputHolderName = secureInputHolderName
         self.focusedFieldIsSecure = focusedFieldIsSecure
         self.acceptsDirectWrite = acceptsDirectWrite
+        self.canSynthesizeEvents = canSynthesizeEvents
     }
 }
 
@@ -97,7 +102,13 @@ enum InsertionPolicy {
         // the user two working applications before the question was dropped.
         // What guards the insertion is the frontmost application and the
         // secure checks above.
-        return context.acceptsDirectWrite ? .write : .paste
+        if context.acceptsDirectWrite { return .write }
+
+        // Pasting is the only method left, and it is a keystroke. Posting one
+        // the window server will drop puts the dictation on the pasteboard
+        // either way — the difference is the sentence that goes with it, and
+        // whether it names something the user can act on.
+        return context.canSynthesizeEvents ? .paste : .clipboard(.cannotSynthesizeEvents)
     }
 }
 
