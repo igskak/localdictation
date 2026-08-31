@@ -31,6 +31,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             languageSetup = setup
             setup.presentIfNeeded()
         }
+        // Last, and detached: the question above is what the user is waiting
+        // for, and the sweep is housekeeping nobody is looking at.
+        sweepAbandonedModelBundles()
+    }
+
+    /// Detached and low priority on purpose: the sweep only ever touches
+    /// directories whose owning process is gone, so nothing this launch does —
+    /// or any later dictation — waits on it, and deleting the backlog of a long
+    /// development day can take a moment.
+    private func sweepAbandonedModelBundles() {
+        Task.detached(priority: .utility) {
+            guard let sweeper = ANEBundleCacheSweeper.forCurrentApp() else { return }
+            let outcome = sweeper.sweep()
+            guard outcome.removed > 0 else { return }
+            let megabytes = outcome.reclaimedBytes / 1_000_000
+            Log.transcription.info(
+                "Removed \(outcome.removed, privacy: .public) abandoned model bundles, \(megabytes, privacy: .public) MB"
+            )
+        }
     }
 
     func applicationDidBecomeActive(_ notification: Notification) {
