@@ -74,6 +74,24 @@ the development Mac, and every measurement quoted here has a timestamp.
 - **An Electron application that describes nothing.** Chromium builds no
   accessibility tree until asked. Every captured target is now asked, and one
   that still describes nothing is pasted into.
+- **A ⌘V macOS refuses to let the app post.** Accessibility trust and
+  permission to synthesize an event are two different answers, and they come
+  apart silently. `AXIsProcessTrusted()` is settled once for the life of the
+  process, so an app trusted at launch goes on reading and writing focused
+  elements; the window server checks the right to synthesize on every post,
+  against the code signature the application has *now*. An application replaced
+  by a new build — every rebuild in development, every update a user installs —
+  no longer matches the signature its grant was recorded against.
+  Measured on 2026-08-31: every paste in the session produced two
+  `Sender is prohibited from synthesizing events` errors from the window server,
+  one per key event, while Claude for Desktop logged no `performKeyEquivalent:`
+  at all and took the user's own ⌘V a second later. The grant in TCC named
+  cdhash `2dc672…`; the application on disk had `22b9e4…`. `CGEventPost` returns
+  `Void`, so the app saw an unchanged field and reported that the application
+  would not accept the text — naming the target for something the target never
+  saw. `CGPreflightPostEventAccess()` is now asked before the post, in the
+  policy and again on the Electron fallback path that does not go through it,
+  and the refusal says the permission stopped applying and where to restore it.
 - **The first word of a dictation.** Not an insertion failure, but the same
   complaint from the user's side. Asking for the accessibility tree is a
   synchronous call into another process, and on 2026-08-20 Xcode took the full
@@ -162,6 +180,14 @@ Two rows below were taken from the unified log rather than from someone watching
 the field, so their **Caret**, **Undo**, and **Spacing** columns say `not
 checked` rather than guessing. The log can say the text arrived; only a person
 can say it arrived in the right place.
+
+That reservation turned out to be the right one and still not strong enough. On
+2026-08-20 the paste path reported `inserted:syntheticPaste` without checking
+anything — it slept 200 ms and said so — so both rows record what the app
+claimed rather than what happened. Neither row is evidence that a synthetic ⌘V
+ever reached either application, and on 2026-08-31 it demonstrably did not.
+Both need dictating again, by a person watching the field, on a build whose
+Accessibility grant matches its signature.
 
 | Application | Version | Method | Caret | Undo | Spacing | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
