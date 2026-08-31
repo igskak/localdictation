@@ -137,12 +137,35 @@ struct PaywallView: View {
         LicensePresentation(state: coordinator.entitlement)
     }
 
+    /// The same condition Settings uses, and it matters more here.
+    ///
+    /// A license is bought in a browser and issued for a Mac, so the address
+    /// has to be handed over from inside the app afterwards. The paywall is
+    /// exactly where somebody stands when they come back from paying — without
+    /// the form they would find the offers they have already taken and no way
+    /// in. It stays hidden while there is no service to ask, because a form
+    /// that can only refuse is worse than no form.
+    private var showsActivationForm: Bool {
+        Self.showsActivationForm(presentation, canRequestActivation: coordinator.canRequestActivation)
+    }
+
+    /// Pulled out of the view so the rule can be asserted rather than
+    /// eyeballed, the way `LicensePresentation` holds the copy for the same
+    /// reason.
+    static func showsActivationForm(_ presentation: LicensePresentation, canRequestActivation: Bool) -> Bool {
+        presentation.showsActivation || (presentation.offersKeyRetrieval && canRequestActivation)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             header
 
-            if presentation.showsActivation { activation }
+            // Offers first when there are any: on an expired trial the thing
+            // to do is buy, and the form under it is for the person who
+            // already has. When there is nothing to buy yet the form is the
+            // whole ask and the order does not arise.
             if presentation.showsOffers { offers }
+            if showsActivationForm { activation }
 
             Divider()
             footer
@@ -175,11 +198,17 @@ struct PaywallView: View {
 
     private var activation: some View {
         VStack(alignment: .leading, spacing: 8) {
+            // Which errand the form is running changes its title, its button
+            // and the sentence under it, and all three come from
+            // `LicensePresentation`: starting a trial and fetching a key
+            // somebody has already paid for are one call and different words.
+            Text(presentation.activationTitle)
+                .font(.callout.weight(.medium))
             HStack {
                 TextField("Email address", text: $email, prompt: Text("you@example.com"))
                     .textFieldStyle(.roundedBorder)
                     .disabled(isRequesting)
-                Button(isRequesting ? "Sending…" : "Send me a key") {
+                Button(isRequesting ? "Sending…" : presentation.activationButtonTitle) {
                     Task { await requestActivation() }
                 }
                 .keyboardShortcut(.defaultAction)
@@ -190,7 +219,7 @@ struct PaywallView: View {
             // the one surface where the way forward is invisible.
             Text(
                 coordinator.canRequestActivation
-                    ? "The address and an identifier for this Mac are the only things sent. No audio, no text, and nothing from your dictionary ever leaves this Mac."
+                    ? presentation.activationHint
                     : "This build has no activation service yet. Press “Enter a key…” and paste one instead — that path works offline and is what the app checks in either case."
             )
                 .font(.caption)

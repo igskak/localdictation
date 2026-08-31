@@ -96,6 +96,40 @@ final class PaywallWindowTests: XCTestCase {
         XCTAssertGreaterThan(size.height, 0)
     }
 
+    // MARK: - Who gets the address form
+
+    /// The paywall is where somebody stands when they come back from paying,
+    /// and a license bought in a browser becomes a key on this Mac only when
+    /// the address is handed over from inside the app.
+    func testTheFormAppearsForSomebodyWhoHasAlreadyPaid() {
+        let expired = LicensePresentation(state: .locked(.expired(.trial, at: Date())))
+        XCTAssertFalse(expired.showsActivation, "the trial is over; starting one is not the ask")
+        XCTAssertTrue(expired.offersKeyRetrieval)
+
+        XCTAssertTrue(
+            PaywallView.showsActivationForm(expired, canRequestActivation: true),
+            "somebody who just bought needs somewhere to type the address they bought with"
+        )
+        XCTAssertFalse(
+            PaywallView.showsActivationForm(expired, canRequestActivation: false),
+            "a form that can only refuse is worse than no form"
+        )
+    }
+
+    /// The window that ends the ungated one asks for an address whether or not
+    /// there is a service today — the sentence under it says which it is.
+    func testTheFormAlwaysAppearsWhenActivationIsTheAsk() {
+        let needsActivation = LicensePresentation(state: .locked(.activationRequired))
+        XCTAssertTrue(needsActivation.showsActivation)
+
+        for configured in [true, false] {
+            XCTAssertTrue(
+                PaywallView.showsActivationForm(needsActivation, canRequestActivation: configured),
+                "activation is the whole ask in this state"
+            )
+        }
+    }
+
     // MARK: - The window
 
     func testAPressPutsThePriceOnScreenAndCountsItOnce() async throws {
