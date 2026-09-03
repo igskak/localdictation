@@ -15,11 +15,20 @@
 #   2. A notarytool keychain profile, made once:
 #
 #        xcrun notarytool store-credentials LocalDictationNotary \
-#          --key ~/private_keys/AuthKey_XXXXXXXX.p8 \
+#          --key Secrets/AuthKey_XXXXXXXX.p8 \
 #          --key-id XXXXXXXX --issuer <issuer-uuid>
 #
 #      An App Store Connect API key rather than an app-specific password: it is
-#      the form that does not put a credential in a shell history.
+#      the form that does not put a credential in a shell history. The key id is
+#      the ten characters in the filename; the issuer is the UUID above the key
+#      list in App Store Connect. Confusing the two is the first mistake
+#      everybody makes with this command.
+#
+#      `Secrets/` sits in the root of the main checkout rather than in a
+#      worktree, which can be recycled out from under a download-once
+#      credential. It is ignored by name and by directory in both .gitignore
+#      and .git/info/exclude, and holds nothing the repository may ever
+#      contain. Apple issues that .p8 exactly once.
 #
 # Everything it produces is under build/, which is not committed.
 
@@ -67,6 +76,16 @@ xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1 ||
     die "no notarytool keychain profile called '$NOTARY_PROFILE'.
   Create it with 'xcrun notarytool store-credentials $NOTARY_PROFILE' and an
   App Store Connect API key. See the header of this script."
+
+# The credentials this needs live next to the repository, and the release is the
+# moment to be sure none of them has been committed. An ignore rule protects
+# against an accident; this catches the accident that already happened.
+TRACKED_SECRETS="$(git ls-files | grep -iE '\.p8$|\.p12$|\.provisionprofile$|AuthKey' || true)"
+[ -z "$TRACKED_SECRETS" ] || die "these are tracked by git and must not be:
+$TRACKED_SECRETS
+  Remove them from the index with 'git rm --cached', and rotate them: anything
+  that has been committed has to be assumed public."
+
 
 # A release built from uncommitted work is a release nobody can reproduce, and
 # the version it claims to be is a guess.

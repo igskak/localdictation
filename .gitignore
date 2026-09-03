@@ -12,6 +12,16 @@ LocalDictation.xcodeproj/project.xcworkspace/xcuserdata/
 *.provisionprofile
 *.p12
 
+# Credentials that belong to whoever is signing and releasing, never to the
+# repository. The App Store Connect API key notarization needs is a .p8, and
+# Apple lets it be downloaded exactly once — so it lives beside the project
+# rather than in Downloads, and it is ignored by name as well as by directory.
+# The same rules are duplicated in .git/info/exclude, which is shared by every
+# worktree and applies on every branch, including ones that predate this file.
+/Secrets/
+*.p8
+AuthKey_*
+
 # Local model weights, evaluation corpora, and audio artifacts.
 # Anchored to the repository root so LocalDictation/Models/ (source) is still tracked.
 /Models/

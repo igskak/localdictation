@@ -18,8 +18,25 @@ with a sentence naming whichever of them is missing:
 
    ```sh
    xcrun notarytool store-credentials LocalDictationNotary \
-     --key ~/private_keys/AuthKey_XXXXXXXX.p8 --key-id XXXXXXXX --issuer <uuid>
+     --key Secrets/AuthKey_XXXXXXXX.p8 --key-id XXXXXXXX --issuer <uuid>
    ```
+
+   The key id is the ten characters in the filename Apple gives the `.p8`; the
+   issuer is the UUID printed above the key list in App Store Connect. They are
+   both opaque strings of the wrong shape to tell apart by looking, and putting
+   the issuer in `--key-id` is the first mistake everybody makes here.
+
+   `Secrets/` is in the root of the **main checkout** — not in a worktree, which
+   can be recycled out from under a download-once credential — so from inside a
+   worktree that path has to be absolute. It is ignored by name and by directory
+   in both `.gitignore` and `.git/info/exclude` — the second one because it is
+   shared by every worktree and applies on every branch, including ones checked
+   out before the rule existed. `Tools/release.sh` refuses to build if anything
+   credential-shaped has become tracked, because an ignore rule prevents the
+   accident and only a check catches the one that already happened.
+
+   Apple issues that `.p8` exactly once. Losing it is recoverable — revoke it
+   and make another — which is the opposite of `~/.localdictation/license-signing-key`.
 
 Then the whole of section 3 and 4 below is one command:
 
