@@ -80,7 +80,7 @@ export const paddle = {
     const priceIDs = (data.items ?? data.details?.line_items ?? []).map(
       (item) => item.price?.id ?? item.price_id ?? null,
     );
-    const kind = kindFor(priceIDs, env);
+    const kind = kindFor([data.custom_data?.price_id ?? null, ...priceIDs], env);
     if (!email || !kind) return null;
 
     return { id, effect: "purchase", email, kind, orderID: data.id ?? null, at: now };
@@ -114,29 +114,82 @@ export const stripe = {
     const type = event?.type ?? "";
     const object = event?.data?.object ?? {};
 
-    if (type === "charge.refunded" || type === "charge.dispute.created") {
-      return { id, effect: "refund", orderID: object.payment_intent ?? object.charge ?? null };
+    // `invoice.paid` and `invoice.payment_succeeded` both fire for the same
+    // money and carry different event ids, so idempotency cannot save us from
+    // acting on both — an annual would grow by two years for one payment.
+    // Exactly one of them is acted on, and the other is refused here rather
+    // than in a README nobody re-reads while clicking checkboxes.
+    if (type === "invoice.payment_succeeded") return { id, effect: "ignore" };
+
+    if (type === "invoice.paid") {
+      // The first invoice of a subscription arrives alongside the checkout
+      // session that created it. The session is what carries the buyer's
+      // address, so the first one is left to the session and only the renewals
+      // are read here.
+      const reason = object.billing_reason ?? "";
+      if (reason !== "subscription_cycle" && reason !== "subscription_update") {
+        return { id, effect: "ignore" };
+      }
+      const email = normalizeEmail(object.customer_email ?? object.customer_details?.email ?? null);
+      const kind = kindFor(identifiers(object), env);
+      if (!email || !kind) return null;
+      return { id, effect: "renewal", email, kind, orderID: object.subscription ?? object.id ?? null, at: now };
     }
+
+    if (type === "charge.refunded" || type === "charge.dispute.created") {
+      return {
+        id,
+        effect: "refund",
+        orderID: object.payment_intent ?? object.charge ?? null,
+        // A subscription's charge carries no payment intent this service ever
+        // stored, so the address is the second way to find the licence. Both
+        // are tried, in that order.
+        email: normalizeEmail(object.billing_details?.email ?? object.receipt_email ?? null),
+      };
+    }
+
     if (type !== "checkout.session.completed") return { id, effect: "ignore" };
 
     const email = normalizeEmail(object.customer_details?.email ?? object.customer_email ?? null);
-    const priceIDs = (object.line_items?.data ?? []).map((item) => item.price?.id ?? null);
-    // Stripe does not expand line items by default, so the metadata set on the
-    // payment link is the reliable path and the line items are the fallback.
-    const kind = kindFor([object.metadata?.price_id ?? null, ...priceIDs], env);
+    const kind = kindFor(identifiers(object), env);
     if (!email || !kind) return null;
 
-    return { id, effect: "purchase", email, kind, orderID: object.id ?? null, at: now };
+    // The payment intent first, because that is what a refund names. A
+    // subscription checkout has none, so its own id is next, and the session id
+    // is the fallback that always exists.
+    return {
+      id,
+      effect: "purchase",
+      email,
+      kind,
+      orderID: object.payment_intent ?? object.subscription ?? object.id ?? null,
+      at: now,
+    };
   },
 };
 
-function kindFor(priceIDs, env) {
-  const lifetime = env.PRICE_LIFETIME ?? "";
-  const annual = env.PRICE_ANNUAL ?? "";
-  for (const priceID of priceIDs) {
-    if (!priceID) continue;
-    if (lifetime && priceID === lifetime) return "lifetime";
-    if (annual && priceID === annual) return "annual";
+/// Everything in an event that could say which of the two offers was bought.
+///
+/// Stripe does not expand line items on a webhook, so on a Payment Link
+/// purchase the price id is simply not in the payload. What *is* there is the
+/// link's own id — and we created both links, so we know which is which. All
+/// three are collected and the first one that matches wins.
+function identifiers(object) {
+  const lineItems = object.line_items?.data ?? object.lines?.data ?? [];
+  return [
+    object.metadata?.price_id ?? null,
+    object.payment_link ?? null,
+    ...lineItems.map((item) => item.price?.id ?? item.plan?.id ?? null),
+  ];
+}
+
+function kindFor(candidates, env) {
+  const lifetime = [env.PRICE_LIFETIME, env.PAYMENT_LINK_LIFETIME].filter(Boolean);
+  const annual = [env.PRICE_ANNUAL, env.PAYMENT_LINK_ANNUAL].filter(Boolean);
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    if (lifetime.includes(candidate)) return "lifetime";
+    if (annual.includes(candidate)) return "annual";
   }
   return null;
 }

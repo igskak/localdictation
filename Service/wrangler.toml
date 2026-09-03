@@ -20,12 +20,18 @@ LICENSE_PUBLIC_KEY = "enDKT/48nxi+u3x4Qv1qJCDXx5YFe7WVlW5r77IIsJM="
 MAIL_PROVIDER = "none"
 MAIL_FROM = "LocalDictation <keys@localdictation.app>"
 
-# D2, once it is executed: "paddle" or "stripe". Empty means the webhook
-# answers 503 rather than accepting money quietly. The two price ids are how an
-# event says which of the two offers was bought; WEBHOOK_SECRET is a secret.
-PAYMENT_PROVIDER = ""
+# D2, executed: Stripe, as merchant of record. WEBHOOK_SECRET is a secret and
+# is set with `wrangler secret put`, not here.
+#
+# The four below are how an event says which of the two offers was bought. Fill
+# in whichever pair you have: a Payment Link sends no line items on the webhook,
+# so on that path the link id is the only signal there is. Both pairs may be set
+# and the first match wins.
+PAYMENT_PROVIDER = "stripe"
 PRICE_LIFETIME = ""
 PRICE_ANNUAL = ""
+PAYMENT_LINK_LIFETIME = ""
+PAYMENT_LINK_ANNUAL = ""
 
 [[d1_databases]]
 binding = "DB"

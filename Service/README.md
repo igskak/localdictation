@@ -163,6 +163,48 @@ One column is not in that document's table: `mailed_at`. It is what makes
 "pressing Send me a key twice mails one key" true, and what lets a key whose
 first delivery failed be sent by the next press instead of being lost.
 
+## Stripe
+
+`docs/PHASE_8_DECISIONS.md` D2, executed: **Stripe, as merchant of record.**
+
+In the dashboard, once:
+
+1. One product with two prices — €99 one-off and €49 yearly. Copy both price
+   ids into `PRICE_LIFETIME` and `PRICE_ANNUAL`.
+2. A Payment Link for each. Copy the two URLs into `StoreFront` in the app, and
+   the two `plink_…` ids into `PAYMENT_LINK_LIFETIME` and `PAYMENT_LINK_ANNUAL`
+   — a Payment Link checkout sends **no line items** on the webhook, so the
+   link id is the only thing in that payload that says which offer was bought.
+3. Turn on "Collect customer email" on both links. The address is the licence:
+   a checkout that collects no address produces an event this service answers
+   `202` to and does nothing with.
+4. A webhook endpoint at `https://<host>/v1/purchases/webhook`, and put its
+   signing secret in `WEBHOOK_SECRET`.
+
+Select exactly these events:
+
+| Event | What it does |
+| --- | --- |
+| `checkout.session.completed` | Creates or extends the licence on the buyer's address |
+| `invoice.paid` | Extends an annual on renewal, a year later |
+| `charge.refunded` | Marks the licence dead for future issuance |
+| `charge.dispute.created` | The same |
+
+`invoice.payment_succeeded` fires for the same money as `invoice.paid` and
+carries a different event id, so idempotency cannot stop both from being acted
+on — an annual would grow by two years for one payment. The code refuses it
+outright, so selecting it by accident is harmless. `customer.subscription.deleted`
+is deliberately not acted on: a cancelled annual runs to the date it was paid
+for.
+
+### The renewal, and the mail that matters
+
+A key carries the date it was issued against, so a subscriber's key still
+expires on the old date even after the licence does not. `invoice.paid`
+therefore mails one instruction — press **Send my key** — and the app warns two
+weeks ahead as well. Without that mail a paying subscriber is locked out on
+their renewal day, which is the worst possible day for it.
+
 ## The one thing here that has not been run for real
 
 `src/providers.js` reads each provider's documented payload: which field the

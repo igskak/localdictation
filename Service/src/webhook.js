@@ -9,7 +9,7 @@
 // for, and the payload of a key names one.
 
 import { ANNUAL_SECONDS } from "./providers.js";
-import { purchaseMail } from "./mailer.js";
+import { purchaseMail, renewalMail } from "./mailer.js";
 
 export async function handleEvent({ event, provider, env, store, now, mailer, log, uuid = () => crypto.randomUUID() }) {
   const parsed = provider.parse(event, env, now);
@@ -38,12 +38,23 @@ export async function handleEvent({ event, provider, env, store, now, mailer, lo
     return { status: 200, body: { received: true, applied: false } };
   }
 
+  if (parsed.effect !== "refund" && parsed.effect !== "purchase" && parsed.effect !== "renewal") {
+    log("effect not understood", { effect: String(parsed.effect) });
+    return { status: 202, body: { received: true, applied: false } };
+  }
+
   if (parsed.effect === "refund") {
     // Dead for *future* issuance only. A key already on somebody's Mac keeps
     // working: Phase 6 chose an offline check with its eyes open, and a
     // revocation call in the app would trade the product's central promise for
     // a rounding error in fraud.
-    const license = parsed.orderID ? await store.licenseByOrder(parsed.orderID) : null;
+    //
+    // Two ways to find the licence, in order. A one-off purchase is found by
+    // the payment intent the refund names; a subscription's charge names a
+    // payment intent this service never stored, so the address is the fallback.
+    const license =
+      (parsed.orderID ? await store.licenseByOrder(parsed.orderID) : null) ??
+      (parsed.email ? await store.newestPaidLicense(parsed.email) : null);
     if (license) {
       await store.killLicense(license.id);
       log("license marked dead", { license: license.id });
@@ -53,7 +64,12 @@ export async function handleEvent({ event, provider, env, store, now, mailer, lo
     return { status: 200, body: { received: true, applied: false } };
   }
 
-  const existing = await store.strongestLicense(parsed.email, now);
+  // A renewal and a purchase do the same thing to the row: the licence on that
+  // address gets a later date, or loses its date entirely. What differs is the
+  // sentence the person is sent, because a renewal is not a first step.
+  const existing =
+    (await store.strongestLicense(parsed.email, now)) ??
+    (parsed.effect === "renewal" ? await store.newestPaidLicense(parsed.email) : null);
   let license;
 
   if (existing && existing.kind !== "trial") {
@@ -82,10 +98,17 @@ export async function handleEvent({ event, provider, env, store, now, mailer, lo
     });
   }
 
-  log("license from a purchase", { license: license.id, kind: license.kind });
+  log(parsed.effect === "renewal" ? "license renewed" : "license from a purchase", {
+    license: license.id,
+    kind: license.kind,
+  });
 
   try {
-    await mailer.send({ to: parsed.email, ...purchaseMail({ kind: license.kind, expiresAt: license.expires_at }) });
+    const mail =
+      parsed.effect === "renewal"
+        ? renewalMail({ expiresAt: license.expires_at })
+        : purchaseMail({ kind: license.kind, expiresAt: license.expires_at });
+    await mailer.send({ to: parsed.email, ...mail });
   } catch (error) {
     // The entitlement is recorded, which is the part that must not be lost. The
     // buyer can still activate from inside the app without ever reading a mail.

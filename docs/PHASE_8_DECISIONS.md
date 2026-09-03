@@ -11,8 +11,8 @@ last column.
 
 | # | Decided | Price | Gates |
 | --- | --- | --- | --- |
-| D1 | Buy the Apple Developer Program membership | €99/year | Everything user-facing: Developer ID, notarization, a `.dmg` a stranger can open |
-| D2 | Paddle as merchant of record; Stripe Managed Payments instead **if** the account turns out to be eligible | ~5% + €0.50 vs ~3%; about €1 on a €99 sale | The three `StoreFront` URLs and the webhook's signature check |
+| D1 | Apple Developer Program membership — **bought, enrolled** | €99/year | Nothing any more. The certificate is the next step, not the decision |
+| D2 | **Stripe, as merchant of record** — settled: the account already exists for another product | ~3% + fees | The three `StoreFront` URLs, which are now the only remaining code change |
 | D3 | Cloudflare Workers + D1, signing key in Workers Secrets | €0 at this volume | `ActivationEndpoint.production` |
 | D4 | Resend, on the product domain, SPF and DKIM before the first key | €0 to 3,000 mails/month | Whether a key that was issued is a key that arrived |
 | D5 | Einzelunternehmen, Impressum and Widerruf with the digital-goods waiver | An afternoon and an accountant | Selling in Germany at all |
@@ -21,8 +21,8 @@ last column.
 
 ## D1 — the membership
 
-Buy it, first, before anything below it. €99 a year is not the decision; the
-decision is that there is no way to hand this app to a stranger without it.
+**Done.** €99 a year was never the decision; the decision was that there is no
+way to hand this app to a stranger without it.
 Developer ID certificates are not issued to free accounts, notarization needs
 one, and an un-notarized `.dmg` opens with a dialog that says the developer
 cannot be verified — on a product whose entire pitch is that it does not send
@@ -34,21 +34,37 @@ A stable Developer ID signature means the grant survives updates.
 
 ## D2 — who takes the money
 
-**Paddle**, unless Stripe Managed Payments turns out to be available for this
-account and this product, in which case Stripe.
+**Stripe, as merchant of record.** The condition this decision was waiting on —
+availability for this account — is met: the account exists and is already in use
+for another product, which also means the identity and payout side is done
+rather than pending.
 
-The reason is not economics. `docs/MONETIZATION.md` prices the difference at
-about €1 on a €99 sale, which is noise. The reason is that both are merchants of
-record — they own the VAT problem, including the one-stop-shop filing that makes
-selling a €49 licence to a customer in another EU country an ordinary act rather
-than a tax registration — and only one of them is confirmed to be *available*.
-`docs/PRODUCT_SCOPE.md` makes Stripe conditional on account availability and
-product eligibility, and neither has been checked. Paddle has no such condition.
+Both candidates were merchants of record, which is the property that matters:
+they own the VAT problem, including the one-stop-shop filing that makes selling
+a €49 licence to a customer in another EU country an ordinary act rather than a
+tax registration. `docs/MONETIZATION.md` priced the fee difference at about €1
+on a €99 sale, so it was never the deciding factor and it is not one now.
 
-What this costs in code is deliberately almost nothing: the webhook is one
-endpoint whose signature check and event shape are provider-specific and whose
-effect — create or extend a license on an address, mail one instruction — is
-not. Deciding late is cheap. Deciding wrong and finding out at launch is not.
+Paddle stays implemented in `Service/src/providers.js`. It costs one file, it is
+tested, and it is what makes changing this decision a change to
+`PAYMENT_PROVIDER` rather than a rewrite.
+
+**One thing to confirm in the dashboard rather than assume**: Managed Payments
+has to be enabled for *this* product, not only for the account. Selling software
+licences is inside its scope, but the switch is per-product, and a checkout that
+runs without it makes this project the merchant of record and hands back the VAT
+problem the decision existed to avoid.
+
+Two payload facts about Stripe specifically shaped the code, and both were bugs
+before they were noticed:
+
+- A **Payment Link** checkout sends no line items on the webhook, so the price
+  id simply is not in the event. The link's own id is, and we created both
+  links, so `PAYMENT_LINK_LIFETIME` and `PAYMENT_LINK_ANNUAL` are how an offer
+  is identified on that path.
+- An **annual is a subscription**, and its renewal a year later arrives as
+  `invoice.paid` rather than as another checkout. Without reading that, a
+  paying subscriber's licence would have quietly lapsed on its first renewal.
 
 ## D3 — where it runs
 

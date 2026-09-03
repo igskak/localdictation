@@ -125,6 +125,34 @@ export function purchaseMail({ kind, expiresAt }) {
   };
 }
 
+/// What a renewal gets, and the reason it is not silent.
+///
+/// A key carries the date it was issued against, so the key on a subscriber's
+/// Mac still expires on the old date even though the licence no longer does.
+/// One press of Send my key replaces it. The app warns two weeks ahead as well,
+/// but the person who set this up a year ago is not reading the menu.
+export function renewalMail({ expiresAt }) {
+  return {
+    subject: "LocalDictation renewed — refresh the key on your Macs",
+    text: [
+      `Your licence is renewed until ${formatDate(expiresAt)}. Nothing was charged twice and`,
+      "nothing needs cancelling.",
+      "",
+      "One step, on each Mac you use it on:",
+      "",
+      "  1. Open LocalDictation.",
+      "  2. Settings, then License.",
+      "  3. Type this address and press 'Send my key'.",
+      "",
+      "That replaces the key on the Mac with one that runs to the new date. A key",
+      "is checked on your Mac and not against us, which is why it has a date in it",
+      "at all -- and why this step exists.",
+      "",
+      "This is a transactional message about a subscription you hold.",
+    ].join("\n"),
+  };
+}
+
 function formatDate(seconds) {
   if (!Number.isFinite(seconds)) return "its date";
   return new Date(seconds * 1000).toISOString().slice(0, 10);

@@ -21,7 +21,12 @@ const MAC = "0123456789abcdef0123456789abcdef";
 const EMAIL = "buyer@example.com";
 const SECRET = "whsec_test";
 
-const env = { PRICE_LIFETIME: "pri_lifetime", PRICE_ANNUAL: "pri_annual" };
+const env = {
+  PRICE_LIFETIME: "pri_lifetime",
+  PRICE_ANNUAL: "pri_annual",
+  PAYMENT_LINK_LIFETIME: "plink_lifetime",
+  PAYMENT_LINK_ANNUAL: "plink_annual",
+};
 
 async function harness() {
   const { privateBase64, publicBase64 } = makeKeypair();
@@ -239,6 +244,221 @@ test("an event of a kind this service does not act on is acknowledged", async ()
   const result = await h.deliver({ event_id: "evt_y", event_type: "customer.updated", data: { id: "ctm_1" } });
   assert.equal(result.status, 200);
   assert.equal(result.body.applied, false);
+});
+
+// MARK: - Stripe, specifically
+//
+// D2 is executed: Stripe Managed Payments. Everything below is a payload shape
+// that only Stripe produces, and the two that matter are the ones a Paddle-
+// shaped reading would have got wrong.
+
+test("a Payment Link purchase is identified by the link, because Stripe sends no line items", async () => {
+  const h = await harness();
+  // Exactly what a Payment Link checkout carries: no line_items, no metadata,
+  // and the link's own id.
+  await h.deliver(
+    {
+      id: "evt_link",
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          id: "cs_1",
+          payment_intent: "pi_1",
+          payment_link: "plink_lifetime",
+          customer_details: { email: EMAIL },
+        },
+      },
+    },
+    { provider: stripe },
+  );
+
+  const license = await h.store.strongestLicense(EMAIL, NOW);
+  assert.equal(license.kind, "lifetime");
+  assert.equal(license.provider_order_id, "pi_1", "the payment intent is what a refund names");
+});
+
+test("a subscription renewal a year later extends the licence", async () => {
+  const h = await harness();
+  await h.deliver(
+    {
+      id: "evt_first",
+      type: "checkout.session.completed",
+      data: {
+        object: { id: "cs_1", subscription: "sub_1", payment_link: "plink_annual", customer_details: { email: EMAIL } },
+      },
+    },
+    { provider: stripe },
+  );
+  const first = await h.store.strongestLicense(EMAIL, NOW);
+  assert.equal(first.kind, "annual");
+
+  const renewalAt = NOW + 360 * 86400;
+  const renewal = await h.deliver(
+    {
+      id: "evt_renewal",
+      type: "invoice.paid",
+      data: {
+        object: {
+          id: "in_1",
+          subscription: "sub_1",
+          billing_reason: "subscription_cycle",
+          customer_email: EMAIL,
+          lines: { data: [{ price: { id: "pri_annual" } }] },
+        },
+      },
+    },
+    { provider: stripe, now: renewalAt },
+  );
+
+  assert.equal(renewal.body.applied, true);
+  const second = await h.store.strongestLicense(EMAIL, renewalAt);
+  assert.equal(second.id, first.id, "a renewal is the same licence, not a second one");
+  assert.equal(second.expires_at, first.expires_at + ANNUAL_SECONDS);
+  assert.equal(await h.store.liveSlotCount(first.id), 0);
+
+  // The key on the Mac still carries the old date, so the renewal has to say
+  // how to replace it. This is the mail that keeps a paying subscriber from
+  // being locked out on their renewal day.
+  assert.match(h.sent.at(-1).text, /Send my key/);
+  assert.match(h.sent.at(-1).subject, /renewed/i);
+});
+
+test("a renewed licence hands the same Mac a key with the new date", async () => {
+  const h = await harness();
+  await h.deliver(
+    {
+      id: "evt_first",
+      type: "checkout.session.completed",
+      data: { object: { id: "cs_1", subscription: "sub_1", payment_link: "plink_annual", customer_details: { email: EMAIL } } },
+    },
+    { provider: stripe },
+  );
+  const before = await h.activate();
+
+  const renewalAt = NOW + 360 * 86400;
+  await h.deliver(
+    {
+      id: "evt_renewal",
+      type: "invoice.paid",
+      data: {
+        object: {
+          id: "in_1",
+          subscription: "sub_1",
+          billing_reason: "subscription_cycle",
+          customer_email: EMAIL,
+          lines: { data: [{ price: { id: "pri_annual" } }] },
+        },
+      },
+    },
+    { provider: stripe, now: renewalAt },
+  );
+
+  const after = await h.activate({ now: renewalAt + 60 });
+  assert.notEqual(after.body.key, before.body.key);
+  const payload = await verifyToken(after.body.key, await h.verifying());
+  assert.equal(payload.expires, NOW + 2 * ANNUAL_SECONDS);
+});
+
+test("the first invoice of a subscription is left to the checkout session", async () => {
+  const h = await harness();
+  const result = await h.deliver(
+    {
+      id: "evt_first_invoice",
+      type: "invoice.paid",
+      data: {
+        object: {
+          id: "in_0",
+          billing_reason: "subscription_create",
+          customer_email: EMAIL,
+          lines: { data: [{ price: { id: "pri_annual" } }] },
+        },
+      },
+    },
+    { provider: stripe },
+  );
+
+  assert.equal(result.body.applied, false);
+  assert.equal((await h.store.all("SELECT id FROM licenses")).length, 0, "or the address gets two licences for one sale");
+});
+
+/// Both invoice events fire for the same money and carry different event ids,
+/// so idempotency cannot save us: acting on both would grow an annual by two
+/// years for one payment. Selecting both in the dashboard has to be harmless.
+test("invoice.payment_succeeded is ignored, so ticking both boxes cannot double the term", async () => {
+  const h = await harness();
+  await h.deliver(
+    {
+      id: "evt_first",
+      type: "checkout.session.completed",
+      data: { object: { id: "cs_1", subscription: "sub_1", payment_link: "plink_annual", customer_details: { email: EMAIL } } },
+    },
+    { provider: stripe },
+  );
+  const first = await h.store.strongestLicense(EMAIL, NOW);
+
+  const renewalAt = NOW + 360 * 86400;
+  const invoice = {
+    id: "in_1",
+    subscription: "sub_1",
+    billing_reason: "subscription_cycle",
+    customer_email: EMAIL,
+    lines: { data: [{ price: { id: "pri_annual" } }] },
+  };
+  await h.deliver({ id: "evt_a", type: "invoice.paid", data: { object: invoice } }, { provider: stripe, now: renewalAt });
+  await h.deliver(
+    { id: "evt_b", type: "invoice.payment_succeeded", data: { object: invoice } },
+    { provider: stripe, now: renewalAt },
+  );
+
+  const after = await h.store.strongestLicense(EMAIL, renewalAt);
+  assert.equal(after.expires_at, first.expires_at + ANNUAL_SECONDS, "one payment, one year");
+});
+
+test("a refunded subscription is found by the address when the charge names nothing we stored", async () => {
+  const h = await harness();
+  await h.deliver(
+    {
+      id: "evt_first",
+      type: "checkout.session.completed",
+      data: { object: { id: "cs_1", subscription: "sub_1", payment_link: "plink_annual", customer_details: { email: EMAIL } } },
+    },
+    { provider: stripe },
+  );
+
+  const refunded = await h.deliver(
+    {
+      id: "evt_refund",
+      type: "charge.refunded",
+      // A subscription invoice's charge carries a payment intent this service
+      // has never seen.
+      data: { object: { id: "ch_1", payment_intent: "pi_never_stored", billing_details: { email: EMAIL } } },
+    },
+    { provider: stripe, now: NOW + 86400 },
+  );
+
+  assert.equal(refunded.body.applied, true);
+  assert.equal(await h.store.strongestLicense(EMAIL, NOW + 86400), null);
+});
+
+test("a cancelled subscription runs to its date rather than dying on the spot", async () => {
+  const h = await harness();
+  await h.deliver(
+    {
+      id: "evt_first",
+      type: "checkout.session.completed",
+      data: { object: { id: "cs_1", subscription: "sub_1", payment_link: "plink_annual", customer_details: { email: EMAIL } } },
+    },
+    { provider: stripe },
+  );
+
+  const cancelled = await h.deliver(
+    { id: "evt_cancel", type: "customer.subscription.deleted", data: { object: { id: "sub_1" } } },
+    { provider: stripe, now: NOW + 86400 },
+  );
+
+  assert.equal(cancelled.body.applied, false);
+  const license = await h.store.strongestLicense(EMAIL, NOW + 86400);
+  assert.equal(license.kind, "annual", "they paid for the year and the year is not over");
 });
 
 async function hmac(message) {

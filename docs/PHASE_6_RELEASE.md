@@ -6,9 +6,33 @@ would prove it. A release document that claims to have been executed when it has
 not is worse than none, because the first person to trust it is the person
 shipping.
 
-The two things that block it are an Apple Developer Program membership
-(Developer ID certificates are not issued to free accounts) and the Stripe
-decision recorded in `docs/PRODUCT_SCOPE.md`.
+Both things that blocked it are now settled — the Apple Developer Program
+membership is bought and the payment decision is Stripe (`docs/PHASE_8_DECISIONS.md`).
+What remains is two credentials on one machine, and `Tools/release.sh` refuses
+with a sentence naming whichever of them is missing:
+
+1. A **Developer ID Application** certificate in the login keychain. Xcode →
+   Settings → Accounts → Manage Certificates → + → Developer ID Application.
+2. A **notarytool keychain profile**, made once from an App Store Connect API
+   key:
+
+   ```sh
+   xcrun notarytool store-credentials LocalDictationNotary \
+     --key ~/private_keys/AuthKey_XXXXXXXX.p8 --key-id XXXXXXXX --issuer <uuid>
+   ```
+
+Then the whole of section 3 and 4 below is one command:
+
+```sh
+./Tools/release.sh
+```
+
+It reads the Team ID off the certificate rather than carrying it as a constant,
+generates `ExportOptions.plist` into `build/`, archives, exports, notarizes and
+staples the app, builds and separately notarizes the disk image, and finishes by
+printing what `codesign` and `spctl` actually say. It refuses to run from a
+dirty working tree, because a release nobody can reproduce is a release whose
+version number is a guess.
 
 ## What the project already has
 
@@ -27,8 +51,11 @@ decision recorded in `docs/PRODUCT_SCOPE.md`.
 
 ### 1. A Developer ID identity
 
-Requires the paid membership. Then, in Signing & Capabilities for the Release
-configuration: *Developer ID Application*, automatic signing.
+The membership is bought. What is left is the certificate itself — in Signing &
+Capabilities for the Release configuration: *Developer ID Application*,
+automatic signing. `security find-identity -v -p codesigning` lists nothing
+until that has been done, which is exactly what `Tools/release.sh` checks
+first.
 
 Proof: `codesign -dv --verbose=4 LocalDictation.app` names the Developer ID
 authority rather than "Apple Development".
@@ -65,10 +92,11 @@ xcrun notarytool submit build/LocalDictation.zip \
 xcrun stapler staple build/export/LocalDictation.app
 ```
 
-`Tools/ExportOptions.plist` and the `LocalDictationNotary` keychain profile do
-not exist yet; both need the membership. `notarytool store-credentials` creates
-the profile from an App Store Connect API key, which is the form that does not
-put an app-specific password in a shell history.
+`Tools/release.sh` runs all of the above, generating the export options plist
+from the Team ID on the certificate. The `LocalDictationNotary` keychain profile
+is the one thing it cannot make for you: `notarytool store-credentials` creates
+it from an App Store Connect API key, which is the form that does not put an
+app-specific password in a shell history.
 
 Proof: `spctl -a -vvv -t install LocalDictation.app` says *accepted, source=
 Notarized Developer ID*, and the app opens on a Mac that has never seen it
@@ -77,7 +105,13 @@ without a Gatekeeper prompt.
 ### 4. A disk image
 
 A `.dmg` with the app and a symlink to `/Applications`. It also has to be signed
-and stapled — Gatekeeper checks the container the user actually downloaded.
+and stapled in its own right — Gatekeeper checks the container the user actually
+downloaded, not only the app inside it. `Tools/release.sh` does both.
+
+The one thing no script can prove: open the image on a Mac that has never seen
+this app, from a real download rather than from `build/`. Quarantine only
+attaches to a genuine download, so it is the only way the absence of a Gatekeeper
+prompt means anything.
 
 ### 5. WhisperKit's 600 MB, and what a release changes about it
 

@@ -3,15 +3,21 @@ import Foundation
 
 /// The commercial offer, in one place, so changing a price is not a search.
 ///
-/// The URLs are deliberately empty. `docs/PHASE_8_DECISIONS.md` D2 settles the
-/// provider on availability rather than on economics — both candidates are
-/// merchants of record and the fee difference is about a euro on a ninety-nine
-/// euro sale — and neither account exists yet, so the paywall says the checkout
-/// is not open rather than sending anyone to a page that is not there.
+/// The URLs are deliberately empty, and they are the last code change this
+/// phase is waiting on. `docs/PHASE_8_DECISIONS.md` D2 is settled — Stripe, as
+/// merchant of record — so what goes here is concrete:
 ///
-/// Filling these constants in is the whole of what turns buying on, on this
-/// side. The other side is written: `Service/src/webhook.js` answers either
-/// provider, and it is what turns a payment into a licence on an address.
+/// - `lifetimeCheckout` and `annualCheckout`: the two Stripe **Payment Link**
+///   URLs, `https://buy.stripe.com/…`. Collect the customer's email on both;
+///   the address *is* the licence, and a checkout that collects none produces
+///   an event the service can do nothing with.
+/// - `websiteURL`: the product page, once there is one.
+///
+/// Until then the paywall says the checkout is not open rather than sending
+/// anyone to a page that is not there. The other side is already written:
+/// `Service/src/webhook.js` turns the resulting payment into a licence on that
+/// address, and the same two links' `plink_…` ids are what tell it which of the
+/// two offers was bought — Stripe sends no line items on a webhook.
 enum StoreFront {
     static let lifetimePrice = "€99"
     static let annualPrice = "€49"

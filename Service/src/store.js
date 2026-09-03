@@ -53,6 +53,18 @@ export class Store {
     return this.first(`SELECT * FROM licenses WHERE provider_order_id = ? LIMIT 1`, [orderID]);
   }
 
+  /// The newest paid licence on an address, expired or not.
+  ///
+  /// The second way to find a licence a refund is about. A subscription's charge
+  /// carries a payment intent this service never stored, so without this a
+  /// refunded annual would stay live for issuance.
+  async newestPaidLicense(email) {
+    return this.first(
+      `SELECT * FROM licenses WHERE email = ? AND kind != 'trial' ORDER BY created_at DESC LIMIT 1`,
+      [email],
+    );
+  }
+
   /// Has this address ever had a trial? Asked of every trial ever issued, live
   /// or expired, because the answer "your fourteen days are over" is exactly
   /// what an expired one means.
