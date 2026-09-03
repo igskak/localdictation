@@ -3,7 +3,8 @@
 # Archive, sign, notarize, staple, and package LocalDictation for direct
 # distribution. `docs/PHASE_6_RELEASE.md` is the reasoning; this is the doing.
 #
-#   ./Tools/release.sh
+#   ./Tools/release.sh            archive, notarize, staple, package
+#   ./Tools/release.sh --check    only say whether this machine could
 #
 # It needs two things that live on the machine and never in this repository:
 #
@@ -25,6 +26,9 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
+
+CHECK_ONLY=0
+[ "${1:-}" = "--check" ] && CHECK_ONLY=1
 
 PROJECT="LocalDictation.xcodeproj"
 SCHEME="LocalDictation"
@@ -66,7 +70,7 @@ xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1 ||
 
 # A release built from uncommitted work is a release nobody can reproduce, and
 # the version it claims to be is a guess.
-if [ -n "$(git status --porcelain)" ] && [ "${ALLOW_DIRTY:-0}" != "1" ]; then
+if [ -n "$(git status --porcelain)" ] && [ "${ALLOW_DIRTY:-0}" != "1" ] && [ "$CHECK_ONLY" = "0" ]; then
     die "the working tree has uncommitted changes. Commit them, or re-run with ALLOW_DIRTY=1."
 fi
 
@@ -79,6 +83,12 @@ echo "   version $VERSION, team $TEAM_ID"
 
 DMG="$BUILD/LocalDictation-$VERSION.dmg"
 
+if [ "$CHECK_ONLY" = "1" ]; then
+    echo
+    echo "Ready. ./Tools/release.sh would produce $DMG"
+    exit 0
+fi
+
 # ---------------------------------------------------------------------------
 # Archive and export
 # ---------------------------------------------------------------------------
@@ -88,11 +98,17 @@ step "Archiving"
 rm -rf "$ARCHIVE" "$EXPORT" "$BUILD/dmg" "$BUILD/LocalDictation.zip" "$DMG"
 mkdir -p "$BUILD"
 
+# `DEVELOPMENT_TEAM` is passed here rather than committed to the project. It
+# belongs to whoever is signing, `AGENTS.md` keeps user-specific signing state
+# out of the repository, and `Tools/generate_pbxproj.py` would carry a hardcoded
+# one forward forever.
 xcodebuild archive \
     -project "$PROJECT" -scheme "$SCHEME" \
     -configuration Release \
     -destination 'generic/platform=macOS' \
     -archivePath "$ARCHIVE" \
+    DEVELOPMENT_TEAM="$TEAM_ID" \
+    CODE_SIGN_IDENTITY="Developer ID Application" \
     | tail -5
 
 step "Exporting"

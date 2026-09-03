@@ -24,6 +24,7 @@ with a sentence naming whichever of them is missing:
 Then the whole of section 3 and 4 below is one command:
 
 ```sh
+./Tools/release.sh --check   # says what is missing, builds nothing
 ./Tools/release.sh
 ```
 
