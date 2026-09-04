@@ -276,6 +276,36 @@ outright, so selecting it by accident is harmless. `customer.subscription.delete
 is deliberately not acted on: a cancelled annual runs to the date it was paid
 for.
 
+### The confirmation page is not optional
+
+A key names a Mac and a browser does not know which, so a purchase cannot hand
+one over. The buyer has to come back to the app and ask. That sentence is the
+whole price of the design, and there are exactly two places it can be said:
+the purchase mail, and Stripe's own confirmation page.
+
+**The confirmation page is the one that always works.** Mail is delayed, filed
+as spam, or — while `MAIL_PROVIDER` is `none` — not sent at all, and a buyer
+who has just paid €99 and been told nothing is a buyer writing to support or
+asking their bank. So set it on both Payment Links, under **After payment →
+Show confirmation page**, before the first sale:
+
+> **Thank you — one step left.**
+>
+> Your licence is on the email address you just used. A licence key is issued
+> for one Mac, and a browser cannot tell which Mac you are on, so the last step
+> happens inside the app:
+>
+> 1. Open LocalDictation.
+> 2. Go to Settings, then License.
+> 3. Type the address you paid with and press **Send my key**.
+>
+> The app unlocks straight away. Repeat it on your second Mac whenever you
+> like — a licence covers two.
+
+The same words are in `purchaseMail` in `src/mailer.js`. They should stay the
+same words: a buyer who reads both should not have to work out whether they are
+two instructions or one.
+
 ### One account, two products
 
 Stripe delivers **every** event on an account to **every** webhook endpoint.

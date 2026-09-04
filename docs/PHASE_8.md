@@ -280,7 +280,7 @@ tested and the build that ships is which addresses it will send an email to.
 | Second Mac issued, third refused, releasing lets it in | `Service/test/release.test.mjs`, and the endpoint the app calls |
 | Pressing "Send me a key" twice mails one key, one slot | `Service/test/activate.test.mjs` |
 | A service key verifies through `LicenseKey.verify`, all three kinds | `ActivationServiceParityTests`, on every run, plus a byte-for-byte drift check where Node is present. Also done against workerd locally (all three kinds) and against the live deployment (a trial, signed by the production key) |
-| Buying then "Send my key" unlocks that Mac | `Service/test/webhook.test.mjs`; the field paths need one real event from the provider |
+| Buying then "Send my key" unlocks that Mac | `Service/test/webhook.test.mjs`. The instruction that makes it happen has to be on Stripe's confirmation page as well as in the mail — see `Service/README.md`; while `MAIL_PROVIDER` is `none` it is the only place it exists |
 | No network: told, and dictation unaffected | Phase 6, unchanged |
 | The service stores nothing outside the table | `schema.sql`, asserted by a test that reads `PRAGMA table_info` |
 | Notarized Developer ID build | Certificate created; waits on the notarytool profile. `./Tools/release.sh --check` says which |
