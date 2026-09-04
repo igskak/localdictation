@@ -27,12 +27,21 @@ final class ActivationServiceParityTests: XCTestCase {
             let issued: TimeInterval
             let expires: TimeInterval?
             let token: String
+            /// Overrides for a fixture taken from a live service, where each key
+            /// names the Mac and the address it was actually issued to. The
+            /// committed fixture issues all three for one pair and leaves these
+            /// out.
+            let device: String?
+            let email: String?
         }
 
         let device: String
         let email: String
         let publicKeyBase64: String
         let keys: [Key]
+
+        func device(for key: Key) -> String { key.device ?? device }
+        func email(for key: Key) -> String { key.email ?? email }
     }
 
     private static var repositoryRoot: URL {
@@ -41,38 +50,79 @@ final class ActivationServiceParityTests: XCTestCase {
             .deletingLastPathComponent()      // repository root
     }
 
-    private static var fixtureURL: URL {
+    /// The fixture that ships with the repository and is read on every run.
+    private static var committedFixtureURL: URL {
         repositoryRoot.appendingPathComponent("Service/fixtures/parity.json")
     }
 
+    /// A fixture taken from a **running** service, verified as well when it is
+    /// there and ignored when it is not.
+    ///
+    /// This is the check `docs/PHASE_8.md` asks for before the service issues a
+    /// key to anyone, and the only one that covers the runtime rather than the
+    /// source: everything in `Service/` is tested under Node, production is
+    /// workerd, and Ed25519, base64 and JSON are three places those could
+    /// differ by a byte. `Service/README.md` has the two commands that produce
+    /// it.
+    ///
+    /// A file rather than an environment variable, because `xcodebuild` does
+    /// not pass the shell's environment to the test runner — an override nobody
+    /// can drive is an override that silently tests the wrong thing, and this
+    /// one did for two runs before it was noticed.
+    private static var liveFixtureURL: URL {
+        repositoryRoot.appendingPathComponent("Service/fixtures/live.json")
+    }
+
+    private func load(_ url: URL) throws -> Fixture {
+        try JSONDecoder().decode(Fixture.self, from: try Data(contentsOf: url))
+    }
+
+    /// The committed fixture, which is what most of these assertions are about.
     private func loadFixture() throws -> Fixture {
-        let data = try Data(contentsOf: Self.fixtureURL)
-        return try JSONDecoder().decode(Fixture.self, from: data)
+        try load(Self.committedFixtureURL)
+    }
+
+    /// Everything to be verified: the committed fixture, and a live one if a
+    /// deployment has been asked for keys. Named so a failure says which.
+    private func allFixtures() throws -> [(name: String, fixture: Fixture)] {
+        var fixtures = [(name: "committed", fixture: try loadFixture())]
+        if FileManager.default.fileExists(atPath: Self.liveFixtureURL.path) {
+            fixtures.append((name: "live", fixture: try load(Self.liveFixtureURL)))
+        }
+        return fixtures
     }
 
     // MARK: - The keys themselves
 
     /// One key of each kind, through the verifier that ships.
     func testEveryKindTheServiceIssuesVerifiesInTheApp() throws {
-        let fixture = try loadFixture()
+        for (name, fixture) in try allFixtures() {
         let authority = LicenseAuthority(publicKeyBase64: fixture.publicKeyBase64)
-        XCTAssertTrue(authority.isConfigured)
+        XCTAssertTrue(authority.isConfigured, "\(name) fixture")
 
-        XCTAssertEqual(
-            Set(fixture.keys.map(\.kind)),
-            Set(LicenseKind.allCases),
-            "the fixture has to cover every kind the service can issue"
-        )
+        if name == "committed" {
+            // The generated fixture covers all three because it is generated.
+            XCTAssertEqual(
+                Set(fixture.keys.map(\.kind)),
+                Set(LicenseKind.allCases),
+                "the committed fixture has to cover every kind the service can issue"
+            )
+        } else {
+            // A live one covers whatever the addresses it was taken with
+            // actually own, which against a fresh deployment is one trial.
+            XCTAssertFalse(fixture.keys.isEmpty, "the \(name) fixture has no keys in it")
+        }
 
         for key in fixture.keys {
-            let license = try LicenseKey.verify(key.token, authority: authority, deviceID: fixture.device)
+            let license = try LicenseKey.verify(key.token, authority: authority, deviceID: fixture.device(for: key))
 
             XCTAssertEqual(license.kind, key.kind)
             XCTAssertEqual(license.id, key.id)
-            XCTAssertEqual(license.email, fixture.email)
-            XCTAssertEqual(license.deviceID, fixture.device)
+            XCTAssertEqual(license.email, fixture.email(for: key))
+            XCTAssertEqual(license.deviceID, fixture.device(for: key))
             XCTAssertEqual(license.issuedAt.timeIntervalSince1970, key.issued)
             XCTAssertEqual(license.expiresAt?.timeIntervalSince1970, key.expires)
+        }
         }
     }
 
@@ -80,11 +130,11 @@ final class ActivationServiceParityTests: XCTestCase {
     /// service omits `expires` rather than writing `null`, because the app
     /// refuses a lifetime key that has one.
     func testALifetimeKeyFromTheServiceCarriesNoDate() throws {
-        let fixture = try loadFixture()
+        for (_, fixture) in try allFixtures() {
         let authority = LicenseAuthority(publicKeyBase64: fixture.publicKeyBase64)
 
         for key in fixture.keys {
-            let license = try LicenseKey.verify(key.token, authority: authority, deviceID: fixture.device)
+            let license = try LicenseKey.verify(key.token, authority: authority, deviceID: fixture.device(for: key))
             switch key.kind {
             case .lifetime:
                 XCTAssertNil(license.expiresAt)
@@ -94,26 +144,26 @@ final class ActivationServiceParityTests: XCTestCase {
                 XCTAssertGreaterThan(expiresAt, license.issuedAt)
             }
         }
+        }
     }
 
     /// The timestamps are whole seconds. A fractional value encodes differently
     /// in Swift and in JavaScript, and the signature is over the bytes.
     func testTheTimestampsAreWholeSeconds() throws {
-        let fixture = try loadFixture()
-
+        for (_, fixture) in try allFixtures() {
         for key in fixture.keys {
             XCTAssertEqual(key.issued, key.issued.rounded(.down), "issued is fractional in the \(key.kind.rawValue) key")
             if let expires = key.expires {
                 XCTAssertEqual(expires, expires.rounded(.down), "expires is fractional in the \(key.kind.rawValue) key")
             }
         }
+        }
     }
 
     /// The payload the service signs is the frozen one: compact, keys in
     /// lexicographic order, nothing else in it.
     func testThePayloadIsTheFrozenShape() throws {
-        let fixture = try loadFixture()
-
+        for (_, fixture) in try allFixtures() {
         for key in fixture.keys {
             let encoded = key.token.split(separator: ".")[1]
             let data = try XCTUnwrap(Data(base64URLEncoded: String(encoded)))
@@ -133,6 +183,7 @@ final class ActivationServiceParityTests: XCTestCase {
             let positions = expected.map { json.range(of: "\"\($0)\":")?.lowerBound }
             XCTAssertEqual(positions.compactMap { $0 }.count, expected.count)
             XCTAssertEqual(positions.compactMap { $0 }, positions.compactMap { $0 }.sorted())
+        }
         }
     }
 
@@ -167,20 +218,22 @@ final class ActivationServiceParityTests: XCTestCase {
         let forged = try JSONSerialization.data(withJSONObject: fields, options: [.sortedKeys])
 
         let token = "\(parts[0]).\(forged.base64URLEncodedString()).\(parts[2])"
-        XCTAssertThrowsError(try LicenseKey.verify(token, authority: authority, deviceID: fixture.device)) { error in
+        XCTAssertThrowsError(try LicenseKey.verify(token, authority: authority, deviceID: fixture.device(for: key))) { error in
             XCTAssertEqual(error as? LicenseKeyError, .badSignature)
         }
     }
 
-    /// The fixture is signed by a throwaway seed, so it must not verify against
-    /// the authority the shipped app carries. A fixture that did would mean a
-    /// private key had reached this repository.
+    /// The *committed* fixture is signed by a throwaway seed, so it must not
+    /// verify against the authority the shipped app carries — one that did would
+    /// mean a private key had reached this repository. A live fixture is exempt
+    /// by definition: keys from the real service are signed by the real key, and
+    /// that they verify against `.production` is the whole point of taking one.
     func testTheFixtureIsNotSignedByTheProductionAuthority() throws {
         let fixture = try loadFixture()
         XCTAssertNotEqual(fixture.publicKeyBase64, LicenseAuthority.productionPublicKeyBase64)
 
         for key in fixture.keys {
-            XCTAssertThrowsError(try LicenseKey.verify(key.token, authority: .production, deviceID: fixture.device))
+            XCTAssertThrowsError(try LicenseKey.verify(key.token, authority: .production, deviceID: fixture.device(for: key)))
         }
     }
 
@@ -211,7 +264,7 @@ final class ActivationServiceParityTests: XCTestCase {
         XCTAssertEqual(process.terminationStatus, 0, log)
 
         let regenerated = try Data(contentsOf: output)
-        let committed = try Data(contentsOf: Self.fixtureURL)
+        let committed = try Data(contentsOf: Self.committedFixtureURL)
         XCTAssertEqual(
             regenerated,
             committed,

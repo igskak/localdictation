@@ -43,6 +43,24 @@ cd Service && npm test
 Node 22 or newer (`node:sqlite`, and Ed25519 in WebCrypto). Nothing is installed
 and nothing is downloaded.
 
+To run the service itself, against a local D1 and the real Workers runtime:
+
+```bash
+npx wrangler d1 execute localdictation-licenses --local --file schema.sql
+```
+
+```bash
+npx wrangler dev
+```
+
+`wrangler dev` reads secrets from `.dev.vars`, which is git-ignored and holds a
+**throwaway** signing identity — a key issued locally verifies in nothing that
+ships, which is the point. Generate one with the same code the tests use:
+
+```bash
+node -e 'import("./test/support/keys.mjs").then(async ({makeKeypair}) => { const k = makeKeypair(); const {writeFileSync} = await import("node:fs"); writeFileSync(".dev.vars", `LICENSE_SIGNING_KEY = "${k.privateBase64}"\nLICENSE_PUBLIC_KEY = "${k.publicBase64}"\nMAIL_PROVIDER = "none"\n`); console.log(k.publicBase64) })'
+```
+
 ## Parity with the app
 
 `LicenseKey.verify` in the app checks a signature over **the payload bytes as
@@ -58,6 +76,23 @@ npm run fixture   # regenerate Service/fixtures/parity.json
 shipping verifier on every run, and — where Node is installed — regenerates it
 and compares byte for byte, so an issuer change nobody re-ran the generator for
 fails in the app's test suite rather than in a customer's inbox.
+
+That covers the source. It does not cover the **runtime**: everything here is
+tested under Node, production is workerd, and Ed25519, base64 and JSON are three
+places those could differ by a byte. So ask a running service for real keys and
+read those through the verifier too:
+
+```bash
+node tools/live-fixture.mjs --url https://<host> --pair you@example.com:<32 hex>
+```
+
+That writes `fixtures/live.json`, which the same test picks up whenever it
+exists and ignores when it does not. It is git-ignored: it describes one
+deployment at one moment, and against production it holds real signed keys.
+
+Do this once against a local `wrangler dev`, and once against the real
+deployment before the first key goes to a stranger. It has been done locally:
+one key of each kind, issued by workerd, verified through `LicenseKey.verify`.
 
 The fixture is signed with a fixed throwaway seed. The production private key is
 in one Workers secret and one file on one laptop, and appears nowhere here; a

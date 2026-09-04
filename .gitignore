@@ -48,6 +48,14 @@ AuthKey_*
 # signed disk image are build output and are never committed.
 build/
 
-# Wrangler's local state for the activation service.
+# Wrangler's local state for the activation service, and the throwaway signing
+# identity local development runs against. Neither is a secret worth keeping,
+# and both are exactly the shape of file that must never be committed anyway.
 Service/.wrangler/
 Service/node_modules/
+Service/.dev.vars
+
+# A parity fixture taken from a running deployment. It is about one service at
+# one moment, and against production it holds real signed keys — the committed
+# fixture beside it is the one that belongs in the repository.
+Service/fixtures/live.json
