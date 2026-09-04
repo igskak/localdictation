@@ -486,6 +486,58 @@ test("a refund after a renewal is found by the charge that renewal recorded", as
 // has to be answered from something this service wrote down -- never from the
 // customer's address, which two products can share down to the character.
 
+/// The two ways a sale goes unattributed look identical from outside, and one
+/// of them is a misconfiguration that would silently sell licences to nobody.
+/// So the identifiers that *were* present get logged.
+test("a sale that matches nothing says what it saw", async () => {
+  const h = await harness();
+  const lines = [];
+  const result = await handleEvent({
+    event: {
+      id: "evt_mystery",
+      type: "checkout.session.completed",
+      data: { object: { id: "cs_x", payment_link: "plink_something_else", customer_details: { email: EMAIL } } },
+    },
+    provider: stripe,
+    env,
+    store: h.store,
+    now: NOW,
+    mailer: { async send() { return true; } },
+    log: (message, fields) => lines.push([message, fields]),
+  });
+
+  assert.equal(result.status, 202);
+  const [message, fields] = lines.at(-1);
+  assert.match(message, /not recognised/);
+  assert.deepEqual(fields.saw, ["plink_something_else"]);
+  assert.equal(fields.has_email, true);
+});
+
+/// The misconfiguration this is really about: a destination pinned to an API
+/// version from before Payment Links existed sends a session with no
+/// `payment_link` at all, and every sale would go unattributed.
+test("a payload carrying no product identifier is distinguishable from another product's sale", async () => {
+  const h = await harness();
+  const lines = [];
+  await handleEvent({
+    event: {
+      id: "evt_old_api",
+      type: "checkout.session.completed",
+      data: { object: { id: "cs_old", customer_details: { email: EMAIL } } },
+    },
+    provider: stripe,
+    env,
+    store: h.store,
+    now: NOW,
+    mailer: { async send() { return true; } },
+    log: (message, fields) => lines.push([message, fields]),
+  });
+
+  const [, fields] = lines.at(-1);
+  assert.deepEqual(fields.saw, [], "nothing to match on at all, which is the tell");
+  assert.equal(fields.has_email, true, "so it is not the address that is missing");
+});
+
 test("a checkout for another product on the same account creates nothing", async () => {
   const h = await harness();
   const result = await h.deliver(

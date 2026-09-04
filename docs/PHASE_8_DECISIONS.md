@@ -73,7 +73,11 @@ bugs before they were noticed:
 - A **Payment Link** checkout sends no line items on the webhook, so the price
   id simply is not in the event. The link's own id is, and we created both
   links, so `PAYMENT_LINK_LIFETIME` and `PAYMENT_LINK_ANNUAL` are how an offer
-  is identified on that path.
+  is identified on that path. Which makes the destination's **API version** a
+  correctness setting rather than a formality: Payment Links did not exist
+  before 2021, so a destination pinned to an older version — and the account's
+  default here was 2020-03-02, from the other product — sends sessions with no
+  `payment_link` in them at all, and every sale goes unattributed.
 - An **annual is a subscription**, and its renewal a year later arrives as
   `invoice.paid` rather than as another checkout. Without reading that, a
   paying subscriber's licence would have quietly lapsed on its first renewal.

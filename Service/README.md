@@ -218,7 +218,17 @@ In the dashboard, once:
    have whoever handles D5 confirm it. Leave "Tax included in price" on — the
    app says €99 and that is what the buyer should pay.
 4. A webhook endpoint at `https://<host>/v1/purchases/webhook`, and put its
-   signing secret in `WEBHOOK_SECRET`.
+   signing secret in `WEBHOOK_SECRET`. **Set its API version to the newest
+   one**, not the account's default: the version decides the payload's shape,
+   Payment Links did not exist before 2021, and a session rendered by an older
+   version carries no `payment_link` — which is the only thing in that payload
+   that says the sale was ours. Every sale would go unattributed, and the app
+   would look like it simply never activated anybody.
+
+   When a sale is not attributed the log line says what identifiers it did see,
+   which is how the two causes are told apart: `saw: ["plink_…"]` is another
+   product's sale, and `saw: []` with `has_email: true` is this version
+   mistake.
 
 There is **no "collect customer email" option**, and there is nothing to turn
 on: Checkout always collects an address, because it has to send a receipt.

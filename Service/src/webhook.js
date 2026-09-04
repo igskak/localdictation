@@ -38,6 +38,20 @@ export async function handleEvent({ event, provider, env, store, now, mailer, lo
     return { status: 200, body: { received: true, applied: false } };
   }
 
+  // A sale this service could not attribute to either of its offers. Answered
+  // 202 rather than 400, so the provider stops redelivering, and logged with
+  // enough to tell the two causes apart: another product's sale, or a payload
+  // that carries no product identifier because the destination is pinned to an
+  // API version predating the one the links were made with.
+  if (parsed.effect === "unrecognised") {
+    log("sale not recognised as ours", {
+      provider: provider.name,
+      saw: parsed.saw ?? [],
+      has_email: parsed.hasEmail === true,
+    });
+    return { status: 202, body: { received: true, applied: false } };
+  }
+
   if (parsed.effect !== "refund" && parsed.effect !== "purchase" && parsed.effect !== "renewal") {
     log("effect not understood", { effect: String(parsed.effect) });
     return { status: 202, body: { received: true, applied: false } };

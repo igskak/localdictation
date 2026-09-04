@@ -168,12 +168,28 @@ export const stripe = {
     if (type !== "checkout.session.completed") return { id, effect: "ignore" };
 
     const email = normalizeEmail(object.customer_details?.email ?? object.customer_email ?? null);
-    const kind = kindFor(identifiers(object), env);
+    const candidates = identifiers(object);
+    const kind = kindFor(candidates, env);
     // This is the one event identified by *what was bought* rather than by an
     // identifier we already hold, because it is the event that creates the
     // licence. A session for another product on this account matches neither
     // configured link and is ignored.
-    if (!email || !kind) return null;
+    //
+    // When it matches nothing, the reason is reported rather than left as a
+    // mystery. There are two of them and they look identical from outside: the
+    // sale belonged to another product, or the destination is pinned to an API
+    // version old enough that `payment_link` is not in the payload at all —
+    // Payment Links did not exist before 2021, and a session rendered by a 2020
+    // version carries no trace of one. `saw` is a list of product identifiers;
+    // it is opaque and it is not personal data.
+    if (!email || !kind) {
+      return {
+        id,
+        effect: "unrecognised",
+        saw: candidates.filter(Boolean),
+        hasEmail: email !== null,
+      };
+    }
 
     return {
       id,
