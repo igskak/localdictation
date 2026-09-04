@@ -44,10 +44,13 @@ PAYMENT_LINK_ANNUAL = "plink_1UBsxhHOSgmME2jEYQctLUIb"
 PRICE_LIFETIME = "price_1UBstqHOSgmME2jEJc3X8NVq"
 PRICE_ANNUAL = ""
 
+# Created in the EEUR region, which is where the licence table lives and what
+# `docs/PRIVACY.md` has to say about it. The binding is `DB` and not the name
+# wrangler suggests: the code reads `env.DB`.
 [[d1_databases]]
 binding = "DB"
 database_name = "localdictation-licenses"
-database_id = "REPLACE_WITH_THE_D1_DATABASE_ID"
+database_id = "50ad83fb-6a8d-4fc5-be79-3b494da2d50f"
 
 # Staging. The client refuses plain HTTP, so there is no localhost path in and
 # no "allow insecure in Debug" flag: a staging hostname with a real certificate

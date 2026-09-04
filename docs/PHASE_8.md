@@ -226,9 +226,13 @@ Small, and mostly one line each — which is the point of doing the client half
 first. Struck through as they land; the two that are left both wait on money
 rather than on code.
 
-1. ~~`ActivationEndpoint.production` — the URL.~~ Still `nil`, and it stays that
-   way until there is a deployment to name. Everything behind it is built and
-   tested; `Service/README.md` has the staging recipe and the one-line change.
+1. ~~`ActivationEndpoint.production` — the URL.~~ Live. The service is deployed
+   to Cloudflare Workers with its D1 table in the EEUR region, `/v1/health`
+   reports `authority_match: true`, and a key it issued has been read back
+   through the shipping `LicenseKey.verify`. One thing is deliberately not
+   finished: the hostname is a workers.dev one, and it is compiled into every
+   build that ships — it has to become a custom domain before the first public
+   build. `docs/PHASE_6_RELEASE.md` §5.
 2. ~~`StoreFront.lifetimeCheckout`, `annualCheckout`~~ — filled in, and the Buy
    buttons enabled themselves. Which link is which was checked against the live
    pages rather than read off the URLs: swapping them sells a lifetime licence
@@ -272,14 +276,14 @@ tested and the build that ships is which addresses it will send an email to.
 
 | Criterion | State |
 | --- | --- |
-| A stranger activates, nobody at this end touches anything | Built end to end; unproven until there is a deployment |
+| A stranger activates, nobody at this end touches anything | Deployed and answering. The last gap is delivery: `MAIL_PROVIDER` is `none` until D4, so a key is returned and not yet mailed |
 | Second Mac issued, third refused, releasing lets it in | `Service/test/release.test.mjs`, and the endpoint the app calls |
 | Pressing "Send me a key" twice mails one key, one slot | `Service/test/activate.test.mjs` |
-| A service key verifies through `LicenseKey.verify`, all three kinds | `ActivationServiceParityTests`, on every run, plus a byte-for-byte drift check where Node is present |
+| A service key verifies through `LicenseKey.verify`, all three kinds | `ActivationServiceParityTests`, on every run, plus a byte-for-byte drift check where Node is present. Also done against workerd locally (all three kinds) and against the live deployment (a trial, signed by the production key) |
 | Buying then "Send my key" unlocks that Mac | `Service/test/webhook.test.mjs`; the field paths need one real event from the provider |
 | No network: told, and dictation unaffected | Phase 6, unchanged |
 | The service stores nothing outside the table | `schema.sql`, asserted by a test that reads `PRAGMA table_info` |
-| Notarized Developer ID build | Waits on D1 |
+| Notarized Developer ID build | Certificate created; waits on the notarytool profile. `./Tools/release.sh --check` says which |
 
 ## Acceptance criteria
 

@@ -3,16 +3,24 @@ import Foundation
 /// The address of the activation service, and the one switch that turns the
 /// email path on.
 ///
-/// It is `nil` in every build in this repository because no such service is
-/// running yet — `docs/PHASE_8.md` is the specification it will answer. Until
-/// it is filled in, `backend()` hands back the refusing stub and the app keeps
-/// pointing at the manual key path, which works offline and is what the
-/// verifier checks in either case.
+/// It is live: the service in `Service/` is deployed, `/v1/health` reports that
+/// the key it signs with is the one `LicenseAuthority` accepts, and a key it
+/// issued has been read back through `LicenseKey.verify`.
 ///
-/// Filling this in is the whole of what turns activation on, the way filling in
-/// two URLs in `StoreFront` is the whole of what turns buying on.
+/// **This URL is compiled into every build that ships, and a shipped build
+/// cannot be told a new one.** A workers.dev hostname is therefore a temporary
+/// answer: it is the account's subdomain plus the worker's name, and either
+/// changing strands every copy already installed. Before the first public
+/// build this has to become a custom domain on the product's own domain, which
+/// can then be pointed anywhere — see `docs/PHASE_6_RELEASE.md`.
+///
+/// The cost of getting that wrong is bounded rather than fatal, and that is by
+/// design: nothing in the checking path calls this. A licence is a signature,
+/// verified on the Mac, so a build whose endpoint has gone stale can still
+/// accept a pasted key and still works forever on a plane. What it loses is the
+/// ability to start a trial by typing an address.
 enum ActivationEndpoint {
-    static let production: URL? = nil
+    static let production = URL(string: "https://localdictation-activation.localdictation-activation.workers.dev/v1/activate")
 
     /// What the live app gets. A build with no endpoint gates nothing extra: it
     /// simply cannot mail anyone a key.

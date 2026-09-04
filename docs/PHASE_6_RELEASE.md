@@ -131,7 +131,33 @@ this app, from a real download rather than from `build/`. Quarantine only
 attaches to a genuine download, so it is the only way the absence of a Gatekeeper
 prompt means anything.
 
-### 5. WhisperKit's 600 MB, and what a release changes about it
+### 5. A custom domain for the activation service
+
+**Before the first public build.** `ActivationEndpoint.production` is compiled
+into every copy that ships and a shipped copy cannot be told a new address, so
+the hostname in it is a promise for the lifetime of that build.
+
+It currently names a workers.dev hostname, which is the Cloudflare account's
+subdomain plus the worker's name. Either of those changing — or the service
+moving off Cloudflare — strands every installed copy's ability to start a trial
+by typing an address. A custom domain on the product's own domain has the same
+property as the rest of this design: it can be pointed somewhere else later
+without anybody reinstalling anything.
+
+```sh
+npx wrangler deploy   # after adding the route to wrangler.toml
+```
+
+Proof: `curl https://<custom host>/v1/health` reports `authority_match: true`,
+and `ActivationEndpoint.production` names that host with an `https` scheme —
+`HTTPActivationBackendTests` asserts the scheme, because a URL edited to plain
+`http` does not leak anything, it silently turns activation off for everyone.
+
+What this does *not* put at risk is a paid copy. Nothing in the checking path
+calls the service: a licence is a signature, verified on the Mac. A build whose
+endpoint has gone stale still accepts a pasted key and still works on a plane.
+
+### 6. WhisperKit's 600 MB, and what a release changes about it
 
 The model download is user-initiated and lands in Application Support, and none
 of that changes. What does change is that a release build is the first one a

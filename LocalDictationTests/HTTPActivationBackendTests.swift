@@ -226,11 +226,25 @@ final class HTTPActivationBackendTests: XCTestCase {
         }
     }
 
-    /// Until there is a service, the app says so and points at the key field.
-    /// Every other test in the suite depends on this staying the default.
-    func testTheShippingBuildHasNoEndpoint() {
-        XCTAssertNil(ActivationEndpoint.production)
-        XCTAssertFalse(ActivationEndpoint.backend().isConfigured)
+    /// The service is deployed, so this now asserts the opposite of what it did:
+    /// the shipping build points at something, over `https`, and the release
+    /// endpoint it derives is a sibling of it.
+    ///
+    /// The scheme is the assertion that matters. `HTTPActivationBackend` reports
+    /// itself unconfigured for plain HTTP rather than sending an address in
+    /// cleartext, so a URL edited to `http` here would not leak anything — it
+    /// would silently turn activation off for everyone. Both failures are worth
+    /// catching and only one of them is obvious.
+    func testTheShippingBuildPointsAtTheService() throws {
+        let endpoint = try XCTUnwrap(ActivationEndpoint.production)
+        XCTAssertEqual(endpoint.scheme, "https")
+        XCTAssertEqual(endpoint.path, "/v1/activate")
+        XCTAssertTrue(ActivationEndpoint.backend().isConfigured)
+
+        XCTAssertEqual(
+            HTTPActivationBackend.siblingRelease(of: endpoint).path,
+            "/v1/devices/release"
+        )
     }
 
     // MARK: - Server text

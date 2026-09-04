@@ -21,7 +21,7 @@ Three things can leave, all of them because you pressed something:
 | What | When | To whom | Why |
 | --- | --- | --- | --- |
 | A request for the speech model | You press **Prepare speech model…** | Hugging Face, WhisperKit's host | Fetching a static file. One way — nothing is uploaded |
-| Your email address and a device identifier | You press **Send me a key** or **Send my key** | The LocalDictation activation service | Issuing a licence key for this Mac |
+| Your email address and a device identifier | You press **Send me a key** or **Send my key** | The LocalDictation activation service, at `localdictation-activation.localdictation-activation.workers.dev` | Issuing a licence key for this Mac |
 | A licence key you already hold | You press **Remove from this Mac** | The same service | Freeing one of the two Macs your licence covers |
 
 That is the complete list. There is no fourth row.
@@ -63,6 +63,22 @@ The connection is HTTPS. A plain-HTTP endpoint makes the app report itself
 unconfigured rather than send an address in the clear, and there is no setting
 that relaxes that in any build.
 
+## Where the service runs, and who else can see it
+
+The activation service runs on **Cloudflare Workers**, and the licence table is
+a **Cloudflare D1** database in Cloudflare's **EEUR (Eastern Europe)** region.
+Cloudflare is a processor: it runs the code and stores the table, and it does
+not get the data for any purpose of its own.
+
+Payment runs on **Stripe**, which is the merchant of record for the sale. The
+app never opens a payment page itself and never sees a card number — the buy
+buttons hand a URL to your browser. What Stripe knows about a purchase is
+governed by Stripe's own policy, and the only thing it passes to this service is
+the address you bought with and an order identifier.
+
+Nothing you dictate reaches either of them, and nothing could: the app has two
+fields to send and neither can carry it.
+
 ## What the service stores
 
 `Service/schema.sql` is the whole of it.
@@ -74,6 +90,7 @@ that relaxes that in any build.
 | Kind, issue date, expiry, key id | What was issued | The life of the licence |
 | The payment provider's order id | Reconciling a payment, and invoices | As long as tax law requires |
 | Your IP address, as a counter | Rate limiting, against abuse | 24 hours, as a count and not as a log |
+| Provider identifiers for your purchase | Matching a later renewal or refund to your licence rather than to somebody else's | The life of the licence |
 
 The licence key itself is not stored. It is reproduced from the fields above
 when you ask for it again, which is also why asking twice gives you the same key

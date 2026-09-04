@@ -70,11 +70,22 @@ final class PrivacyDisclosureTests: XCTestCase {
         XCTAssertNotNil(telemetry)
     }
 
-    /// A build with no endpoint sends nothing anywhere, which is the state every
-    /// other test in the suite depends on and the state this document describes
-    /// as "you press something".
-    func testTheDocumentedActivationIsAlwaysUserInitiated() {
-        XCTAssertNil(ActivationEndpoint.production)
-        XCTAssertFalse(ActivationEndpoint.backend().isConfigured)
+    /// The service is live now, so what this asserts is the property the document
+    /// actually claims: the request goes to one place, over `https`, and it is
+    /// the place named in the policy.
+    ///
+    /// "Only when you press something" is not assertable from here — it is a
+    /// property of the call sites, and `EntitlementServiceTests` covers it. What
+    /// is assertable is that there is exactly one destination and the document
+    /// knows its host.
+    func testTheDocumentedActivationGoesWhereTheDocumentSays() throws {
+        let endpoint = try XCTUnwrap(ActivationEndpoint.production)
+        XCTAssertEqual(endpoint.scheme, "https")
+
+        let host = try XCTUnwrap(endpoint.host)
+        XCTAssertTrue(
+            try policy().contains(host),
+            "docs/PRIVACY.md does not name the host the app actually sends to: \(host)"
+        )
     }
 }
