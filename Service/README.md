@@ -175,11 +175,20 @@ In the dashboard, once:
    the two `plink_…` ids into `PAYMENT_LINK_LIFETIME` and `PAYMENT_LINK_ANNUAL`
    — a Payment Link checkout sends **no line items** on the webhook, so the
    link id is the only thing in that payload that says which offer was bought.
-3. Turn on "Collect customer email" on both links. The address is the licence:
-   a checkout that collects no address produces an event this service answers
-   `202` to and does nothing with.
+3. Check the **product tax code**. The default this project was first offered,
+   "Software as a service (SaaS) – business use", describes neither half of what
+   this is: a downloaded binary that runs entirely on the buyer's Mac, sold to
+   individuals. Pick a downloadable-software, personal-use code instead, and
+   have whoever handles D5 confirm it. Leave "Tax included in price" on — the
+   app says €99 and that is what the buyer should pay.
 4. A webhook endpoint at `https://<host>/v1/purchases/webhook`, and put its
    signing secret in `WEBHOOK_SECRET`.
+
+There is **no "collect customer email" option**, and there is nothing to turn
+on: Checkout always collects an address, because it has to send a receipt.
+`customer_details.email` is therefore always present on
+`checkout.session.completed`, which is what makes "the address is the licence"
+safe to build on.
 
 Select exactly these events:
 

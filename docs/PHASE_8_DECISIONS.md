@@ -12,7 +12,7 @@ last column.
 | # | Decided | Price | Gates |
 | --- | --- | --- | --- |
 | D1 | Apple Developer Program membership — **bought, enrolled** | €99/year | Nothing any more. The certificate is the next step, not the decision |
-| D2 | **Stripe, as merchant of record** — settled: the account already exists for another product | ~3% + fees | The three `StoreFront` URLs, which are now the only remaining code change |
+| D2 | **Stripe, as merchant of record** — settled: the account already exists for another product | 3.5% per transaction on top of card fees, per the Managed Payments toggle | The three `StoreFront` URLs, which are now the only remaining code change |
 | D3 | Cloudflare Workers + D1, signing key in Workers Secrets | €0 at this volume | `ActivationEndpoint.production` |
 | D4 | Resend, on the product domain, SPF and DKIM before the first key | €0 to 3,000 mails/month | Whether a key that was issued is a key that arrived |
 | D5 | Einzelunternehmen, Impressum and Widerruf with the digital-goods waiver | An afternoon and an accountant | Selling in Germany at all |
@@ -43,7 +43,10 @@ Both candidates were merchants of record, which is the property that matters:
 they own the VAT problem, including the one-stop-shop filing that makes selling
 a €49 licence to a customer in another EU country an ordinary act rather than a
 tax registration. `docs/MONETIZATION.md` priced the fee difference at about €1
-on a €99 sale, so it was never the deciding factor and it is not one now.
+on a €99 sale, so it was never the deciding factor and it is not one now. The
+dashboard states Managed Payments as 3.5% per transaction, which on €99 is about
+€3.50 before card fees — worth writing down, because it is the number the price
+was set against.
 
 Paddle stays implemented in `Service/src/providers.js`. It costs one file, it is
 tested, and it is what makes changing this decision a change to
