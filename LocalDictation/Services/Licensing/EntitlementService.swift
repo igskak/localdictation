@@ -203,8 +203,13 @@ final class EntitlementService {
 
         var outcome = DeviceReleaseOutcome.releasedEverywhere
         do {
-            try await backend.releaseDevice(key: token, deviceID: deviceID)
-            Log.licensing.info("Device slot released")
+            // `false` means there was no slot to free — a key issued by hand
+            // before the service existed. The Mac ends up exactly where the
+            // user wanted it, so it is reported as a plain removal rather than
+            // as a warning about a slot that was never held.
+            let freed = try await backend.releaseDevice(key: token, deviceID: deviceID)
+            outcome = freed ? .releasedEverywhere : .removedLocally
+            Log.licensing.info("Device slot released: \(freed, privacy: .public)")
         } catch let error as ActivationError {
             Log.licensing.notice("Device slot could not be released: \(error.failureReason.rawValue, privacy: .public)")
             outcome = .removedLocallyOnly(error.message)

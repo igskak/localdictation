@@ -742,12 +742,16 @@ final class FakeActivationBackend: ActivationBackend, @unchecked Sendable {
         lock.withLock { releaseError = error }
     }
 
-    func releaseDevice(key: String, deviceID: String) async throws {
+    /// Whether the stub reports a slot as actually freed.
+    var releaseFreedASlot = true
+
+    func releaseDevice(key: String, deviceID: String) async throws -> Bool {
         try lock.withLock {
             releaseCount += 1
             releasedKey = key
             releasedDeviceID = deviceID
             if let releaseError { throw releaseError }
+            return releaseFreedASlot
         }
     }
 }

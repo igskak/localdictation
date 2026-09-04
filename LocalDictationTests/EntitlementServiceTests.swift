@@ -259,6 +259,26 @@ final class EntitlementServiceTests: XCTestCase {
         XCTAssertNil(service.state.license)
     }
 
+    /// A key the service has never heard of — which is every key issued by hand
+    /// with `Tools/licensekit.swift` before the service existed. The Mac ends up
+    /// exactly where its owner wanted it, so it reads as a plain removal and not
+    /// as a warning about a slot that was never held.
+    func testAKeyTheServiceHasNoRecordOfIsStillACleanRemoval() async throws {
+        let clock = Clock(origin)
+        let (authority, signingKey) = TestLicenseIssuer.makeAuthority()
+        let backend = FakeActivationBackend()
+        backend.releaseFreedASlot = false
+        let service = makeService(authority: authority, backend: backend, clock: clock)
+        let token = try TestLicenseIssuer.issue(kind: .lifetime, deviceID: device, expiresAt: nil, signingKey: signingKey)
+        XCTAssertNoThrow(try service.enter(key: token).get())
+
+        let outcome = await service.releaseFromThisMac()
+
+        XCTAssertEqual(outcome, .removedLocally)
+        XCTAssertEqual(backend.releaseCount, 1, "it still asked")
+        XCTAssertNil(service.state.license)
+    }
+
     /// Nothing to release, nothing sent. Pressing the button on a Mac that has
     /// no license must not spend a slot on the service.
     func testReleasingWithoutALicenseTellsNobody() async {

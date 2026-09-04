@@ -149,10 +149,14 @@ struct HTTPActivationBackend: ActivationBackend {
 
     /// Hands one of the two Macs back.
     ///
-    /// The answer is deliberately thin: released or not. There is nothing for
-    /// the app to read out of a success, and the local half has already been
-    /// decided by the time this is called.
-    func releaseDevice(key: String, deviceID: String) async throws {
+    /// Returns whether a device slot was actually freed. `false` means the
+    /// service had no record of that key — which is the same end state, and
+    /// happens for every key issued by hand with `Tools/licensekit.swift`
+    /// before the service existed. Telling that user their Mac is still stuck
+    /// against their two would be a warning about something that was never
+    /// true.
+    @discardableResult
+    func releaseDevice(key: String, deviceID: String) async throws -> Bool {
         guard isConfigured else { throw ActivationError.notConfigured }
 
         var request = URLRequest(url: releaseEndpoint)
@@ -177,15 +181,21 @@ struct HTTPActivationBackend: ActivationBackend {
             throw ActivationError.rejected("The activation service replied with something unreadable.")
         }
 
+        let reply = ActivationReply(data)
+
         switch http.statusCode {
         case 200...299:
-            return
+            return true
+        // Nothing on record to release. Not a failure: the desired end state —
+        // this Mac holding no slot on the service — is already true.
+        case 404 where reply.errorCode == "unknown_key":
+            return false
         case 429:
             throw ActivationError.unreachable("it is asking us to wait a moment. Try again shortly.")
         case 500...599:
             throw ActivationError.unreachable("it answered with an error (\(http.statusCode)).")
         default:
-            throw ActivationReply(data).error(status: http.statusCode)
+            throw reply.error(status: http.statusCode)
         }
     }
 
@@ -246,6 +256,10 @@ private struct ActivationReply {
         guard raw.hasPrefix(LicenseKey.prefix + "."), raw.count <= 4096 else { return nil }
         return raw
     }
+
+    /// The machine-readable half, for the one caller that needs to tell two
+    /// refusals apart rather than show a sentence.
+    var errorCode: String? { payload?.error }
 
     func error(status: Int) -> ActivationError {
         switch payload?.error {

@@ -179,6 +179,36 @@ final class HTTPActivationBackendTests: XCTestCase {
         XCTAssertEqual(fields["device"], device)
     }
 
+    /// A 404 that names `unknown_key` is the service saying there was nothing to
+    /// free, not that the call failed. Every key issued by hand before the
+    /// service existed looks like this.
+    func testAKeyTheServiceHasNoRecordOfIsNotAFailure() async throws {
+        StubActivationProtocol.respond(status: 404, json: [
+            "error": "unknown_key",
+            "message": "This service has no record of that key. Nothing needed releasing."
+        ])
+        let freed = try await makeBackend().releaseDevice(key: validKey, deviceID: device)
+        XCTAssertFalse(freed)
+    }
+
+    func testAReleaseThatFreedASlotSaysSo() async throws {
+        StubActivationProtocol.respond(status: 200, json: ["released": "true"])
+        let freed = try await makeBackend().releaseDevice(key: validKey, deviceID: device)
+        XCTAssertTrue(freed)
+    }
+
+    /// A 404 for any other reason is still a refusal — only `unknown_key` means
+    /// "there was nothing there".
+    func testAnotherKindOfNotFoundIsStillARefusal() async {
+        StubActivationProtocol.respond(status: 404, json: ["error": "not_found"])
+        do {
+            _ = try await makeBackend().releaseDevice(key: validKey, deviceID: device)
+            XCTFail("expected a refusal")
+        } catch {
+            guard case .rejected? = error as? ActivationError else { return XCTFail("expected a rejection") }
+        }
+    }
+
     func testAReleaseThatWasRefusedSaysWhy() async {
         StubActivationProtocol.respond(status: 403, json: [
             "error": "device_mismatch",

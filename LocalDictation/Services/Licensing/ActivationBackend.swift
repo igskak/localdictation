@@ -63,7 +63,12 @@ protocol ActivationBackend: Sendable {
     /// stranger's address evict their Mac. So the key goes back to the service
     /// that issued it — it carries nothing the service did not already write
     /// into it — and the service checks the signature before believing a word.
-    func releaseDevice(key: String, deviceID: String) async throws
+    ///
+    /// Returns whether a slot was actually freed. `false` is not a failure: it
+    /// means the service had no record of the key, which is what a key issued
+    /// by hand before the service existed looks like.
+    @discardableResult
+    func releaseDevice(key: String, deviceID: String) async throws -> Bool
 }
 
 /// What a build ships with until there is a service to talk to.
@@ -78,7 +83,7 @@ struct UnconfiguredActivationBackend: ActivationBackend {
         throw ActivationError.notConfigured
     }
 
-    func releaseDevice(key: String, deviceID: String) async throws {
+    func releaseDevice(key: String, deviceID: String) async throws -> Bool {
         throw ActivationError.notConfigured
     }
 }
