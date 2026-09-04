@@ -287,6 +287,12 @@ Both texts are **per product, not per account** — the account sells another
 product, and its public business name belongs to that one and must not be
 changed here. Stripe → Product catalogue → the product behind each link:
 
+The name is English, because that is what the app's Settings, the mails in
+`src/mailer.js`, and the word "License" on the tab all say — a receipt that
+names the product differently from the window it unlocks is a support mail. The
+description carries German as well, because the site is German-first and paid
+search is German, and Stripe cannot localize a string we wrote.
+
 **Lifetime, `PAYMENT_LINK_LIFETIME`, €99**
 
 > Witness — lifetime license
@@ -294,6 +300,11 @@ changed here. Stripe → Product catalogue → the product behind each link:
 > Local dictation for Apple silicon Macs. One payment, no renewal: this major
 > version and every update to it, on two of your Macs. Speech recognition runs
 > on your Mac — audio and transcripts are never uploaded.
+>
+> Lokales Diktieren für Macs mit Apple Silicon. Einmal zahlen, keine
+> Verlängerung: diese Hauptversion und jedes Update dazu, auf zwei deiner Macs.
+> Die Spracherkennung läuft auf dem Mac — Audio und Transkripte werden nie
+> hochgeladen.
 
 **Annual, `PAYMENT_LINK_ANNUAL`, €49 a year**
 
@@ -303,6 +314,15 @@ changed here. Stripe → Product catalogue → the product behind each link:
 > cancel, with every update included while it runs, on two of your Macs.
 > Speech recognition runs on your Mac — audio and transcripts are never
 > uploaded.
+>
+> Lokales Diktieren für Macs mit Apple Silicon. €49 pro Jahr, verlängert sich
+> bis zur Kündigung, alle Updates inklusive, solange die Lizenz läuft, auf zwei
+> deiner Macs. Die Spracherkennung läuft auf dem Mac — Audio und Transkripte
+> werden nie hochgeladen.
+
+The German half addresses the reader as *du*, which is what
+`website/app/_data/landingCopy.ts` does. A checkout that switches to *Sie* is
+a checkout that reads as a different company's.
 
 The word "lifetime" is D6 of `docs/PHASE_8_DECISIONS.md` and the description is
 where the buyer is told what it means. "This major version and every update to
