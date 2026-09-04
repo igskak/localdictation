@@ -12,13 +12,33 @@ name = "localdictation-activation"
 main = "src/worker.js"
 compatibility_date = "2025-01-01"
 
+# One service, one address. A second endpoint on workers.dev would issue real
+# keys against the real signing secret while nothing in the app or in Stripe
+# points at it, which is a loose end on a licensing service rather than a
+# convenience. Flip this back to true if the custom domain ever needs bypassing
+# to debug it.
+workers_dev = false
+
+# The address compiled into every shipped build, which is why it is a domain we
+# own rather than the account's workers.dev subdomain: that hostname is the
+# account subdomain plus this worker's name, and changing either would strand
+# every copy already installed. This one can be repointed at anything later
+# without a new build going out.
+#
+# `custom_domain = true` makes Cloudflare create the DNS record and the
+# certificate itself, so there is no `api` record to add by hand in the
+# dashboard -- and nothing to keep in agreement with this file.
+[[routes]]
+pattern = "api.witnessmac.com"
+custom_domain = true
+
 [vars]
 # The public half, as it appears in `LicenseAuthority.productionPublicKeyBase64`.
 # It is public by definition and it is here so `/v1/health` can prove the secret
 # in this deployment signs keys this app will accept.
 LICENSE_PUBLIC_KEY = "enDKT/48nxi+u3x4Qv1qJCDXx5YFe7WVlW5r77IIsJM="
-MAIL_PROVIDER = "none"
-MAIL_FROM = "LocalDictation <keys@localdictation.app>"
+MAIL_PROVIDER = "resend"
+MAIL_FROM = "Witness <keys@witnessmac.com>"
 
 # D2, executed: Stripe, as merchant of record. WEBHOOK_SECRET is a secret and
 # is set with `wrangler secret put`, not here.

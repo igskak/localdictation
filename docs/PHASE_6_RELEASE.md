@@ -137,12 +137,17 @@ prompt means anything.
 into every copy that ships and a shipped copy cannot be told a new address, so
 the hostname in it is a promise for the lifetime of that build.
 
-It currently names a workers.dev hostname, which is the Cloudflare account's
-subdomain plus the worker's name. Either of those changing — or the service
-moving off Cloudflare — strands every installed copy's ability to start a trial
-by typing an address. A custom domain on the product's own domain has the same
-property as the rest of this design: it can be pointed somewhere else later
-without anybody reinstalling anything.
+**Done.** It names `api.witnessmac.com`, a Custom Domain declared in
+`Service/wrangler.toml`, and `workers_dev` is off so the service has exactly one
+address. It used to name a workers.dev hostname — the Cloudflare account's
+subdomain plus the worker's name — where either of those changing, or the
+service moving off Cloudflare, would strand every installed copy's ability to
+start a trial by typing an address. The custom domain has the same property as
+the rest of this design: it can be pointed somewhere else later without anybody
+reinstalling anything.
+
+What is **not** done is the proof below. It has to happen against the real
+deployment before a build carrying this address reaches a stranger.
 
 ```sh
 npx wrangler deploy   # after adding the route to wrangler.toml

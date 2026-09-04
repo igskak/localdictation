@@ -36,7 +36,7 @@ export async function activate({ body, store, now, clientIP, signingKey, mailer,
       status: 400,
       body: {
         error: "invalid_device",
-        message: "This build sent an identifier this service does not recognise. Update LocalDictation and try again.",
+        message: "This build sent an identifier this service does not recognise. Update Witness and try again.",
       },
     };
   }

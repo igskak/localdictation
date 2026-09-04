@@ -16,7 +16,7 @@ export function createMailer(env, log = () => {}) {
   const provider = (env.MAIL_PROVIDER ?? "none").toLowerCase();
   if (!PROVIDERS.includes(provider)) throw new Error(`MAIL_PROVIDER must be one of ${PROVIDERS.join(", ")}`);
 
-  const from = env.MAIL_FROM ?? "LocalDictation <keys@localdictation.app>";
+  const from = env.MAIL_FROM ?? "Witness <keys@witnessmac.com>";
   const replyTo = env.MAIL_REPLY_TO ?? null;
 
   if (provider === "none") {
@@ -77,7 +77,7 @@ export function activationMail({ key, kind, expiresAt }) {
     kind === "lifetime"
       ? "It does not expire."
       : `It runs until ${formatDate(expiresAt)}.`;
-  const heading = kind === "trial" ? "Your LocalDictation trial key" : "Your LocalDictation key";
+  const heading = kind === "trial" ? "Your Witness trial key" : "Your Witness key";
 
   return {
     subject: heading,
@@ -88,7 +88,7 @@ export function activationMail({ key, kind, expiresAt }) {
       "",
       `A key is issued for one Mac, and a license covers two. ${term}`,
       "",
-      "If the app did not unlock by itself, open LocalDictation, then Settings, then",
+      "If the app did not unlock by itself, open Witness, then Settings, then",
       "License, and paste the line above into 'Enter a key'.",
       "",
       "Keep this mail. It is what you use when you replace the Mac.",
@@ -106,14 +106,14 @@ export function purchaseMail({ kind, expiresAt }) {
   const term = kind === "lifetime" ? "a lifetime license" : `an annual license until ${formatDate(expiresAt)}`;
 
   return {
-    subject: "Your LocalDictation license — one step to finish",
+    subject: "Your Witness license — one step to finish",
     text: [
       `Thank you. This address now holds ${term}.`,
       "",
       "A key names one Mac, and a browser cannot know which. So the last step",
       "happens in the app:",
       "",
-      "  1. Open LocalDictation.",
+      "  1. Open Witness.",
       "  2. Settings, then License.",
       "  3. Type this address and press 'Send my key'.",
       "",
@@ -133,14 +133,14 @@ export function purchaseMail({ kind, expiresAt }) {
 /// but the person who set this up a year ago is not reading the menu.
 export function renewalMail({ expiresAt }) {
   return {
-    subject: "LocalDictation renewed — refresh the key on your Macs",
+    subject: "Witness renewed — refresh the key on your Macs",
     text: [
       `Your licence is renewed until ${formatDate(expiresAt)}. Nothing was charged twice and`,
       "nothing needs cancelling.",
       "",
       "One step, on each Mac you use it on:",
       "",
-      "  1. Open LocalDictation.",
+      "  1. Open Witness.",
       "  2. Settings, then License.",
       "  3. Type this address and press 'Send my key'.",
       "",

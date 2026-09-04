@@ -285,7 +285,7 @@ test("an identifier that is not 32 lowercase hex is refused, and says what to do
     const result = await h.raw({ device, email: "someone@example.com" });
     assert.equal(result.status, 400, `accepted ${JSON.stringify(device)}`);
     assert.equal(result.body.error, "invalid_device");
-    assert.match(result.body.message, /Update LocalDictation/);
+    assert.match(result.body.message, /Update Witness/);
   }
 });
 

@@ -21,7 +21,7 @@ Three things can leave, all of them because you pressed something:
 | What | When | To whom | Why |
 | --- | --- | --- | --- |
 | A request for the speech model | You press **Prepare speech model…** | Hugging Face, WhisperKit's host | Fetching a static file. One way — nothing is uploaded |
-| Your email address and a device identifier | You press **Send me a key** or **Send my key** | The LocalDictation activation service, at `localdictation-activation.localdictation-activation.workers.dev` | Issuing a licence key for this Mac |
+| Your email address and a device identifier | You press **Send me a key** or **Send my key** | The Witness activation service, at `api.witnessmac.com` | Issuing a licence key for this Mac |
 | A licence key you already hold | You press **Remove from this Mac** | The same service | Freeing one of the two Macs your licence covers |
 
 That is the complete list. There is no fourth row.
