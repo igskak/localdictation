@@ -138,4 +138,31 @@ final class LicensePresentationTests: XCTestCase {
         XCTAssertNotEqual(activation.title, expired.title)
         XCTAssertFalse(StatusPresentation(state: .ready, binding: .optionSpace).showsLicenseAction)
     }
+    /// From a live purchase: the app told a customer holding a year that "the
+    /// trial runs for fourteen days". The sentence was chosen from the form's
+    /// label before the call instead of from the licence that came back.
+    func testTheSuccessSentenceDescribesWhatArrivedAndNotWhatWasAsked() {
+        XCTAssertEqual(
+            LicensePresentation.activationSucceeded(.annual),
+            "Your annual license is on this Mac now."
+        )
+        XCTAssertTrue(LicensePresentation.activationSucceeded(.lifetime).contains("lifetime"))
+        XCTAssertTrue(LicensePresentation.activationSucceeded(.trial).contains("fourteen days"))
+
+        for kind in [LicenseKind.annual, .lifetime] {
+            XCTAssertFalse(
+                LicensePresentation.activationSucceeded(kind).contains("trial"),
+                "a paid licence is never described as a trial"
+            )
+            XCTAssertFalse(LicensePresentation.activationSucceeded(kind).contains("fourteen"))
+        }
+
+        // A key that verified but left no licence to read is still an
+        // acceptance, and says only that.
+        XCTAssertEqual(
+            LicensePresentation.activationSucceeded(nil),
+            "The key for this Mac was accepted."
+        )
+    }
+
 }

@@ -9,6 +9,12 @@ import XCTest
 /// Same reasoning as `LanguageSetupTests`: this is a SwiftUI view nobody sees
 /// until a particular day in a particular install, and a view that crashes the
 /// first time it appears passes every unit test that never lays it out.
+/// A real window, so a generous deadline: `NSApp.activate` and window creation
+/// are the slowest things in this suite, the suite runs its classes in
+/// parallel, and three seconds is enough on an idle Mac and not on a busy one.
+/// Observed failing once in four full runs and passing in isolation every time.
+private let windowTimeout: TimeInterval = 15
+
 @MainActor
 final class PaywallWindowTests: XCTestCase {
     private let device = "test-device-0002"
@@ -144,7 +150,7 @@ final class PaywallWindowTests: XCTestCase {
 
         harness.hotkey.emit(.pressed)
         harness.hotkey.emit(.released)
-        try await waitUntil("the price is on screen") { controller.isShowing }
+        try await waitUntil("the price is on screen", timeout: windowTimeout) { controller.isShowing }
 
         XCTAssertTrue(controller.isShowing, "the press is what asks, and the price is the answer")
         XCTAssertEqual(harness.telemetry.names.filter { $0 == "paywall_shown" }.count, 1)
@@ -202,14 +208,14 @@ final class PaywallWindowTests: XCTestCase {
 
         hotkey.emit(.pressed)
         hotkey.emit(.released)
-        try await waitUntil("the price is on screen") { controller.isShowing }
+        try await waitUntil("the price is on screen", timeout: windowTimeout) { controller.isShowing }
 
         let token = try TestLicenseIssuer.issue(kind: .lifetime, deviceID: device, expiresAt: nil, signingKey: signingKey)
         XCTAssertNil(coordinator.enterLicenseKey(token))
         // Waited for rather than slept through: the whole suite runs its
         // classes in parallel, and a fixed sleep that is long enough on an idle
         // Mac is a flake on a busy one.
-        try await waitUntil("the wall comes down") { !controller.isShowing }
+        try await waitUntil("the wall comes down", timeout: windowTimeout) { !controller.isShowing }
 
         XCTAssertFalse(controller.isShowing, "a wall that outlives the lock reads as a payment that did not register")
         XCTAssertNil(controller.window)

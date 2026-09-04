@@ -223,21 +223,16 @@ struct LicenseView: View {
     }
 
     private func requestActivation() async {
-        // Read before the call: a successful one changes the state, and the
-        // sentence afterwards has to describe the errand the user actually ran
-        // rather than where they ended up.
-        let wasRetrieval = presentation.offersKeyRetrieval
         isRequesting = true
         defer { isRequesting = false }
         if let error = await coordinator.requestActivation(email: email) {
             notice = .failure(error.message)
-        } else {
-            notice = .success(
-                wasRetrieval
-                    ? "The key for this Mac was accepted."
-                    : "Activated. The trial runs for fourteen days from your first dictation."
-            )
+            return
         }
+        // Read *after* the call, from the licence that arrived. What the form
+        // was labelled is a guess about the person; what came back is a fact
+        // about what they own, and only the service knows it.
+        notice = .success(LicensePresentation.activationSucceeded(coordinator.entitlement.license?.kind))
     }
 }
 

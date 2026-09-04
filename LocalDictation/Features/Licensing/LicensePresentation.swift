@@ -149,6 +149,31 @@ struct LicensePresentation: Sendable, Equatable {
         return "\(Self.count(days, "day")) left, until \(Self.moment.string(from: expiresAt)). \(suffix)"
     }
 
+    /// What to say once a key has arrived and been accepted.
+    ///
+    /// Worded from the licence that actually arrived, never from the errand the
+    /// form thought it was running. The service decides what an address is
+    /// owed, and it is routinely more than the form guessed: the wall a
+    /// stranger hits is labelled "Activate the trial", and somebody who has
+    /// already bought types their address into that same form and gets the
+    /// annual or lifetime key they paid for.
+    ///
+    /// It said "the trial runs for fourteen days" to a paying customer holding
+    /// a year, which is the kind of sentence that makes a person check whether
+    /// their money arrived.
+    static func activationSucceeded(_ kind: LicenseKind?) -> String {
+        switch kind {
+        case .trial:
+            "Activated. The trial runs for fourteen days from your first dictation."
+        case .annual:
+            "Your annual license is on this Mac now."
+        case .lifetime:
+            "Your lifetime license is on this Mac now. Nothing further is needed here — no renewal, and no connection."
+        case nil:
+            "The key for this Mac was accepted."
+        }
+    }
+
     /// "1 day", "5 days". Small, and the alternative is a string with a
     /// parenthesised plural in it.
     static func count(_ value: Int, _ noun: String) -> String {
