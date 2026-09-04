@@ -150,26 +150,30 @@ staging plan and no "allow insecure in Debug" flag will be added — the one thi
 that must never differ between the build that was tested and the build that
 ships is which addresses it will send an email to.
 
-Either deploy the staging environment:
-
-```bash
-npx wrangler deploy --env staging
-```
-
-or put a real certificate in front of a local run:
+Put a real certificate in front of a local run:
 
 ```bash
 npx wrangler dev
+```
+
+```bash
 cloudflared tunnel --url http://localhost:8787
 ```
 
-Either way, point a Debug build at it by giving `ActivationEndpoint.production`
-the URL. That is a one-line change and it is deliberately not configurable at
-runtime.
+Then point a Debug build at it by giving `ActivationEndpoint.production` the
+tunnel's URL. That is a one-line change and it is deliberately not configurable
+at runtime.
 
-Note that staging signs with the **production** key on purpose: the app carries
-one authority in every configuration, so a key from a staging service that used
-a different one would be refused by the very build being tested.
+**There is no `[env.staging]` in `wrangler.toml`, on purpose.** It was there as a
+placeholder with a fake database id, and its only effect was that every
+`wrangler secret put` then demanded an `--env` flag to disambiguate — which is
+exactly the kind of prompt somebody pastes a secret into by mistake. A staging
+environment gets added when something actually needs one, with a real database
+behind it.
+
+One thing to know if that day comes: staging has to sign with the **production**
+key. The app carries one authority in every configuration, so a key from a
+service using a different one would be refused by the very build being tested.
 
 ## Operations
 
@@ -217,8 +221,16 @@ In the dashboard, once:
    individuals. Pick a downloadable-software, personal-use code instead, and
    have whoever handles D5 confirm it. Leave "Tax included in price" on — the
    app says €99 and that is what the buyer should pay.
-4. A webhook endpoint at `https://<host>/v1/purchases/webhook`, and put its
-   signing secret in `WEBHOOK_SECRET`. **Set its API version to the newest
+4. A webhook endpoint at `https://<host>/v1/purchases/webhook`. Its signing
+   secret goes in `WEBHOOK_SECRET`, typed at the prompt and never on the command
+   line:
+
+   ```bash
+   npx wrangler secret put WEBHOOK_SECRET
+   ```
+
+   A secret that has been on a command line is in the shell history and in
+   wrangler's own log. Roll it on the endpoint's page rather than hoping. **Set its API version to the newest
    one**, not the account's default: the version decides the payload's shape,
    Payment Links did not exist before 2021, and a session rendered by an older
    version carries no `payment_link` — which is the only thing in that payload
