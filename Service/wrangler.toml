@@ -23,15 +23,26 @@ MAIL_FROM = "LocalDictation <keys@localdictation.app>"
 # D2, executed: Stripe, as merchant of record. WEBHOOK_SECRET is a secret and
 # is set with `wrangler secret put`, not here.
 #
-# The four below are how an event says which of the two offers was bought. Fill
-# in whichever pair you have: a Payment Link sends no line items on the webhook,
-# so on that path the link id is the only signal there is. Both pairs may be set
-# and the first match wins.
+# The two links are the required pair, and they are what makes this endpoint
+# safe on an account that sells more than one product: Stripe delivers every
+# event on the account to every endpoint, a Payment Link checkout carries no
+# line items, and the link the buyer clicked is therefore the only thing in that
+# payload that says the sale was ours. A session for any other link matches
+# neither and is ignored.
+#
+# Everything after the sale -- renewals, refunds, disputes -- is matched to a
+# licence by an identifier this service recorded itself, in `provider_refs`, and
+# never by the customer's address: one account can sell two products to the same
+# person, and a refund for the other one must not touch this one's licence.
 PAYMENT_PROVIDER = "stripe"
-PRICE_LIFETIME = ""
+PAYMENT_LINK_LIFETIME = "plink_1UBsx2HOSgmME2jEse2p1dor"
+PAYMENT_LINK_ANNUAL = "plink_1UBsxhHOSgmME2jEYQctLUIb"
+
+# Optional, and only read when a checkout session arrives with its line items
+# expanded, which a Payment Link's does not. Kept because it costs nothing and
+# it is one more way for a sale to be recognised as ours.
+PRICE_LIFETIME = "price_1UBstqHOSgmME2jEJc3X8NVq"
 PRICE_ANNUAL = ""
-PAYMENT_LINK_LIFETIME = ""
-PAYMENT_LINK_ANNUAL = ""
 
 [[d1_databases]]
 binding = "DB"

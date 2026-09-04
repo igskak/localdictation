@@ -70,7 +70,7 @@ export const paddle = {
     const data = event?.data ?? {};
 
     if (type === "adjustment.created" && data.action === "refund") {
-      return { id, effect: "refund", orderID: data.transaction_id ?? null };
+      return { id, effect: "refund", lookup: [data.transaction_id, data.id] };
     }
     if (type !== "transaction.completed" && type !== "transaction.paid") return { id, effect: "ignore" };
 
@@ -83,7 +83,15 @@ export const paddle = {
     const kind = kindFor([data.custom_data?.price_id ?? null, ...priceIDs], env);
     if (!email || !kind) return null;
 
-    return { id, effect: "purchase", email, kind, orderID: data.id ?? null, at: now };
+    return {
+      id,
+      effect: "purchase",
+      email,
+      kind,
+      orderID: data.id ?? null,
+      refs: [data.id, data.subscription_id],
+      at: now,
+    };
   },
 };
 
@@ -130,21 +138,30 @@ export const stripe = {
       if (reason !== "subscription_cycle" && reason !== "subscription_update") {
         return { id, effect: "ignore" };
       }
-      const email = normalizeEmail(object.customer_email ?? object.customer_details?.email ?? null);
-      const kind = kindFor(identifiers(object), env);
-      if (!email || !kind) return null;
-      return { id, effect: "renewal", email, kind, orderID: object.subscription ?? object.id ?? null, at: now };
+
+      // Which licence this renewal is for is answered by the subscription id
+      // recorded when it was bought, not by the address and not by the price.
+      // An invoice for another product on the same account matches nothing and
+      // is ignored — which is the whole point of looking it up this way.
+      return {
+        id,
+        effect: "renewal",
+        kind: "annual",
+        lookup: [subscriptionOf(object)],
+        refs: [object.id, object.charge, object.payment_intent],
+        orderID: subscriptionOf(object) ?? object.id ?? null,
+        at: now,
+      };
     }
 
     if (type === "charge.refunded" || type === "charge.dispute.created") {
+      // Every identifier a charge can name, matched against the ones this
+      // service recorded. A refund for a different product on the same account
+      // finds nothing, and finding nothing is the correct outcome.
       return {
         id,
         effect: "refund",
-        orderID: object.payment_intent ?? object.charge ?? null,
-        // A subscription's charge carries no payment intent this service ever
-        // stored, so the address is the second way to find the licence. Both
-        // are tried, in that order.
-        email: normalizeEmail(object.billing_details?.email ?? object.receipt_email ?? null),
+        lookup: [object.payment_intent, object.charge, object.invoice, object.id],
       };
     }
 
@@ -152,17 +169,21 @@ export const stripe = {
 
     const email = normalizeEmail(object.customer_details?.email ?? object.customer_email ?? null);
     const kind = kindFor(identifiers(object), env);
+    // This is the one event identified by *what was bought* rather than by an
+    // identifier we already hold, because it is the event that creates the
+    // licence. A session for another product on this account matches neither
+    // configured link and is ignored.
     if (!email || !kind) return null;
 
-    // The payment intent first, because that is what a refund names. A
-    // subscription checkout has none, so its own id is next, and the session id
-    // is the fallback that always exists.
     return {
       id,
       effect: "purchase",
       email,
       kind,
+      // The payment intent first, because that is what a refund names. A
+      // subscription checkout has none, so its own id is next.
       orderID: object.payment_intent ?? object.subscription ?? object.id ?? null,
+      refs: [object.id, object.payment_intent, object.subscription, object.invoice],
       at: now,
     };
   },
@@ -174,6 +195,16 @@ export const stripe = {
 /// purchase the price id is simply not in the payload. What *is* there is the
 /// link's own id — and we created both links, so we know which is which. All
 /// three are collected and the first one that matches wins.
+/// The subscription an invoice belongs to.
+///
+/// Read from both places Stripe has put it: `invoice.subscription` in the API
+/// versions this was written against, and `parent.subscription_details` in the
+/// newer ones. An account whose API version rolls forward should not silently
+/// stop renewing anybody's licence.
+function subscriptionOf(invoice) {
+  return invoice.subscription ?? invoice.parent?.subscription_details?.subscription ?? null;
+}
+
 function identifiers(object) {
   const lineItems = object.line_items?.data ?? object.lines?.data ?? [];
   return [

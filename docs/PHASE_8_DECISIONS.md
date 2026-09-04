@@ -58,8 +58,17 @@ licences is inside its scope, but the switch is per-product, and a checkout that
 runs without it makes this project the merchant of record and hands back the VAT
 problem the decision existed to avoid.
 
-Two payload facts about Stripe specifically shaped the code, and both were bugs
-before they were noticed:
+**The account sells another product too**, and that is a correctness
+requirement rather than a detail: Stripe delivers every event on an account to
+every webhook endpoint, with no per-product filter anywhere. So a sale is
+recognised by the Payment Link it came through, and everything after a sale is
+matched to a licence through identifiers this service recorded itself. The
+customer's address is deliberately not a fallback: one person can buy both
+products with one email, and matching a refund by address would let a refund for
+the other product mark this one's licence dead. It did, until it was tested.
+
+Three payload facts about Stripe specifically shaped the code, and all three were
+bugs before they were noticed:
 
 - A **Payment Link** checkout sends no line items on the webhook, so the price
   id simply is not in the event. The link's own id is, and we created both
@@ -68,6 +77,9 @@ before they were noticed:
 - An **annual is a subscription**, and its renewal a year later arrives as
   `invoice.paid` rather than as another checkout. Without reading that, a
   paying subscriber's licence would have quietly lapsed on its first renewal.
+- **A subscription's charge names nothing that was stored at checkout** — a
+  payment intent this service has never seen. Which is why every identifier a
+  purchase carries is recorded when it happens, rather than one of them.
 
 ## D3 — where it runs
 

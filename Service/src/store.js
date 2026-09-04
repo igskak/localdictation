@@ -53,16 +53,35 @@ export class Store {
     return this.first(`SELECT * FROM licenses WHERE provider_order_id = ? LIMIT 1`, [orderID]);
   }
 
-  /// The newest paid licence on an address, expired or not.
+  /// Remembers every identifier the provider has used for this licence, so a
+  /// later event about it can be recognised without guessing.
   ///
-  /// The second way to find a licence a refund is about. A subscription's charge
-  /// carries a payment intent this service never stored, so without this a
-  /// refunded annual would stay live for issuance.
-  async newestPaidLicense(email) {
-    return this.first(
-      `SELECT * FROM licenses WHERE email = ? AND kind != 'trial' ORDER BY created_at DESC LIMIT 1`,
-      [email],
-    );
+  /// One Stripe account can sell more than one product and every endpoint
+  /// receives every event on the account, so "which licence is this about" has
+  /// to be answered from something this service wrote down rather than from the
+  /// customer's address — which two products can share.
+  async recordRefs(licenseID, refs, now) {
+    for (const ref of new Set(refs.filter(Boolean))) {
+      await this.run(
+        `INSERT OR IGNORE INTO provider_refs (ref, license_id, created_at) VALUES (?, ?, ?)`,
+        [String(ref), licenseID, now],
+      );
+    }
+  }
+
+  /// The licence one of these identifiers belongs to, or `null` — which is the
+  /// answer for every event that belongs to another product.
+  async licenseByRef(refs) {
+    for (const ref of refs.filter(Boolean)) {
+      const row = await this.first(
+        `SELECT licenses.* FROM licenses
+           JOIN provider_refs ON provider_refs.license_id = licenses.id
+          WHERE provider_refs.ref = ? LIMIT 1`,
+        [String(ref)],
+      );
+      if (row) return row;
+    }
+    return null;
   }
 
   /// Has this address ever had a trial? Asked of every trial ever issued, live

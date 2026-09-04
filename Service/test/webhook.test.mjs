@@ -414,7 +414,41 @@ test("invoice.payment_succeeded is ignored, so ticking both boxes cannot double 
   assert.equal(after.expires_at, first.expires_at + ANNUAL_SECONDS, "one payment, one year");
 });
 
-test("a refunded subscription is found by the address when the charge names nothing we stored", async () => {
+test("a refunded first subscription payment is found by the invoice recorded at checkout", async () => {
+  const h = await harness();
+  await h.deliver(
+    {
+      id: "evt_first",
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          id: "cs_1",
+          subscription: "sub_1",
+          invoice: "in_1",
+          payment_link: "plink_annual",
+          customer_details: { email: EMAIL },
+        },
+      },
+    },
+    { provider: stripe },
+  );
+
+  const refunded = await h.deliver(
+    {
+      id: "evt_refund",
+      type: "charge.refunded",
+      // A subscription charge names an invoice and a payment intent this
+      // service never saw. The invoice is the one it did.
+      data: { object: { id: "ch_1", payment_intent: "pi_never_seen", invoice: "in_1" } },
+    },
+    { provider: stripe, now: NOW + 86400 },
+  );
+
+  assert.equal(refunded.body.applied, true);
+  assert.equal(await h.store.strongestLicense(EMAIL, NOW + 86400), null);
+});
+
+test("a refund after a renewal is found by the charge that renewal recorded", async () => {
   const h = await harness();
   await h.deliver(
     {
@@ -424,20 +458,144 @@ test("a refunded subscription is found by the address when the charge names noth
     },
     { provider: stripe },
   );
+  const renewalAt = NOW + 360 * 86400;
+  await h.deliver(
+    {
+      id: "evt_renewal",
+      type: "invoice.paid",
+      data: {
+        object: { id: "in_2", subscription: "sub_1", charge: "ch_2", billing_reason: "subscription_cycle" },
+      },
+    },
+    { provider: stripe, now: renewalAt },
+  );
+
+  const refunded = await h.deliver(
+    { id: "evt_refund", type: "charge.refunded", data: { object: { id: "ch_2", payment_intent: "pi_2" } } },
+    { provider: stripe, now: renewalAt + 86400 },
+  );
+
+  assert.equal(refunded.body.applied, true);
+  assert.equal(await h.store.strongestLicense(EMAIL, renewalAt + 86400), null);
+});
+
+// MARK: - One payment account, two products
+//
+// Stripe sends every event on an account to every webhook endpoint, and this
+// account sells something else as well. So the question "is this event mine"
+// has to be answered from something this service wrote down -- never from the
+// customer's address, which two products can share down to the character.
+
+test("a checkout for another product on the same account creates nothing", async () => {
+  const h = await harness();
+  const result = await h.deliver(
+    {
+      id: "evt_other",
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          id: "cs_other",
+          payment_intent: "pi_other",
+          payment_link: "plink_the_other_product",
+          customer_details: { email: EMAIL },
+        },
+      },
+    },
+    { provider: stripe },
+  );
+
+  assert.equal(result.status, 202);
+  assert.equal((await h.store.all("SELECT id FROM licenses")).length, 0);
+});
+
+test("a refund for another product cannot kill this product's licence", async () => {
+  const h = await harness();
+  // The same person owns both. One address, two purchases, one payment account.
+  await h.deliver(
+    {
+      id: "evt_ours",
+      type: "checkout.session.completed",
+      data: { object: { id: "cs_ours", payment_intent: "pi_ours", payment_link: "plink_lifetime", customer_details: { email: EMAIL } } },
+    },
+    { provider: stripe },
+  );
 
   const refunded = await h.deliver(
     {
-      id: "evt_refund",
+      id: "evt_refund_other",
       type: "charge.refunded",
-      // A subscription invoice's charge carries a payment intent this service
-      // has never seen.
-      data: { object: { id: "ch_1", payment_intent: "pi_never_stored", billing_details: { email: EMAIL } } },
+      data: { object: { id: "ch_other", payment_intent: "pi_other", billing_details: { email: EMAIL } } },
     },
     { provider: stripe, now: NOW + 86400 },
   );
 
-  assert.equal(refunded.body.applied, true);
-  assert.equal(await h.store.strongestLicense(EMAIL, NOW + 86400), null);
+  assert.equal(refunded.body.applied, false);
+  const license = await h.store.strongestLicense(EMAIL, NOW + 86400);
+  assert.equal(license.kind, "lifetime", "still live: that refund was about something else");
+  assert.equal(license.status, "live");
+});
+
+test("a renewal of another product's subscription extends nothing here", async () => {
+  const h = await harness();
+  await h.deliver(
+    {
+      id: "evt_ours",
+      type: "checkout.session.completed",
+      data: { object: { id: "cs_ours", subscription: "sub_ours", payment_link: "plink_annual", customer_details: { email: EMAIL } } },
+    },
+    { provider: stripe },
+  );
+  const before = await h.store.strongestLicense(EMAIL, NOW);
+
+  const result = await h.deliver(
+    {
+      id: "evt_other_renewal",
+      type: "invoice.paid",
+      data: {
+        object: { id: "in_other", subscription: "sub_the_other_product", billing_reason: "subscription_cycle", customer_email: EMAIL },
+      },
+    },
+    { provider: stripe, now: NOW + 360 * 86400 },
+  );
+
+  assert.equal(result.body.applied, false);
+  const after = await h.store.strongestLicense(EMAIL, NOW + 360 * 86400);
+  assert.equal(after.expires_at, before.expires_at, "a year the buyer did not pay us for");
+});
+
+test("the subscription is read from either place Stripe puts it on an invoice", async () => {
+  const h = await harness();
+  await h.deliver(
+    {
+      id: "evt_first",
+      type: "checkout.session.completed",
+      data: { object: { id: "cs_1", subscription: "sub_1", payment_link: "plink_annual", customer_details: { email: EMAIL } } },
+    },
+    { provider: stripe },
+  );
+  const before = await h.store.strongestLicense(EMAIL, NOW);
+
+  // The newer API shape. An account whose version rolls forward must not
+  // silently stop renewing anybody.
+  const renewalAt = NOW + 360 * 86400;
+  const result = await h.deliver(
+    {
+      id: "evt_renewal",
+      type: "invoice.paid",
+      data: {
+        object: {
+          id: "in_2",
+          billing_reason: "subscription_cycle",
+          parent: { subscription_details: { subscription: "sub_1" } },
+        },
+      },
+    },
+    { provider: stripe, now: renewalAt },
+  );
+
+  assert.equal(result.body.applied, true);
+  const after = await h.store.strongestLicense(EMAIL, renewalAt);
+  assert.equal(after.expires_at, before.expires_at + ANNUAL_SECONDS);
 });
 
 test("a cancelled subscription runs to its date rather than dying on the spot", async () => {

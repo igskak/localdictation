@@ -49,27 +49,56 @@ export async function handleEvent({ event, provider, env, store, now, mailer, lo
     // revocation call in the app would trade the product's central promise for
     // a rounding error in fraud.
     //
-    // Two ways to find the licence, in order. A one-off purchase is found by
-    // the payment intent the refund names; a subscription's charge names a
-    // payment intent this service never stored, so the address is the fallback.
+    // Found only by an identifier this service recorded when the licence was
+    // bought. Not by the customer's address: one payment account can sell more
+    // than one product to the same person, and a refund for the other one must
+    // not kill this one's licence.
     const license =
-      (parsed.orderID ? await store.licenseByOrder(parsed.orderID) : null) ??
-      (parsed.email ? await store.newestPaidLicense(parsed.email) : null);
+      (await store.licenseByRef(parsed.lookup ?? [])) ??
+      (parsed.orderID ? await store.licenseByOrder(parsed.orderID) : null);
     if (license) {
       await store.killLicense(license.id);
       log("license marked dead", { license: license.id });
       return { status: 200, body: { received: true, applied: true } };
     }
-    log("refund for an order this service does not have", { provider: provider.name });
+    // Almost always another product on the same account, which is why this is
+    // an acknowledgement and not an error.
+    log("refund for nothing this service issued", { provider: provider.name });
     return { status: 200, body: { received: true, applied: false } };
   }
 
-  // A renewal and a purchase do the same thing to the row: the licence on that
-  // address gets a later date, or loses its date entirely. What differs is the
-  // sentence the person is sent, because a renewal is not a first step.
-  const existing =
-    (await store.strongestLicense(parsed.email, now)) ??
-    (parsed.effect === "renewal" ? await store.newestPaidLicense(parsed.email) : null);
+  // A renewal is found by the subscription it renews, and if that subscription
+  // belongs to another product on the same account it is found by nothing and
+  // ignored. A purchase is found by the address, because it is the event that
+  // creates the licence and there is nothing recorded yet to match.
+  if (parsed.effect === "renewal") {
+    const renewed = await store.licenseByRef(parsed.lookup ?? []);
+    if (!renewed) {
+      log("renewal for a subscription this service does not have", { provider: provider.name });
+      return { status: 200, body: { received: true, applied: false } };
+    }
+    const expiresAt = Math.max(renewed.expires_at ?? now, now) + ANNUAL_SECONDS;
+    const license = await store.extendLicense({
+      id: renewed.id,
+      kind: renewed.kind === "lifetime" ? "lifetime" : "annual",
+      expiresAt: renewed.kind === "lifetime" ? null : expiresAt,
+      providerOrderID: renewed.provider_order_id,
+    });
+    await store.recordRefs(license.id, parsed.refs ?? [], now);
+    log("license renewed", { license: license.id, kind: license.kind });
+
+    // The address comes off the licence rather than out of the event: it is the
+    // one this service issued keys to, whatever the invoice happens to carry.
+    try {
+      await mailer.send({ to: license.email, ...renewalMail({ expiresAt: license.expires_at }) });
+    } catch (error) {
+      log("renewal mail failed", { license: license.id, reason: String(error?.name ?? "error") });
+    }
+
+    return { status: 200, body: { received: true, applied: true } };
+  }
+
+  const existing = await store.strongestLicense(parsed.email, now);
   let license;
 
   if (existing && existing.kind !== "trial") {
@@ -98,17 +127,14 @@ export async function handleEvent({ event, provider, env, store, now, mailer, lo
     });
   }
 
-  log(parsed.effect === "renewal" ? "license renewed" : "license from a purchase", {
-    license: license.id,
-    kind: license.kind,
-  });
+  // Every identifier this purchase carries, so a refund or a renewal a year
+  // from now can be matched to it without guessing.
+  await store.recordRefs(license.id, parsed.refs ?? [], now);
+
+  log("license from a purchase", { license: license.id, kind: license.kind });
 
   try {
-    const mail =
-      parsed.effect === "renewal"
-        ? renewalMail({ expiresAt: license.expires_at })
-        : purchaseMail({ kind: license.kind, expiresAt: license.expires_at });
-    await mailer.send({ to: parsed.email, ...mail });
+    await mailer.send({ to: parsed.email, ...purchaseMail({ kind: license.kind, expiresAt: license.expires_at }) });
   } catch (error) {
     // The entitlement is recorded, which is the part that must not be lost. The
     // buyer can still activate from inside the app without ever reading a mail.

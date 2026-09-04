@@ -46,6 +46,23 @@ CREATE TABLE IF NOT EXISTS trial_devices (
     created_at INTEGER NOT NULL
 );
 
+-- Every identifier the payment provider has ever used for a licence: the
+-- checkout session, the payment intent, the subscription, the invoices.
+--
+-- This exists because one Stripe account can sell more than one product, and
+-- Stripe sends every event on the account to every webhook endpoint. A later
+-- event is matched to a licence by an identifier this service recorded itself,
+-- so an event belonging to a different product finds nothing and is ignored.
+-- The alternative -- matching a refund to a licence by the customer's email --
+-- would let a refund for an unrelated product kill this one's licence.
+CREATE TABLE IF NOT EXISTS provider_refs (
+    ref        TEXT PRIMARY KEY,
+    license_id TEXT NOT NULL REFERENCES licenses (id),
+    created_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS provider_refs_by_license ON provider_refs (license_id);
+
 -- Every provider re-delivers. Idempotency on their event id is what keeps a
 -- redelivery from creating a second license.
 CREATE TABLE IF NOT EXISTS webhook_events (

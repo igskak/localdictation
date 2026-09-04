@@ -169,12 +169,13 @@ first delivery failed be sent by the next press instead of being lost.
 
 In the dashboard, once:
 
-1. One product with two prices — €99 one-off and €49 yearly. Copy both price
-   ids into `PRICE_LIFETIME` and `PRICE_ANNUAL`.
+1. One product with two prices — €99 one-off and €49 yearly.
 2. A Payment Link for each. Copy the two URLs into `StoreFront` in the app, and
    the two `plink_…` ids into `PAYMENT_LINK_LIFETIME` and `PAYMENT_LINK_ANNUAL`
    — a Payment Link checkout sends **no line items** on the webhook, so the
    link id is the only thing in that payload that says which offer was bought.
+   The price ids are optional and only read if a session ever arrives with its
+   line items expanded.
 3. Check the **product tax code**. The default this project was first offered,
    "Software as a service (SaaS) – business use", describes neither half of what
    this is: a downloaded binary that runs entirely on the buyer's Mac, sold to
@@ -205,6 +206,32 @@ on — an annual would grow by two years for one payment. The code refuses it
 outright, so selecting it by accident is harmless. `customer.subscription.deleted`
 is deliberately not acted on: a cancelled annual runs to the date it was paid
 for.
+
+### One account, two products
+
+Stripe delivers **every** event on an account to **every** webhook endpoint.
+There is no per-product endpoint and no filter in the dashboard, so this account
+selling something else as well is not a configuration detail — it is a
+correctness requirement on this code. It is met in two places and neither of
+them is the customer's address:
+
+- **A sale** is recognised by the Payment Link it came through. A session for
+  any other link matches neither configured id, `parse` returns `null`, and the
+  webhook answers `202` and does nothing.
+- **Everything after the sale** — a renewal, a refund, a dispute — is matched to
+  a licence through `provider_refs`, a table of every identifier the provider has
+  used for it: the checkout session, the payment intent, the subscription, each
+  invoice and charge. An event naming none of them belongs to something else.
+
+The address is deliberately not a fallback anywhere in that path. One person can
+buy two products from one account with one email, and matching a refund by
+address would let a refund for the other product mark this one's licence dead.
+There are tests for exactly that.
+
+The consequence worth knowing: **a licence created outside this flow has no
+refs**, so a refund for it cannot be matched and is logged rather than applied.
+That is the intended direction for the error to fall — doing nothing is
+recoverable by hand, and killing a stranger's licence is not.
 
 ### The renewal, and the mail that matters
 
