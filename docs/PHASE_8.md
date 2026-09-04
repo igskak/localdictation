@@ -76,7 +76,7 @@ prefer adding a field the client ignores over changing one it reads.
 POST <ActivationEndpoint.production>
 Content-Type: application/json
 Accept: application/json
-User-Agent: LocalDictation
+User-Agent: Witness
 
 {"device":"<32 lowercase hex characters>","email":"<address as typed>"}
 ```
@@ -301,7 +301,7 @@ tested and the build that ships is which addresses it will send an email to.
   dictation is unaffected until the window closes.
 - The service stores nothing outside the table above, and the request still
   carries two fields.
-- `spctl -a -vvv -t install LocalDictation.app` reports a notarized Developer ID
+- `spctl -a -vvv -t install Witness.app` reports a notarized Developer ID
   build, and the app opens on a Mac that has never seen it.
 
 ## Order

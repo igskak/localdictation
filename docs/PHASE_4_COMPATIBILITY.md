@@ -119,7 +119,7 @@ the development Mac, and every measurement quoted here has a timestamp.
 Each of these is a real way for a dictation not to arrive. None is fixed, and
 the first two are decisions rather than defects.
 
-- **LocalDictation itself in front.** Dictating with the menu bar panel or
+- **Witness itself in front.** Dictating with the menu bar panel or
   Settings open captures no target, so the text goes to the clipboard with
   "there was no other application to put it in". Observed on 2026-08-20 at
   17:33:33. Remembering the last application that was in front would insert
@@ -228,5 +228,5 @@ Record what this was measured on, the way the Phase 2 benchmark does:
 
 - macOS version:
 - Mac model:
-- LocalDictation build:
+- Witness build:
 - Date:

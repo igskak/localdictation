@@ -165,7 +165,7 @@ In Settings → developer diagnostics, after an utterance:
 - [ ] No transcript text appears in any log line. Confirm with:
 
 ```sh
-log show --predicate 'subsystem == "com.localdictation.LocalDictation"' --last 10m --info
+log show --predicate 'subsystem == "com.witnessmac.Witness"' --last 10m --info
 ```
 
 Device names, formats, durations, and counters are expected there. Recognized

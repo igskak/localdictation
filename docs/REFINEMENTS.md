@@ -257,7 +257,7 @@ added to the enumerated events, and the funnel a full run produces is unchanged.
 These were on the **Open** list before this work and remain there, because each
 one is a product decision rather than a defect:
 
-- **LocalDictation itself in front.** Dictating with the menu bar panel or
+- **Witness itself in front.** Dictating with the menu bar panel or
   Settings open captures no target, so the text goes to the clipboard.
   Remembering the last application would insert where the user expects, at the
   cost of either activating another application — a visible window switch — or

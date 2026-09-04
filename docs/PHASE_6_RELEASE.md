@@ -17,7 +17,7 @@ with a sentence naming whichever of them is missing:
    key:
 
    ```sh
-   xcrun notarytool store-credentials LocalDictationNotary \
+   xcrun notarytool store-credentials WitnessNotary \
      --key Secrets/AuthKey_XXXXXXXX.p8 --key-id XXXXXXXX --issuer <uuid>
    ```
 
@@ -75,7 +75,7 @@ automatic signing. `security find-identity -v -p codesigning` lists nothing
 until that has been done, which is exactly what `Tools/release.sh` checks
 first.
 
-Proof: `codesign -dv --verbose=4 LocalDictation.app` names the Developer ID
+Proof: `codesign -dv --verbose=4 Witness.app` names the Developer ID
 authority rather than "Apple Development".
 
 ### 2. Entitlements
@@ -95,28 +95,28 @@ stable, which is the first user-visible improvement this phase produces.
 ```sh
 xcodebuild archive \
   -project LocalDictation.xcodeproj -scheme LocalDictation \
-  -configuration Release -archivePath build/LocalDictation.xcarchive
+  -configuration Release -archivePath build/Witness.xcarchive
 
 xcodebuild -exportArchive \
-  -archivePath build/LocalDictation.xcarchive \
+  -archivePath build/Witness.xcarchive \
   -exportOptionsPlist Tools/ExportOptions.plist \
   -exportPath build/export
 
-ditto -c -k --keepParent build/export/LocalDictation.app build/LocalDictation.zip
+ditto -c -k --keepParent build/export/Witness.app build/Witness.zip
 
-xcrun notarytool submit build/LocalDictation.zip \
-  --keychain-profile LocalDictationNotary --wait
+xcrun notarytool submit build/Witness.zip \
+  --keychain-profile WitnessNotary --wait
 
-xcrun stapler staple build/export/LocalDictation.app
+xcrun stapler staple build/export/Witness.app
 ```
 
 `Tools/release.sh` runs all of the above, generating the export options plist
-from the Team ID on the certificate. The `LocalDictationNotary` keychain profile
+from the Team ID on the certificate. The `WitnessNotary` keychain profile
 is the one thing it cannot make for you: `notarytool store-credentials` creates
 it from an App Store Connect API key, which is the form that does not put an
 app-specific password in a shell history.
 
-Proof: `spctl -a -vvv -t install LocalDictation.app` says *accepted, source=
+Proof: `spctl -a -vvv -t install Witness.app` says *accepted, source=
 Notarized Developer ID*, and the app opens on a Mac that has never seen it
 without a Gatekeeper prompt.
 

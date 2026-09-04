@@ -1,4 +1,4 @@
-# What LocalDictation sends, and what it never sends
+# What Witness sends, and what it never sends
 
 This is the working text of the privacy policy. `docs/PRODUCT_SCOPE.md` requires
 every transmitted field, purpose, recipient and retention period to be written
@@ -55,7 +55,7 @@ fails if a third is ever added, which is how this document stays true.
   bits, and it is what makes a licence cover two Macs rather than any number of
   them. It cannot be turned back into a serial number, it is specific to this
   app, and it matches nothing outside it.
-- **The user agent** is the word `LocalDictation`, deliberately without a
+- **The user agent** is the word `Witness`, deliberately without a
   version. An app build and an OS build are not on the list above, so they are
   not sent.
 

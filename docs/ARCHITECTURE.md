@@ -60,7 +60,7 @@ Implement the language-aware risk engine, entity/number rules, user glossary, cl
 
 ### Phase 4 — system insertion and app compatibility
 
-Add Accessibility onboarding, insertion adapters, clipboard fallback, and the compatibility matrix for native apps, browsers, Electron editors, IDEs, and protected fields. Direct insertion is preferred but never promised for every target; the review step remains inside LocalDictation.
+Add Accessibility onboarding, insertion adapters, clipboard fallback, and the compatibility matrix for native apps, browsers, Electron editors, IDEs, and protected fields. Direct insertion is preferred but never promised for every target; the review step remains inside Witness.
 
 ### Phase 5 — verification that does not interrupt
 

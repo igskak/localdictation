@@ -3,7 +3,7 @@
 ## Objective
 
 Close the last stage of the pipeline: the text stops being something the user
-copies out of LocalDictation and becomes something that appears where they were
+copies out of Witness and becomes something that appears where they were
 already typing.
 
 ```text
@@ -106,7 +106,7 @@ would move focus out of the field the text is going into.
 **Review is presented in a non-activating floating panel** — an `NSPanel` with
 `.nonactivatingPanel`, floating window level, appearing on its own when a review
 is required, and dismissed when the review ends. It takes clicks without
-activating LocalDictation, so the target application stays frontmost and the
+activating Witness, so the target application stays frontmost and the
 caret stays where it was.
 
 The alternative — activate for review, then restore focus afterwards — was

@@ -1,6 +1,8 @@
-# LocalDictation
+# Witness
 
 Native, local-first macOS dictation app. The product goal is fast voice input with a verifiable result: risky numbers, names, and uncertain fragments should be visible instead of being silently polished away.
+
+The product ships as **Witness**, at `witnessmac.com`. The Xcode project, the scheme and the source directories are still called `LocalDictation` — that is the working title this was built under, kept because renaming a target buys nothing a user can see. What a user does see — the app, its bundle identifier `com.witnessmac.Witness`, and the folder it keeps things in — says Witness.
 
 ## Current state
 
@@ -125,7 +127,7 @@ Read these files before continuing implementation:
 2. Select the `LocalDictation` scheme and `My Mac` destination.
 3. In Signing & Capabilities, choose a Personal Team if Xcode requires one for local execution. A paid Apple Developer Program membership is not required for local development.
 4. Build and run, then open the menu bar item and grant microphone access.
-5. The first launch asks which languages you speak. Pick as many as you use — there is nothing to switch between afterwards, and **Settings → Languages** changes it later. Then press **Prepare speech model…**. The first run downloads roughly 600 MB of Whisper weights into `~/Library/Application Support/LocalDictation/Models`. This is the only network access in the app, it is a one-way fetch of a static asset, and it never runs without this explicit action.
+5. The first launch asks which languages you speak. Pick as many as you use — there is nothing to switch between afterwards, and **Settings → Languages** changes it later. Then press **Prepare speech model…**. The first run downloads roughly 600 MB of Whisper weights into `~/Library/Application Support/Witness/Models`. This is the only network access in the app, it is a one-way fetch of a static asset, and it never runs without this explicit action.
 6. Hold `⌥Space` to record, release to finish. The text goes into whatever you were typing in, immediately and always. If something is worth a second look, a triangle appears in the menu bar and a small chip fades in and out where you are already looking — click either to see what was marked, or ignore both. If a press comes back with no text at all, the app says which of the two silences it was rather than saying nothing.
 7. The first insertion asks for Accessibility access. Until it is granted, results are copied to the clipboard instead. **A development build loses this permission on every rebuild**, because macOS keys the grant to the code signature — expect to re-grant it after each build from Xcode.
 8. The menu carries one per-session choice: *Any of RU+EN+UK*, or *Only Russian* for the hour you spend on one document. It is never written to disk. Under **Settings → General** you can change the shortcut, switch to pressing it twice instead of holding it, and have the app open at login. The shortcut needs at least one of `⌘ ⌥ ⌃ ⇧`; a combination something else already owns is refused and the working one stays. Opening at login needs the app to live in `/Applications` — macOS will not make a login item out of a build running from Xcode, and says so.
@@ -154,7 +156,7 @@ its tree behind forever. Prune the leftovers:
 ./Tools/prune_derived_data.sh --delete  # remove them
 ```
 
-The model weights under `~/Library/Application Support/LocalDictation/Models`
+The model weights under `~/Library/Application Support/Witness/Models`
 are a separate 1.5 GB and are not build output — deleting them means
 downloading them again on next launch.
 
@@ -208,7 +210,7 @@ Audio stays in memory. Normal capture performs no file writes, and a test assert
 
 A recording's lifetime is bounded by the review decision, not by the end of the interaction: it is released the instant the app decides no review is needed, and otherwise when the review is accepted, dismissed, or superseded. Tests assert both. Replay reads those samples straight out of memory — no file and no URL is involved.
 
-Three files in `~/Library/Application Support/LocalDictation/` are the only things written to disk. `glossary.json` holds terms and their language; `license.json` holds an install identifier, when the first dictation happened, how many succeeded, the furthest date the app has seen, and the license key if there is one; `preferences.json` holds the shortcut's key code, modifiers, and label, the recording mode, the languages the user speaks, whether insertion is automatic, and whether the first-run language question has been answered. A test asserts the exact field list of each.
+Three files in `~/Library/Application Support/Witness/` are the only things written to disk. `glossary.json` holds terms and their language; `license.json` holds an install identifier, when the first dictation happened, how many succeeded, the furthest date the app has seen, and the license key if there is one; `preferences.json` holds the shortcut's key code, modifiers, and label, the recording mode, the languages the user speaks, whether insertion is automatic, and whether the first-run language question has been answered. A test asserts the exact field list of each.
 
 Nothing in `preferences.json` is derived from anything that was said. It is a settings file rather than a `UserDefaults` domain on purpose: everything this app writes belongs in one directory the user can open, and a preference the app will not show its owner is a preference the app is keeping from them.
 

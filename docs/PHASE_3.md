@@ -18,7 +18,7 @@ raw transcript + token timings
 ```
 
 Phase 3 ends before insertion into other applications. The result stays inside
-LocalDictation.
+Witness.
 
 ## Explicit non-goals
 

@@ -109,7 +109,7 @@ another application.
 20. [ ] Dictate with the focus in Finder, or anywhere with no text field. The
         text goes to the clipboard with a message about there being nothing to
         insert into.
-21. [ ] Dictate with LocalDictation's own Settings window in front. Same, and
+21. [ ] Dictate with Witness's own Settings window in front. Same, and
         nothing is typed into the settings fields.
 
 ## 8. Behaviour that is easy to get wrong
@@ -133,7 +133,7 @@ another application.
 ## 10. Logging
 
 ```sh
-log show --predicate 'subsystem == "com.localdictation.LocalDictation"' --last 10m --info
+log show --predicate 'subsystem == "com.witnessmac.Witness"' --last 10m --info
 ```
 
 - [ ] Insertion outcomes and target bundle identifiers appear.

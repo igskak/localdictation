@@ -2,7 +2,7 @@
 
 ## Product promise
 
-LocalDictation is a local-first dictation utility for people who write substantial work text on a Mac. It should save time without hiding uncertainty: numbers, names, terms, and low-confidence fragments must be reviewable before they become silent errors.
+Witness is a local-first dictation utility for people who write substantial work text on a Mac. It should save time without hiding uncertainty: numbers, names, terms, and low-confidence fragments must be reviewable before they become silent errors.
 
 The messaging hierarchy is:
 

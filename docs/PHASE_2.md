@@ -2,7 +2,7 @@
 
 ## Objective
 
-Turn a bounded in-memory utterance into a raw transcript carrying token-level timing and confidence, and show that transcript inside LocalDictation.
+Turn a bounded in-memory utterance into a raw transcript carrying token-level timing and confidence, and show that transcript inside Witness.
 
 Phase 2 extends the Phase 1 slice by exactly one stage:
 
@@ -82,7 +82,7 @@ A benchmark that reports only WER has not answered the Phase 2 question. Confide
 
 ### Raw transcript UI
 
-- The raw transcript is displayed inside LocalDictation only.
+- The raw transcript is displayed inside Witness only.
 - An explicit copy action is available. Nothing is written anywhere without a user action.
 - Token confidence may be visualized in the developer diagnostics section only. Phase 2 shows confidence as a measurement, never as a risk verdict.
 

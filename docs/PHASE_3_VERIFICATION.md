@@ -138,7 +138,7 @@ dictionary.
 ## 6. Logging
 
 ```sh
-log show --predicate 'subsystem == "com.localdictation.LocalDictation"' --last 10m --info
+log show --predicate 'subsystem == "com.witnessmac.Witness"' --last 10m --info
 ```
 
 - [ ] Counts of edits, spans, and flagged spans appear.
