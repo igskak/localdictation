@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// What a language outside the verified four gets, and what it deliberately
 /// does not.

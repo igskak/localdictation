@@ -6,7 +6,7 @@ import OSLog
 /// counters, and state names. PCM samples, transcripts, and clipboard contents
 /// must never reach a logger.
 enum Log {
-    private static let subsystem = "com.localdictation.LocalDictation"
+    private static let subsystem = "com.witnessmac.Witness"
 
     static let application = Logger(subsystem: subsystem, category: "application")
     static let permissions = Logger(subsystem: subsystem, category: "permissions")

@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// Scoring and aggregation are exercised without audio files, so the benchmark
 /// machinery stays verifiable on a machine that has no corpus installed.

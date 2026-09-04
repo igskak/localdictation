@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// Covers the rule the sweep turns on — an abandoned staging directory goes, an
 /// in-flight one stays — over a real directory tree, with process liveness

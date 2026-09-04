@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// Overlap resolution is the part a view cannot be trusted to get right, so it
 /// is computed here and tested without SwiftUI.

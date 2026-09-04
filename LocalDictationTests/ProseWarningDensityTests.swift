@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// What the review step costs on text that is simply correct.
 ///

@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// The temporary pin: one language for now, without changing the set.
 @MainActor

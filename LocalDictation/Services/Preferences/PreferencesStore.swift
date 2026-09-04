@@ -44,11 +44,7 @@ struct FilePreferencesStore: PreferencesStore {
     }
 
     static func defaultURL() -> URL {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-            ?? URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Library/Application Support")
-        return base
-            .appendingPathComponent("LocalDictation", isDirectory: true)
-            .appendingPathComponent("preferences.json")
+        ApplicationSupportDirectory.file("preferences.json")
     }
 
     var locationDescription: String { url.path }

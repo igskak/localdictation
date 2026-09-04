@@ -1,6 +1,6 @@
 import AVFoundation
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// Guards the "audio never touches disk" product constraint by running the real
 /// capture data path (converter + bounded buffer + detector) over synthetic

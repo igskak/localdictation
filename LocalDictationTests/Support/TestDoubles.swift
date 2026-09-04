@@ -1,6 +1,6 @@
 import CryptoKit
 import Foundation
-@testable import LocalDictation
+@testable import Witness
 
 /// Permission service that never touches AVFoundation, so tests can exercise
 /// every authorization state without a system dialog.

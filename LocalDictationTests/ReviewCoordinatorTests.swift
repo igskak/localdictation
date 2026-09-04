@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// The decision is a pure function of its inputs, and is tested as one.
 final class ReviewCoordinatorTests: XCTestCase {

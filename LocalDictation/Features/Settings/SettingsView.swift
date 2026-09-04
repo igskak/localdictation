@@ -28,7 +28,7 @@ struct SettingsView: View {
                 .tabItem { Label("Diagnostics", systemImage: "stethoscope") }
         }
         .frame(width: 560, height: 420)
-        .navigationTitle("LocalDictation Settings")
+        .navigationTitle("Witness Settings")
     }
 
     private var generalTab: some View {

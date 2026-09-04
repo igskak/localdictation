@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// The engine's own job: pricing a reason, placing a raw span in the cleaned
 /// text, and attaching the audio window. The signals are tested elsewhere.

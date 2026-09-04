@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// The choice between writing, pasting, copying, and refusing, exercised as the
 /// pure function it is — no Accessibility call, no pasteboard, no target app.

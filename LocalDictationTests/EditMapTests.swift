@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// Round-tripping is an invariant, not an assumption — `docs/PHASE_3.md` names
 /// it as one. If a range cannot survive the trip through the map, every risky

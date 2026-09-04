@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// Changing the shortcut, and the two ways that can go wrong.
 ///

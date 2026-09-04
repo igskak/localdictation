@@ -426,9 +426,6 @@ actor WhisperKitTranscriptionService: TranscriptionService {
     /// Weights live in Application Support, outside the app bundle, so they
     /// survive updates and stay visible to the user.
     static func modelDirectory() -> URL? {
-        FileManager.default
-            .urls(for: .applicationSupportDirectory, in: .userDomainMask)
-            .first?
-            .appendingPathComponent("LocalDictation/Models", isDirectory: true)
+        ApplicationSupportDirectory.subdirectory("Models")
     }
 }

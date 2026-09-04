@@ -31,7 +31,7 @@ enum LoginItemState: Sendable, Equatable {
         case .enabled, .disabled:
             nil
         case .requiresApproval:
-            "macOS is holding this off. Open Login Items in System Settings and allow LocalDictation there."
+            "macOS is holding this off. Open Login Items in System Settings and allow Witness there."
         case let .unavailable(reason):
             reason
         }
@@ -69,7 +69,7 @@ final class SMAppServiceLoginItem: LoginItemService {
         case .requiresApproval:
             .requiresApproval
         case .notFound:
-            .unavailable("macOS cannot find this copy of the app to start it. Move LocalDictation to your Applications folder and try again.")
+            .unavailable("macOS cannot find this copy of the app to start it. Move Witness to your Applications folder and try again.")
         @unknown default:
             .unavailable("macOS gave an answer this app does not recognize.")
         }

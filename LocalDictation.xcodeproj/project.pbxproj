@@ -109,6 +109,7 @@
 		463E604EA2F0A8AC69D55B16 /* VoiceActivityDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F9DADF4A9AC95BB5D960DC4 /* VoiceActivityDetector.swift */; };
 		D3221E590B4F1C12099CF2B2 /* Log.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9AFA856A5F080EB146F03F7 /* Log.swift */; };
 		C7DB64B09DC1F01009BA0C8F /* UnfairLock.swift in Sources */ = {isa = PBXBuildFile; fileRef = E67803C1BDBA55E09FB2398D /* UnfairLock.swift */; };
+		75FF8D16A1983540E8273BF2 /* ApplicationSupportDirectory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B91ABD5D6C4949FE51CFC1B /* ApplicationSupportDirectory.swift */; };
 		44E9E90EFB94DE133E6A0034 /* ANEBundleCacheSweeperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D784F80297AE0F946E638E7C /* ANEBundleCacheSweeperTests.swift */; };
 		C937D4ED9D4E903CB5486478 /* AXTextInsertionServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEBB6912DC8B4D653A074834 /* AXTextInsertionServiceTests.swift */; };
 		D116B761BB9FC7C2C9CFE737 /* ActivationServiceParityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020F188C581182E5BA5B5E8C /* ActivationServiceParityTests.swift */; };
@@ -144,6 +145,7 @@
 		F9B55E7BA14F2611BA4237BE /* LanguageSetupTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F1047889C2B0ADC0F9D7FEA /* LanguageSetupTests.swift */; };
 		C513E5630D8B6216A1FDA8CA /* LicenseIssuerToolTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6721C129DF8031189B04D9BB /* LicenseIssuerToolTests.swift */; };
 		B5DA4CCD800BF9EBE0F130D6 /* LicenseKeyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 900CB9FF803A2F7BAB1FA8DF /* LicenseKeyTests.swift */; };
+		34B3ED87638EC5888BE04F46 /* ApplicationSupportDirectoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F8FBA917DF66624D3D5445E /* ApplicationSupportDirectoryTests.swift */; };
 		6CD8735535789D6C492F023A /* LicensePresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 954BAEF33D5B6ACB2C187FE5 /* LicensePresentationTests.swift */; };
 		C66349D0DC61115D5A7B9418 /* LifetimeUpdatePolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F19AC257ACED52D0F8E777B9 /* LifetimeUpdatePolicyTests.swift */; };
 		83D1F2D26212E39C4B8F7293 /* LoginItemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B25E61BD734823A68E612453 /* LoginItemTests.swift */; };
@@ -290,6 +292,7 @@
 		5F9DADF4A9AC95BB5D960DC4 /* VoiceActivityDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceActivityDetector.swift; sourceTree = "<group>"; };
 		C9AFA856A5F080EB146F03F7 /* Log.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Log.swift; sourceTree = "<group>"; };
 		E67803C1BDBA55E09FB2398D /* UnfairLock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnfairLock.swift; sourceTree = "<group>"; };
+		2B91ABD5D6C4949FE51CFC1B /* ApplicationSupportDirectory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplicationSupportDirectory.swift; sourceTree = "<group>"; };
 		9A4FDC8856930DF37DE4B6C2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		D784F80297AE0F946E638E7C /* ANEBundleCacheSweeperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ANEBundleCacheSweeperTests.swift; sourceTree = "<group>"; };
 		BEBB6912DC8B4D653A074834 /* AXTextInsertionServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AXTextInsertionServiceTests.swift; sourceTree = "<group>"; };
@@ -326,6 +329,7 @@
 		4F1047889C2B0ADC0F9D7FEA /* LanguageSetupTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageSetupTests.swift; sourceTree = "<group>"; };
 		6721C129DF8031189B04D9BB /* LicenseIssuerToolTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseIssuerToolTests.swift; sourceTree = "<group>"; };
 		900CB9FF803A2F7BAB1FA8DF /* LicenseKeyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseKeyTests.swift; sourceTree = "<group>"; };
+		7F8FBA917DF66624D3D5445E /* ApplicationSupportDirectoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplicationSupportDirectoryTests.swift; sourceTree = "<group>"; };
 		954BAEF33D5B6ACB2C187FE5 /* LicensePresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicensePresentationTests.swift; sourceTree = "<group>"; };
 		F19AC257ACED52D0F8E777B9 /* LifetimeUpdatePolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LifetimeUpdatePolicyTests.swift; sourceTree = "<group>"; };
 		B25E61BD734823A68E612453 /* LoginItemTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItemTests.swift; sourceTree = "<group>"; };
@@ -702,6 +706,7 @@
 		47142EAAD102B1EC2629138B /* Support */ = {
 			isa = PBXGroup;
 			children = (
+				2B91ABD5D6C4949FE51CFC1B /* ApplicationSupportDirectory.swift */,
 				C9AFA856A5F080EB146F03F7 /* Log.swift */,
 				E67803C1BDBA55E09FB2398D /* UnfairLock.swift */,
 			);
@@ -770,6 +775,7 @@
 				4F1047889C2B0ADC0F9D7FEA /* LanguageSetupTests.swift */,
 				6721C129DF8031189B04D9BB /* LicenseIssuerToolTests.swift */,
 				900CB9FF803A2F7BAB1FA8DF /* LicenseKeyTests.swift */,
+				7F8FBA917DF66624D3D5445E /* ApplicationSupportDirectoryTests.swift */,
 				954BAEF33D5B6ACB2C187FE5 /* LicensePresentationTests.swift */,
 				F19AC257ACED52D0F8E777B9 /* LifetimeUpdatePolicyTests.swift */,
 				B25E61BD734823A68E612453 /* LoginItemTests.swift */,
@@ -1027,6 +1033,7 @@
 				463E604EA2F0A8AC69D55B16 /* VoiceActivityDetector.swift in Sources */,
 				D3221E590B4F1C12099CF2B2 /* Log.swift in Sources */,
 				C7DB64B09DC1F01009BA0C8F /* UnfairLock.swift in Sources */,
+				75FF8D16A1983540E8273BF2 /* ApplicationSupportDirectory.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1069,6 +1076,7 @@
 				F9B55E7BA14F2611BA4237BE /* LanguageSetupTests.swift in Sources */,
 				C513E5630D8B6216A1FDA8CA /* LicenseIssuerToolTests.swift in Sources */,
 				B5DA4CCD800BF9EBE0F130D6 /* LicenseKeyTests.swift in Sources */,
+				34B3ED87638EC5888BE04F46 /* ApplicationSupportDirectoryTests.swift in Sources */,
 				6CD8735535789D6C492F023A /* LicensePresentationTests.swift in Sources */,
 				C66349D0DC61115D5A7B9418 /* LifetimeUpdatePolicyTests.swift in Sources */,
 				83D1F2D26212E39C4B8F7293 /* LoginItemTests.swift in Sources */,
@@ -1238,13 +1246,13 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = LocalDictation/Resources/Info.plist;
+				PRODUCT_NAME = Witness;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.localdictation.LocalDictation;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.witnessmac.Witness;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;
@@ -1261,13 +1269,13 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = LocalDictation/Resources/Info.plist;
+				PRODUCT_NAME = Witness;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.localdictation.LocalDictation;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.witnessmac.Witness;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;
@@ -1285,11 +1293,11 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.localdictation.LocalDictationTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.witnessmac.WitnessTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LocalDictation.app/Contents/MacOS/LocalDictation";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Witness.app/Contents/MacOS/Witness";
 		};
 			name = Debug;
 		};
@@ -1304,11 +1312,11 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.localdictation.LocalDictationTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.witnessmac.WitnessTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LocalDictation.app/Contents/MacOS/LocalDictation";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Witness.app/Contents/MacOS/Witness";
 			};
 			name = Release;
 		};

@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// A profile is an ordered set since Phase 7. These are the properties the rest
 /// of the app is entitled to assume: it is never empty, it never repeats a

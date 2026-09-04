@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// Cleanup is only allowed to do four things, and the acceptance criterion is
 /// that it never changes wording, numbers, or meaning. Most of these tests are

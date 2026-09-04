@@ -23,7 +23,7 @@ struct LocalDictationApp: App {
             // label as a template image, so the alert is the symbol itself
             // rather than a badge drawn over one.
             Label(
-                "LocalDictation",
+                "Witness",
                 systemImage: StatusPresentation(
                     state: coordinator.state,
                     binding: coordinator.binding,

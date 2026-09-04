@@ -2,7 +2,7 @@ import AppKit
 import CryptoKit
 import SwiftUI
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// The window that names the price, driven through real AppKit layout.
 ///

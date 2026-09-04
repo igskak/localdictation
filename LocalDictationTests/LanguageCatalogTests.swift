@@ -1,6 +1,6 @@
 import WhisperKit
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// The catalog is data, and data that nobody checks drifts.
 ///

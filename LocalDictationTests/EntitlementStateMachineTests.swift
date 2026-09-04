@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// The licensing precondition inside the dictation state machine, tested where
 /// the machine is: as a pure value with no services attached.

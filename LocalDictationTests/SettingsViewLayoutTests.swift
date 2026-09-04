@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// Drives the settings window through real AppKit layout.
 ///

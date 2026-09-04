@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// The commercial rules are a pure function of a record, a license, and a date,
 /// and they are tested as one. Every number the product promises appears here

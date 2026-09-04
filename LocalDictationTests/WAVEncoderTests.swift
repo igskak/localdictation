@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 #if DEBUG
 final class WAVEncoderTests: XCTestCase {

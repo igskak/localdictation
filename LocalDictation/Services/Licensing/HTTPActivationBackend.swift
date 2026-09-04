@@ -103,7 +103,7 @@ struct HTTPActivationBackend: ActivationBackend {
         // of what this product sends here, and a default user agent would add
         // an app build and an OS build to that list without them appearing in
         // the privacy policy.
-        request.setValue("LocalDictation", forHTTPHeaderField: "User-Agent")
+        request.setValue("Witness", forHTTPHeaderField: "User-Agent")
         request.httpBody = try Self.body(email: email, deviceID: deviceID)
 
         let data: Data
@@ -167,7 +167,7 @@ struct HTTPActivationBackend: ActivationBackend {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue("LocalDictation", forHTTPHeaderField: "User-Agent")
+        request.setValue("Witness", forHTTPHeaderField: "User-Agent")
         request.httpBody = try Self.releaseBody(key: key, deviceID: deviceID)
 
         let data: Data

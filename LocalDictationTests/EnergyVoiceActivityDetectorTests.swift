@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 final class EnergyVoiceActivityDetectorTests: XCTestCase {
     private let sampleRate: Double = 16_000

@@ -494,7 +494,7 @@ private struct AccessibilityTrustView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Type text for you")
                 .font(.caption.weight(.semibold))
-            Text("LocalDictation needs Accessibility access to put text into other applications. Without it, results go to the clipboard.")
+            Text("Witness needs Accessibility access to put text into other applications. Without it, results go to the clipboard.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

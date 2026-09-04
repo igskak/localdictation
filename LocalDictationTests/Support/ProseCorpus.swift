@@ -1,5 +1,5 @@
 import Foundation
-@testable import LocalDictation
+@testable import Witness
 
 #if DEBUG
 /// Ordinary work prose, as a corpus of correct text.

@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 @MainActor
 final class DictationCoordinatorTranscriptionTests: XCTestCase {

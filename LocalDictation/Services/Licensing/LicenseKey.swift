@@ -16,7 +16,7 @@ enum LicenseKeyError: Error, Sendable, Equatable {
         case .malformed:
             "That does not look like a license key. Copy the whole line from the activation email, including the LD1 at the front."
         case let .unsupportedVersion(version):
-            "This key is version \(version), which this build does not know how to read. Update LocalDictation."
+            "This key is version \(version), which this build does not know how to read. Update Witness."
         case .noAuthority:
             "This build carries no license authority key, so it cannot check any license. It is a development build."
         case .badSignature:

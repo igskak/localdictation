@@ -53,7 +53,7 @@ final class LanguageSetupWindowController: NSObject, NSWindowDelegate {
             backing: .buffered,
             defer: false
         )
-        window.title = "LocalDictation"
+        window.title = "Witness"
         window.contentView = NSHostingView(
             rootView: FirstRunView(
                 model: model,

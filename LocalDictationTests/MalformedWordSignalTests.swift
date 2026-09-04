@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// The signal that exists because of one complaint: "проверка" came back as
 /// "ррверка" unmarked, while the correctly recognized name of a messenger three

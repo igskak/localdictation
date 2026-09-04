@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// The second recording mode, which `docs/PRODUCT_SCOPE.md` has listed in the
 /// MVP since the first draft and which was never built.

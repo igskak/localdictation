@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// The measurement harness, exercised without a corpus and without a model, so
 /// the numbers it produces can be trusted before they are produced.

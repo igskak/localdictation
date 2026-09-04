@@ -1,6 +1,6 @@
 import CryptoKit
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// The service that holds the licensing state together: what it counts, what it
 /// stores, and what it refuses to believe from disk.

@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// The issuer and the verifier are two programs that have to agree, and the
 /// only way to know they do is to run one against the other.

@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// The Phase 3 slice end to end, with fakes: transcript in, cleanup and risk
 /// applied, review decided, audio released at the decision.

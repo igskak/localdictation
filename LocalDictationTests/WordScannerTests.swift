@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// The scanner is what every risk signal stands on, and its offsets are what
 /// the review strip highlights. A word located one character off would mark the

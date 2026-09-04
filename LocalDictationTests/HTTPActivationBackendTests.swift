@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// The one request this app makes on its own behalf.
 ///
@@ -57,7 +57,7 @@ final class HTTPActivationBackendTests: XCTestCase {
         _ = await requestKey()
 
         let request = try XCTUnwrap(StubActivationProtocol.lastRequest)
-        XCTAssertEqual(request.value(forHTTPHeaderField: "User-Agent"), "LocalDictation")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "User-Agent"), "Witness")
         XCTAssertEqual(request.httpMethod, "POST")
     }
 
@@ -170,7 +170,7 @@ final class HTTPActivationBackendTests: XCTestCase {
 
         let request = try XCTUnwrap(StubActivationProtocol.lastRequest)
         XCTAssertEqual(request.url?.path, "/v1/devices/release")
-        XCTAssertEqual(request.value(forHTTPHeaderField: "User-Agent"), "LocalDictation")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "User-Agent"), "Witness")
 
         let sent = try XCTUnwrap(StubActivationProtocol.lastBody)
         let fields = try XCTUnwrap(JSONSerialization.jsonObject(with: sent) as? [String: String])

@@ -38,11 +38,7 @@ struct FileGlossaryStore: GlossaryStore {
     }
 
     static func defaultURL() -> URL {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-            ?? URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Library/Application Support")
-        return base
-            .appendingPathComponent("LocalDictation", isDirectory: true)
-            .appendingPathComponent("glossary.json")
+        ApplicationSupportDirectory.file("glossary.json")
     }
 
     var locationDescription: String { url.path }

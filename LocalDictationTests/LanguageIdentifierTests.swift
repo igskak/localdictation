@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// The identifier is deliberately allowed to say "I don't know", and most of
 /// these tests assert exactly that: a confident wrong answer would spend the

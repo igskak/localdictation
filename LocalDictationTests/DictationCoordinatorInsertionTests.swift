@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// The Phase 4 slice with fakes: a result that needs no review lands in the
 /// application the user was typing in, a review stands in front of that, and

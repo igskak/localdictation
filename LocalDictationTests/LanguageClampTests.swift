@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// From the second live session: a Ukrainian utterance on a UK+EN profile came
 /// back decoded as Polish, in Latin script — "Załeżek 2500 EUR" where the user

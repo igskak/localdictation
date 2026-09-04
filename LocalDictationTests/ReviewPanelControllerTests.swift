@@ -1,6 +1,6 @@
 import AppKit
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// Drives the floating panel through real AppKit layout.
 ///

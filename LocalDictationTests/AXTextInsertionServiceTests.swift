@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// The two questions the live insertion service answers about applications
 /// rather than about text: which one was dictated into, and whether it is still

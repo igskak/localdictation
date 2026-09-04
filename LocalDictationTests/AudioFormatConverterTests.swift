@@ -1,6 +1,6 @@
 import AVFoundation
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 final class AudioFormatConverterTests: XCTestCase {
     private func makeFormat(sampleRate: Double, channels: AVAudioChannelCount) throws -> AVAudioFormat {

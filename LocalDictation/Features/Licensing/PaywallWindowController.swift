@@ -74,7 +74,7 @@ final class PaywallWindowController: NSObject, NSWindowDelegate {
             backing: .buffered,
             defer: false
         )
-        window.title = "LocalDictation"
+        window.title = "Witness"
         window.contentView = NSHostingView(
             rootView: PaywallView(
                 coordinator: coordinator,

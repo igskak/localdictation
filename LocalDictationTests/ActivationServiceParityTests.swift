@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// The service and the app are two programs that have to agree about bytes.
 ///

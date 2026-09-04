@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// Every signal is tested in isolation and without a model, which is the point
 /// of building the deterministic ones first: these are pure functions over

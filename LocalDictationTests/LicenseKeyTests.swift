@@ -1,6 +1,6 @@
 import CryptoKit
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// A license is a signature, and this file is where that claim is checked.
 ///

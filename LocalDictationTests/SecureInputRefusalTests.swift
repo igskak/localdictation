@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// The refusal a user is most likely to meet, and least able to act on.
 ///

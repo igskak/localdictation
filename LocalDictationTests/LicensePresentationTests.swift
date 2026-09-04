@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// In the locked states this copy is the entire product, so it is tested like
 /// any other output.

@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// What the word "lifetime" was sold as, as a function.
 ///

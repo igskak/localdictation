@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// The commercial surface, held to the few things about it that can be wrong
 /// silently.

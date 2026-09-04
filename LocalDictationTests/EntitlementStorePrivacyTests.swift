@@ -1,5 +1,5 @@
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// The second and last file the app writes, asserted the way the dictionary is
 /// in `GlossaryTests`: the encoded form is the entire persisted state, so it is

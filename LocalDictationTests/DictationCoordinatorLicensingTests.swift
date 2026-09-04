@@ -1,6 +1,6 @@
 import CryptoKit
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// What licensing does to dictation, which is the only part of it the user
 /// experiences.

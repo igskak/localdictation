@@ -1,6 +1,6 @@
 import ServiceManagement
 import XCTest
-@testable import LocalDictation
+@testable import Witness
 
 /// Whether the app is there when the user logs in.
 ///

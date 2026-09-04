@@ -118,7 +118,7 @@ struct StatusPresentation: Sendable, Equatable {
             title = restricted ? "Microphone access restricted" : "Microphone access denied"
             detail = restricted
                 ? "A device policy blocks microphone access. Contact whoever manages this Mac."
-                : "Enable LocalDictation under Privacy & Security → Microphone, then return here."
+                : "Enable Witness under Privacy & Security → Microphone, then return here."
             systemImage = "exclamationmark.triangle"
             tint = .warning
             showsPermissionRequest = false

@@ -51,7 +51,7 @@ struct FirstRunReadyView: View {
                 step(
                     symbol: "keyboard",
                     title: "Typing into other applications",
-                    detail: "LocalDictation asks for Accessibility the first time it has text to insert. Without it "
+                    detail: "Witness asks for Accessibility the first time it has text to insert. Without it "
                         + "the text goes to the clipboard instead, and everything else still works."
                 )
 
