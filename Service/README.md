@@ -286,25 +286,29 @@ the purchase mail, and Stripe's own confirmation page.
 **The confirmation page is the one that always works.** Mail is delayed, filed
 as spam, or — while `MAIL_PROVIDER` is `none` — not sent at all, and a buyer
 who has just paid €99 and been told nothing is a buyer writing to support or
-asking their bank. So set it on both Payment Links, under **After payment →
-Show confirmation page**, before the first sale:
+asking their bank.
 
-> **Thank you — one step left.**
->
-> Your licence is on the email address you just used. A licence key is issued
-> for one Mac, and a browser cannot tell which Mac you are on, so the last step
-> happens inside the app:
->
-> 1. Open LocalDictation.
-> 2. Go to Settings, then License.
-> 3. Type the address you paid with and press **Send my key**.
->
-> The app unlocks straight away. Repeat it on your second Mac whenever you
-> like — a licence covers two.
+It is set per link, not per account: **Payment Links → the link → Edit → the
+After payment tab → Show confirmation page**. Do it on both, before the first
+sale. One paragraph, no formatting — the field is plain text:
 
-The same words are in `purchaseMail` in `src/mailer.js`. They should stay the
-same words: a buyer who reads both should not have to work out whether they are
-two instructions or one.
+> Thank you — one step left. Your licence is on the email address you just
+> used. A key is issued for one Mac and a browser cannot tell which Mac you are
+> on, so the last step happens in the app: open LocalDictation, go to Settings
+> then License, type the address you paid with and press "Send my key". The app
+> unlocks straight away. A licence covers two Macs, so repeat it on the second
+> one whenever you like.
+
+405 characters, which is inside every limit Stripe puts on that field. The
+paragraph in `purchaseMail` in `src/mailer.js` says the same thing at more
+length, and the two should stay in agreement: a buyer who reads both should not
+have to work out whether they are two instructions or one.
+
+Once there is a product website, the better answer is **Redirect customers to
+your website** instead — a page has room for the download link, the licence
+terms, and a screenshot of where in Settings to go. The hosted confirmation page
+is what to use until then, and it is not a placeholder: it is the only thing a
+buyer is guaranteed to see.
 
 ### One account, two products
 
