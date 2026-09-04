@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Archive, sign, notarize, staple, and package LocalDictation for direct
+# Archive, sign, notarize, staple, and package Witness for direct
 # distribution. `docs/PHASE_6_RELEASE.md` is the reasoning; this is the doing.
 #
 #   ./Tools/release.sh            archive, notarize, staple, package
@@ -14,7 +14,7 @@
 #      get wrong.
 #   2. A notarytool keychain profile, made once:
 #
-#        xcrun notarytool store-credentials LocalDictationNotary \
+#        xcrun notarytool store-credentials WitnessNotary \
 #          --key Secrets/AuthKey_XXXXXXXX.p8 \
 #          --key-id XXXXXXXX --issuer <issuer-uuid>
 #
@@ -39,13 +39,17 @@ cd "$(dirname "$0")/.."
 CHECK_ONLY=0
 [ "${1:-}" = "--check" ] && CHECK_ONLY=1
 
+# The product ships as Witness; the project file and the scheme keep the name
+# they were created with, so that renaming the product did not rewrite every
+# path in the repository. Both sets of names are correct — the ones below
+# address the project, the ones after them name what the build produces.
 PROJECT="LocalDictation.xcodeproj"
 SCHEME="LocalDictation"
-NOTARY_PROFILE="${NOTARY_PROFILE:-LocalDictationNotary}"
+NOTARY_PROFILE="${NOTARY_PROFILE:-WitnessNotary}"
 BUILD="build"
-ARCHIVE="$BUILD/LocalDictation.xcarchive"
+ARCHIVE="$BUILD/Witness.xcarchive"
 EXPORT="$BUILD/export"
-APP="$EXPORT/LocalDictation.app"
+APP="$EXPORT/Witness.app"
 
 die() {
     echo "release: $1" >&2
@@ -100,7 +104,7 @@ VERSION="$(
 [ -n "$VERSION" ] || die "could not read MARKETING_VERSION out of the project"
 echo "   version $VERSION, team $TEAM_ID"
 
-DMG="$BUILD/LocalDictation-$VERSION.dmg"
+DMG="$BUILD/Witness-$VERSION.dmg"
 
 if [ "$CHECK_ONLY" = "1" ]; then
     echo
@@ -114,7 +118,7 @@ fi
 
 step "Archiving"
 
-rm -rf "$ARCHIVE" "$EXPORT" "$BUILD/dmg" "$BUILD/LocalDictation.zip" "$DMG"
+rm -rf "$ARCHIVE" "$EXPORT" "$BUILD/dmg" "$BUILD/Witness.zip" "$DMG"
 mkdir -p "$BUILD"
 
 # `DEVELOPMENT_TEAM` is passed here rather than committed to the project. It
@@ -172,19 +176,19 @@ codesign -d --entitlements - --xml "$APP" 2>/dev/null | grep -q "com.apple.secur
 
 step "Notarizing the app"
 
-ditto -c -k --keepParent "$APP" "$BUILD/LocalDictation.zip"
-xcrun notarytool submit "$BUILD/LocalDictation.zip" --keychain-profile "$NOTARY_PROFILE" --wait
+ditto -c -k --keepParent "$APP" "$BUILD/Witness.zip"
+xcrun notarytool submit "$BUILD/Witness.zip" --keychain-profile "$NOTARY_PROFILE" --wait
 xcrun stapler staple "$APP"
 
 step "Building the disk image"
 
 rm -rf "$BUILD/dmg"
 mkdir -p "$BUILD/dmg"
-ditto "$APP" "$BUILD/dmg/LocalDictation.app"
+ditto "$APP" "$BUILD/dmg/Witness.app"
 ln -s /Applications "$BUILD/dmg/Applications"
 
 hdiutil create \
-    -volname "LocalDictation $VERSION" \
+    -volname "Witness $VERSION" \
     -srcfolder "$BUILD/dmg" \
     -fs HFS+ -format UDZO -ov \
     "$DMG" | tail -2

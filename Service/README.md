@@ -276,6 +276,47 @@ outright, so selecting it by accident is harmless. `customer.subscription.delete
 is deliberately not acted on: a cancelled annual runs to the date it was paid
 for.
 
+### What the two links say they are selling
+
+The links were created before the product had its name, so both of them still
+offer LocalDictation to anybody who reaches the checkout. The name on that page
+is the last thing a buyer reads before paying, and it is also what appears on
+the receipt and in the dispute, so it disagreeing with the app is not cosmetic.
+
+Both texts are **per product, not per account** — the account sells another
+product, and its public business name belongs to that one and must not be
+changed here. Stripe → Product catalogue → the product behind each link:
+
+**Lifetime, `PAYMENT_LINK_LIFETIME`, €99**
+
+> Witness — lifetime license
+
+> Local dictation for Apple silicon Macs. One payment, no renewal: this major
+> version and every update to it, on two of your Macs. Speech recognition runs
+> on your Mac — audio and transcripts are never uploaded.
+
+**Annual, `PAYMENT_LINK_ANNUAL`, €49 a year**
+
+> Witness — annual license
+
+> Local dictation for Apple silicon Macs. €49 a year, renewing until you
+> cancel, with every update included while it runs, on two of your Macs.
+> Speech recognition runs on your Mac — audio and transcripts are never
+> uploaded.
+
+The word "lifetime" is D6 of `docs/PHASE_8_DECISIONS.md` and the description is
+where the buyer is told what it means. "This major version and every update to
+it" is the promise; a description that says only "lifetime" sells a different
+one, and the difference surfaces at the first major version rather than now.
+
+The third field is the **statement descriptor**, and it is the one that causes
+support mail rather than confusion: the account's descriptor names the other
+product, so a €99 line nobody recognises is a card holder ringing their bank.
+It is `statement_descriptor` on the Product — the dashboard shows it under the
+product's additional options, and the API sets it if the dashboard does not:
+
+> WITNESSMAC.COM
+
 ### The confirmation page is not optional
 
 A key names a Mac and a browser does not know which, so a purchase cannot hand
@@ -294,12 +335,12 @@ sale. One paragraph, no formatting — the field is plain text:
 
 > Thank you — one step left. Your licence is on the email address you just
 > used. A key is issued for one Mac and a browser cannot tell which Mac you are
-> on, so the last step happens in the app: open LocalDictation, go to Settings
+> on, so the last step happens in the app: open Witness, go to Settings
 > then License, type the address you paid with and press "Send my key". The app
 > unlocks straight away. A licence covers two Macs, so repeat it on the second
 > one whenever you like.
 
-405 characters, which is inside every limit Stripe puts on that field. The
+398 characters, which is inside every limit Stripe puts on that field. The
 paragraph in `purchaseMail` in `src/mailer.js` says the same thing at more
 length, and the two should stay in agreement: a buyer who reads both should not
 have to work out whether they are two instructions or one.

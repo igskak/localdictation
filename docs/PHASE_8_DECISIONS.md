@@ -125,6 +125,46 @@ the button sends what the last one could not.
 Transactional only. Marketing to an address collected here needs its own
 consent, and in Germany that is §7 UWG rather than a formality.
 
+### The three records, and which one is still missing
+
+Two of them are live, and this is what they are, so that the third is not
+guessed at:
+
+| Name | Type | What it is |
+| --- | --- | --- |
+| `resend._domainkey` | TXT | DKIM. Resend signs with `d=witnessmac.com` |
+| `send` | TXT and MX | The envelope domain. `v=spf1 include:amazonses.com ~all`, and an MX at `feedback-smtp.eu-west-1.amazonses.com` for bounces |
+| `_dmarc` | TXT | **Not set.** Without it the two above are checked and the result is thrown away |
+
+The record, on `_dmarc.witnessmac.com`:
+
+```
+v=DMARC1; p=none; rua=mailto:dmarc@witnessmac.com; fo=1
+```
+
+Three things about it are decisions rather than defaults.
+
+**Alignment stays relaxed.** The `From:` header says `keys@witnessmac.com` while
+the envelope says `send.witnessmac.com`, so SPF aligns only because relaxed
+alignment compares organizational domains. Writing `aspf=s` would fail every
+key mail this service sends — the exact outcome the record exists to prevent.
+DKIM signs with the root domain and aligns either way.
+
+**The reports go to an address on this domain.** A `rua` pointing somewhere
+else needs an authorization record at the receiving domain
+(`witnessmac.com._report._dmarc.<host>`), which no free mail host publishes, so
+a report address at one of them is a report address that gets refused.
+`dmarc@witnessmac.com` forwarded on with Cloudflare Email Routing is the form
+that works — the root domain has no MX of its own, because Resend's is on the
+subdomain.
+
+**`p=none` is a starting position, not the answer.** It asks to be told and
+enforces nothing, which is right for exactly as long as it takes to read the
+first reports. There is one sender, so that is days rather than the months a
+larger domain needs: `p=quarantine` next, then `p=reject`. A domain that sells
+software and never reaches `p=reject` is a domain somebody else can send from.
+
+
 ## D5 — the legal half
 
 Out of scope for code, and it blocks selling in Germany regardless of what the
