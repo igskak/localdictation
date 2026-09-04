@@ -13,6 +13,10 @@ working.
 ## Shape
 
 ```
+tools/
+  set-secret.sh      set one secret, with the value never on a command line
+  parity-fixture.mjs the committed fixture, from this source
+  live-fixture.mjs   a fixture from a running deployment
 src/
   worker.js     the router, and the health check
   activate.js   POST /v1/activate: the whole of what a person can be told
@@ -26,7 +30,6 @@ src/
   mailer.js     Resend or Postmark, behind one method
   http.js       JSON answers, bounded requests
 schema.sql      the whole of what is stored
-tools/          the parity fixture generator
 test/           node:test, over the real schema in an in-memory SQLite
 ```
 
@@ -226,11 +229,20 @@ In the dashboard, once:
    line:
 
    ```bash
-   npx wrangler secret put WEBHOOK_SECRET
+   ./tools/set-secret.sh WEBHOOK_SECRET
    ```
 
-   A secret that has been on a command line is in the shell history and in
-   wrangler's own log. Roll it on the endpoint's page rather than hoping. **Set its API version to the newest
+   Use that rather than `wrangler secret put` directly. `put` takes the *name*
+   as its argument and reads the value from stdin, which is one character away
+   from two mistakes that both happened while this service was being set up: the
+   value in a flag (`--env="whsec_…"`), which puts it in the shell history and
+   in wrangler's log; and the value as the *name*, which puts it in
+   `wrangler secret list` in plain text and leaves `WEBHOOK_SECRET` unset, so
+   every real purchase is rejected while everything looks configured.
+
+   The script refuses both, checks the value's shape, and prints the names
+   afterwards so a mistake is visible immediately. Any value that has reached an
+   argument list is public: roll it on the endpoint's page. **Set its API version to the newest
    one**, not the account's default: the version decides the payload's shape,
    Payment Links did not exist before 2021, and a session rendered by an older
    version carries no `payment_link` — which is the only thing in that payload
