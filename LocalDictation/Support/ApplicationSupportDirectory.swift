@@ -19,18 +19,24 @@ enum ApplicationSupportDirectory {
     /// dictionary and several gigabytes of model weights in it.
     static let previousFolderName = "LocalDictation"
 
-    /// Resolved once per process, which is what makes the migration run exactly
-    /// once however many stores ask for the directory and whichever asks first.
-    static let url: URL = {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-            ?? URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Library/Application Support")
-        let destination = base.appendingPathComponent(folderName, isDirectory: true)
-        migrate(
-            from: base.appendingPathComponent(previousFolderName, isDirectory: true),
-            to: destination
-        )
-        return destination
-    }()
+    /// Where the base directory lives. Reading this touches nothing: a property
+    /// that moves files when it is read is a property that moves a person's
+    /// licence because a test asked what the path was, and that is exactly what
+    /// happened once before this was split in two.
+    static let url: URL = base.appendingPathComponent(folderName, isDirectory: true)
+
+    private static let base: URL = FileManager.default
+        .urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+        ?? URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Library/Application Support")
+
+    /// Called once, first thing at launch, before anything opens a file here.
+    ///
+    /// It is the *only* thing in this type with an effect on disk, and it is a
+    /// function rather than a side effect of `url` so that reading a path stays
+    /// free of consequences.
+    static func prepare() {
+        migrate(from: base.appendingPathComponent(previousFolderName, isDirectory: true), to: url)
+    }
 
     static func file(_ name: String) -> URL {
         url.appendingPathComponent(name)

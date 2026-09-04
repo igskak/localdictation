@@ -6,6 +6,10 @@ struct LocalDictationApp: App {
     @StateObject private var coordinator: DictationCoordinator
 
     init() {
+        // Before `makeLive`, which is what constructs the stores: the folder has
+        // to have been carried across from the product's old name before
+        // anything looks inside it for a licence.
+        ApplicationSupportDirectory.prepare()
         let coordinator = DictationCoordinator.makeLive()
         _coordinator = StateObject(wrappedValue: coordinator)
         // The delegate activates the coordinator once AppKit has finished
