@@ -596,6 +596,22 @@ final class FakeSecureInputSource: SecureInputSource {
     }
 }
 
+/// Permission to synthesize a keystroke, scripted.
+///
+/// The real answer depends on what the machine running the tests has granted
+/// this build, which is exactly the fact these tests are about and exactly the
+/// fact a test may not read. Every test that reaches the insertion path passes
+/// one of these, so a test suite run on a Mac that has never granted the app
+/// anything asserts the same thing as one run on the developer's.
+@MainActor
+final class FakeEventSynthesisSource: EventSynthesisSource {
+    var canSynthesizeEvents: Bool
+
+    init(canSynthesizeEvents: Bool = true) {
+        self.canSynthesizeEvents = canSynthesizeEvents
+    }
+}
+
 @MainActor
 final class FakePasteboard: Pasteboard {
     private(set) var contents: String?

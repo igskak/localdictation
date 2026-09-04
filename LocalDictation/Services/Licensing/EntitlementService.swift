@@ -103,7 +103,11 @@ final class EntitlementService {
         let label = state.logLabel
         Log.licensing.info("Entitlement \(label, privacy: .public)")
         if case let .locked(lock) = state {
-            telemetry.send(.paywallShown(lock.paywallTrigger))
+            // Deliberately not `paywallShown` here. Becoming locked is a fact
+            // about this Mac; being shown a price is a fact about a person, and
+            // conflating them reports a paywall to everyone whose trial quietly
+            // ran out in the background. `notePaywallShown` is sent from the
+            // window that draws the offers.
             if case let .expired(kind, _) = lock { telemetry.send(.entitlementLapsed(kind)) }
         }
         onChange?(state)
@@ -233,6 +237,13 @@ final class EntitlementService {
 
     func noteCheckoutOpened(_ offer: TelemetryEvent.Offer) {
         telemetry.send(.checkoutOpened(offer))
+    }
+
+    /// The price reached a screen. Sent by the paywall window, once per
+    /// appearance — not once per press, and not when the lock is merely true.
+    func notePaywallShown() {
+        guard let lock = state.lock else { return }
+        telemetry.send(.paywallShown(lock.paywallTrigger))
     }
 
     private func persist() {

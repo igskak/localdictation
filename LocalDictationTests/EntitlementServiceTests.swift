@@ -304,6 +304,12 @@ final class EntitlementServiceTests: XCTestCase {
 
         service.recordSuccessfulDictation()
         for _ in 0..<4 { service.recordSuccessfulDictation() }
+        // The window is used up and the Mac is locked — and that on its own
+        // sends nothing. A lock is a fact about a Mac; a paywall is a fact
+        // about a person, and only the second one is worth money.
+        XCTAssertEqual(telemetry.names, ["installed", "trial_started"])
+
+        service.notePaywallShown()
         let token = try TestLicenseIssuer.issue(kind: .lifetime, deviceID: device, expiresAt: nil, signingKey: signingKey)
         XCTAssertNoThrow(try service.enter(key: token).get())
 
@@ -311,5 +317,17 @@ final class EntitlementServiceTests: XCTestCase {
             telemetry.names,
             ["installed", "trial_started", "paywall_shown", "license_accepted"]
         )
+    }
+
+    /// Nobody is shown a price on a Mac that is working, whoever asks.
+    func testAPaywallIsNotReportedOnAMacThatIsNotLocked() throws {
+        let clock = Clock(origin)
+        let telemetry = RecordingTelemetryService()
+        let service = makeService(telemetry: telemetry, clock: clock)
+
+        service.recordSuccessfulDictation()
+        service.notePaywallShown()
+
+        XCTAssertEqual(telemetry.names, ["installed", "trial_started"])
     }
 }

@@ -206,6 +206,52 @@ compared by attribution: the only file this app ever writes from an utterance is
 a WAV, and no sibling test writes audio, so a stray recording is still caught
 while another test's throwaway home is not.
 
+## A locked Mac no longer opens the microphone
+
+`.hotkeyPressed` on a locked Mac returns `.locked` from the state machine — the
+lock is what the press discovers, which is the right answer. What was wrong was
+downstream: `DictationCoordinator.apply` reports any computed state as
+`.transitioned`, and `.locked -> .locked` therefore read as success. The guard
+at the top of `beginCapture` let it through, and the microphone opened on a Mac
+that is not allowed to record at all. It then stayed open: `.captureStarted` and
+`.hotkeyReleased` are both refused in `.locked`, so nothing on the ending path
+ever ran.
+
+For a product whose promise is that speech does not leave the Mac, a recording
+indicator lit for someone who is not even a customer is the worst shape a defect
+can take here.
+
+The precondition is now checked where preconditions belong — before the
+microphone, beside the state rather than inside it, which is the same
+arrangement Phase 6 chose for the lock itself. The press is still applied, so a
+lock that arrives mid-utterance still leaves the words in flight alone and the
+press that lands during one is still refused.
+
+`testALockedMacNeverOpensTheMicrophone` did not catch this, and could not: the
+capture starts inside a `Task`, and the assertion ran on the line after the
+press, before the microphone would have opened. It now waits, and asserts the
+stop count as well — a start that is never stopped is the part that costs a
+user something. Removing the fix fails it.
+
+## The press is where the price is named
+
+The lock used to be passive: the hotkey stopped working, the explanation sat in
+the menu bar window, and the two offers sat in Settings. Somebody whose trial
+ended could go a week assuming the app had broken.
+
+`PaywallWindowController` shows the offers when a press finds the Mac locked.
+Not on a schedule and not at launch — a person pressing the dictation key is
+saying they want the product right now, which is the moment a price is an answer
+rather than an interruption. It does not activate the app: taking focus from the
+document someone is writing in, to show them a price, is how a utility gets
+uninstalled. Floating and ordered front is enough.
+
+`paywall_shown` moved with it. It used to be sent when the Mac became locked,
+which is a different and much commoner fact — a Mac can lock at launch, in the
+background, with nobody looking. It is now sent by the window that draws the
+price, once per appearance, so the number means what its name says. Nothing was
+added to the enumerated events, and the funnel a full run produces is unchanged.
+
 ## Still open, and still needing a decision
 
 These were on the **Open** list before this work and remain there, because each
@@ -225,3 +271,33 @@ one is a product decision rather than a defect:
   approach.
 - **A clipboard manager.** Every paste-path insertion puts the dictation on the
   pasteboard for a moment, and a manager keeps it.
+
+## A blocked ⌘V says it is blocked
+
+The app posted a synthetic ⌘V, watched the field, saw nothing change, and told
+the user that the application would not accept the text directly. For a whole
+session that sentence was false in every particular: the window server was
+dropping the key event before it left this Mac, and the target application was
+never asked.
+
+The two permissions look like one from inside the process and are not.
+`AXIsProcessTrusted()` is answered once at launch and holds for the life of the
+process; the right to *synthesize* an event is checked on every post against the
+signature the application has now. Replace the application — a rebuild, an
+update — and the grant recorded against the old signature stops applying to the
+new one while the checkbox in System Settings stays ticked. `CGEventPost`
+returns `Void`, so nothing about that reaches the app.
+
+`CGPreflightPostEventAccess()` is the same question asked where the answer is
+still useful. It is asked twice, on purpose: in `InsertionPolicy`, where a paste
+is chosen, and again at the top of `AXTextInsertionService.paste(_:into:)`,
+because the Electron path arrives there through a swallowed direct write rather
+than through the policy — and the application that reaches the paste by the
+fallback was the one getting the wrong sentence.
+
+The preflight is the checking variant and not `CGRequestPostEventAccess()`,
+which raises a system prompt. Raising one mid-insertion would interrupt the
+user in the second they are waiting for their sentence to appear. The refusal
+names the setting instead, and the text stays on the pasteboard rather than
+being restored away: until the permission is back, the user's own ⌘V is the
+only way in.

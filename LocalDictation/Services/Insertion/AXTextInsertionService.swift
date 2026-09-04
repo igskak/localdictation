@@ -65,6 +65,7 @@ final class AXTextInsertionService: TextInsertionService {
     private let pasteboard: any Pasteboard
     private let frontmost: any FrontmostApplicationSource
     private let secureInput: any SecureInputSource
+    private let eventSynthesis: any EventSynthesisSource
 
     /// Applications already asked to build their accessibility tree.
     ///
@@ -78,12 +79,14 @@ final class AXTextInsertionService: TextInsertionService {
         permissionService: any AccessibilityPermissionService = AXAccessibilityPermissionService(),
         pasteboard: any Pasteboard = SystemPasteboard(),
         frontmost: any FrontmostApplicationSource = SystemFrontmostApplications(),
-        secureInput: any SecureInputSource = SystemSecureInput()
+        secureInput: any SecureInputSource = SystemSecureInput(),
+        eventSynthesis: any EventSynthesisSource = SystemEventSynthesis()
     ) {
         self.permissionService = permissionService
         self.pasteboard = pasteboard
         self.frontmost = frontmost
         self.secureInput = secureInput
+        self.eventSynthesis = eventSynthesis
     }
 
     // MARK: - Capture
@@ -205,7 +208,8 @@ final class AXTextInsertionService: TextInsertionService {
             secureInputEnabled: secure.isEnabled,
             secureInputHolderName: secure.holderName,
             focusedFieldIsSecure: false,
-            acceptsDirectWrite: false
+            acceptsDirectWrite: false,
+            canSynthesizeEvents: eventSynthesis.canSynthesizeEvents
         )
 
         guard let focused else { return context }
@@ -351,6 +355,14 @@ final class AXTextInsertionService: TextInsertionService {
 
     private func paste(_ text: String, into target: InsertionTarget?) async -> InsertionOutcome {
         guard let target, isCurrent(target) else { return copyToClipboard(text, reason: .targetChanged) }
+        // Asked here as well as in the policy, because the policy is not on
+        // this path when a direct write is offered and swallowed — which is
+        // exactly the path Electron takes. Without it the one application that
+        // reaches the paste through the fallback is the one that gets the
+        // wrong sentence about it.
+        guard eventSynthesis.canSynthesizeEvents else {
+            return copyToClipboard(text, reason: .cannotSynthesizeEvents)
+        }
         guard let source = CGEventSource(stateID: .combinedSessionState) else {
             return copyToClipboard(text, reason: .insertionFailed)
         }

@@ -241,7 +241,10 @@ struct LicenseView: View {
     }
 }
 
-private struct OfferRow: View {
+/// One purchasable thing. Shared by Settings and the paywall window so a price
+/// is written once — the two surfaces disagreeing about what €99 buys is the
+/// kind of thing a customer screenshots.
+struct OfferRow: View {
     let title: String
     let price: String
     let detail: String

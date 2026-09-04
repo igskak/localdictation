@@ -23,7 +23,8 @@ final class SecureInputRefusalTests: XCTestCase {
             permissionService: FakeAccessibilityPermissionService(authorization: .trusted),
             pasteboard: pasteboard,
             frontmost: FakeFrontmostApplicationSource([editor, editor, editor]),
-            secureInput: FakeSecureInputSource(secureInput)
+            secureInput: FakeSecureInputSource(secureInput),
+            eventSynthesis: FakeEventSynthesisSource()
         )
         return (service, pasteboard)
     }

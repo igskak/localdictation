@@ -51,6 +51,52 @@ final class InsertionPolicyTests: XCTestCase {
         XCTAssertEqual(InsertionPolicy.plan(for: context), .paste)
     }
 
+    // MARK: - A paste macOS will not let the app post
+
+    /// The failure this case exists for: Accessibility trust held, the focused
+    /// element readable, and the window server dropping the ⌘V anyway because
+    /// the grant no longer matches the application's code signature. Posting it
+    /// regardless costs the user nothing but the sentence they get afterwards,
+    /// which named the target application for something the target application
+    /// never saw.
+    func testAPasteThatCannotBePostedIsCopiedWithItsOwnReason() {
+        let context = InsertionContext(acceptsDirectWrite: false, canSynthesizeEvents: false)
+        XCTAssertEqual(InsertionPolicy.plan(for: context), .clipboard(.cannotSynthesizeEvents))
+    }
+
+    /// Only the paste needs a keystroke. Writing through Accessibility involves
+    /// no synthetic event at all, so the field that offers it is still written
+    /// to — the permission that is missing is not one this path uses.
+    func testAWritableFieldIsStillWrittenToWhenNoEventCanBeSynthesized() {
+        let context = InsertionContext(canSynthesizeEvents: false)
+        XCTAssertEqual(InsertionPolicy.plan(for: context), .write)
+    }
+
+    /// It is not the trust refusal wearing a different name. Trust is absent in
+    /// one and held in the other, and they send the user to two different
+    /// places: granting a permission that was never given, and restoring one
+    /// that stopped applying.
+    func testNotBeingAbleToSynthesizeIsNotTheSameAsNotBeingTrusted() {
+        let untrusted = InsertionContext(isTrusted: false, acceptsDirectWrite: false)
+        let prohibited = InsertionContext(acceptsDirectWrite: false, canSynthesizeEvents: false)
+
+        XCTAssertEqual(InsertionPolicy.plan(for: untrusted), .clipboard(.notTrusted))
+        XCTAssertEqual(InsertionPolicy.plan(for: prohibited), .clipboard(.cannotSynthesizeEvents))
+        XCTAssertNotEqual(ClipboardReason.notTrusted.message, ClipboardReason.cannotSynthesizeEvents.message)
+    }
+
+    /// A login screen still outranks it. The order matters because this reason
+    /// is reached on the way to the clipboard, and the clipboard is the one
+    /// place text spoken at a password prompt must not go.
+    func testSecureInputStillOutranksAPasteThatCannotBePosted() {
+        let context = InsertionContext(
+            secureInputEnabled: true,
+            acceptsDirectWrite: false,
+            canSynthesizeEvents: false
+        )
+        XCTAssertEqual(InsertionPolicy.plan(for: context), .refuse(.secureInput))
+    }
+
     // MARK: - Refusal
 
     func testAPasswordFieldIsRefused() {

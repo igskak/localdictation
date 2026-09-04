@@ -70,17 +70,6 @@ enum RecordingState: Sendable, Equatable {
 
     var isTranscribing: Bool { self == .transcribing }
 
-    /// The licensing precondition, read off the state.
-    ///
-    /// A caller that has just applied `.hotkeyPressed` has to ask this rather
-    /// than trust that the event was accepted: a press on a locked Mac *is*
-    /// accepted, and what it transitions to is `.locked` — the announcement,
-    /// not permission to record.
-    var isLocked: Bool {
-        if case .locked = self { return true }
-        return false
-    }
-
     var isInserting: Bool { self == .inserting }
 
     /// States whose progress must not be clobbered by an authorization re-read

@@ -25,6 +25,23 @@ enum InsertionMethod: String, Sendable, Equatable, CaseIterable {
 /// promised, and this is what makes that honest.
 enum ClipboardReason: String, Sendable, Equatable, CaseIterable {
     case notTrusted
+    /// Accessibility trust is held, and macOS still refuses the synthetic ⌘V.
+    ///
+    /// Its own case because it is neither of the two it used to be mistaken
+    /// for. It is not `notTrusted` — `AXIsProcessTrusted()` returns true, the
+    /// focused element is readable, and a direct write is attempted first — and
+    /// it is not `insertionFailed`, which says the target application ignored
+    /// the paste. Here the paste never reaches the target at all: the window
+    /// server drops it, logging `Sender is prohibited from synthesizing
+    /// events`, and `CGEventPost` returns nothing to say so.
+    ///
+    /// Measured on 2026-08-31: every paste in that session produced two of
+    /// those window server errors — one per key event — while the target
+    /// application logged no `performKeyEquivalent:` at all, and the same
+    /// application took the user's own ⌘V a second later. The grant recorded in
+    /// TCC was bound to a code signature the application no longer had, which
+    /// is what happens to it when the application is replaced by a new build.
+    case cannotSynthesizeEvents
     case noTarget
     case targetChanged
     case insertionFailed
@@ -33,6 +50,13 @@ enum ClipboardReason: String, Sendable, Equatable, CaseIterable {
         switch self {
         case .notTrusted:
             "Copied to the clipboard. Grant Accessibility access to have it typed for you."
+        case .cannotSynthesizeEvents:
+            """
+            Copied to the clipboard: macOS is not letting LocalDictation press ⌘V for you. \
+            Its Accessibility permission stops applying when the app itself changes, so switching \
+            LocalDictation off and on again in System Settings → Privacy & Security → Accessibility \
+            is what restores it.
+            """
         case .noTarget:
             "Copied to the clipboard — there was no other application to put it in."
         case .targetChanged:

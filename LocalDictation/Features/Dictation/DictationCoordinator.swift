@@ -105,6 +105,15 @@ final class DictationCoordinator: ObservableObject {
     /// be tested with a clock.
     @Published private(set) var entitlement: EntitlementState = .ungated(.untouched)
 
+    /// Bumped every time a press asks for something a locked Mac cannot give.
+    ///
+    /// A counter and not a flag: the second press of a person who closed the
+    /// window and tried again is a second request, and a flag would swallow it.
+    /// What the counter does *not* decide is whether anything is shown — the
+    /// window controller owns that, and `notePaywallShown` is what says the
+    /// price actually reached a screen.
+    @Published private(set) var paywallRequests = 0
+
     /// The key combination that records, and how it behaves.
     ///
     /// Published rather than constant from here on: ⌥Space is a default, not
@@ -501,18 +510,22 @@ final class DictationCoordinator: ObservableObject {
     // MARK: - Capture
 
     private func beginCapture() {
-        guard apply(.hotkeyPressed) else { return }
-
-        // The lock is a precondition, and it is read here rather than inferred
-        // from the line above. `.hotkeyPressed` on a locked Mac is *accepted* —
-        // it transitions to `.locked`, which announces the wall — and reading
-        // that acceptance as permission is how a Mac with no entitlement opens
-        // a microphone. It did, for one release; `DictationCoordinatorLicensingTests`
-        // now waits long enough to see it.
-        guard !state.isLocked else {
-            refuseForLicensing()
+        // A locked Mac answers the press instead of recording it.
+        //
+        // The machine is applied first and its verdict respected: a lock that
+        // arrived mid-utterance leaves the words in flight alone, so a press
+        // that lands during one is refused here as everywhere else. What must
+        // not happen is falling through to the guard below, where a `.locked ->
+        // .locked` transition reads as success — that opened the microphone on
+        // a Mac that is not allowed to record at all, and left it open, because
+        // every event that would have closed it is refused in `.locked`.
+        if entitlement.lock != nil {
+            guard apply(.hotkeyPressed) else { return }
+            paywallRequests += 1
             return
         }
+
+        guard apply(.hotkeyPressed) else { return }
 
         // A new utterance supersedes whatever is still being transcribed or
         // reviewed, and clears the previous result so the copy action is never
@@ -1052,14 +1065,9 @@ final class DictationCoordinator: ObservableObject {
     /// The microphone authorization travels with it because unlocking has to
     /// land on the state the Mac is actually in — a user who activated while
     /// microphone access was denied is not suddenly ready.
-    /// Called after every recomputation of the licensing state, so whoever owns
-    /// a window about it can close it when it stops being true.
-    var onEntitlementChanged: (@MainActor (EntitlementState) -> Void)?
-
     private func applyEntitlement(_ state: EntitlementState) {
         entitlement = state
         apply(.entitlementResolved(state.lock, permissionService.currentAuthorization))
-        onEntitlementChanged?(state)
     }
 
     /// Accepts a pasted key. Returns the failure so the view can print the one
@@ -1089,21 +1097,6 @@ final class DictationCoordinator: ObservableObject {
         }
     }
 
-    /// A hotkey press that licensing refused.
-    ///
-    /// Called on the press rather than when the lock arrives, because a window
-    /// that appears while somebody is typing in another application is an
-    /// interruption and this is an answer. The user asked a question — they
-    /// pressed the key — and this is the only place the app can answer it: an
-    /// agent has no Dock icon to bounce and no window of its own.
-    var onDictationRefusedByLicensing: (@MainActor () -> Void)?
-
-    private func refuseForLicensing() {
-        guard let lock = entitlement.lock else { return }
-        Log.licensing.notice("Dictation refused: \(lock.logLabel, privacy: .public)")
-        onDictationRefusedByLicensing?()
-    }
-
     func removeLicense() {
         entitlementService?.removeLicense()
     }
@@ -1113,6 +1106,16 @@ final class DictationCoordinator: ObservableObject {
     func releaseLicenseFromThisMac() async -> DeviceReleaseOutcome {
         guard let entitlementService else { return .removedLocally }
         return await entitlementService.releaseFromThisMac()
+    }
+
+    /// Called by whoever put the price on the screen, and by nobody else.
+    ///
+    /// `paywall_shown` used to be sent when the Mac became locked, which is a
+    /// different fact and a much commoner one: a Mac can lock at launch, in the
+    /// background, with nothing visible. The number that matters commercially
+    /// is how many people saw a price, so it is counted where a price is drawn.
+    func notePaywallShown() {
+        entitlementService?.notePaywallShown()
     }
 
     func openCheckout(_ offer: TelemetryEvent.Offer) {
