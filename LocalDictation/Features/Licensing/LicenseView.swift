@@ -148,7 +148,11 @@ struct LicenseView: View {
             OfferRow(
                 title: "Annual",
                 price: StoreFront.annualPrice,
-                detail: "Renewed each year. Covers two Macs.",
+                // Named as a subscription, because it is one. The service
+                // does not kill a cancelled licence — it runs to the date it
+                // was paid for — and that is worth saying at the moment of the
+                // decision rather than in a support reply.
+                detail: "Renews automatically each year, and can be cancelled any time — it then runs to its date. Covers two Macs.",
                 isOpen: StoreFront.annualCheckout != nil
             ) { coordinator.openCheckout(.annual) }
 

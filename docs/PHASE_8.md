@@ -229,9 +229,12 @@ rather than on code.
 1. ~~`ActivationEndpoint.production` — the URL.~~ Still `nil`, and it stays that
    way until there is a deployment to name. Everything behind it is built and
    tested; `Service/README.md` has the staging recipe and the one-line change.
-2. `StoreFront.lifetimeCheckout`, `annualCheckout`, `websiteURL` — three URLs,
-   after D2. **The only remaining code change, and it is three constants.** The
-   Buy buttons enable themselves, and the webhook that answers them is written.
+2. ~~`StoreFront.lifetimeCheckout`, `annualCheckout`~~ — filled in, and the Buy
+   buttons enabled themselves. Which link is which was checked against the live
+   pages rather than read off the URLs: swapping them sells a lifetime licence
+   for €49 and no screen in the app could tell. `websiteURL` is still `nil` —
+   there is no product page yet, and one place reads it (a lifetime licence on a
+   superseded major version, told to download the version it owns).
 3. ~~"Remove from this Mac" calls `/v1/devices/release` when configured.~~ Done.
    The service is told first, because the key is the only proof this Mac holds,
    and the local removal happens whatever the answer was.
