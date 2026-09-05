@@ -125,24 +125,28 @@ the button sends what the last one could not.
 Transactional only. Marketing to an address collected here needs its own
 consent, and in Germany that is §7 UWG rather than a formality.
 
-### The three records, and which one is still missing
+### The records, and what each one is for
 
-Two of them are live, and this is what they are, so that the third is not
-guessed at:
+All of them are live. Written down because the next person to touch this zone
+will otherwise have to work out which of two SPF records and which of two DKIM
+selectors belongs to what:
 
 | Name | Type | What it is |
 | --- | --- | --- |
-| `resend._domainkey` | TXT | DKIM. Resend signs with `d=witnessmac.com` |
-| `send` | TXT and MX | The envelope domain. `v=spf1 include:amazonses.com ~all`, and an MX at `feedback-smtp.eu-west-1.amazonses.com` for bounces |
-| `_dmarc` | TXT | **Not set.** Without it the two above are checked and the result is thrown away |
+| `resend._domainkey` | TXT | DKIM for **outbound**. Resend signs with `d=witnessmac.com` |
+| `send` | TXT and MX | The **outbound** envelope domain. `v=spf1 include:amazonses.com ~all`, and an MX at `feedback-smtp.eu-west-1.amazonses.com` for bounces |
+| `_dmarc` | TXT | The policy. `v=DMARC1; p=none; rua=mailto:dmarc@witnessmac.com; fo=1` |
+| `witnessmac.com` | MX | **Inbound**, three at `route1/2/3.mx.cloudflare.net` — Cloudflare Email Routing |
+| `witnessmac.com` | TXT | `v=spf1 include:_spf.mx.cloudflare.net ~all`, added by Email Routing |
+| `cf2024-1._domainkey` | TXT | DKIM for **forwarded** mail. Cloudflare's, not ours, and not the selector Resend uses |
 
-The record, on `_dmarc.witnessmac.com`:
+Outbound and inbound do not touch. Mail this service sends leaves with an
+envelope at `send.witnessmac.com`, so it is checked against that subdomain's
+SPF and never against the root record — which is why turning inbound mail on
+could not break the key mails, and why the root SPF being Cloudflare's rather
+than Amazon's is correct rather than a leftover.
 
-```
-v=DMARC1; p=none; rua=mailto:dmarc@witnessmac.com; fo=1
-```
-
-Three things about it are decisions rather than defaults.
+Three things about the DMARC record are decisions rather than defaults.
 
 **Alignment stays relaxed.** The `From:` header says `keys@witnessmac.com` while
 the envelope says `send.witnessmac.com`, so SPF aligns only because relaxed
@@ -154,9 +158,17 @@ DKIM signs with the root domain and aligns either way.
 else needs an authorization record at the receiving domain
 (`witnessmac.com._report._dmarc.<host>`), which no free mail host publishes, so
 a report address at one of them is a report address that gets refused.
-`dmarc@witnessmac.com` forwarded on with Cloudflare Email Routing is the form
-that works — the root domain has no MX of its own, because Resend's is on the
-subdomain.
+`dmarc@witnessmac.com` is a real mailbox for exactly this reason, forwarded on
+by Email Routing.
+
+Three addresses are forwarded, and the third is the one that is easy to miss:
+`dmarc@` for the reports, `hallo@` because the Impressum has to name a contact
+that answers, and **`keys@`** because it is the `MAIL_FROM` every licence mail
+goes out under, and a buyer who replies to one is replying to it. Before
+inbound mail existed that reply bounced for want of an MX; with an MX and no
+rule it would have bounced while looking like a working address, which is
+worse. The catch-all stays off — an address that was never published should be
+refused, not delivered.
 
 **`p=none` is a starting position, not the answer.** It asks to be told and
 enforces nothing, which is right for exactly as long as it takes to read the
