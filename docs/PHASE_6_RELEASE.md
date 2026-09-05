@@ -171,6 +171,39 @@ prepare model → wait for a large download*, and it is the longest wait in the
 product. It is worth measuring on a clean Mac before release rather than
 discovering it in a support email.
 
+## Publishing it
+
+The image is distributed as a GitHub release asset on the public repository,
+and the website's download button redirects to it — so the buyer's link stays
+on witnessmac.com while the bytes come from GitHub, and no 4 MB binary enters
+either repository's history.
+
+**The asset has to be called `Witness.dmg`.** `Tools/release.sh` writes
+`build/Witness-$VERSION.dmg`, because a file on this machine should say which
+version it is; the *uploaded* one drops the version, because the website points
+at
+
+```
+https://github.com/<owner>/<repo>/releases/latest/download/Witness.dmg
+```
+
+and that address only resolves while an asset by that exact name exists in the
+newest release. Uploading `Witness-0.2.0.dmg` and nothing else would leave the
+download button pointing at a 404 with every dashboard green — the site would
+be serving a redirect to a file that is not there, which looks from the outside
+like a working button.
+
+```sh
+cp build/Witness-$VERSION.dmg /tmp/Witness.dmg
+gh release create v$VERSION /tmp/Witness.dmg --target "$(git rev-parse HEAD)"
+```
+
+The tag names the commit the image was actually built from, which is the only
+thing that makes `MARKETING_VERSION` more than decoration. Publish the SHA-256
+in the notes as well: the signature is what guarantees the file has not been
+altered, and the checksum is what a careful buyer can verify before running
+anything.
+
 ## Updates
 
 **Deferred, with the reason recorded rather than left implicit.**
