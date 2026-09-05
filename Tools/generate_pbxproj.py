@@ -23,10 +23,13 @@ APP_PRODUCT_ID = "A30000000000000000000008"
 TESTS_PRODUCT_ID = "A30000000000000000000009"
 APP_SOURCES_PHASE_ID = "A90000000000000000000001"
 TESTS_SOURCES_PHASE_ID = "A90000000000000000000002"
+APP_RESOURCES_PHASE_ID = "AA0000000000000000000001"
+TESTS_RESOURCES_PHASE_ID = "AA0000000000000000000002"
 
 RESERVED = {
     ROOT_GROUP_ID, PRODUCTS_GROUP_ID, APP_PRODUCT_ID, TESTS_PRODUCT_ID,
     APP_SOURCES_PHASE_ID, TESTS_SOURCES_PHASE_ID,
+    APP_RESOURCES_PHASE_ID, TESTS_RESOURCES_PHASE_ID,
 }
 
 
@@ -49,7 +52,7 @@ def collect(base):
             relative = os.path.relpath(os.path.join(dirpath, name), ROOT)
             if name.endswith(".swift"):
                 swift.append(relative)
-            elif name.endswith(".plist"):
+            elif name.endswith((".plist", ".icns")):
                 other.append(relative)
     return sorted(swift), sorted(other)
 
@@ -59,7 +62,19 @@ def file_type(path):
         return "sourcecode.swift"
     if path.endswith(".plist"):
         return "text.plist.xml"
+    if path.endswith(".icns"):
+        return "image.icns"
     return "text"
+
+
+def resources(paths):
+    """The subset that has to be copied into the built bundle.
+
+    `Info.plist` is not among them. It reaches the bundle through the
+    `INFOPLIST_FILE` build setting, and copying it as a resource as well would
+    put a second one inside `Contents/Resources`.
+    """
+    return [path for path in paths if path.endswith(".icns")]
 
 
 class Tree:
@@ -150,6 +165,12 @@ def main():
             f"\t\t{identifier('build', path)} /* {name} in Sources */ = "
             f"{{isa = PBXBuildFile; fileRef = {identifier('file', path)} /* {name} */; }};"
         )
+    for path in resources(app_other) + resources(test_other):
+        name = os.path.basename(path)
+        build_files.append(
+            f"\t\t{identifier('build', path)} /* {name} in Resources */ = "
+            f"{{isa = PBXBuildFile; fileRef = {identifier('file', path)} /* {name} */; }};"
+        )
 
     file_refs = []
     for path in app_swift + app_other + test_swift + test_other:
@@ -213,6 +234,26 @@ def main():
     sources = sources_phase(APP_SOURCES_PHASE_ID, app_swift)
     sources.extend(sources_phase(TESTS_SOURCES_PHASE_ID, test_swift))
 
+    def resources_phase(phase_id, paths):
+        lines = [
+            f"\t\t{phase_id} /* Resources */ = {{",
+            "\t\t\tisa = PBXResourcesBuildPhase;",
+            "\t\t\tbuildActionMask = 2147483647;",
+            "\t\t\tfiles = (",
+        ]
+        for path in paths:
+            name = os.path.basename(path)
+            lines.append(f"\t\t\t\t{identifier('build', path)} /* {name} in Resources */,")
+        lines.extend([
+            "\t\t\t);",
+            "\t\t\trunOnlyForDeploymentPostprocessing = 0;",
+            "\t\t};",
+        ])
+        return lines
+
+    resource_phases = resources_phase(APP_RESOURCES_PHASE_ID, resources(app_other))
+    resource_phases.extend(resources_phase(TESTS_RESOURCES_PHASE_ID, resources(test_other)))
+
     def block(name, body_lines):
         return (
             f"/* Begin {name} section */\n"
@@ -236,7 +277,7 @@ def main():
         "\n",
         f"/* Begin PBXProject section */\n{section(existing, 'PBXProject')}/* End PBXProject section */\n",
         "\n",
-        f"/* Begin PBXResourcesBuildPhase section */\n{section(existing, 'PBXResourcesBuildPhase')}/* End PBXResourcesBuildPhase section */\n",
+        block("PBXResourcesBuildPhase", resource_phases),
         "\n",
         block("PBXSourcesBuildPhase", sources),
         "\n",

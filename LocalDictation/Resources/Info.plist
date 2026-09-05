@@ -8,6 +8,8 @@
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleIconFile</key>
+	<string>Witness</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
@@ -25,9 +27,9 @@
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2026. All rights reserved.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>LocalDictation needs microphone access to transcribe speech locally on your Mac.</string>
+	<string>Witness needs microphone access to transcribe speech locally on your Mac.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>LocalDictation uses on-device speech recognition to turn your dictation into text. Audio and text stay on this Mac.</string>
+	<string>Witness uses on-device speech recognition to turn your dictation into text. Audio and text stay on this Mac.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 </dict>
