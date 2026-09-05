@@ -15,7 +15,7 @@ last column.
 | D2 | **Stripe, as merchant of record** — settled: the account already exists for another product | 3.5% per transaction on top of card fees, per the Managed Payments toggle | The three `StoreFront` URLs, which are now the only remaining code change |
 | D3 | Cloudflare Workers + D1, signing key in Workers Secrets | €0 at this volume | `ActivationEndpoint.production` |
 | D4 | Resend, on the product domain, SPF and DKIM before the first key | €0 to 3,000 mails/month | Whether a key that was issued is a key that arrived |
-| D5 | Einzelunternehmen, Impressum and Widerruf with the digital-goods waiver | An afternoon and an accountant | Selling in Germany at all |
+| D5 | **Czech establishment.** OSVČ in Prague, IČO 17328691, with the Impressum published and the Widerruf still owed | An afternoon and an accountant | Selling to consumers at all |
 | D6 | Lifetime = the purchased major version and every minor update to it | Nothing now; a version table later | The word "lifetime" meaning the same thing to buyer and seller |
 | D7 | Transmit nothing in the first release | Nothing | Nothing. This is the one item safe to leave |
 
@@ -179,10 +179,33 @@ software and never reaches `p=reject` is a domain somebody else can send from.
 
 ## D5 — the legal half
 
-Out of scope for code, and it blocks selling in Germany regardless of what the
-code does. Einzelunternehmen, an Impressum on the product site, and a Widerruf
-that includes the digital-goods waiver — the sentence a buyer agrees to that
-lets a licence key be delivered immediately instead of after fourteen days.
+**Corrected on 2026-09-05, having been wrong about the country.** This section
+said *Einzelunternehmen* and "selling in Germany at all", which assumed the
+seller was established in Germany because the site and the paid search are
+German. The seller is established in **Prague**: an OSVČ under Czech law, IČO
+17328691, registered in the živnostenský registr.
+
+Which country's rules apply does not follow the language of the page. Provider
+disclosure for an information society service follows where the provider is
+established, so the Impressum is a Czech one — it is written and live at
+`/impressum`, naming the address, the IČO and the trade register. What does
+follow the buyer is consumer protection: a consumer in Germany keeps their own
+country's protections, so the Widerruf is still owed and is still the item that
+needs a qualified opinion rather than a careful reading of a directive.
+
+The **30-day money-back guarantee is withdrawn**, and the reason is worth
+keeping. It was promised on all four locales of the landing page while
+`/widerruf` said its terms, start, handling and relationship to the statutory
+right were yet to be settled, and while the checkout said nothing about it at
+all. A voluntary guarantee is a second refund promise running alongside the
+statutory one, and refunding money means revoking a licence that has already
+been issued to a device — the half nobody had built. The statutory right of
+withdrawal is untouched by dropping it.
+
+Out of scope for code, and it blocks selling to consumers regardless of what
+the code does. An Impressum on the product site, and a Widerruf that includes
+the digital-goods waiver — the sentence a buyer agrees to that lets a licence
+key be delivered immediately instead of after fourteen days.
 
 The one place this reaches the code is retention: the provider order id is kept
 "whatever the accountant says invoices need". Until there is an accountant, it
