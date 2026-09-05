@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Required because Release enables the hardened runtime, which blocks the
+	     microphone without it. NSMicrophoneUsageDescription in Info.plist is the
+	     prompt the user sees; this is the permission to have anything to prompt
+	     about, and the two are needed together.
+
+	     Nothing else belongs here. There is deliberately no App Sandbox key:
+	     AGENTS.md and docs/PHASE_4.md record that Accessibility insertion into
+	     other applications cannot work inside the sandbox, which is the reason
+	     this ships outside the Mac App Store. Accessibility itself is not an
+	     entitlement at all -- it is a grant the user makes in System Settings.
+	     Apple Events would need com.apple.security.automation.apple-events; the
+	     app sends none, inserting text through the Accessibility API and
+	     CGEvent instead. -->
+	<key>com.apple.security.device.audio-input</key>
+	<true/>
+</dict>
+</plist>

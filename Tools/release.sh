@@ -125,13 +125,26 @@ mkdir -p "$BUILD"
 # belongs to whoever is signing, `AGENTS.md` keeps user-specific signing state
 # out of the repository, and `Tools/generate_pbxproj.py` would carry a hardcoded
 # one forward forever.
+#
+# `CODE_SIGN_STYLE=Manual` has to be passed with it. The project is on
+# automatic signing so that opening it in Xcode needs no setup, and automatic
+# signing means *development* signing — naming a Developer ID identity next to
+# it is a conflict xcodebuild refuses outright rather than resolving. Manual is
+# also the only style that works on this machine: automatic development signing
+# wants an Apple Development certificate, and a machine set up to ship has only
+# the Developer ID one.
+#
+# No provisioning profile is specified because direct distribution needs none:
+# there is no sandbox, and the one entitlement is not profile-gated.
 xcodebuild archive \
     -project "$PROJECT" -scheme "$SCHEME" \
     -configuration Release \
     -destination 'generic/platform=macOS' \
     -archivePath "$ARCHIVE" \
+    CODE_SIGN_STYLE=Manual \
     DEVELOPMENT_TEAM="$TEAM_ID" \
     CODE_SIGN_IDENTITY="Developer ID Application" \
+    PROVISIONING_PROFILE_SPECIFIER="" \
     | tail -5
 
 step "Exporting"
@@ -149,7 +162,9 @@ cat > "$BUILD/ExportOptions.plist" <<PLIST
     <key>teamID</key>
     <string>$TEAM_ID</string>
     <key>signingStyle</key>
-    <string>automatic</string>
+    <string>manual</string>
+    <key>signingCertificate</key>
+    <string>Developer ID Application</string>
     <key>destination</key>
     <string>export</string>
 </dict>
@@ -167,8 +182,19 @@ xcodebuild -exportArchive \
 # The hardened runtime is on in Release and off in Debug — the debugger cannot
 # attach with it on, and notarization refuses a bundle without it. Worth
 # checking here rather than reading a rejection email about it.
+#
+# This is fatal rather than a warning, which is what it used to be. Hardened
+# runtime without the microphone entitlement produces a build that signs,
+# notarizes, installs, prompts for the microphone, is granted it, and then
+# hears nothing — the runtime refuses input the entitlement does not claim.
+# Debug has the hardened runtime off, so dictation works right up until the
+# only build a stranger will ever run. A release that fails this check is not
+# worth notarizing, and a warning scrolls past.
 codesign -d --entitlements - --xml "$APP" 2>/dev/null | grep -q "com.apple.security.device.audio-input" ||
-    echo "   warning: the app does not declare the microphone entitlement"
+    die "the exported app does not declare com.apple.security.device.audio-input.
+  With ENABLE_HARDENED_RUNTIME = YES that build cannot record audio, however
+  much permission the user grants it. Check CODE_SIGN_ENTITLEMENTS in the
+  Release configuration and LocalDictation/Witness.entitlements."
 
 # ---------------------------------------------------------------------------
 # Notarize the app, then the container the user actually downloads
