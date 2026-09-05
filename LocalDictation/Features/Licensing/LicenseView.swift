@@ -138,11 +138,13 @@ struct LicenseView: View {
 
     private var offers: some View {
         Section("Licenses") {
+            if StoreFront.isOpen { CheckoutConsent(coordinator: coordinator) }
+
             OfferRow(
                 title: "Lifetime",
                 price: StoreFront.lifetimePrice,
                 detail: LifetimeUpdatePolicy.promise(),
-                isOpen: StoreFront.lifetimeCheckout != nil
+                isBuyable: StoreFront.lifetimeCheckout != nil && coordinator.hasCheckoutConsent
             ) { coordinator.openCheckout(.lifetime) }
 
             OfferRow(
@@ -153,7 +155,7 @@ struct LicenseView: View {
                 // was paid for — and that is worth saying at the moment of the
                 // decision rather than in a support reply.
                 detail: "Renews automatically each year, and can be cancelled any time — it then runs to its date. Covers two Macs.",
-                isOpen: StoreFront.annualCheckout != nil
+                isBuyable: StoreFront.annualCheckout != nil && coordinator.hasCheckoutConsent
             ) { coordinator.openCheckout(.annual) }
 
             if !StoreFront.isOpen {
@@ -243,7 +245,11 @@ struct OfferRow: View {
     let title: String
     let price: String
     let detail: String
-    let isOpen: Bool
+    /// Whether pressing Buy will actually do something. False while there is
+    /// no checkout to open *and* while nobody has made the declaration
+    /// `CheckoutConsent` asks for — a live button that silently refuses is
+    /// worse than a disabled one beside the reason.
+    let isBuyable: Bool
     let buy: () -> Void
 
     var body: some View {
@@ -258,7 +264,56 @@ struct OfferRow: View {
             }
             Spacer()
             Button("Buy", action: buy)
-                .disabled(!isOpen)
+                .disabled(!isBuyable)
+        }
+    }
+}
+
+/// The declaration a buyer makes before a checkout can open.
+///
+/// Two sentences, and they are not one sentence twice. The first asks for the
+/// key to be delivered straight away; the second says what asking for that
+/// costs. Consumer law for digital content wants both, expressly, and wants
+/// them at the moment of the purchase rather than inside a document somebody
+/// might have opened.
+///
+/// It is here rather than at the checkout because it cannot be there: Stripe's
+/// Managed Payments checkout is standardized and accepts no custom text, so
+/// the only box it can show says "I agree to the terms" and nothing about
+/// delivery or withdrawal.
+///
+/// The German line is not a translation for politeness. The contract it points
+/// at is German, and a declaration made in a language the contract is not
+/// written in is a declaration worth arguing about.
+struct CheckoutConsent: View {
+    @ObservedObject var coordinator: DictationCoordinator
+
+    private var isOn: Binding<Bool> {
+        Binding(
+            get: { coordinator.hasCheckoutConsent },
+            set: { coordinator.setCheckoutConsent($0) }
+        )
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Toggle(isOn: isOn) {
+                Text("Send my licence key as soon as I have paid. I understand that I give up my right of withdrawal once delivery begins.")
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Text("Ich verlange ausdrücklich die sofortige Ausführung des Vertrags und bestätige, dass ich dadurch mein Widerrufsrecht verliere.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 14) {
+                if let terms = StoreFront.termsURL {
+                    Link("Terms (German)", destination: terms)
+                }
+                if let withdrawal = StoreFront.withdrawalURL {
+                    Link("Right of withdrawal (German)", destination: withdrawal)
+                }
+            }
+            .font(.caption)
         }
     }
 }

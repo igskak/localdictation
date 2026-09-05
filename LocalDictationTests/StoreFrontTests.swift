@@ -44,9 +44,33 @@ final class StoreFrontTests: XCTestCase {
     /// hands them to the browser without looking at them, so the one property
     /// it can check is the scheme.
     func testEveryPageTheAppOpensIsHTTPS() throws {
-        for url in [StoreFront.lifetimeCheckout, StoreFront.annualCheckout, StoreFront.websiteURL].compactMap({ $0 }) {
+        let pages = [
+            StoreFront.lifetimeCheckout,
+            StoreFront.annualCheckout,
+            StoreFront.websiteURL,
+            StoreFront.termsURL,
+            StoreFront.withdrawalURL,
+        ]
+        for url in pages.compactMap({ $0 }) {
             XCTAssertEqual(url.scheme, "https", "\(url) is not https")
         }
+    }
+
+    /// The two documents the checkout declaration points at.
+    ///
+    /// They are not decoration. A buyer ticking "deliver now, and I give up my
+    /// right of withdrawal" is making a declaration about a contract, and a
+    /// declaration about a contract nobody can open from that screen is the
+    /// part a lawyer asks about first. Both are published pages, so a `nil`
+    /// here is a link the app forgot rather than a page that does not exist.
+    func testTheDeclarationCanReachTheDocumentsItIsAbout() throws {
+        let terms = try XCTUnwrap(StoreFront.termsURL)
+        let withdrawal = try XCTUnwrap(StoreFront.withdrawalURL)
+
+        XCTAssertNotEqual(terms, withdrawal)
+        XCTAssertEqual(terms.host, "witnessmac.com")
+        XCTAssertEqual(withdrawal.host, "witnessmac.com")
+        XCTAssertNotNil(StoreFront.websiteURL, "the site is live; a lifetime licence on an old major version is sent here")
     }
 
     /// The paywall leads with the offers only where buying is the thing to do.

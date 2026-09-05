@@ -230,18 +230,22 @@ struct PaywallView: View {
 
     private var offers: some View {
         VStack(alignment: .leading, spacing: 10) {
+            // Above the buttons, because it is what turns them on. A disabled
+            // Buy with its reason underneath is a puzzle.
+            if StoreFront.isOpen { CheckoutConsent(coordinator: coordinator) }
+
             OfferRow(
                 title: "Lifetime",
                 price: StoreFront.lifetimePrice,
                 detail: "Paid once. Covers two Macs and every update to this major version.",
-                isOpen: StoreFront.lifetimeCheckout != nil
+                isBuyable: StoreFront.lifetimeCheckout != nil && coordinator.hasCheckoutConsent
             ) { coordinator.openCheckout(.lifetime) }
 
             OfferRow(
                 title: "Annual",
                 price: StoreFront.annualPrice,
                 detail: "Renewed each year. Covers two Macs.",
-                isOpen: StoreFront.annualCheckout != nil
+                isBuyable: StoreFront.annualCheckout != nil && coordinator.hasCheckoutConsent
             ) { coordinator.openCheckout(.annual) }
 
             if !StoreFront.isOpen {

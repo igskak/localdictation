@@ -136,6 +136,88 @@ final class PaywallWindowTests: XCTestCase {
         }
     }
 
+    // MARK: - The declaration a checkout cannot open without
+
+    /// The licence key is issued the moment the payment lands. Under EU law
+    /// that only costs the buyer their fourteen-day right of withdrawal if
+    /// they expressly asked for it and were told what it costs — and Stripe's
+    /// Managed Payments checkout is standardized and takes no custom text, so
+    /// the asking has to happen here. A button that opened a checkout without
+    /// it would be the app quietly choosing the expensive default.
+    func testACheckoutDoesNotOpenUntilTheBuyerHasAskedForImmediateDelivery() async throws {
+        let harness = makeHarness()
+        try await lock(harness)
+
+        var opened: [URL] = []
+        StoreFront.opener = { opened.append($0) }
+        defer { StoreFront.opener = { NSWorkspace.shared.open($0) } }
+
+        XCTAssertFalse(harness.coordinator.hasCheckoutConsent)
+        XCTAssertNil(harness.coordinator.openCheckout(.lifetime))
+        XCTAssertNil(harness.coordinator.openCheckout(.annual))
+        XCTAssertTrue(opened.isEmpty, "no browser, and no charge nobody agreed to the terms of")
+        XCTAssertFalse(
+            harness.telemetry.names.contains("checkout_opened"),
+            "a refusal is not a checkout, and counting it would overstate the funnel"
+        )
+    }
+
+    /// And the declaration is spent on the purchase it was made for. A tick
+    /// left standing would let the next purchase — a different contract, months
+    /// later — happen with nobody declaring anything.
+    func testTheDeclarationOpensOneCheckoutAndThenHasToBeMadeAgain() async throws {
+        let harness = makeHarness()
+        try await lock(harness)
+
+        var opened: [URL] = []
+        StoreFront.opener = { opened.append($0) }
+        defer { StoreFront.opener = { NSWorkspace.shared.open($0) } }
+
+        harness.coordinator.setCheckoutConsent(true)
+        XCTAssertTrue(harness.coordinator.hasCheckoutConsent)
+
+        XCTAssertEqual(harness.coordinator.openCheckout(.lifetime), StoreFront.checkoutURL(for: .lifetime))
+        XCTAssertEqual(opened, [StoreFront.checkoutURL(for: .lifetime)].compactMap { $0 })
+        XCTAssertEqual(harness.telemetry.names.filter { $0 == "checkout_opened" }.count, 1)
+
+        XCTAssertFalse(harness.coordinator.hasCheckoutConsent, "spent on the offer it was made for")
+        XCTAssertNil(harness.coordinator.openCheckout(.annual), "a second offer is a second declaration")
+        XCTAssertEqual(opened.count, 1)
+    }
+
+    /// Unticking it takes it back. The moment the buyer changes their mind is
+    /// before they have paid, which is the only moment it is cheap.
+    func testWithdrawingTheDeclarationClosesTheCheckoutAgain() async throws {
+        let harness = makeHarness()
+        try await lock(harness)
+
+        var opened: [URL] = []
+        StoreFront.opener = { opened.append($0) }
+        defer { StoreFront.opener = { NSWorkspace.shared.open($0) } }
+
+        harness.coordinator.setCheckoutConsent(true)
+        harness.coordinator.setCheckoutConsent(false)
+
+        XCTAssertFalse(harness.coordinator.hasCheckoutConsent)
+        XCTAssertNil(harness.coordinator.openCheckout(.lifetime))
+        XCTAssertTrue(opened.isEmpty)
+    }
+
+    /// The declaration is drawn, in both states, in the window that carries the
+    /// price. A SwiftUI view nobody lays out in a test is a view that crashes
+    /// the first time somebody's trial runs out.
+    func testThePaywallLaysOutWithAndWithoutTheDeclaration() async throws {
+        let harness = makeHarness()
+        try await lock(harness)
+
+        for consented in [false, true] {
+            harness.coordinator.setCheckoutConsent(consented)
+            let size = render(PaywallView(coordinator: harness.coordinator, openLicenseSettings: {}, dismiss: {}))
+            XCTAssertGreaterThan(size.height, 0, "consented: \(consented)")
+        }
+        harness.coordinator.setCheckoutConsent(false)
+    }
+
     // MARK: - The window
 
     func testAPressPutsThePriceOnScreenAndCountsItOnce() async throws {

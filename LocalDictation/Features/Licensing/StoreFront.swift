@@ -34,10 +34,20 @@ enum StoreFront {
     /// supposed to be the opposite of.
     static let annualCheckout = URL(string: "https://buy.stripe.com/cNidR97kw6JEeIQ33Qds402")
 
-    /// The product page. Still nothing to point at, and it is read in one place
-    /// that matters: a lifetime licence on a superseded major version is told to
-    /// download the version it owns, which needs somewhere to download it from.
-    static let websiteURL: URL? = nil
+    /// The product page. Read in one place that matters: a lifetime licence on
+    /// a superseded major version is told to download the version it owns,
+    /// which needs somewhere to download it from.
+    static let websiteURL = URL(string: "https://witnessmac.com")
+
+    /// The contract, and the withdrawal instruction.
+    ///
+    /// These are not decoration next to the price. A buyer is about to be sent
+    /// to a page that takes their money, and the two declarations the checkout
+    /// consent asks for — deliver now, and I lose the right to withdraw —
+    /// mean nothing if the documents they point at are unreachable from the
+    /// screen where they are made. `CheckoutConsent` links both.
+    static let termsURL = URL(string: "https://witnessmac.com/agb")
+    static let withdrawalURL = URL(string: "https://witnessmac.com/widerruf")
 
     static var isOpen: Bool { lifetimeCheckout != nil || annualCheckout != nil }
 
@@ -55,12 +65,20 @@ enum StoreFront {
         }
     }
 
+    /// How a URL reaches the browser.
+    ///
+    /// A `var` because `AGENTS.md` keeps system APIs behind an adapter, and
+    /// because the alternative is a test suite that launches a real Stripe
+    /// checkout in a real browser every time it runs the consent rule.
+    @MainActor
+    static var opener: (URL) -> Void = { NSWorkspace.shared.open($0) }
+
     /// Hands the URL to the browser. The app opens no window of its own for
     /// payment and never sees a card number — the payment provider is the
     /// merchant of record, and its checkout page is where the transaction and
     /// the VAT both live.
     @MainActor
     static func open(_ url: URL) {
-        NSWorkspace.shared.open(url)
+        opener(url)
     }
 }

@@ -114,6 +114,24 @@ final class DictationCoordinator: ObservableObject {
     /// price actually reached a screen.
     @Published private(set) var paywallRequests = 0
 
+    /// Whether the buyer has made the two declarations a digital-goods sale
+    /// needs before the key is handed over immediately.
+    ///
+    /// It is deliberately **not** persisted. A tick from three months ago is
+    /// not somebody expressly requesting immediate performance of the contract
+    /// they are about to enter, and a stored one would let the second purchase
+    /// happen with nobody declaring anything. So it lives as long as the
+    /// offers are on screen and is cleared the moment a checkout opens — every
+    /// purchase asks again, which is also what makes the log line honest.
+    ///
+    /// Why this is in the app rather than at the checkout: Stripe's Managed
+    /// Payments checkout is standardized and takes no custom text, so the
+    /// sentence a buyer has to agree to cannot be put next to its own consent
+    /// box. See `docs/PHASE_8_DECISIONS.md` D5.
+    @Published private(set) var checkoutConsentAt: Date?
+
+    var hasCheckoutConsent: Bool { checkoutConsentAt != nil }
+
     /// The key combination that records, and how it behaves.
     ///
     /// Published rather than constant from here on: ⌥Space is a default, not
@@ -1118,10 +1136,45 @@ final class DictationCoordinator: ObservableObject {
         entitlementService?.notePaywallShown()
     }
 
-    func openCheckout(_ offer: TelemetryEvent.Offer) {
-        guard let url = StoreFront.checkoutURL(for: offer) else { return }
+    /// Records the buyer's declaration, or takes it back.
+    ///
+    /// Both surfaces that show a price call this, and neither of them decides
+    /// anything: the rule that a checkout cannot open without it lives in
+    /// `openCheckout`, below, so a third surface cannot be added that forgets.
+    func setCheckoutConsent(_ granted: Bool, at now: Date = Date()) {
+        let next = granted ? (checkoutConsentAt ?? now) : nil
+        guard next != checkoutConsentAt else { return }
+        checkoutConsentAt = next
+        Log.licensing.info("Checkout consent \(granted ? "given" : "withdrawn", privacy: .public)")
+    }
+
+    /// Hands one offer to the browser, and returns what it opened.
+    ///
+    /// Returns `nil` when it refused, which is the only way a test can tell the
+    /// difference — the open itself goes to `NSWorkspace` and comes back with
+    /// nothing to assert on.
+    ///
+    /// The refusal that matters is the consent one. Without the declaration,
+    /// the licence key is still delivered the moment the payment lands, and a
+    /// consumer keeps a fourteen-day right of withdrawal over software they
+    /// have already installed and used. That is a decision to take deliberately
+    /// rather than by forgetting a checkbox, so the button cannot open a
+    /// checkout at all until somebody has ticked it.
+    @discardableResult
+    func openCheckout(_ offer: TelemetryEvent.Offer) -> URL? {
+        guard let url = StoreFront.checkoutURL(for: offer) else { return nil }
+        guard let consentAt = checkoutConsentAt else {
+            Log.licensing.info("Checkout refused: no consent to immediate delivery")
+            return nil
+        }
+        Log.licensing.info(
+            "Checkout opened for \(offer.rawValue, privacy: .public), consent given at \(consentAt.timeIntervalSince1970, privacy: .public)"
+        )
         entitlementService?.noteCheckoutOpened(offer)
+        // Spent. The next purchase is a different contract and asks again.
+        checkoutConsentAt = nil
         StoreFront.open(url)
+        return url
     }
 
     // MARK: - Preferences
