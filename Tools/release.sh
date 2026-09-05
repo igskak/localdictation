@@ -296,6 +296,38 @@ echo
 spctl -a -vvv -t install "$APP"
 spctl -a -vvv -t open --context context:primary-signature "$DMG" || true
 
+step "Unregistering the copies this build made"
+
+# Every build and every mount registers the bundle with LaunchServices, and an
+# identifier with several registrations lets LaunchServices pick which copy
+# Spotlight offers and opens. That choice is invisible, and it matters twice
+# over here: a Debug copy is signed ad-hoc with the hardened runtime off, and
+# macOS keys the Accessibility grant to the code signature -- so a tick granted
+# to the installed app does nothing for a copy out of DerivedData, which is the
+# README's complaint about the grant disappearing, arriving from a direction
+# nobody was watching. Seven registrations had accumulated by the time anybody
+# looked.
+#
+# Only copies this project produced are unregistered, and unregistering is not
+# deleting: Xcode registers its own again the next time it builds. A copy on a
+# mounted disk image is left alone, because ejecting it is what clears that.
+LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+
+if [ -x "$LSREGISTER" ]; then
+    DERIVED="$HOME/Library/Developer/Xcode/DerivedData"
+    while IFS= read -r copy; do
+        [ -n "$copy" ] || continue
+        "$LSREGISTER" -u "$copy" >/dev/null 2>&1 && echo "   ${copy#$PWD/}"
+    done <<COPIES
+$PWD/$APP
+$PWD/$BUILD/dmg/Witness.app
+$PWD/$ARCHIVE/Products/Applications/Witness.app
+$(find "$DERIVED" -maxdepth 10 -type d -name 'Witness.app' -path "$DERIVED/LocalDictation-*/Build/*" 2>/dev/null)
+COPIES
+else
+    echo "   lsregister is not where it has always been; nothing unregistered"
+fi
+
 cat <<DONE
 
 Done: $DMG
