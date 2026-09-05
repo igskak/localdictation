@@ -282,9 +282,12 @@ struct OfferRow: View {
 /// the only box it can show says "I agree to the terms" and nothing about
 /// delivery or withdrawal.
 ///
-/// The German line is not a translation for politeness. The contract it points
-/// at is German, and a declaration made in a language the contract is not
-/// written in is a declaration worth arguing about.
+/// The German line is not a translation for politeness. Most of the traffic
+/// this app is sold to arrives on a German page, and a declaration made in a
+/// language the buyer did not contract in is a declaration worth arguing
+/// about. Both documents exist in both languages; the links go to the English
+/// ones because this interface is English, and each of those offers the German
+/// original at the top.
 struct CheckoutConsent: View {
     @ObservedObject var coordinator: DictationCoordinator
 
@@ -307,10 +310,10 @@ struct CheckoutConsent: View {
                 .fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 14) {
                 if let terms = StoreFront.termsURL {
-                    Link("Terms (German)", destination: terms)
+                    Link("Terms", destination: terms)
                 }
                 if let withdrawal = StoreFront.withdrawalURL {
-                    Link("Right of withdrawal (German)", destination: withdrawal)
+                    Link("Right of withdrawal", destination: withdrawal)
                 }
             }
             .font(.caption)

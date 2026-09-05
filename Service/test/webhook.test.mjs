@@ -161,8 +161,10 @@ test("the purchase mail carries the withdrawal paragraph, and does not claim the
   assert.match(text, /Ich verlange ausdrücklich die sofortige Ausführung/);
   assert.match(text, /bestätige, dass ich dadurch mein Widerrufsrecht verliere/);
   assert.match(text, /If you never saw that declaration, it was not made/);
-  assert.match(text, /https:\/\/witnessmac\.com\/agb/);
-  assert.match(text, /https:\/\/witnessmac\.com\/widerruf/);
+  // The English documents: this mail is English, and both exist in both
+  // languages with a switch at the top of each.
+  assert.match(text, /https:\/\/witnessmac\.com\/en\/terms/);
+  assert.match(text, /https:\/\/witnessmac\.com\/en\/cancellation/);
 });
 
 test("buying, then Send my key on that address, unlocks the Mac", async () => {

@@ -46,8 +46,14 @@ enum StoreFront {
     /// consent asks for — deliver now, and I lose the right to withdraw —
     /// mean nothing if the documents they point at are unreachable from the
     /// screen where they are made. `CheckoutConsent` links both.
-    static let termsURL = URL(string: "https://witnessmac.com/agb")
-    static let withdrawalURL = URL(string: "https://witnessmac.com/widerruf")
+    ///
+    /// The English ones, because this interface is English and a buyer should
+    /// land on a document in the language they just read the declaration in.
+    /// The German originals are one click away at the top of each of them, and
+    /// neither language overrides the other: each applies to purchases made in
+    /// it, which is what both pages say on their face.
+    static let termsURL = URL(string: "https://witnessmac.com/en/terms")
+    static let withdrawalURL = URL(string: "https://witnessmac.com/en/cancellation")
 
     static var isOpen: Bool { lifetimeCheckout != nil || annualCheckout != nil }
 

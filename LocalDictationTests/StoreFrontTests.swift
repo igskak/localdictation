@@ -70,6 +70,12 @@ final class StoreFrontTests: XCTestCase {
         XCTAssertNotEqual(terms, withdrawal)
         XCTAssertEqual(terms.host, "witnessmac.com")
         XCTAssertEqual(withdrawal.host, "witnessmac.com")
+
+        // The English documents, because the declaration beside them is read in
+        // English. Pointing an English interface at `/agb` was a link that
+        // asked a buyer to agree to a text they could not read.
+        XCTAssertEqual(terms.path, "/en/terms")
+        XCTAssertEqual(withdrawal.path, "/en/cancellation")
         XCTAssertNotNil(StoreFront.websiteURL, "the site is live; a lifetime licence on an old major version is sent here")
     }
 
