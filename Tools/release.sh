@@ -309,8 +309,12 @@ step "Unregistering the copies this build made"
 # looked.
 #
 # Only copies this project produced are unregistered, and unregistering is not
-# deleting: Xcode registers its own again the next time it builds. A copy on a
-# mounted disk image is left alone, because ejecting it is what clears that.
+# deleting: Xcode registers its own again the next time it builds. `$MOUNT` is
+# among them because arranging the window mounts the image, and that mount
+# registers a copy of its own -- one this script made, at a path it has by then
+# detached, so leaving it would add a stale record on every run of exactly the
+# kind this step exists to prevent. A disk image somebody else has mounted is
+# left alone, because ejecting it is what clears that.
 LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
 
 if [ -x "$LSREGISTER" ]; then
@@ -322,6 +326,7 @@ if [ -x "$LSREGISTER" ]; then
 $PWD/$APP
 $PWD/$BUILD/dmg/Witness.app
 $PWD/$ARCHIVE/Products/Applications/Witness.app
+$MOUNT/Witness.app
 $(find "$DERIVED" -maxdepth 10 -type d -name 'Witness.app' -path "$DERIVED/LocalDictation-*/Build/*" 2>/dev/null)
 COPIES
 else
