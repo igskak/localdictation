@@ -145,6 +145,26 @@ test("a lifetime purchase becomes a license on the address, and one instruction"
   assert.ok(!h.sent[0].text.includes("LD1."), "the purchase mail cannot carry a key: nobody knows the Mac yet");
 });
 
+// The one durable thing a buyer keeps from the purchase that we write.
+//
+// The declaration itself is made in the app, because Stripe's Managed Payments
+// checkout takes no custom text; this mail is where it is confirmed. It is
+// stated as a condition on purpose: nothing here is told whether the app asked,
+// and a Payment Link opened from outside the app never asks at all. A mail that
+// confirmed a declaration nobody made would be worse than one that did not.
+test("the purchase mail carries the withdrawal paragraph, and does not claim the declaration was made", async () => {
+  const h = await harness();
+  await h.deliver(paddlePurchase("lifetime"));
+
+  const text = h.sent[0].text;
+  assert.match(text, /right of withdrawal/i);
+  assert.match(text, /Ich verlange ausdrücklich die sofortige Ausführung/);
+  assert.match(text, /bestätige, dass ich dadurch mein Widerrufsrecht verliere/);
+  assert.match(text, /If you never saw that declaration, it was not made/);
+  assert.match(text, /https:\/\/witnessmac\.com\/agb/);
+  assert.match(text, /https:\/\/witnessmac\.com\/widerruf/);
+});
+
 test("buying, then Send my key on that address, unlocks the Mac", async () => {
   const h = await harness();
   await h.deliver(paddlePurchase("lifetime"));

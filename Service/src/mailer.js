@@ -102,6 +102,19 @@ export function activationMail({ key, kind, expiresAt }) {
 /// What a buyer gets. It carries no key, because at the moment of purchase
 /// nobody knows which Mac to name in one — which is the sentence this whole
 /// design costs, and it belongs here rather than being discovered.
+///
+/// It also carries the withdrawal paragraph, because this is the only durable
+/// thing a buyer keeps from the purchase that we write. The declaration itself
+/// is made in the app, before it opens a checkout — Stripe's Managed Payments
+/// checkout is standardized and takes no custom text, so it could not be made
+/// there. See `docs/PHASE_8_DECISIONS.md` D5.
+///
+/// The paragraph is deliberately conditional. This service is not told whether
+/// the declaration was made: the app sends two fields and neither is this one,
+/// and a Payment Link opened from outside the app shows no declaration at all.
+/// So the mail says what the app asks and what follows if it was never asked —
+/// which is true in both cases, rather than confirming something nobody here
+/// knows happened.
 export function purchaseMail({ kind, expiresAt }) {
   const term = kind === "lifetime" ? "a lifetime license" : `an annual license until ${formatDate(expiresAt)}`;
 
@@ -119,6 +132,22 @@ export function purchaseMail({ kind, expiresAt }) {
       "",
       "The key arrives by mail as well, and the app unlocks straight away. Repeat",
       "it on your second Mac whenever you like — a license covers two.",
+      "",
+      "Your right of withdrawal",
+      "",
+      "Witness asks for one declaration before it opens a checkout: that the key",
+      "be delivered straight away, and that asking for this gives up the",
+      "statutory right of withdrawal. If you bought from inside the app, that is",
+      "what you agreed to, and this mail is your confirmation of it:",
+      "",
+      "  Ich verlange ausdrücklich die sofortige Ausführung des Vertrags und",
+      "  bestätige, dass ich dadurch mein Widerrufsrecht verliere.",
+      "",
+      "If you never saw that declaration, it was not made, and your right of",
+      "withdrawal runs the full fourteen days from today.",
+      "",
+      "  Terms: https://witnessmac.com/agb",
+      "  Right of withdrawal: https://witnessmac.com/widerruf",
       "",
       "This is a transactional message about a purchase you made.",
     ].join("\n"),
