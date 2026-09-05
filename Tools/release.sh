@@ -118,7 +118,7 @@ fi
 
 step "Archiving"
 
-rm -rf "$ARCHIVE" "$EXPORT" "$BUILD/dmg" "$BUILD/Witness.zip" "$DMG"
+rm -rf "$ARCHIVE" "$EXPORT" "$BUILD/dmg" "$BUILD/Witness.zip" "$BUILD/Witness-rw.dmg" "$DMG"
 mkdir -p "$BUILD"
 
 # `DEVELOPMENT_TEAM` is passed here rather than committed to the project. It
@@ -209,15 +209,73 @@ xcrun stapler staple "$APP"
 step "Building the disk image"
 
 rm -rf "$BUILD/dmg"
-mkdir -p "$BUILD/dmg"
+mkdir -p "$BUILD/dmg/.background"
 ditto "$APP" "$BUILD/dmg/Witness.app"
 ln -s /Applications "$BUILD/dmg/Applications"
+cp Tools/Branding/dmg-background.png "$BUILD/dmg/.background/background.png"
 
+# Read-write first, because the window's appearance is a `.DS_Store` inside the
+# image and it cannot be written into a compressed one. It is converted to the
+# read-only compressed form at the end.
+RW="$BUILD/Witness-rw.dmg"
+rm -f "$RW"
 hdiutil create \
     -volname "Witness $VERSION" \
     -srcfolder "$BUILD/dmg" \
-    -fs HFS+ -format UDZO -ov \
-    "$DMG" | tail -2
+    -fs HFS+ -format UDRW -ov \
+    "$RW" | tail -1
+
+# Only Finder writes a `.DS_Store`, so the icon positions, the window size and
+# the background are an AppleScript rather than flags to hdiutil. It needs
+# permission to control Finder once, per machine: System Settings, Privacy &
+# Security, Automation.
+#
+# The volume name is read back off the mount rather than assumed. A copy of an
+# earlier build left mounted makes macOS append a number, and the difference
+# between styling this image and styling that one is invisible until a buyer
+# opens an unstyled window.
+MOUNT="$(hdiutil attach "$RW" -readwrite -noverify | grep -o '/Volumes/.*' | tail -1)"
+[ -d "$MOUNT" ] || die "the read-write image did not mount"
+VOLUME="$(basename "$MOUNT")"
+echo "   arranging the window of '$VOLUME'"
+
+# The coordinates are the ones drawn into the background by
+# `Tools/make_dmg_background.swift`. Both files name them; neither infers them.
+osascript - "$VOLUME" <<'APPLESCRIPT' >/dev/null || die "Finder would not arrange the disk image window.
+  It needs to be allowed under System Settings -> Privacy & Security ->
+  Automation, for whichever terminal is running this. Until then the image is
+  correct but its window says nothing, which is the whole reason it exists."
+on run argv
+    set volumeName to item 1 of argv
+    tell application "Finder"
+        tell disk volumeName
+            open
+            set current view of container window to icon view
+            set toolbar visible of container window to false
+            set statusbar visible of container window to false
+            set the bounds of container window to {200, 120, 840, 520}
+            set viewOptions to the icon view options of container window
+            set arrangement of viewOptions to not arranged
+            set icon size of viewOptions to 128
+            set text size of viewOptions to 13
+            set background picture of viewOptions to file ".background:background.png"
+            set position of item "Witness.app" of container window to {170, 170}
+            set position of item "Applications" of container window to {470, 170}
+            close
+            open
+            update without registering applications
+            delay 1
+        end tell
+    end tell
+end run
+APPLESCRIPT
+
+# The .DS_Store Finder just wrote is not on disk until this, and converting an
+# image whose window settings are still in a buffer produces the unstyled one.
+sync
+hdiutil detach "$MOUNT" >/dev/null
+hdiutil convert "$RW" -format UDZO -imagekey zlib-level=9 -o "$DMG" -ov | tail -1
+rm -f "$RW"
 
 # Gatekeeper checks the container that was downloaded, so the image is signed
 # and stapled in its own right and not just the app inside it.
