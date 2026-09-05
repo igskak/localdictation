@@ -15,7 +15,7 @@ last column.
 | D2 | **Stripe, as merchant of record** — settled: the account already exists for another product | 3.5% per transaction on top of card fees, per the Managed Payments toggle | The three `StoreFront` URLs, which are now the only remaining code change |
 | D3 | Cloudflare Workers + D1, signing key in Workers Secrets | €0 at this volume | `ActivationEndpoint.production` |
 | D4 | Resend, on the product domain, SPF and DKIM before the first key | €0 to 3,000 mails/month | Whether a key that was issued is a key that arrived |
-| D5 | **Czech establishment.** OSVČ in Prague, IČO 17328691, with the Impressum published and the Widerruf still owed | An afternoon and an accountant | Selling to consumers at all |
+| D5 | **Czech establishment.** OSVČ in Prague, IČO 17328691. Impressum, AGB, Widerruf, Datenschutz and third-party licences are written and live, and the app collects the digital-goods declaration before a checkout opens. A §312k cancellation button is what is left | An afternoon and an accountant | Selling to consumers at all |
 | D6 | Lifetime = the purchased major version and every minor update to it | Nothing now; a version table later | The word "lifetime" meaning the same thing to buyer and seller |
 | D7 | Transmit nothing in the first release | Nothing | Nothing. This is the one item safe to leave |
 
@@ -202,10 +202,41 @@ statutory one, and refunding money means revoking a licence that has already
 been issued to a device — the half nobody had built. The statutory right of
 withdrawal is untouched by dropping it.
 
-Out of scope for code, and it blocks selling to consumers regardless of what
-the code does. An Impressum on the product site, and a Widerruf that includes
-the digital-goods waiver — the sentence a buyer agrees to that lets a licence
-key be delivered immediately instead of after fourteen days.
+**Written on 2026-09-05.** The site now carries five legal pages rather than
+three, and none of them still calls itself a draft: `/agb` (the contract and
+the licence, including what "lifetime" means and how the annual one ends),
+`/widerruf` (the full instruction and the model form), `/datenschutz` (written
+from `docs/PRIVACY.md`, so every recipient, legal basis and retention period is
+one the code actually produces), `/impressum`, and `/lizenzen` for the MIT and
+Apache notices that WhisperKit and the speech models require us to carry.
+
+Two things the texts describe that no page can switch on, and both of them are
+in somebody else's dashboard:
+
+- **The digital-goods declaration could not be a checkout setting.** The right
+  of withdrawal expires early only when the buyer expressly consented to
+  immediate delivery *and* acknowledged losing the right. Stripe's Managed
+  Payments checkout is standardized and rejects `custom_text`, so the only box
+  it can show says "I agree to the terms" and nothing about delivery or
+  withdrawal — and the Managed Payments state of a Payment Link cannot be
+  changed after the link is created, so there was no configuration to reach
+  for. So it is collected in the app instead, in `CheckoutConsent`, above both
+  sets of Buy buttons: `DictationCoordinator.openCheckout` refuses to open
+  anything without it and spends it on the offer it was made for, so a third
+  surface cannot be added that forgets. `/widerruf` states the early expiry as
+  a condition rather than as a fact, which stays correct either way.
+
+  What is still owed on this one is a seller-side record. The declaration is
+  logged on the buyer's Mac and nowhere else, because sending it would be a
+  fourth row in `docs/PRIVACY.md`'s table and that is a decision, not a
+  detail.
+- **§312k BGB wants a cancellation button** on the site for the annual licence,
+  leading to a confirmation page. `/agb` promises cancellation by e-mail and
+  through Stripe's portal, which is what exists; the button needs an endpoint.
+
+The texts are German. Three of the four locales sell in another language, and a
+withdrawal instruction a buyer cannot read is one that starts no clock — an
+English set is the next thing owed.
 
 The one place this reaches the code is retention: the provider order id is kept
 "whatever the accountant says invoices need". Until there is an accountant, it

@@ -6,6 +6,10 @@ down, and `AGENTS.md` makes the list itself the boundary: the app may send only
 what is enumerated here, and a test fails when the shape of the activation
 request changes.
 
+The published version is `/datenschutz` on witnessmac.com, and it is written
+from this file. When the table below changes, that page changes with it —
+in that order, and before the version that made the change is released.
+
 It is written from the code rather than from an intention. Every claim below
 names the file that makes it true.
 
