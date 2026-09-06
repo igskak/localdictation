@@ -215,4 +215,31 @@ final class RecordingStateMachineTests: XCTestCase {
         XCTAssertTrue(RecordingState.inserting.isInserting)
         XCTAssertFalse(RecordingState.inserting.isCapturing)
     }
+
+    /// The other half of the superseding rule, and the half that had no test.
+    ///
+    /// Unlocked, a press during inference or insertion starts the next
+    /// utterance. Locked, the same press is refused: text already spoken has
+    /// been paid for and has to reach the user, so the words in flight finish
+    /// on their own terms and the price waits for the next press.
+    ///
+    /// It is written down because the silence is load-bearing and invisible.
+    /// `DictationCoordinator.beginCapture` only counts a paywall request when
+    /// this event is accepted, so a press landing inside the busy window opens
+    /// no window at all — which is what a test in `PaywallWindowTests` spent
+    /// fifteen seconds waiting for, roughly one full run in five, until
+    /// `lock(_:)` there learned to wait for `.locked` rather than for the
+    /// entitlement alone.
+    func testALockedPressIsRefusedWhileSomethingIsStillInFlight() {
+        for state in [RecordingState.starting, .recording, .finishing, .transcribing, .inserting] {
+            var machine = RecordingStateMachine(state: state, lock: .activationRequired)
+            XCTAssertFalse(machine.apply(.hotkeyPressed).didTransition, "\(state) is busy")
+            XCTAssertEqual(machine.state, state, "\(state) must be left alone")
+        }
+
+        // And once nothing is in flight, the same press is answered.
+        var settled = RecordingStateMachine(state: .ready, lock: .activationRequired)
+        XCTAssertTrue(settled.apply(.hotkeyPressed).didTransition)
+        XCTAssertEqual(settled.state, .locked(.activationRequired))
+    }
 }

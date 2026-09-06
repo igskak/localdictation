@@ -12,7 +12,12 @@ import XCTest
 /// A real window, so a generous deadline: `NSApp.activate` and window creation
 /// are the slowest things in this suite, the suite runs its classes in
 /// parallel, and three seconds is enough on an idle Mac and not on a busy one.
-/// Observed failing once in four full runs and passing in isolation every time.
+///
+/// This number used to carry the blame for a flake it had nothing to do with.
+/// The failure was `testTheWallComesDownWhenTheMacIsLicensed` timing out on
+/// "the price is on screen" in roughly one full run in five, and no deadline
+/// would have fixed it: the press had been refused before any window existed.
+/// `lock(_:)` below says why, and is where it was fixed.
 private let windowTimeout: TimeInterval = 15
 
 @MainActor
@@ -63,6 +68,21 @@ final class PaywallWindowTests: XCTestCase {
     }
 
     /// Spends the ungated window the way a user does.
+    ///
+    /// The wait at the end is on the **state machine** and not on
+    /// `entitlement.lock`, and the difference is the whole of a flake that took
+    /// three runs to catch. The entitlement turns locked as soon as the fifth
+    /// dictation is counted, while that dictation is still being inserted --
+    /// and `.inserting` is busy. `RecordingStateMachine` refuses
+    /// `.hotkeyPressed` while anything is busy, on purpose: words in flight
+    /// finish on their own terms. So a press emitted in that gap is correctly
+    /// swallowed, `paywallRequests` never moves, no window is ever made, and
+    /// the test waits fifteen seconds for a price that was never asked for.
+    ///
+    /// `.locked` is not busy. Waiting for it is waiting for a press to be
+    /// accepted, which is what every caller here actually needs.
+    /// `DictationCoordinatorLicensingTests` has waited on this predicate all
+    /// along; this file had the weaker one.
     private func lock(_ harness: Harness) async throws {
         for _ in 0..<5 {
             harness.hotkey.emit(.pressed)
@@ -71,6 +91,9 @@ final class PaywallWindowTests: XCTestCase {
             harness.coordinator.clearTranscript()
         }
         try await waitUntil("locked") { harness.coordinator.entitlement.lock != nil }
+        try await waitUntil("the machine has settled into the lock", timeout: windowTimeout) {
+            if case .locked = harness.coordinator.state { true } else { false }
+        }
     }
 
     private func settle(_ turns: Int = 4) async throws {
