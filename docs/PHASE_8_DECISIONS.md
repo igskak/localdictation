@@ -234,9 +234,31 @@ in somebody else's dashboard:
   leading to a confirmation page. `/agb` promises cancellation by e-mail and
   through Stripe's portal, which is what exists; the button needs an endpoint.
 
-The texts are German. Three of the four locales sell in another language, and a
-withdrawal instruction a buyer cannot read is one that starts no clock — an
-English set is the next thing owed.
+**Checked on 2026-09-06.** Both language sets exist now. German keeps the route
+names the app and the licence mails already print — `/agb`, `/widerruf`,
+`/datenschutz`, `/impressum`, `/lizenzen` — and the English set sits under
+`/en/`, with `StoreFront` sending an English interface to `/en/terms` and
+`/en/cancellation`. Russian and Ukrainian are pointed at the English set on
+purpose, in the site's `legal.ts`: those two locales already lead with English
+as their second language, and a withdrawal instruction a buyer cannot read is
+one that starts no clock.
+
+A Czech set is not owed, and the reason is worth writing down before it gets
+asked again. Language follows the buyer, not the establishment — the site is
+not written in Czech, priced in koruna or advertised in Czechia, so no Czech
+consumer is being targeted, and the geo-blocking regulation says in as many
+words that a seller must not refuse such a buyer and need not translate for
+them either. It becomes owed the day Czechia becomes a market, not the day the
+IČO was issued.
+
+What the Czech establishment does decide is who the texts name, and that is
+where being wrong about the country would have survived the correction above:
+**Česká obchodní inspekce** as the ADR body rather than a German
+Schlichtungsstelle, and **ÚOOÚ** as the data protection supervisory authority.
+Both are named, in both languages, on the live pages, and neither page links
+the EU's ODR platform — which stopped operating on 2025-07-20 and would now be
+a dead reference. The one provider detail not on the page is a DIČ, and only
+an accountant can say whether being Stripe's supplier creates one.
 
 The one place this reaches the code is retention: the provider order id is kept
 "whatever the accountant says invoices need". Until there is an accountant, it
