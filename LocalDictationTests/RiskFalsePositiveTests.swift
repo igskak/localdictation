@@ -158,6 +158,41 @@ final class RiskFalsePositiveTests: XCTestCase {
         XCTAssertEqual(reasons(for: "пятницы", in: result), ["Date"], "the deadline is a date now, not nothing")
     }
 
+    /// English technical terms inside a Russian dictation are not a language switch.
+    ///
+    /// From a live sample: "Делай commit, merge и push" — one recording, decoded
+    /// as Russian, with the Latin terms written the way the speaker said them.
+    /// Nothing here is a second language being decoded; it is the pinned decode
+    /// emitting Latin tokens, and the profile already names English, so the
+    /// script carries no evidence of a language the user did not choose.
+    /// Marking these would spend the false-warning budget on every anglicism a
+    /// developer says out loud.
+    func testEnglishTermsInARussianSentenceAreNotMarkedAsALanguageSwitch() {
+        let result = spans(
+            "Делай commit, merge и push.",
+            language: .russian,
+            profile: .russianEnglish
+        )
+
+        for term in ["commit", "merge", "push"] {
+            XCTAssertTrue(
+                reasons(for: term, in: result).isEmpty,
+                "\(term) is an English word in a profile that names English, not a switch out of it"
+            )
+        }
+    }
+
+    /// The same terms without English selected are the strong case, and stay marked.
+    func testTheSameTermsAreMarkedWhenEnglishIsNotSelected() {
+        let result = spans(
+            "Делай commit, merge и push.",
+            language: .russian,
+            profile: LanguageProfile(.russian, .ukrainian)
+        )
+
+        XCTAssertEqual(reasons(for: "commit", in: result), ["English word"])
+    }
+
     func testUkrainianSentenceStillMarksExactlyTheRightThree() {
         let result = spans(
             "Зустріч 3 березня не підтверджена.",
