@@ -109,6 +109,6 @@ final class AudioFormatConverterTests: XCTestCase {
     func testTargetFormatConstantsMatchThePipelineContract() {
         XCTAssertEqual(AudioTargetFormat.sampleRate, 16_000)
         XCTAssertEqual(AudioTargetFormat.channelCount, 1)
-        XCTAssertEqual(AudioCaptureConfiguration.default.bufferCapacityFrames, 120 * 16_000)
+        XCTAssertEqual(AudioCaptureConfiguration.default.bufferCapacityFrames, 300 * 16_000)
     }
 }

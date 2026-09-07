@@ -15,6 +15,14 @@ struct VoiceActivityConfiguration: Sendable, Equatable {
     /// Trailing silence after speech that marks the end of an utterance.
     var trailingSilenceDuration: TimeInterval
     /// Hard cap on one utterance. Reaching it ends the capture.
+    ///
+    /// A safety rail for the in-memory buffer, not a product limit on how much
+    /// a person is allowed to say. The buffer is preallocated at this size on
+    /// every recording — five minutes is 19 MB of Float32 zeroed at the moment
+    /// the hotkey goes down — so the number is the largest one that still costs
+    /// nothing noticeable to a three-second dictation, not the largest one the
+    /// detector could honor. `validated()` allows twice this for anyone who
+    /// raises it in Settings.
     var maximumUtteranceDuration: TimeInterval
 
     static let `default` = VoiceActivityConfiguration(
@@ -23,7 +31,7 @@ struct VoiceActivityConfiguration: Sendable, Equatable {
         silenceThreshold: 0.012,
         speechActivationWindows: 3,
         trailingSilenceDuration: 1.0,
-        maximumUtteranceDuration: 120
+        maximumUtteranceDuration: 300
     )
 
     /// Clamps user-supplied values into a range the detector can honor.

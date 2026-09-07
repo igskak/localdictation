@@ -169,7 +169,7 @@ struct SettingsView: View {
                 LabeledContent("Maximum utterance") {
                     Slider(
                         value: $coordinator.configuration.voiceActivity.maximumUtteranceDuration,
-                        in: 5...300
+                        in: 5...600
                     )
                 }
                 LabeledContent(
