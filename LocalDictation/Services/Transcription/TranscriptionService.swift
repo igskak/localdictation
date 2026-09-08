@@ -52,6 +52,24 @@ enum TranscriptionModelState: Sendable, Equatable {
         return false
     }
 
+    /// Whether getting ready is a wait measured in minutes rather than seconds,
+    /// and therefore one a press has to be answered about rather than held
+    /// through.
+    ///
+    /// A warm load — reading installed weights — is about nine seconds, and a
+    /// recording made during one is kept and transcribed the moment it ends.
+    /// A download and a first-ever Core ML compilation are minutes, and text
+    /// arriving minutes late lands in whatever application the user has moved
+    /// on to. The two need different answers, so the difference is named here
+    /// rather than re-derived at each of the places that acts on it.
+    var isLongWait: Bool {
+        switch self {
+        case .ready: false
+        case let .preparing(preparation): preparation.phase != .loading
+        case .unavailable, .failed: true
+        }
+    }
+
     /// True when getting ready needs nothing from the user and nothing from
     /// the network, so the app may do it unprompted at launch.
     var canPrepareUnattended: Bool {

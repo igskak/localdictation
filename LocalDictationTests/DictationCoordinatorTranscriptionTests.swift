@@ -216,19 +216,169 @@ final class DictationCoordinatorTranscriptionTests: XCTestCase {
         XCTAssertEqual(engine.prepareCount, 1)
     }
 
-    /// The download is the app's only network access and stays bound to the
-    /// explicit button. Launch must never reach for it.
-    func testLaunchNeverStartsADownloadOnItsOwn() async throws {
+    /// The reversal recorded in `docs/REFINEMENTS.md`. The download used to be
+    /// bound to a button in a menu bar window, which is a step nobody had been
+    /// told about between a fresh install and a product that does nothing at
+    /// all without it. Launch now fetches the weights itself.
+    func testLaunchDownloadsTheModelItself() async throws {
         let engine = FakeTranscriptionService()
         engine.setModelState(.unavailable("not downloaded yet", needsUserAction: true))
 
         let (coordinator, _, _) = makeCoordinator(transcription: engine)
 
+        try await waitUntil("the model is fetched at launch") { coordinator.transcriptionModelState.isReady }
+        XCTAssertEqual(engine.prepareCount, 1)
+    }
+
+    /// A launch that cannot even locate its storage is a broken installation
+    /// rather than a missing download, and retrying it in a loop nobody asked
+    /// for would say nothing new.
+    func testLaunchDoesNotRetryAFailedEngine() async throws {
+        let engine = FakeTranscriptionService()
+        engine.setModelState(.failed("Could not locate Application Support"))
+
+        let (coordinator, _, _) = makeCoordinator(transcription: engine)
+
         try await waitUntil("launch has read the model state") {
-            coordinator.transcriptionModelState.label == "not downloaded yet"
+            coordinator.transcriptionModelState == .failed("Could not locate Application Support")
         }
         XCTAssertEqual(engine.prepareCount, 0)
-        XCTAssertFalse(coordinator.transcriptionModelState.isPreparing)
+    }
+
+    // MARK: - The press that arrives before the model does
+
+    /// The whole point of the notice: nothing is recorded, the state machine is
+    /// untouched, and the user is told why rather than left with a key that did
+    /// nothing.
+    func testAPressDuringTheDownloadRecordsNothingAndIsAnswered() async throws {
+        let engine = FakeTranscriptionService()
+        engine.setModelState(.unavailable("not downloaded yet", needsUserAction: true))
+        let gate = engine.blockNextPreparation()
+        let (coordinator, hotkey, capture) = makeCoordinator(transcription: engine)
+
+        try await waitUntil("the launch download is running") { coordinator.transcriptionModelState.isPreparing }
+
+        recordOneUtterance(hotkey)
+
+        XCTAssertEqual(capture.startCount, 0, "a press that cannot be transcribed must not open the microphone")
+        XCTAssertEqual(coordinator.state, .ready)
+        guard case .preparing = try XCTUnwrap(coordinator.speechModelNotice) else {
+            return XCTFail("the press should be answered with the wait it ran into")
+        }
+
+        gate.open()
+        try await waitUntil("the model finishes") { coordinator.transcriptionModelState.isReady }
+    }
+
+    /// The other half of the promise the notice makes: "Witness will say so".
+    func testTheEndOfTheWaitIsAnnouncedToWhoeverPressedDuringIt() async throws {
+        let engine = FakeTranscriptionService()
+        engine.setModelState(.unavailable("not downloaded yet", needsUserAction: true))
+        let gate = engine.blockNextPreparation()
+        let (coordinator, hotkey, _) = makeCoordinator(transcription: engine)
+
+        try await waitUntil("the launch download is running") { coordinator.transcriptionModelState.isPreparing }
+        recordOneUtterance(hotkey)
+
+        gate.open()
+        try await waitUntil("the ready notice arrives") {
+            coordinator.speechModelNotice == .ready(hotkey: coordinator.binding.displayString)
+        }
+    }
+
+    /// Nobody pressed, so nobody is waiting, and a panel opening over somebody's
+    /// document to report that nothing is wrong is noise.
+    func testAModelThatArrivesUnaskedSaysNothing() async throws {
+        let engine = FakeTranscriptionService()
+        engine.setModelState(.unavailable("not downloaded yet", needsUserAction: true))
+        let (coordinator, _, _) = makeCoordinator(transcription: engine)
+
+        try await waitUntil("the model is ready") { coordinator.transcriptionModelState.isReady }
+        XCTAssertNil(coordinator.speechModelNotice)
+    }
+
+    /// A press when the weights are missing and nothing is fetching them —
+    /// a launch with no network, say — starts the fetch rather than sending
+    /// the user to look for a button.
+    func testAPressWithNothingInFlightStartsTheFetch() async throws {
+        let engine = FakeTranscriptionService()
+        let (coordinator, hotkey, capture) = makeCoordinator(transcription: engine)
+        try await waitUntil("launch has read the model state") { coordinator.transcriptionModelState.isReady }
+
+        engine.setModelState(.unavailable("the download did not finish", needsUserAction: true))
+        await coordinator.refreshTranscriptionModelState()
+
+        recordOneUtterance(hotkey)
+
+        XCTAssertEqual(capture.startCount, 0)
+        guard case .starting = try XCTUnwrap(coordinator.speechModelNotice) else {
+            return XCTFail("the press should say the fetch has started")
+        }
+        try await waitUntil("the fetch runs") { engine.prepareCount == 1 }
+    }
+
+    /// The same for a fetch that failed. The sentence carries the engine's own
+    /// reason, because "no space left on the device" and "offline" have
+    /// different answers.
+    func testAPressAfterAFailedFetchRetriesAndSaysWhy() async throws {
+        let engine = FakeTranscriptionService()
+        engine.failPreparation(with: .modelUnavailable("no space left"))
+        engine.setModelState(.failed("Speech model unavailable: no space left"))
+        let (coordinator, hotkey, capture) = makeCoordinator(transcription: engine)
+
+        try await waitUntil("launch has read the failure") {
+            coordinator.transcriptionModelState == .failed("Speech model unavailable: no space left")
+        }
+
+        recordOneUtterance(hotkey)
+
+        XCTAssertEqual(capture.startCount, 0)
+        XCTAssertEqual(
+            coordinator.speechModelNotice,
+            .failed("Speech model unavailable: no space left")
+        )
+        try await waitUntil("the retry runs") { engine.prepareCount == 1 }
+    }
+
+    /// The exception, and the older decision it preserves: reading installed
+    /// weights takes seconds, the recording is held and transcribed the moment
+    /// the load ends, and refusing that press would throw away words the user
+    /// had already said.
+    func testAPressDuringAWarmLoadIsStillRecorded() async throws {
+        let engine = FakeTranscriptionService()
+        engine.setResult(.fixture(words: [("held", 0.9)]))
+        engine.setModelState(.unavailable("installed but not loaded", needsUserAction: false))
+        let gate = engine.blockNextPreparation()
+        let (coordinator, hotkey, capture) = makeCoordinator(transcription: engine)
+
+        try await waitUntil("the launch load is running") {
+            coordinator.transcriptionModelState == .preparing(ModelPreparation(phase: .loading))
+        }
+
+        recordOneUtterance(hotkey)
+        try await waitUntil("the recording was made") { capture.startCount == 1 }
+        XCTAssertNil(coordinator.speechModelNotice, "a nine-second load is not worth a notice")
+
+        gate.open()
+        try await waitUntil("the held recording is transcribed") { coordinator.transcript != nil }
+        XCTAssertEqual(coordinator.transcript?.text, "held")
+    }
+
+    /// A build with no engine at all never offered recognition, and refusing
+    /// its presses would take away the capture it does do.
+    func testAPressIsNeverRefusedWithoutAnEngine() async throws {
+        let hotkey = FakeHotkeyService()
+        let coordinator = DictationCoordinator(
+            permissionService: FakeMicrophonePermissionService(authorization: .authorized),
+            hotkeyService: hotkey,
+            captureService: FakeAudioCaptureService()
+        )
+        coordinator.activate()
+
+        XCTAssertFalse(coordinator.isAwaitingSpeechModel)
+        recordOneUtterance(hotkey)
+        try await waitUntil("utterance completes") { coordinator.diagnostics.lastUtterance != nil }
+        XCTAssertNil(coordinator.speechModelNotice)
     }
 
     /// The regression behind "I pressed Prepare and nothing happened": while a

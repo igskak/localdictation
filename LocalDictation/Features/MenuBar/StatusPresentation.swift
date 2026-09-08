@@ -23,8 +23,10 @@ struct StatusPresentation: Sendable, Equatable {
     /// not each have to say so.
     private(set) var showsLicenseAction = false
 
-    /// `modelState` only changes the transcribing copy, so callers that do not
-    /// have an engine can leave it alone.
+    /// `modelState` changes two of the states — the idle one, while a download
+    /// the app started itself is still running, and the transcribing one, while
+    /// a recording waits on a load — so callers that have no engine can leave
+    /// it alone and get the copy they had before either existed.
     ///
     /// `attentionIsPending` is the indicator, and it is deliberately allowed to
     /// change only the idle state. A triangle is worth showing while nothing
@@ -45,6 +47,30 @@ struct StatusPresentation: Sendable, Equatable {
         captureInterruption: String? = nil,
         activation: RecordingActivation = .pushToTalk
     ) {
+        // First, and before every notice about a result: while the model is
+        // still arriving there are no results to have a notice about, and a
+        // menu bar saying "Ready — hold ⌥Space to record" is describing
+        // something a press cannot do yet. That reading is exactly the
+        // complaint this state exists to answer — a download nobody announced
+        // is indistinguishable from an app that has stopped.
+        //
+        // A warm load is deliberately not in here. That press *is* served: the
+        // recording is held and transcribed when the load ends, so "Ready" is
+        // the true thing to say.
+        if state == .ready, modelState.isLongWait {
+            let isArriving = modelState.isPreparing
+            title = isArriving ? "Getting the speech model" : "The speech model is not ready"
+            detail = isArriving
+                ? "\(modelState.label) It happens once. Dictation starts the moment it is here."
+                : modelState.label
+            systemImage = isArriving ? "arrow.down.circle" : "exclamationmark.triangle"
+            tint = isArriving ? .neutral : .warning
+            showsPermissionRequest = false
+            showsSystemSettingsShortcut = false
+            showsRecoveryAction = false
+            return
+        }
+
         if state == .ready, attentionIsPending {
             title = "Worth a look"
             detail = "Some fragments in the last result are worth checking. The text is already in place."

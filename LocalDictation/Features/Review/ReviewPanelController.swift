@@ -31,6 +31,11 @@ final class ReviewPanelController {
     /// the menu bar triangle stays lit behind it for anyone who looks up later.
     private static let noticeDuration = Duration.seconds(6)
     private static let chipDuration = Duration.seconds(3)
+    /// The one notice that is a paragraph rather than a sentence, and the one
+    /// the user has the least context for: it arrives on a first run, in answer
+    /// to a press that did nothing visible. Ten seconds is how long it takes to
+    /// read it and decide to wait.
+    private static let modelNoticeDuration = Duration.seconds(10)
 
     private let coordinator: DictationCoordinator
     private var panel: NSPanel?
@@ -45,6 +50,7 @@ final class ReviewPanelController {
     private var attentionObserver: AnyCancellable?
     private var silenceObserver: AnyCancellable?
     private var interruptionObserver: AnyCancellable?
+    private var speechModelObserver: AnyCancellable?
     private var contentObserver: AnyCancellable?
 
     init(coordinator: DictationCoordinator) {
@@ -81,6 +87,15 @@ final class ReviewPanelController {
         // happened, so they are looking at the document rather than at a
         // menu bar, and this is the only place they will read it.
         interruptionObserver = coordinator.$captureInterruption
+            .removeDuplicates()
+            .sink { [weak self] _ in
+                Task { @MainActor in self?.presentAftermath() }
+            }
+        // The press that arrived before the speech model did, and the sentence
+        // saying the wait is over. Same panel, same reason as the two above:
+        // the user pressed a key in another application and is looking at that
+        // application, not at a menu bar they have never opened.
+        speechModelObserver = coordinator.$speechModelNotice
             .removeDuplicates()
             .sink { [weak self] _ in
                 Task { @MainActor in self?.presentAftermath() }
@@ -191,6 +206,20 @@ final class ReviewPanelController {
     private func presentAftermath() {
         noticeDismissal?.cancel()
 
+        // The speech model has the panel to itself when it has something to
+        // say. It is never simultaneous with the rest: a press that is answered
+        // by the wait records nothing, inserts nothing, and flags nothing, so
+        // anything else on screen beside it would be about a different press.
+        if let notice = coordinator.speechModelNotice {
+            showNotice(
+                message: notice.message,
+                symbol: notice.systemImage,
+                flaggedCount: 0,
+                duration: Self.modelNoticeDuration
+            )
+            return
+        }
+
         // Two of these can hold at once. A recording that ended when the
         // microphone changed can still have produced text that then went to
         // the clipboard, and the user needs both sentences: why it stopped,
@@ -210,17 +239,34 @@ final class ReviewPanelController {
         // is looking at.
         guard !coordinator.isShowingReview else { return }
 
+        // The chip fades on its own but the indicator does not: the menu bar
+        // triangle stays lit until the user opens the review or puts it out.
+        // Fading is the app being quiet, not the app forgetting.
+        showNotice(
+            message: message,
+            symbol: "doc.on.clipboard",
+            flaggedCount: attention,
+            duration: message == nil ? Self.chipDuration : Self.noticeDuration
+        )
+    }
+
+    /// Puts one message in the corner and takes it away again.
+    ///
+    /// Everything that reaches this panel goes through here, so there is one
+    /// place that builds it, sizes it, shows it, and schedules its dismissal —
+    /// and adding a new kind of notice cannot forget one of the four.
+    private func showNotice(message: String?, symbol: String, flaggedCount: Int, duration: Duration) {
         let panel = noticePanel ?? makeNoticePanel()
         noticePanel = panel
-        noticeHostingView?.rootView = makeAftermathView(message: message, flaggedCount: attention)
+        noticeHostingView?.rootView = makeAftermathView(
+            message: message,
+            symbol: symbol,
+            flaggedCount: flaggedCount
+        )
         resize(panel, toFit: noticeHostingView)
         position(panel)
         panel.orderFrontRegardless()
 
-        // The chip fades on its own but the indicator does not: the menu bar
-        // triangle stays lit until the user opens the review or puts it out.
-        // Fading is the app being quiet, not the app forgetting.
-        let duration = message == nil ? Self.chipDuration : Self.noticeDuration
         noticeDismissal = Task { [weak self] in
             try? await Task.sleep(for: duration)
             guard !Task.isCancelled else { return }
@@ -228,9 +274,14 @@ final class ReviewPanelController {
         }
     }
 
-    private func makeAftermathView(message: String?, flaggedCount: Int) -> AftermathView {
+    private func makeAftermathView(
+        message: String?,
+        symbol: String = "doc.on.clipboard",
+        flaggedCount: Int
+    ) -> AftermathView {
         AftermathView(
             message: message,
+            symbol: symbol,
             flaggedCount: flaggedCount,
             check: { [weak self] in
                 self?.hideNotice()
@@ -241,6 +292,7 @@ final class ReviewPanelController {
                 self?.coordinator.dismissAttention()
                 self?.coordinator.dismissSilentResult()
                 self?.coordinator.dismissCaptureInterruption()
+                self?.coordinator.dismissSpeechModelNotice()
             }
         )
     }
@@ -344,6 +396,9 @@ private struct ReviewPanelView: View {
 /// primary action is the one that costs nothing — leaving.
 struct AftermathView: View {
     let message: String?
+    /// The symbol beside the message. Defaulted, because for most of what
+    /// reaches this panel the answer is the clipboard.
+    var symbol: String = "doc.on.clipboard"
     let flaggedCount: Int
     let check: () -> Void
     let dismiss: () -> Void
@@ -356,7 +411,7 @@ struct AftermathView: View {
         VStack(alignment: .leading, spacing: 8) {
             if let message {
                 HStack(alignment: .top, spacing: 8) {
-                    Image(systemName: "doc.on.clipboard")
+                    Image(systemName: symbol)
                         .foregroundStyle(.secondary)
                     Text(message)
                         .font(.callout)

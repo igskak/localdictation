@@ -179,6 +179,87 @@ final class LanguageSetupTests: XCTestCase {
         XCTAssertNil(controller.window)
     }
 
+    // MARK: - The two permissions
+
+    /// A coordinator whose permissions are all still unanswered, which is the
+    /// state a fresh install is actually in.
+    private func makeUnpermittedCoordinator() -> (
+        DictationCoordinator,
+        FakeMicrophonePermissionService,
+        FakeAccessibilityPermissionService
+    ) {
+        let microphone = FakeMicrophonePermissionService(authorization: .notDetermined)
+        let accessibility = FakeAccessibilityPermissionService(authorization: .notTrusted)
+        let coordinator = DictationCoordinator(
+            permissionService: microphone,
+            hotkeyService: FakeHotkeyService(),
+            captureService: FakeAudioCaptureService(),
+            transcriptionService: FakeTranscriptionService(),
+            glossaryStore: InMemoryGlossaryStore(.empty),
+            accessibilityService: accessibility,
+            insertionService: FakeTextInsertionService(),
+            preferencesStore: InMemoryPreferencesStore()
+        )
+        coordinator.activate()
+        return (coordinator, microphone, accessibility)
+    }
+
+    /// The friend's first question, in a test: every other app on the Mac asks
+    /// at launch, and leaving both asks in a menu bar window meant a product
+    /// that looked broken until they were found.
+    func testTheFirstRunAsksForBothPermissions() async throws {
+        let (coordinator, microphone, accessibility) = makeUnpermittedCoordinator()
+
+        await coordinator.requestFirstRunPermissions()
+
+        XCTAssertEqual(microphone.requestCount, 1)
+        XCTAssertEqual(accessibility.requestCount, 1)
+        XCTAssertEqual(coordinator.microphoneAuthorization, .authorized)
+    }
+
+    /// Once per launch. The prompts belong to macOS, which shows each of them
+    /// once anyway, and a view rebuilt for any reason must not ask again.
+    func testThePermissionsAreAskedForOnce() async throws {
+        let (coordinator, microphone, accessibility) = makeUnpermittedCoordinator()
+
+        await coordinator.requestFirstRunPermissions()
+        await coordinator.requestFirstRunPermissions()
+
+        XCTAssertEqual(microphone.requestCount, 1)
+        XCTAssertEqual(accessibility.requestCount, 1)
+    }
+
+    /// Nothing is asked for twice, and nothing is asked for that has already
+    /// been granted: a returning user who answered both is not prompted at all.
+    func testGrantedPermissionsAreNotAskedForAgain() async throws {
+        let microphone = FakeMicrophonePermissionService(authorization: .authorized)
+        let accessibility = FakeAccessibilityPermissionService(authorization: .trusted)
+        let coordinator = DictationCoordinator(
+            permissionService: microphone,
+            hotkeyService: FakeHotkeyService(),
+            captureService: FakeAudioCaptureService(),
+            transcriptionService: FakeTranscriptionService(),
+            accessibilityService: accessibility,
+            insertionService: FakeTextInsertionService(),
+            preferencesStore: InMemoryPreferencesStore()
+        )
+        coordinator.activate()
+
+        await coordinator.requestFirstRunPermissions()
+
+        XCTAssertEqual(microphone.requestCount, 0)
+        XCTAssertEqual(accessibility.requestCount, 0)
+    }
+
+    /// The screen that does the asking has to survive a real layout pass with
+    /// every row in the state a first run finds them in.
+    func testTheReadyScreenLaysOutWhileNothingIsGrantedYet() {
+        let (coordinator, _, _) = makeUnpermittedCoordinator()
+        let size = render(FirstRunReadyView(coordinator: coordinator) {})
+
+        XCTAssertGreaterThan(size.height, 0)
+    }
+
     // MARK: - The selection itself
 
     func testTheQuestionOpensWithWhatTheAppAlreadyHad() {

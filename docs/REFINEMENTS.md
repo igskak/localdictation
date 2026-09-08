@@ -301,3 +301,100 @@ user in the second they are waiting for their sentence to appear. The refusal
 names the setting instead, and the text stays on the pasteboard rather than
 being restored away: until the permission is back, the user's own ⌘V is the
 only way in.
+
+## The first run stops making the user find things
+
+The first stranger to install a build produced two questions inside a minute,
+and neither of them was about dictation. *Can it ask for the permissions at
+launch, like everything else does, instead of making me click the icon and press
+allow, allow?* And: *it was not obvious that a language model had started
+downloading.*
+
+Both are the same defect wearing different clothes. Everything the app needed
+before it could work was reachable, correct, and behind an icon in the menu bar
+that a new user has no reason to open. A utility with no Dock icon and no window
+cannot afford anything to be *findable*: whatever is not in front of the user on
+the first run does not exist.
+
+### Both permissions are asked for on the first run
+
+`FirstRunReadyView` — the screen that follows the language question — now asks
+macOS for the microphone and for Accessibility as it appears, one after the
+other, with the reason for each visible behind the system dialog.
+
+It happens there rather than in `applicationDidFinishLaunching` on purpose. A
+prompt raised with nothing on screen is a prompt with no context: the user sees
+the name of an app they installed thirty seconds ago and a request to control
+their computer, and the only honest thing they can do is deny it. The window is
+already up, already activated, and already explaining what each permission buys
+— so the dialog lands on top of its own justification.
+
+The two are not symmetrical and the screen says so. The microphone is granted
+from inside the dialog, so that row is usually ticked by the time anybody reads
+it. Accessibility is granted in System Settings, out of band, and the prompt
+only offers to open them; the app was already watching for the grant every two
+seconds while it is missing, so the row ticks itself without anyone coming back
+to press a re-check. Neither ask blocks anything. Denying both leaves a working
+first run, minus insertion, exactly as before.
+
+### The app fetches the speech model itself
+
+`docs/PHASE_2.md` said the download is an explicit user action, never automatic
+at launch, on the reasoning that an application does not help itself to six
+hundred megabytes of somebody's connection. That reasoning survived until a
+real installation, and then it did not.
+
+The weights are not a feature. Nothing in the product recognizes a single word
+without them, so the button was not offering a choice — it was a step, in a
+window nobody had been told to open, between a fresh install and an app that
+appears to do nothing at all. A choice with one correct answer is a chore.
+
+So `prepareModelAtLaunch()` now downloads as well as loads. What the app owes in
+exchange is that the fetch is never silent:
+
+- the menu bar icon is a download arrow while it runs, and the menu says which
+  phase it is in and how far the download has got, with a real percentage;
+- the first-run screen shows the same progress, and says it keeps going after
+  the window is closed;
+- `docs/PRIVACY.md` moved the row out of "because you pressed something" and
+  says what to do about it — quitting before it finishes — rather than quietly
+  reclassifying it.
+
+A launch that finds the engine `.failed` — no Application Support, no disk —
+still does nothing on its own. That is a broken installation rather than a
+missing download, and retrying it in a loop nobody asked for says nothing new.
+
+### A press during the wait is answered
+
+The press that arrives before the model does is the commonest thing a new user
+will do, because pressing the key is the entire product. Before this it did one
+of two things, and both read as an app that does not work: it recorded into the
+load — the recording joined it and the text arrived minutes later, long after
+the user had moved on and often into a different application — or it failed with
+a sentence about a button they had never seen.
+
+Now nothing is recorded, the state machine is not touched at all, and
+`SpeechModelNotice` says the three things the user actually needs: this happens
+once, roughly how long it takes, and that the app will say when it is over. It
+appears in the panel a clipboard fallback already uses — where the user is
+looking — and it keeps its promise: whoever pressed during the wait gets one
+more sentence when the model lands, and whoever did not gets nothing, because a
+panel opening over somebody's document to report that nothing is wrong is noise.
+
+One press is still served rather than answered, and the exception is the older
+decision rather than an oversight. Reading weights that are already on disk
+takes about nine seconds; a recording made during that load is held and
+transcribed the moment it ends, and `StatusPresentation` has named that wait
+since Phase 2. Refusing it would throw away words the user had already said in
+order to save them nine seconds. A download and a first-ever Core ML
+compilation are the other kind of wait — minutes — and text arriving minutes
+late lands in whatever application the user has moved on to, which is worse than
+not arriving. `TranscriptionModelState.isLongWait` is where the two are told
+apart, once, for every place that acts on the difference.
+
+A press when the weights are missing and nothing is fetching them — a launch
+with no network, a fetch that failed — starts the fetch rather than sending the
+user to look for a button. The button stays in the menu for that case, renamed
+from *Prepare speech model…* to *Get the speech model*: nobody has to prepare
+anything any more, and the only person who sees it is someone whose download did
+not happen.

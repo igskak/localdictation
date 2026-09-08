@@ -20,15 +20,22 @@ cleaned text, not your dictionary, not the names of the applications you dictate
 into, and nothing derived from any of them. There is no account, no sign-in, and
 no analytics.
 
-Three things can leave, all of them because you pressed something:
+Three things can leave. Two of them because you pressed something, and one
+because the app cannot recognize a word without it:
 
 | What | When | To whom | Why |
 | --- | --- | --- | --- |
-| A request for the speech model | You press **Prepare speech model…** | Hugging Face, WhisperKit's host | Fetching a static file. One way — nothing is uploaded |
+| A request for the speech model | The first launch, automatically, and any later one where the model is missing — or when you press **Get the speech model** | Hugging Face, WhisperKit's host | Fetching a static file. One way — nothing is uploaded, and the request carries no identifier of you or this Mac |
 | Your email address and a device identifier | You press **Send me a key** or **Send my key** | The Witness activation service, at `api.witnessmac.com` | Issuing a licence key for this Mac |
 | A licence key you already hold | You press **Remove from this Mac** | The same service | Freeing one of the two Macs your licence covers |
 
 That is the complete list. There is no fourth row.
+
+The first row used to wait for a button. It no longer does: the weights are the
+one thing the product cannot work without, so a fresh install starts fetching
+them as it launches and says so in the menu bar and on the first-run screen. If
+you would rather it did not, quit Witness before it finishes — nothing else in
+the app reaches the network on its own.
 
 ## The audio, and why it is not on that list
 

@@ -164,12 +164,14 @@ endpoint has gone stale still accepts a pasted key and still works on a plane.
 
 ### 6. WhisperKit's 600 MB, and what a release changes about it
 
-The model download is user-initiated and lands in Application Support, and none
-of that changes. What does change is that a release build is the first one a
-user will run without Xcode: the first-run path is *launch → grant microphone →
-prepare model → wait for a large download*, and it is the longest wait in the
-product. It is worth measuring on a clean Mac before release rather than
-discovering it in a support email.
+The model download lands in Application Support, and that does not change. What
+does is who starts it: since `docs/REFINEMENTS.md` the app fetches the weights
+itself at launch, because a release build is the first one a user will run
+without Xcode and the button was a step nobody had been told about. The
+first-run path is now *launch → answer the language question → grant the two
+permissions the screen asks for → the download that started behind it finishes*,
+and it is still the longest wait in the product. It is worth measuring on a
+clean Mac before release rather than discovering it in a support email.
 
 ## Publishing it
 
@@ -233,7 +235,7 @@ things that can leave the Mac is:
 
 | What | When | To whom | Why |
 | --- | --- | --- | --- |
-| Whisper model weights request | The user presses "Prepare speech model…" | Hugging Face (WhisperKit's host) | Fetching a static asset. One way; nothing is uploaded |
+| Whisper model weights request | Launch, when the weights are missing — or the user presses "Get the speech model" | Hugging Face (WhisperKit's host) | Fetching a static asset. One way; nothing is uploaded |
 | Email address + device hash | The user presses "Send me a key" | The activation service (`Service/`) | Issuing a license key |
 | A license key the user already holds | The user presses "Remove from this Mac" | The same service | Freeing one of the two Macs the license covers |
 | The ten product events in `docs/PHASE_6.md` | Not transmitted today | — | Funnel measurement, when a collector exists |

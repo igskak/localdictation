@@ -90,7 +90,11 @@ A benchmark that reports only WER has not answered the Phase 2 question. Confide
 
 If the chosen engine requires downloadable weights:
 
-- The download is an explicit user action, never automatic at launch.
+- The download is automatic at launch when the weights are missing, and
+  announced while it runs — in the menu bar, on the first-run screen, and in
+  answer to a hotkey press that lands during it. It was an explicit user action
+  through Phase 8; `docs/REFINEMENTS.md` records why that was reversed and what
+  the app now owes the user in exchange.
 - It is resumable and checksum-verified.
 - Weights are stored in Application Support, outside the app bundle, and the location is visible to the user.
 - This is the only network access Phase 2 introduces. It transmits no content: no audio, no text, no identifiers beyond what fetching a static asset requires.

@@ -52,6 +52,20 @@ final class DictationCoordinator: ObservableObject {
     /// trial running out mid-utterance, and it is the same rule.
     @Published private(set) var captureInterruption: AudioCaptureError?
     @Published private(set) var transcriptionModelState: TranscriptionModelState = .unavailable("No speech engine configured", needsUserAction: true)
+    /// What a press was told while the speech model was still arriving.
+    ///
+    /// Set only by a press that could not be served, and cleared the same three
+    /// ways every other notice in the app is: the user dismisses it, the next
+    /// dictation starts, or — uniquely for this one — the wait it describes
+    /// ends, at which point it is replaced by the sentence saying so.
+    @Published private(set) var speechModelNotice: SpeechModelNotice?
+    /// Microphone authorization, published rather than only folded into
+    /// `state`.
+    ///
+    /// The state machine says what the app is doing; the first run has to say
+    /// what macOS has answered, which is a different question with a different
+    /// answer while a recording is in flight.
+    @Published private(set) var microphoneAuthorization: MicrophoneAuthorization = .notDetermined
     /// The languages the user speaks. Explicit, never inferred per utterance,
     /// and remembered: a product that forgets which languages you speak is a
     /// product that asks the same question every morning.
@@ -177,6 +191,25 @@ final class DictationCoordinator: ObservableObject {
     /// Set while settings are being applied from the store, so the property
     /// observers that persist them do not write the file back as it is read.
     private var isApplyingPreferences = false
+    /// Whether the engine has been asked what it has on disk yet.
+    ///
+    /// `transcriptionModelState` starts pessimistic — it has to, because a
+    /// coordinator with no engine is exactly that — and the answer arrives one
+    /// hop after launch. Refusing presses on the strength of the placeholder
+    /// would refuse them for the first turn of the run loop on a Mac where the
+    /// model has been ready for months.
+    private var hasReadModelState = false
+    /// Whether somebody pressed the key while the model was still arriving, so
+    /// the end of the wait is announced to the person who was waiting and to
+    /// nobody else.
+    private var pressedWhileModelWasArriving = false
+    /// Whether the first-run screen has already asked macOS for the two
+    /// permissions. Once per launch: the prompts are the system's to show, and
+    /// asking twice in one session shows nothing the second time anyway.
+    private var hasRequestedFirstRunPermissions = false
+    /// The fetch this object started on the user's behalf, while it runs. See
+    /// `startModelPreparation`.
+    private var modelPreparationTask: Task<Void, Never>?
 
     /// The captured samples, held only while something still needs them.
     ///
@@ -264,35 +297,53 @@ final class DictationCoordinator: ObservableObject {
         loadPreferences()
         loadGlossary()
         startObservingEntitlement()
-        apply(.authorizationResolved(permissionService.currentAuthorization))
+        apply(.authorizationResolved(resolveMicrophoneAuthorization()))
         refreshAccessibilityAuthorization()
         refreshSecureInput()
         registerHotkey()
-        loadInstalledModel()
+        prepareModelAtLaunch()
     }
 
-    /// Loads weights that are already on disk, in the background, at launch.
+    /// Gets the speech model, in the background, at launch — loading weights
+    /// that are on disk, and downloading them when they are not.
     ///
-    /// Never downloads. The 600 MB fetch stays bound to the explicit button,
-    /// and this only covers the case that needs neither the network nor the
-    /// user: reading installed weights into memory. That load costs seconds on
-    /// a warm system, and paying it at launch is the difference between a user
-    /// who waits and a user who never notices.
-    private func loadInstalledModel() {
+    /// Through Phase 8 this only ever loaded: the 600 MB fetch was bound to a
+    /// button in the menu, on the reasoning that an application does not help
+    /// itself to that much of somebody's connection. The first installation by
+    /// somebody who had not built the app showed what that reasoning costs. A
+    /// person who installs a dictation app wants to dictate; the button was a
+    /// step they had not been told about, in a menu bar window they had no
+    /// reason to open, between them and a product that otherwise does nothing
+    /// at all. The download is not optional — nothing here recognizes a word
+    /// without it — so making it a decision offered a choice with one answer.
+    ///
+    /// It stays visible rather than silent: the menu bar says what is being
+    /// fetched and how far it has got, the first-run window shows the same
+    /// progress, and a press during the wait is answered rather than swallowed.
+    /// `docs/REFINEMENTS.md` records the reversal.
+    private func prepareModelAtLaunch() {
         guard let transcriptionService else { return }
         let profile = effectiveProfile
         Task { [weak self] in
             let state = await transcriptionService.modelState(for: profile)
             guard let self else { return }
+            hasReadModelState = true
             // Reading the state took a hop, and in that time the user may have
             // pressed the button themselves. This is a launch convenience, not
             // an authority on the state: whatever is already under way wins.
             guard !transcriptionModelState.isPreparing, !transcriptionModelState.isReady else { return }
-            guard state.canPrepareUnattended else {
+            guard case .unavailable = state else {
+                // `.failed` at launch is a broken installation rather than a
+                // missing download — no Application Support, no disk — and
+                // retrying it in a loop nobody asked for would say nothing new.
                 transcriptionModelState = state
                 return
             }
-            await prepareTranscriptionModel()
+            let phase: ModelPreparation.Phase = state.canPrepareUnattended ? .loading : .downloading
+            Log.transcription.info(
+                "Getting the speech model at launch: \(String(describing: phase), privacy: .public)"
+            )
+            await prepareTranscriptionModel(startingIn: phase)
         }
     }
 
@@ -323,29 +374,67 @@ final class DictationCoordinator: ObservableObject {
         // is re-read here too rather than only at launch. It is a comparison of
         // dates, and it costs nothing.
         entitlementService?.refresh()
+        let authorization = resolveMicrophoneAuthorization()
         guard !state.isBusy else { return }
-        apply(.authorizationResolved(permissionService.currentAuthorization))
-        if permissionService.currentAuthorization.allowsCapture, registeredHotkey == nil, !isCapturingHotkey {
+        apply(.authorizationResolved(authorization))
+        if authorization.allowsCapture, registeredHotkey == nil, !isCapturingHotkey {
             registerHotkey()
         }
     }
 
     // MARK: - Permission
 
-    var canRequestPermission: Bool { permissionService.currentAuthorization.isRequestable }
+    var canRequestPermission: Bool { microphoneAuthorization.isRequestable }
+
+    /// Reads the microphone answer and publishes it. Never prompts — the
+    /// service's contract is that only `requestAccess()` may.
+    @discardableResult
+    private func resolveMicrophoneAuthorization() -> MicrophoneAuthorization {
+        let resolved = permissionService.currentAuthorization
+        microphoneAuthorization = resolved
+        return resolved
+    }
 
     func requestMicrophoneAccess() async {
-        guard permissionService.currentAuthorization.isRequestable else {
-            apply(.authorizationResolved(permissionService.currentAuthorization))
+        guard resolveMicrophoneAuthorization().isRequestable else {
+            apply(.authorizationResolved(microphoneAuthorization))
             return
         }
 
         apply(.permissionRequestStarted)
         let resolved = await permissionService.requestAccess()
+        microphoneAuthorization = resolved
         apply(.authorizationResolved(resolved))
         if resolved.allowsCapture, registeredHotkey == nil, !isCapturingHotkey {
             registerHotkey()
         }
+    }
+
+    /// Asks macOS for both permissions, at the one moment the app is in front
+    /// of the user with an explanation of each on screen.
+    ///
+    /// Every other app on the Mac asks at launch, and the first person to
+    /// install this one asked why it did not: what happened instead was that
+    /// the two asks sat in a menu bar window, behind an icon, and the product
+    /// looked broken until they were found. So the first run asks, with the
+    /// reason for each ask visible behind the system dialog — which is the
+    /// whole argument for doing it from a window rather than from
+    /// `applicationDidFinishLaunching` with nothing on screen at all.
+    ///
+    /// One after the other, never both at once: two system dialogs stacked on
+    /// each other is one of them being dismissed unread. The microphone is
+    /// first because it is the one this app cannot work without, and because
+    /// it is the one macOS can actually grant from inside a dialog —
+    /// Accessibility is granted in System Settings, out of band, and the app
+    /// finds out by watching for it. Neither ask blocks anything: a person who
+    /// denies both still gets a working first run, minus insertion.
+    func requestFirstRunPermissions() async {
+        guard !hasRequestedFirstRunPermissions else { return }
+        hasRequestedFirstRunPermissions = true
+        Log.permissions.info("First run is asking for the microphone and for Accessibility")
+        await requestMicrophoneAccess()
+        guard needsAccessibilityTrust else { return }
+        requestAccessibilityTrust()
     }
 
     func openSystemSettings() {
@@ -360,7 +449,7 @@ final class DictationCoordinator: ObservableObject {
         if registeredHotkey == nil, !isCapturingHotkey {
             registerHotkey()
         }
-        apply(.authorizationResolved(permissionService.currentAuthorization))
+        apply(.authorizationResolved(resolveMicrophoneAuthorization()))
     }
 
     // MARK: - Hotkey
@@ -543,6 +632,16 @@ final class DictationCoordinator: ObservableObject {
             return
         }
 
+        // The press that arrives before the speech model does. It is answered
+        // rather than served, and deliberately without touching the state
+        // machine: nothing was recorded, so nothing has begun, and the release
+        // event that follows a push-to-talk press is rejected in `.ready` the
+        // way every other event that means nothing is.
+        if isAwaitingSpeechModel {
+            noteSpeechModelWait()
+            return
+        }
+
         guard apply(.hotkeyPressed) else { return }
 
         // A new utterance supersedes whatever is still being transcribed or
@@ -560,6 +659,7 @@ final class DictationCoordinator: ObservableObject {
         lastInsertion = nil
         attentionIsPending = false
         silentResult = nil
+        speechModelNotice = nil
         captureInterruption = nil
         isShowingReview = false
         pendingEndReason = nil
@@ -746,17 +846,94 @@ final class DictationCoordinator: ObservableObject {
         Log.application.info("Silent-result notice dismissed")
     }
 
+    // MARK: - The wait for the speech model
+
+    /// Whether a press right now would be waiting minutes for its text.
+    ///
+    /// False for a build with no engine at all — that app never offered
+    /// recognition and refusing its presses would take away the capture it does
+    /// do — and false until the engine has actually been asked, so the
+    /// placeholder state cannot refuse a press on a Mac where the model has
+    /// been installed for months.
+    ///
+    /// False for a warm load, too — see `TranscriptionModelState.isLongWait`,
+    /// which is where that distinction is made and why. Refusing a press during
+    /// a nine-second load would throw away words the user had already said in
+    /// order to save them nine seconds; `StatusPresentation` has held that
+    /// recording and named the wait since Phase 2.
+    var isAwaitingSpeechModel: Bool {
+        guard transcriptionService != nil, hasReadModelState else { return false }
+        return transcriptionModelState.isLongWait
+    }
+
+    /// Answers a press the model is not ready for, and gets the model moving
+    /// when nothing else is.
+    private func noteSpeechModelWait() {
+        let hotkey = binding.displayString
+        let notice: SpeechModelNotice
+        switch transcriptionModelState {
+        case .ready:
+            return
+        case let .preparing(preparation):
+            notice = .preparing(preparation, hotkey: hotkey)
+        case .unavailable:
+            notice = .starting(hotkey: hotkey)
+            startModelPreparation()
+        case let .failed(detail):
+            notice = .failed(detail)
+            startModelPreparation()
+        }
+        pressedWhileModelWasArriving = true
+        speechModelNotice = notice
+        Log.transcription.info("Press answered while the model was arriving: \(notice.logLabel, privacy: .public)")
+    }
+
+    /// Starts a fetch the app is asking for on the user's behalf, once.
+    ///
+    /// The held task is what makes a second press join the first rather than
+    /// start beside it: `prepareTranscriptionModel` only marks the state
+    /// `.preparing` once its own body runs, so two presses in the same turn of
+    /// the run loop would both find the model unavailable and both ask for it.
+    private func startModelPreparation() {
+        guard modelPreparationTask == nil else { return }
+        let phase = expectedPreparationPhase
+        modelPreparationTask = Task { [weak self] in
+            await self?.prepareTranscriptionModel(startingIn: phase)
+            self?.modelPreparationTask = nil
+        }
+    }
+
+    /// What a fetch started right now would begin by doing, as far as the last
+    /// reading of the engine's state can say.
+    ///
+    /// It matters because the phase decides whether a press is served or
+    /// answered, and the engine only reports its own phase once the load is
+    /// under way. Guessing `.loading` for what is really a download would leave
+    /// a window in which a press records into a five-minute wait.
+    private var expectedPreparationPhase: ModelPreparation.Phase {
+        guard case let .unavailable(_, needsUserAction) = transcriptionModelState else { return .loading }
+        return needsUserAction ? .downloading : .loading
+    }
+
+    /// Puts the notice out. The next dictation clears it anyway; this is for
+    /// the user who has read it.
+    func dismissSpeechModelNotice() {
+        guard speechModelNotice != nil else { return }
+        speechModelNotice = nil
+    }
+
     // MARK: - Transcription
 
-    /// Explicit user action: load or download the engine's model.
+    /// Loads or downloads the engine's model.
     ///
-    /// Safe to call more than once: the engine coalesces concurrent calls into
-    /// one load, so a second press joins the first rather than starting a
-    /// competing download.
-    func prepareTranscriptionModel() async {
+    /// Called by the app itself at launch, by a press that lands before the
+    /// model does, and by the retry button in the menu. Safe to call more than
+    /// once: the engine coalesces concurrent calls into one load, so a second
+    /// caller joins the first rather than starting a competing download.
+    func prepareTranscriptionModel(startingIn phase: ModelPreparation.Phase = .loading) async {
         guard let transcriptionService else { return }
         let profile = effectiveProfile
-        transcriptionModelState = .preparing(ModelPreparation(phase: .loading))
+        transcriptionModelState = .preparing(ModelPreparation(phase: phase))
         // Logged on both ends. Preparing a cold model runs for minutes, and
         // without a start and a finish there is no way to tell a slow load from
         // a stuck one.
@@ -771,6 +948,8 @@ final class DictationCoordinator: ObservableObject {
             try await transcriptionService.prepare(for: profile)
             phasePolling.cancel()
             transcriptionModelState = await transcriptionService.modelState(for: profile)
+            hasReadModelState = true
+            announceModelIsReady()
             // Explicitly public: string interpolations are redacted by default,
             // and a timing with no content in it is exactly what this log is
             // for. Without the annotation it arrives as "<private> s".
@@ -780,7 +959,20 @@ final class DictationCoordinator: ObservableObject {
             let message = (error as? TranscriptionError)?.message ?? error.localizedDescription
             Log.transcription.error("Model preparation failed: \(message, privacy: .public)")
             transcriptionModelState = .failed(message)
+            hasReadModelState = true
         }
+    }
+
+    /// Tells the person who pressed during the wait that the wait is over.
+    ///
+    /// Only them. A model that finishes loading while nobody has asked for
+    /// anything is the app working, and announcing it would be a panel opening
+    /// over somebody's document to report that nothing is wrong.
+    private func announceModelIsReady() {
+        guard pressedWhileModelWasArriving, transcriptionModelState.isReady else { return }
+        pressedWhileModelWasArriving = false
+        speechModelNotice = .ready(hotkey: binding.displayString)
+        Log.transcription.info("Told the user the model is ready after they pressed during the wait")
     }
 
     /// Mirrors the engine's preparation phase into the published state until
@@ -804,6 +996,8 @@ final class DictationCoordinator: ObservableObject {
     func refreshTranscriptionModelState() async {
         guard let transcriptionService else { return }
         transcriptionModelState = await transcriptionService.modelState(for: effectiveProfile)
+        hasReadModelState = true
+        announceModelIsReady()
     }
 
     func clearTranscript() {
@@ -1085,7 +1279,7 @@ final class DictationCoordinator: ObservableObject {
     /// microphone access was denied is not suddenly ready.
     private func applyEntitlement(_ state: EntitlementState) {
         entitlement = state
-        apply(.entitlementResolved(state.lock, permissionService.currentAuthorization))
+        apply(.entitlementResolved(state.lock, resolveMicrophoneAuthorization()))
     }
 
     /// Accepts a pasted key. Returns the failure so the view can print the one

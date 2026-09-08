@@ -84,9 +84,8 @@ actor WhisperKitTranscriptionService: TranscriptionService {
         if engine != nil { return .ready }
 
         // A load in flight has to be reported as such. Reporting "not loaded"
-        // instead puts the "Prepare speech model…" button back in front of a
-        // user who already pressed it, and every extra press used to start
-        // another load.
+        // instead puts the fetch button back in front of a user who is already
+        // waiting on one, and every extra press used to start another load.
         if let preparation {
             return .preparing(elapsedAdjusted(preparation))
         }
@@ -233,14 +232,16 @@ actor WhisperKitTranscriptionService: TranscriptionService {
             )
         }
 
-        // Dictation never starts a download on its own: fetching the weights is
-        // the app's only network access and stays bound to the explicit
-        // "Prepare speech model…" action. Joining a load that action already
-        // started is fine, and beats failing a recording the user just made.
+        // Dictation never starts a download from inside a recording. The fetch
+        // belongs to launch and to the menu, where it can report progress and
+        // be waited for; starting one here would tie a 600 MB download to a
+        // recording the user expects back in seconds. Joining a load that is
+        // already running is fine, and beats failing a recording they just
+        // made — and since the coordinator answers a press the model is not
+        // ready for, reaching this at all now means a load that ended between
+        // the press and the transcription.
         guard engine != nil || loadTask != nil else {
-            throw TranscriptionError.modelUnavailable(
-                "The speech model is not loaded. Use \u{201C}Prepare speech model\u{2026}\u{201D} first."
-            )
+            throw TranscriptionError.modelUnavailable("The speech model is not loaded yet.")
         }
         let engine = try await loadedEngine()
 

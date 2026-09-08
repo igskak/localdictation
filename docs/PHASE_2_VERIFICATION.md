@@ -90,6 +90,11 @@ itself part of what Phase 3 has to handle.
 Build and run from Xcode, or launch the built app. It has no Dock icon; look in
 the menu bar.
 
+> Steps 1 and 3 record Phase 2 behaviour and have both been superseded — see
+> *The first run stops making the user find things* in `docs/REFINEMENTS.md`.
+> The first run now asks for both permissions from its own window, and the model
+> download starts at launch instead of waiting for a button.
+
 1. [ ] Nothing prompts for microphone or speech access **at launch**. The
        permission dialog appears only after the explicit menu action.
 2. [ ] Pick a language profile in the menu.

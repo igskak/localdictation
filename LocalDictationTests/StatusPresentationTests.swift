@@ -18,6 +18,24 @@ final class StatusPresentationTests: XCTestCase {
         XCTAssertFalse(presentation.showsPermissionRequest)
     }
 
+    /// "Ready — hold ⌥Space to record" is a lie for as long as a press cannot
+    /// produce text, and a first-run download nobody announced is
+    /// indistinguishable from an app that has stopped.
+    func testAnArrivingModelIsSaidRatherThanCalledReady() {
+        let arriving = StatusPresentation(
+            state: .ready,
+            binding: binding,
+            modelState: .preparing(ModelPreparation(phase: .downloading, progress: 0.42))
+        )
+        XCTAssertEqual(arriving.title, "Getting the speech model")
+        XCTAssertTrue(arriving.detail.contains("42%"))
+        XCTAssertEqual(arriving.tint, .neutral)
+
+        let broken = StatusPresentation(state: .ready, binding: binding, modelState: .failed("no space left"))
+        XCTAssertEqual(broken.tint, .warning)
+        XCTAssertTrue(broken.detail.contains("no space left"))
+    }
+
     func testNotDeterminedOffersAnExplicitRequest() {
         let presentation = StatusPresentation(state: .needsPermission, binding: binding)
         XCTAssertTrue(presentation.showsPermissionRequest)

@@ -31,6 +31,11 @@ struct LocalDictationApp: App {
                 systemImage: StatusPresentation(
                     state: coordinator.state,
                     binding: coordinator.binding,
+                    // Carried into the label since the app fetches the model
+                    // itself: the arrow in the menu bar is the only sign a
+                    // first-run download is happening that reaches somebody who
+                    // has not opened anything.
+                    modelState: coordinator.transcriptionModelState,
                     attentionIsPending: coordinator.attentionIsPending,
                     silentResult: coordinator.silentResult,
                     captureInterruption: coordinator.captureInterruptionMessage

@@ -287,9 +287,22 @@ private struct ModelStateView: View {
 
             switch state {
             case .unavailable, .failed:
-                Button("Prepare speech model…", action: prepare)
-            case .preparing:
-                ProgressView().controlSize(.small)
+                // A retry rather than the first ask: since the app fetches the
+                // model at launch, a user who sees this button is looking at a
+                // download that did not happen — no network, no disk — and the
+                // old "Prepare speech model…" described a step they never had
+                // to take.
+                Button("Get the speech model", action: prepare)
+            case let .preparing(preparation):
+                // Determinate where there is a real number, which in practice
+                // means the download: a bar that fills is the difference
+                // between waiting and wondering.
+                if let progress = preparation.progress {
+                    ProgressView(value: progress)
+                        .controlSize(.small)
+                } else {
+                    ProgressView().controlSize(.small)
+                }
             case .ready:
                 EmptyView()
             }
