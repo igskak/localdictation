@@ -508,3 +508,46 @@ minute — against this file's own argument that a countdown which is always
 visible is one nobody reads on the day it matters. `EntitlementNotice` gets a
 threshold of its own: the last day, or nothing, and it arrives already pressing
 because there is no gentler step before it.
+
+## Activation stops looking like it has a second step
+
+The mail that carries a key is useful exactly once — when somebody reinstalls
+Witness or replaces their Mac — and it arrives at the one moment it is most
+likely to be mistaken for homework. A person who has just been refused, typed
+an address, and then received a message containing a long `LD1.…` string has
+every reason to believe the string is what they do next.
+
+It is not. The key comes back on the same connection that carried the address,
+verifies, and unlocks the app before the mail is even sent. Nothing about that
+was said anywhere the user was looking, so three sentences now say it:
+
+- **Before the press.** The button reads "Send me a key", which is a promise of
+  something arriving in the post, so `activationHint` opens by saying the key
+  comes straight back here and there is nothing to paste.
+- **At the press.** Every branch of `activationSucceeded` now leads with the
+  fact that it is done and there is nothing else to enter — the trial, the
+  annual and the lifetime alike.
+- **Under it.** `keyByMailNote` says what the copy in the mail is for, and it is
+  worded to stay true when the mail never arrives. This app is never told
+  whether it did: the reply to an activation is a key and nothing else, and
+  `Service/src/activate.js` mails on a best effort, only for a device slot with
+  no `mailed_at`. So the note says a copy is *going* rather than that it was
+  delivered, and it names the recovery — pressing the button again returns the
+  identical key, because `issueToken` is deterministic, and retries the mail,
+  because the slot is still unmailed. A test asserts the note never claims
+  delivery.
+
+The address is also cleared from the field afterwards. It has done its job, and
+leaving it there under a form that has just relabelled itself "Already bought a
+license?" makes the screen look like it is still waiting to be submitted.
+
+### And the window behind it was checked rather than assumed
+
+`testActivatingAtTheWallLeavesTheWindowShowingARunningTrial` walks the whole
+path — dictate, reach the wall on the fourth day, activate — and asserts what
+Settings → License then shows: "Trial, activated", ten days left, the form gone,
+the offers present. It asserts the change was *published* as well as made, since
+the view reads `coordinator.entitlement` and a service that unlocked without
+telling anyone would leave the user staring at the wall they had just paid an
+address to get past. `testTheDaysLeftFallAsTheTrialRuns` covers the count coming
+down on refresh rather than on relaunch.

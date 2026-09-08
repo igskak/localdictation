@@ -139,6 +139,69 @@ final class EntitlementServiceTests: XCTestCase {
         XCTAssertEqual(service.state, .locked(.activationRequired))
     }
 
+    // MARK: - What the window says after activating
+
+    /// The whole path a stranger takes, and what Settings → License shows at
+    /// the end of it: dictate, hit the wall on the fourth day, type an address,
+    /// and get a screen that says the trial is running and how long is left.
+    ///
+    /// Asserted end to end rather than by constructing a `.licensed` state,
+    /// because the thing worth checking is that the state actually *moves* —
+    /// the view reads `coordinator.entitlement`, and a service that unlocked
+    /// without republishing would leave the user looking at the wall they had
+    /// just paid an address to get past.
+    func testActivatingAtTheWallLeavesTheWindowShowingARunningTrial() async throws {
+        let clock = Clock(origin)
+        let (authority, signingKey) = TestLicenseIssuer.makeAuthority()
+        let backend = FakeActivationBackend()
+        let service = makeService(authority: authority, backend: backend, clock: clock)
+
+        spendTheUngatedWindow(service, clock)
+        XCTAssertEqual(LicensePresentation(state: service.state, now: clock.value).headline, "Activate to keep dictating")
+
+        // What the service issues: ten days from the moment of activation.
+        let expiry = clock.value.addingTimeInterval(EntitlementPolicy.trialDuration)
+        backend.setResult(.success(try TestLicenseIssuer.issue(
+            kind: .trial,
+            deviceID: device,
+            expiresAt: expiry,
+            signingKey: signingKey
+        )))
+
+        var changes: [EntitlementState] = []
+        service.onChange = { changes.append($0) }
+        let issued = await service.requestActivation(email: "someone@example.com")
+        XCTAssertEqual(try issued.get().kind, .trial)
+
+        XCTAssertTrue(service.state.allowsDictation)
+        XCTAssertEqual(service.state.license?.kind, .trial)
+        XCTAssertEqual(changes.last?.license?.kind, .trial, "the view is told, rather than having to ask again")
+
+        let presentation = LicensePresentation(state: service.state, now: clock.value)
+        XCTAssertEqual(presentation.headline, "Trial, activated")
+        XCTAssertTrue(presentation.detail.contains("10 days left"), presentation.detail)
+        XCTAssertFalse(presentation.showsActivation, "the form that was just used is no longer the thing to do")
+        XCTAssertTrue(presentation.showsOffers, "a running trial is where the offers belong")
+    }
+
+    /// And the count comes down as the days do, without a relaunch.
+    func testTheDaysLeftFallAsTheTrialRuns() throws {
+        let clock = Clock(origin)
+        let (authority, signingKey) = TestLicenseIssuer.makeAuthority()
+        let service = makeService(authority: authority, clock: clock)
+        let expiry = origin.addingTimeInterval(EntitlementPolicy.trialDuration)
+        let token = try TestLicenseIssuer.issue(kind: .trial, deviceID: device, expiresAt: expiry, signingKey: signingKey)
+        XCTAssertNoThrow(try service.enter(key: token).get())
+
+        for (elapsedDays, expected) in [(0.0, "10 days left"), (4.0, "6 days left"), (9.5, "1 day left")] {
+            clock.set(origin.addingTimeInterval(elapsedDays * 86_400))
+            service.refresh()
+
+            let presentation = LicensePresentation(state: service.state, now: clock.value)
+            XCTAssertTrue(presentation.detail.contains(expected), "day \(elapsedDays): \(presentation.detail)")
+        }
+    }
+
     /// A trial that runs out while the app is open has to be noticed without a
     /// relaunch, which is why the verdict is recomputed and never cached.
     func testATrialExpiringWhileTheAppIsOpenIsNoticedOnRefresh() throws {

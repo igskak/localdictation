@@ -142,10 +142,38 @@ final class LicensePresentationTests: XCTestCase {
     /// From a live purchase: the app told a customer holding a year that "the
     /// trial runs for fourteen days". The sentence was chosen from the form's
     /// label before the call instead of from the licence that came back.
+    /// The two sentences a person reads at the one moment they are most likely
+    /// to think there is another step.
+    func testActivationSaysItIsDoneAndWhatTheMailedKeyIsFor() {
+        for kind in [LicenseKind.trial, .annual, .lifetime] {
+            XCTAssertTrue(
+                LicensePresentation.activationSucceeded(kind).contains("nothing else to enter"),
+                "\(kind.rawValue) does not say the work is finished"
+            )
+        }
+
+        let note = LicensePresentation.keyByMailNote
+        XCTAssertTrue(note.contains("You do not need it now"))
+        XCTAssertTrue(note.contains("reinstall") && note.contains("replace this Mac"))
+        // Never a claim about delivery: this app is told a key, not whether a
+        // mail arrived, and `Service/src/activate.js` mails on a best effort.
+        XCTAssertFalse(note.contains("has been sent") || note.contains("was sent"))
+        XCTAssertTrue(note.contains("press the button again"), "the recovery has to be named, not implied")
+    }
+
+    /// Said before the press as well as after it. The button reads "Send me a
+    /// key", which is a promise of something arriving in the post.
+    func testTheFormSaysTheKeyDoesNotHaveToBeFetched() {
+        let presentation = LicensePresentation(state: .locked(.activationRequired), now: now)
+
+        XCTAssertEqual(presentation.activationButtonTitle, "Send me a key")
+        XCTAssertTrue(presentation.activationHint.contains("nothing to paste"), presentation.activationHint)
+    }
+
     func testTheSuccessSentenceDescribesWhatArrivedAndNotWhatWasAsked() {
         XCTAssertEqual(
             LicensePresentation.activationSucceeded(.annual),
-            "Your annual license is on this Mac now."
+            "Your annual license is on this Mac now. There is nothing else to enter."
         )
         XCTAssertTrue(LicensePresentation.activationSucceeded(.lifetime).contains("lifetime"))
         XCTAssertTrue(LicensePresentation.activationSucceeded(.trial).contains("ten days"))

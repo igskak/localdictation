@@ -17,7 +17,9 @@ struct LicenseView: View {
 
     private enum Notice: Equatable {
         case failure(String)
-        case success(String)
+        /// The second string is the quiet line under the green one. Only
+        /// activation has one — see `LicensePresentation.keyByMailNote`.
+        case success(String, note: String? = nil)
     }
 
     private var presentation: LicensePresentation {
@@ -70,11 +72,19 @@ struct LicenseView: View {
                         .font(.callout)
                         .foregroundStyle(.orange)
                         .fixedSize(horizontal: false, vertical: true)
-                case let .success(message):
-                    Label(message, systemImage: "checkmark.circle")
-                        .font(.callout)
-                        .foregroundStyle(.green)
-                        .fixedSize(horizontal: false, vertical: true)
+                case let .success(message, note):
+                    VStack(alignment: .leading, spacing: 4) {
+                        Label(message, systemImage: "checkmark.circle")
+                            .font(.callout)
+                            .foregroundStyle(.green)
+                            .fixedSize(horizontal: false, vertical: true)
+                        if let note {
+                            Text(note)
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
                 }
             }
         }
@@ -234,7 +244,14 @@ struct LicenseView: View {
         // Read *after* the call, from the licence that arrived. What the form
         // was labelled is a guess about the person; what came back is a fact
         // about what they own, and only the service knows it.
-        notice = .success(LicensePresentation.activationSucceeded(coordinator.entitlement.license?.kind))
+        notice = .success(
+            LicensePresentation.activationSucceeded(coordinator.entitlement.license?.kind),
+            note: LicensePresentation.keyByMailNote
+        )
+        // The address has done its job. Leaving it in the field makes the form
+        // below — which is now labelled "Already bought a license?" — look like
+        // something still waiting to be submitted.
+        email = ""
     }
 }
 

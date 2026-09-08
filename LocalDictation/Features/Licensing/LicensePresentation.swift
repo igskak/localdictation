@@ -31,9 +31,19 @@ struct LicensePresentation: Sendable, Equatable {
     /// form is running changes all three, and copy in this file is testable.
     private(set) var activationTitle = "Activate the trial"
     private(set) var activationButtonTitle = "Send me a key"
-    private(set) var activationHint = "The address and an identifier for this Mac are the only things sent, "
-        + "and they are sent only when you press the button. No audio, no text, and nothing from your "
-        + "dictionary ever leaves this Mac."
+    /// Two jobs, and the second one is newer than the first.
+    ///
+    /// The privacy sentence has been here since Phase 6. The sentence after it
+    /// exists because the button says "Send me a key", which is a promise of
+    /// something arriving in the post — so a user reasonably expects to have to
+    /// go and fetch it. They do not: the key comes back on the same connection
+    /// and unlocks the app before the mail is even sent. Saying so here costs a
+    /// line and saves the person who would otherwise sit waiting for an email
+    /// in order to use software that is already working.
+    private(set) var activationHint = "The key comes straight back here and unlocks the app — there is nothing "
+        + "to fetch from your mail and nothing to paste. The address and an identifier for this Mac are the "
+        + "only things sent, and they are sent only when you press the button. No audio, no text, and nothing "
+        + "from your dictionary ever leaves this Mac."
     let symbol: String
 
     init(state: EntitlementState, now: Date = Date()) {
@@ -166,18 +176,47 @@ struct LicensePresentation: Sendable, Equatable {
     /// date of the first dictation — `docs/PHASE_8.md` froze the request at two
     /// fields on purpose. While the ungated window was 24 hours the gap was too
     /// small to notice; at three days it is a sentence the user can catch out.
+    ///
+    /// Each of these says the same first thing in its own words: **it is
+    /// already done, and there is nothing to type.** A user who has just been
+    /// refused, typed an address, and then gets a mail containing a long
+    /// `LD1.…` string has every reason to think the string is the next step.
+    /// It is not — the key came back over the same connection and is already
+    /// stored. `keyByMailNote` is what the mail is actually for.
     static func activationSucceeded(_ kind: LicenseKind?) -> String {
         switch kind {
         case .trial:
-            "Activated. The trial runs for ten days from today."
+            "Activated, and there is nothing else to enter. The trial runs for ten days from today."
         case .annual:
-            "Your annual license is on this Mac now."
+            "Your annual license is on this Mac now. There is nothing else to enter."
         case .lifetime:
-            "Your lifetime license is on this Mac now. Nothing further is needed here — no renewal, and no connection."
+            "Your lifetime license is on this Mac now. There is nothing else to enter — no renewal, and no connection."
         case nil:
             "The key for this Mac was accepted."
         }
     }
+
+    /// What the emailed copy of the key is for, said where the user is looking
+    /// rather than left to be worked out from the mail itself.
+    ///
+    /// Two things in it are load-bearing and both are chosen to be true even
+    /// when the mail does not arrive:
+    ///
+    /// - It says the copy is *going*, not that it was delivered. This app never
+    ///   learns whether it was: the reply to an activation is a key and nothing
+    ///   else, and `Service/src/activate.js` mails on a best effort, only for a
+    ///   device slot that has not been mailed before.
+    /// - It says what to do if it never comes, and the answer is genuinely
+    ///   nothing to worry about: `issueToken` is deterministic, so the same
+    ///   address on the same Mac returns the identical key, and the service
+    ///   retries the mail on that press because the slot is still unmailed.
+    ///
+    /// It is shown only after an activation. Entering a key by hand sends no
+    /// mail, and promising one there would be a sentence about something that
+    /// did not happen.
+    static let keyByMailNote = """
+    A copy of the key is also on its way to that address. You do not need it now —     it is for when you reinstall Witness or replace this Mac. If it never arrives,     press the button again: the same key comes back here and the mail is retried.
+    """
 
     /// "1 day", "5 days". Small, and the alternative is a string with a
     /// parenthesised plural in it.
