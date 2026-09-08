@@ -112,6 +112,18 @@ final class DictationCoordinator: ObservableObject {
     /// and the words are in the document. Off is for users who want the
     /// keystroke to be theirs.
     @Published var insertsAutomatically = true { didSet { persistPreferences() } }
+    /// Whether the three licensing-funnel events may leave this Mac.
+    ///
+    /// On by default and turned off in one click. It is written to the
+    /// preferences file like every other switch, and it is also pushed into
+    /// `telemetryConsent` on the way, because the object that reads it was
+    /// built before this file was loaded — see `TelemetryConsent`.
+    @Published var sharesProductEvents = true {
+        didSet {
+            telemetryConsent?.isAllowed = sharesProductEvents
+            persistPreferences()
+        }
+    }
     /// Whether this Mac may dictate, and what it should be told if not.
     ///
     /// Republished from `EntitlementService` rather than owned here, so the
@@ -176,6 +188,9 @@ final class DictationCoordinator: ObservableObject {
     private let accessibilityService: (any AccessibilityPermissionService)?
     private let insertionService: (any TextInsertionService)?
     private let entitlementService: EntitlementService?
+    /// The gate the telemetry transport reads. Held so the toggle above can
+    /// move it; `nil` in a build or a test with no transport.
+    private let telemetryConsent: TelemetryConsent?
     private let preferencesStore: (any PreferencesStore)?
     private let secureInputSource: (any SecureInputSource)?
 
@@ -251,6 +266,7 @@ final class DictationCoordinator: ObservableObject {
         accessibilityService: (any AccessibilityPermissionService)? = nil,
         insertionService: (any TextInsertionService)? = nil,
         entitlementService: EntitlementService? = nil,
+        telemetryConsent: TelemetryConsent? = nil,
         preferencesStore: (any PreferencesStore)? = nil,
         secureInputSource: (any SecureInputSource)? = nil,
         configuration: AudioCaptureConfiguration = .default,
@@ -271,6 +287,7 @@ final class DictationCoordinator: ObservableObject {
         self.accessibilityService = accessibilityService
         self.insertionService = insertionService
         self.entitlementService = entitlementService
+        self.telemetryConsent = telemetryConsent
         self.preferencesStore = preferencesStore
         self.secureInputSource = secureInputSource
         self.configuration = configuration
@@ -1405,6 +1422,11 @@ final class DictationCoordinator: ObservableObject {
         languageProfile = preferences.languageProfile
         insertsAutomatically = preferences.insertsAutomatically
         hasChosenLanguages = preferences.hasChosenLanguages
+        sharesProductEvents = preferences.sharesProductEvents
+        // `isApplyingPreferences` suppresses the write-back, not this: the
+        // whole point of the box is that the transport reads the stored answer
+        // rather than the default it was built with.
+        telemetryConsent?.isAllowed = preferences.sharesProductEvents
     }
 
     /// Whether the first-run language picker still has to be shown.
@@ -1432,7 +1454,8 @@ final class DictationCoordinator: ObservableObject {
             activation: activation,
             languageProfile: languageProfile,
             insertsAutomatically: insertsAutomatically,
-            hasChosenLanguages: hasChosenLanguages
+            hasChosenLanguages: hasChosenLanguages,
+            sharesProductEvents: sharesProductEvents
         )
     }
 
@@ -1743,6 +1766,10 @@ extension DictationCoordinator {
         // same reason there is one trust reader: the menu warning and the
         // refusal must never disagree about which application is holding it.
         let secureInput = SystemSecureInput()
+        // One consent box, shared: the entitlement service's transport reads
+        // it and the Settings toggle writes it. Two would let the switch and
+        // the sender disagree about the answer the user gave.
+        let telemetryConsent = TelemetryConsent()
         return DictationCoordinator(
             permissionService: AVCaptureMicrophonePermissionService(),
             hotkeyService: CarbonHotkeyService(),
@@ -1770,8 +1797,10 @@ extension DictationCoordinator {
             // `docs/PHASE_6.md` and `docs/PHASE_8.md`.
             entitlementService: EntitlementService(
                 store: FileEntitlementStore(),
-                backend: ActivationEndpoint.backend()
+                backend: ActivationEndpoint.backend(),
+                telemetryConsent: telemetryConsent
             ),
+            telemetryConsent: telemetryConsent,
             // The third and last thing this app writes to disk. Everything in
             // it is a choice the user made about the app, and none of it is
             // derived from anything that was said.

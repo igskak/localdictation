@@ -3,9 +3,9 @@
 The other half of `docs/PHASE_8.md`. It turns an email address into a signed
 license key for one Mac, mails a copy, and counts the two Macs a license covers.
 
-It is deliberately small — two endpoints, a webhook, and a health check — and it
-is allowed to be, because Phase 6 made a license a signature rather than a phone
-call. **The app never asks this service whether a license is valid.** It asks it
+It is deliberately small — three endpoints, a webhook, and a health check — and
+it is allowed to be, because Phase 6 made a license a signature rather than a
+phone call. **The app never asks this service whether a license is valid.** It asks it
 once, for a key, and verifies that key offline forever after. This service being
 down means nobody new can activate; it does not mean a single paid copy stops
 working.
@@ -22,6 +22,7 @@ src/
   activate.js   POST /v1/activate: the whole of what a person can be told
   release.js    POST /v1/devices/release: the key is the proof
   webhook.js    POST /v1/purchases/webhook: money becoming an entitlement
+  events.js     POST /v1/events: three funnel events, and no address anywhere
   providers.js  Paddle and Stripe, behind one shape
   token.js      the frozen payload, byte for byte
   signing.js    Ed25519, and the check that the secret matches the shipped app
@@ -204,6 +205,14 @@ service keeping one.
 One column is not in that document's table: `mailed_at`. It is what makes
 "pressing Send me a key twice mails one key" true, and what lets a key whose
 first delivery failed be sent by the next press instead of being lost.
+
+One table is not in it either: `product_events`, added when
+`docs/PHASE_8_DECISIONS.md` D7 was reversed for three of the ten events. It is
+the only table here with no email in it at all, and it cannot be joined to one:
+`install_id` is a random value the app makes at install and derives from
+nothing, so it matches neither `licenses.email` nor `device_slots.device`. Rows
+are deleted after ninety days, swept behind the answer the way the rate counters
+are. `docs/PRIVACY.md` prints the row shape and the retention period.
 
 ## Stripe
 
@@ -426,6 +435,7 @@ cannot know.
 | `GET /v1/health` | Database, signing key, and whether that key matches the app | built |
 | `POST /v1/devices/release` | Frees one of the two Macs. Possession of the key is the proof | built |
 | `POST /v1/purchases/webhook` | Provider-signed, idempotent on the event id | built; needs D2's account |
+| `POST /v1/events` | The three licensing-funnel events the app may send. Two allowlists, ninety-day retention, no address stored | built |
 
 The order is `docs/PHASE_8.md`'s: the trial path first, because it is the one a
 stranger walks and the only one that needs nothing bought, decided, or signed up

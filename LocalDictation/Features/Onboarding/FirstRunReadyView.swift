@@ -68,6 +68,21 @@ struct FirstRunReadyView: View {
 
             Spacer(minLength: 0)
 
+            // The one thing on this screen that is about the app rather than
+            // about getting started, and it is here because a switch defaulted
+            // on has to be said out loud somewhere the user is actually
+            // looking. The sentence names what leaves and where the switch is;
+            // `docs/PRIVACY.md` names the five fields.
+            Text(
+                "Nothing you dictate ever leaves this Mac. Three events about the trial itself do — when it "
+                    + "starts, when it asks for an email, and when it shows the offers — with no more than an app "
+                    + "version, a macOS version, and a random number made at install. Settings → Privacy turns "
+                    + "them off."
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+
             HStack {
                 Text("Everything here is in Settings, and the menu bar icon is where the app lives.")
                     .font(.caption)

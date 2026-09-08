@@ -63,6 +63,19 @@ struct Preferences: Sendable, Equatable, Codable {
     /// has not been asked either, and their stored pair is what the picker
     /// opens with.
     var hasChosenLanguages: Bool
+    /// Whether the three licensing-funnel events may be sent.
+    ///
+    /// On by default, and the only field here that is on by default *and*
+    /// sends something. That asymmetry is deliberate and is the whole of the
+    /// decision: an opt-in measurement of where people give up is measured on
+    /// the people who did not give up, which answers a different question than
+    /// the one it was built for. What it owes in exchange is that the first-run
+    /// screen says it out loud, `docs/PRIVACY.md` names all five fields, and
+    /// this switch is one click away in Settings → Privacy.
+    ///
+    /// It gates `trial_started`, `activation_requested` and `paywall_shown`.
+    /// Nothing else is transmitted at all — see `TelemetryEvent.transmitted`.
+    var sharesProductEvents: Bool
 
     static let `default` = Preferences(
         hotkeyKeyCode: HotkeyBinding.optionSpace.keyCode,
@@ -71,7 +84,8 @@ struct Preferences: Sendable, Equatable, Codable {
         activation: .pushToTalk,
         languageProfile: .default,
         insertsAutomatically: true,
-        hasChosenLanguages: false
+        hasChosenLanguages: false,
+        sharesProductEvents: true
     )
 
     /// Decoded field by field only so the newest one can be absent.
@@ -88,6 +102,11 @@ struct Preferences: Sendable, Equatable, Codable {
         languageProfile = try container.decode(LanguageProfile.self, forKey: .languageProfile)
         insertsAutomatically = try container.decode(Bool.self, forKey: .insertsAutomatically)
         hasChosenLanguages = try container.decodeIfPresent(Bool.self, forKey: .hasChosenLanguages) ?? false
+        // Absent on a file written by a build that had nothing to transmit.
+        // `true` is the same answer that build gave in practice — it sent
+        // nothing because there was nowhere to send it, and this one asks on
+        // the first-run screen before the first of these events can happen.
+        sharesProductEvents = try container.decodeIfPresent(Bool.self, forKey: .sharesProductEvents) ?? true
     }
 
     init(
@@ -97,7 +116,8 @@ struct Preferences: Sendable, Equatable, Codable {
         activation: RecordingActivation,
         languageProfile: LanguageProfile,
         insertsAutomatically: Bool,
-        hasChosenLanguages: Bool
+        hasChosenLanguages: Bool,
+        sharesProductEvents: Bool = true
     ) {
         self.hotkeyKeyCode = hotkeyKeyCode
         self.hotkeyModifiers = hotkeyModifiers
@@ -106,6 +126,7 @@ struct Preferences: Sendable, Equatable, Codable {
         self.languageProfile = languageProfile
         self.insertsAutomatically = insertsAutomatically
         self.hasChosenLanguages = hasChosenLanguages
+        self.sharesProductEvents = sharesProductEvents
     }
 
     var hotkeyBinding: HotkeyBinding {

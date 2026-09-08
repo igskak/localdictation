@@ -43,6 +43,7 @@ final class PreferencesStoreTests: XCTestCase {
                 "languageProfile",
                 "insertsAutomatically",
                 "hasChosenLanguages",
+                "sharesProductEvents",
             ]
         )
     }
@@ -72,6 +73,21 @@ final class PreferencesStoreTests: XCTestCase {
         XCTAssertEqual(loaded.hotkeyKeyLabel, "J")
         XCTAssertFalse(loaded.insertsAutomatically)
         XCTAssertFalse(loaded.hasChosenLanguages)
+        // Absent, and `true` is the answer that file's build gave in practice:
+        // it transmitted nothing because there was nowhere to send it, and this
+        // build asks on the first-run screen before the first event can happen.
+        XCTAssertTrue(loaded.sharesProductEvents)
+    }
+
+    /// The switch survives a reload like every other choice in this file. A
+    /// privacy switch that reverts on the next launch is not a privacy switch.
+    func testTurningProductEventsOffSurvivesAReload() throws {
+        let store = store()
+        var preferences = Preferences.default
+        preferences.sharesProductEvents = false
+        try store.save(preferences)
+
+        XCTAssertFalse(try store.load().sharesProductEvents)
     }
 
     func testASelectionOfThreeLanguagesSurvivesAReload() throws {

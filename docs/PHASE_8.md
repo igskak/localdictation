@@ -203,6 +203,7 @@ error in fraud.
 | Kind, issued, expires, key id | What was issued | Life of the license |
 | Provider order id | Reconciling a payment | Whatever the accountant says invoices need — flag D5 |
 | IP, in a rate-limit counter | Abuse | 24 hours, counter only |
+| Three funnel events: install id, event name, optional qualifier, app version, OS version | Counting where people stop. Added when D7 was reversed — `docs/REFINEMENTS.md` | 90 days, then deleted |
 
 Nothing content-derived appears above, and nothing in this product can put it
 there: the app has no field to send it in. The device hash cannot be turned back

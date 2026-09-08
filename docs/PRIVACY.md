@@ -17,19 +17,20 @@ names the file that makes it true.
 
 Nothing you dictate leaves your Mac. Not the audio, not the transcript, not the
 cleaned text, not your dictionary, not the names of the applications you dictate
-into, and nothing derived from any of them. There is no account, no sign-in, and
-no analytics.
+into, and nothing derived from any of them. There is no account and no sign-in.
 
-Three things can leave. Two of them because you pressed something, and one
-because the app cannot recognize a word without it:
+Four things can leave. Two because you pressed something, one because the app
+cannot recognize a word without it, and one — three events about the trial —
+that you can switch off in Settings → Privacy:
 
 | What | When | To whom | Why |
 | --- | --- | --- | --- |
 | A request for the speech model | The first launch, automatically, and any later one where the model is missing — or when you press **Get the speech model** | Hugging Face, WhisperKit's host | Fetching a static file. One way — nothing is uploaded, and the request carries no identifier of you or this Mac |
 | Your email address and a device identifier | You press **Send me a key** or **Send my key** | The Witness activation service, at `api.witnessmac.com` | Issuing a licence key for this Mac |
 | A licence key you already hold | You press **Remove from this Mac** | The same service | Freeing one of the two Macs your licence covers |
+| Three events about the trial, each with an app version, a macOS major and minor version, and a random number made at install | A trial starts, the app asks for an email, or it puts the offers on screen — unless you turned this off | The same service, at `api.witnessmac.com` | Counting how many people reach the wall and how many get past it |
 
-That is the complete list. There is no fourth row.
+That is the complete list. There is no fifth row.
 
 The first row used to wait for a button. It no longer does: the weights are the
 one thing the product cannot work without, so a fresh install starts fetching
@@ -102,6 +103,7 @@ fields to send and neither can carry it.
 | The payment provider's order id | Reconciling a payment, and invoices | As long as tax law requires |
 | Your IP address, as a counter | Rate limiting, against abuse | 24 hours, as a count and not as a log |
 | Provider identifiers for your purchase | Matching a later renewal or refund to your licence rather than to somebody else's | The life of the licence |
+| The three product events above, as rows carrying only the five fields named | Counting the funnel | 90 days, then deleted — `Service/src/events.js`, and a test asserts the sweep |
 
 The licence key itself is not stored. It is reproduced from the fields above
 when you ask for it again, which is also why asking twice gives you the same key
@@ -117,22 +119,61 @@ key can be issued for that address, so a Mac you replace afterwards cannot be
 activated. Keys already on your Macs keep working — they are checked on the Mac,
 against a signature, with no connection.
 
-## Product events
+## Product events, field by field
 
-`LocalDictation/Services/Telemetry/ProductTelemetryService.swift` builds ten
-events about the licensing funnel — installed, trial started, activation
-requested, and so on — each carrying an app version, an OS major and minor
-version, and a random identifier made at install that is derived from nothing
-and cannot be joined to the device identifier above.
+`LocalDictation/Services/Telemetry/ProductTelemetryService.swift`
 
-**None of them is transmitted.** They are written to the local log, and
-`docs/PHASE_8_DECISIONS.md` D7 records the decision to ship it that way. If that
-ever changes, it changes with consent asked for in the app and with a row added
-to the table at the top of this document — not quietly.
+The app builds ten events about the licensing funnel. **Three of them are sent.
+The other seven are written to the local log and go nowhere**, which is what
+every earlier version of this app did with all ten — `docs/PHASE_8_DECISIONS.md`
+D7 recorded that decision and `docs/REFINEMENTS.md` records reversing it for
+these three.
 
-The type they are built from has no free-form field anywhere in it, so there is
-nothing for a transcript to be passed into even by accident.
-`TelemetryBoundaryTests` asserts that.
+| Event | Sent when |
+| --- | --- |
+| `trial_started` | Your first successful dictation — the moment the fourteen days start |
+| `activation_requested` | You press **Send me a key** or **Send my key** |
+| `paywall_shown` | The app puts the offers on screen, with which of the four reasons it did |
+
+Each one is this, and nothing else:
+
+```json
+{"app_version":"0.3.0","event":"trial_started","install_id":"<a random UUID>","system_version":"15.0"}
+```
+
+`paywall_shown` adds a fifth field, `qualifier`, whose value is one of four
+fixed words: `activationRequired`, `trialExpired`, `licenseExpired`,
+`updateRequired`. There is no sixth field, and
+`PrivacyDisclosureTests.testEveryFieldTheAppCanSendIsNamedInTheDocument` fails
+if one is added without this document naming it.
+
+- **`install_id`** is a random value made once, when the app is installed. It is
+  derived from nothing — not from this Mac, not from you, not from your licence
+  — so it cannot be joined to the device identifier a licence carries, to your
+  email address, or to anything outside this product. `TelemetryBoundaryTests`
+  asserts that it is not the device hash.
+- **`app_version`** and **`system_version`** are what they say. The macOS version
+  is major and minor only: a rare build number is an identifier.
+- **`event`** and **`qualifier`** come from an enum with no free-form string
+  anywhere in it, so there is nothing for a transcript, a dictionary term, or
+  the name of an application to be passed into even by accident.
+  `TelemetryBoundaryTests` asserts that too, and the service refuses any event
+  name or qualifier outside the lists above.
+
+**Turning it off.** Settings → Privacy, one switch, which is on when the app is
+installed. The first-run screen says so before the first of these events can
+happen. Off means none of the three is sent and nothing else about the app
+changes — not the trial, not the dictation, not the licence.
+
+**Why it is on by default, said plainly.** These three events exist to answer
+one question: how many people stop at the fifth dictation. A count that only
+includes people who opted in is a count of people who did not stop, which
+answers a different question. That is the reason, it is not a good enough
+reason to be quiet about, and so it is written on the first-run screen and
+here, and the switch is one click away.
+
+Nothing about what you dictate is in any of this, and nothing could be: the
+message has five fields and none of them can hold a word you said.
 
 ## Crash reports and diagnostics
 

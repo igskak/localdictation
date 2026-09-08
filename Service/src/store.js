@@ -232,6 +232,23 @@ export class Store {
     await this.run(`DELETE FROM rate_counters WHERE window_start < ?`, [now - 86400]);
   }
 
+  // MARK: - Product events
+
+  /// One row per event. Nothing here is read back by the app, and nothing in
+  /// it identifies a person: the ninety-day sweep below is the retention the
+  /// privacy policy promises, not a cleanup.
+  async recordEvent({ installID, event, qualifier, appVersion, systemVersion, at }) {
+    await this.run(
+      `INSERT INTO product_events (install_id, event, qualifier, app_version, system_version, received_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [installID, event, qualifier ?? null, appVersion, systemVersion, at],
+    );
+  }
+
+  async forgetOldEvents(now, retentionSeconds) {
+    await this.run(`DELETE FROM product_events WHERE received_at < ?`, [now - retentionSeconds]);
+  }
+
   // MARK: - The three methods a D1 binding has
 
   async first(sql, params = []) {

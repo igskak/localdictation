@@ -37,6 +37,7 @@ final class EntitlementService {
         deviceIdentity: any DeviceIdentityProviding = HardwareDeviceIdentity(),
         backend: any ActivationBackend = UnconfiguredActivationBackend(),
         telemetry: (any ProductTelemetryService)? = nil,
+        telemetryConsent: TelemetryConsent? = nil,
         clock: @escaping @Sendable () -> Date = { Date() }
     ) {
         self.store = store
@@ -47,11 +48,25 @@ final class EntitlementService {
 
         let loaded = (try? store.load()) ?? nil
         let isFirstRun = loaded == nil
-        self.record = loaded ?? UsageRecord.new(at: clock())
-        self.telemetry = telemetry ?? LocalOnlyTelemetryService(
+        let record = loaded ?? UsageRecord.new(at: clock())
+        self.record = record
+        // A local, not `self.record`: the transport is chosen inside a closure,
+        // and a closure over `self` here is one over an object that is not
+        // finished being built yet.
+        let installID = record.installID
+        // The install identifier is only known once the record has been read,
+        // which is why the transport is built here rather than handed in.
+        //
+        // No consent box means no transport. A test, a benchmark, or any build
+        // that did not wire one gets the service that writes to the log and
+        // nowhere else — the transmitting path has to be asked for by the
+        // composition root, and cannot be arrived at by forgetting an argument.
+        self.telemetry = telemetry ?? telemetryConsent.map {
+            TelemetryEndpoint.service(installID: installID, consent: $0)
+        } ?? LocalOnlyTelemetryService(
             appVersion: AppVersion.short,
             systemVersion: AppVersion.systemShort,
-            installID: record.installID
+            installID: installID
         )
 
         if isFirstRun {

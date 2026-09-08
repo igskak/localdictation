@@ -76,3 +76,27 @@ CREATE TABLE IF NOT EXISTS rate_counters (
     count        INTEGER NOT NULL,
     window_start INTEGER NOT NULL
 );
+
+-- The three licensing-funnel events the app may send, and the only table here
+-- with no email in it at all.
+--
+-- `install_id` is a random value the app makes at install. It is not derived
+-- from the Mac, so it cannot be joined to `device_slots.device` or to anything
+-- in `licenses` — which is the property that makes this table a count of
+-- journeys rather than a record of people. `docs/PRIVACY.md` says so, and says
+-- these rows are kept for ninety days.
+--
+-- No IP address is stored. The rate limit for this route uses `rate_counters`
+-- like every other, and that is a bucket name and a number.
+CREATE TABLE IF NOT EXISTS product_events (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    install_id     TEXT NOT NULL,
+    event          TEXT NOT NULL CHECK (event IN ('trial_started', 'activation_requested', 'paywall_shown')),
+    qualifier      TEXT,
+    app_version    TEXT NOT NULL,
+    system_version TEXT NOT NULL,
+    received_at    INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS product_events_by_install ON product_events (install_id);
+CREATE INDEX IF NOT EXISTS product_events_by_age ON product_events (received_at);

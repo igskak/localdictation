@@ -17,7 +17,7 @@ last column.
 | D4 | Resend, on the product domain, SPF and DKIM before the first key | €0 to 3,000 mails/month | Whether a key that was issued is a key that arrived |
 | D5 | **Czech establishment.** OSVČ in Prague, IČO 17328691. Impressum, AGB, Widerruf, Datenschutz and third-party licences are written and live, and the app collects the digital-goods declaration before a checkout opens. A §312k cancellation button is what is left | An afternoon and an accountant | Selling to consumers at all |
 | D6 | Lifetime = the purchased major version and every minor update to it | Nothing now; a version table later | The word "lifetime" meaning the same thing to buyer and seller |
-| D7 | Transmit nothing in the first release | Nothing | Nothing. This is the one item safe to leave |
+| D7 | Transmit nothing in the first release — **reversed for three of the ten events**, see `docs/REFINEMENTS.md` | Nothing | Nothing any more |
 
 ## D1 — the membership
 

@@ -1,4 +1,4 @@
-// The activation service. Two endpoints, a webhook, and a health check.
+// The activation service. Three endpoints, a webhook, and a health check.
 //
 // It is deliberately small. Everything hard about licensing in this product was
 // made a signature in Phase 6 — the app verifies offline, against a public key
@@ -10,6 +10,7 @@ import { Store } from "./store.js";
 import { importSigningKey, importVerifyingKey, signingKeyMatchesAuthority } from "./signing.js";
 import { activate } from "./activate.js";
 import { release } from "./release.js";
+import { record, RETENTION_SECONDS } from "./events.js";
 import { handleEvent } from "./webhook.js";
 import { providerFor, signatureHeader } from "./providers.js";
 import { createMailer } from "./mailer.js";
@@ -53,6 +54,11 @@ export default {
     if (route === "/v1/devices/release") {
       if (request.method !== "POST") return json(405, { error: "method_not_allowed" });
       return handleRelease(request, env, ctx);
+    }
+
+    if (route === "/v1/events") {
+      if (request.method !== "POST") return json(405, { error: "method_not_allowed" });
+      return handleEvents(request, env, ctx);
     }
 
     if (route === "/v1/purchases/webhook") {
@@ -125,6 +131,35 @@ async function handleRelease(request, env, ctx) {
   ctx?.waitUntil?.(store.forgetOldCounters(now).catch(() => {}));
 
   return json(result.status, result.body, result.headers ?? {});
+}
+
+/// The narrowest route here: three event names, five fields, no address, and a
+/// reply the app never reads. `docs/PRIVACY.md` is the list it enforces.
+async function handleEvents(request, env, ctx) {
+  const log = makeLog("/v1/events");
+  const body = await readJSON(request);
+  if (!body) return json(400, { error: "invalid_request" });
+
+  const store = new Store(env.DB);
+  const now = Math.floor(Date.now() / 1000);
+
+  let result;
+  try {
+    result = await record({ body, store, now, clientIP: clientAddress(request), log });
+  } catch (error) {
+    // Nothing downstream of this matters to anybody: a funnel row that did not
+    // land is a funnel row that did not land, and the app is not waiting.
+    log("event dropped", { reason: String(error?.message ?? "error") });
+    return json(500, { error: "internal" });
+  }
+
+  // The ninety days the privacy policy promises, swept behind the answer. Same
+  // arrangement as the rate counters, for the same reason: retention that
+  // depends on somebody remembering to run something is not retention.
+  ctx?.waitUntil?.(store.forgetOldCounters(now).catch(() => {}));
+  ctx?.waitUntil?.(store.forgetOldEvents(now, RETENTION_SECONDS).catch(() => {}));
+
+  return json(result.status, result.body);
 }
 
 /// The signature is over the body **as it arrived**, so this is the one route

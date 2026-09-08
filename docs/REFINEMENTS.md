@@ -398,3 +398,51 @@ user to look for a button. The button stays in the menu for that case, renamed
 from *Prepare speech model…* to *Get the speech model*: nobody has to prepare
 anything any more, and the only person who sees it is someone whose download did
 not happen.
+
+## Three events about the trial now leave the Mac
+
+`docs/PHASE_8_DECISIONS.md` D7 shipped the first release transmitting nothing,
+and called itself "the one item that is safe to leave". It was, right up to the
+first question that needed it.
+
+That question is whether the wall at the fifth dictation is where people give
+up. `docs/PRODUCT_SCOPE.md` has said since the first draft that the download is
+never gated and that activation is required after five dictations or 24 hours,
+and five dictations is a demo rather than a trial — a real user spends them in
+one conversation. Whether that costs anything is not knowable from this side of
+the screen, and every event that would answer it was being built, envelope and
+all, and written to a log on the user's own Mac where nobody would ever read it.
+
+So three of the ten are now sent, and seven are not:
+
+| Sent | Why this one |
+| --- | --- |
+| `trial_started` | The denominator. Someone who never dictated is not somebody who gave up |
+| `paywall_shown` | The refusal, with which of the four reasons caused it |
+| `activation_requested` | The way out being taken |
+
+The other seven stay local. Not because they are more sensitive — all ten carry
+the same five fields — but because `activation_succeeded` and `license_accepted`
+are already known to the service from the calls that cause them, and a list that
+grows to "all of them" is a list nobody checks. `TelemetryEvent.transmitted` is
+the list, `Service/src/events.js` refuses anything outside it, and a test on each
+side asserts the same three names. Two allowlists rather than one, because a
+build that starts sending a fourth event is a build nobody can update.
+
+**On by default, and said out loud.** This is the one switch in the product that
+defaults to sending something, and the reason is that the alternative does not
+work: a count of who gives up, taken only from people who opted in, is a count
+of people who did not give up. That is not a good enough reason to be quiet
+about, so the first-run screen carries the sentence, Settings → Privacy carries
+the switch, and `docs/PRIVACY.md` prints the body byte for byte — four fields,
+five for `paywall_shown`, and a test that fails when a sixth appears.
+
+The transport is deliberately the smallest thing that works. One attempt, no
+queue: a retry queue would be a fourth file this app writes to disk, and the
+privacy policy enumerates three. No reply is read, nothing blocks a press, and a
+plain-HTTP endpoint makes it report itself unconfigured rather than send in the
+clear — the same rule `HTTPActivationBackend` has, for the same reason.
+
+Rows are kept ninety days and swept behind the answer, the way the rate counters
+already were. Retention that depends on somebody remembering to run something is
+not retention.

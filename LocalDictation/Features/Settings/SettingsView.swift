@@ -59,9 +59,14 @@ struct SettingsView: View {
             }
 
             Section("Privacy") {
-                Text("Audio stays in memory on this Mac. Nothing is written to disk during normal capture and nothing is sent to a network service. A recording is discarded as soon as the app decides no review is needed, and otherwise when the review ends.")
+                Text("Audio stays in memory on this Mac. Nothing is written to disk during normal capture, and nothing you dictate is ever sent anywhere. A recording is discarded as soon as the app decides no review is needed, and otherwise when the review ends.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
+                Toggle("Send three events about the trial", isOn: $coordinator.sharesProductEvents)
+                Text("On, the app says when a trial starts, when it asks for an email, and when it puts the offers on screen — with the app version, the macOS version, and a random number made at install that is not derived from this Mac. That is the whole message; there is no fourth field and nothing about what you said. Off, it sends none of them and nothing else changes.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             Section("Insertion") {
