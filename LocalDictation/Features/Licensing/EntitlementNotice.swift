@@ -4,19 +4,23 @@ import Foundation
 ///
 /// Every other piece of licensing copy in this product is written for someone
 /// who has already been refused. This is the one written for someone who has
-/// not: the ungated window is five dictations wide, and a person who learns
-/// about it by pressing the hotkey and getting nothing has been surprised by
-/// their own software. Settings → License has carried the countdown since
-/// Phase 6, but nobody opens Settings to find out that something is about to
-/// break.
+/// not: the ungated window closes on its own, and a person who learns about it
+/// by pressing the hotkey and getting nothing has been surprised by their own
+/// software. Settings → License has carried the countdown since Phase 6, but
+/// nobody opens Settings to find out that something is about to break.
 ///
 /// It is `nil` far more often than not, and that is the point — a countdown
 /// that is always on screen is a countdown nobody reads on the day it matters.
 struct EntitlementNotice: Sendable, Equatable {
-    /// A trial has days in it; the ungated window has five presses in it. The
-    /// two thresholds are different because the units are.
+    /// Three thresholds, because three windows of very different lengths.
     static let trialWarningDays = 3
     static let annualWarningDays = 14
+    /// The ungated window is only three days long, so the trial's own
+    /// three-day threshold would put this notice on screen from the first
+    /// minute — and this file's whole argument is that a countdown which is
+    /// always visible is one nobody reads on the day it matters. The last day
+    /// is the only day worth spending it on.
+    static let ungatedWarningDays = 1
 
     let headline: String
     let detail: String
@@ -34,17 +38,21 @@ struct EntitlementNotice: Sendable, Equatable {
             // Nothing has been spent yet, so there is nothing to count down.
             // The app has asked for nothing and says nothing.
             guard let expiresAt = standing.expiresAt else { return nil }
-            let remaining = standing.dictationsRemaining
-            headline = remaining == 1
-                ? "One dictation left before activation"
-                : "\(remaining) dictations left before activation"
+            let seconds = expiresAt.timeIntervalSince(now)
+            guard seconds > 0 else { return nil }
+            let days = Int((seconds / 86_400).rounded(.up))
+            guard days <= Self.ungatedWarningDays else { return nil }
+
+            headline = "Your last day before activation"
             detail = """
-            Or until \(Self.moment.string(from: expiresAt)) — whichever comes first. \
-            An email address turns this into the full fourteen days, and nothing else changes.
+            The first three days ask for nothing; they end \(Self.moment.string(from: expiresAt)). \
+            An email address adds ten more days, free, and nothing else changes.
             """
             actionTitle = "Activate…"
             symbol = "envelope"
-            isPressing = remaining <= 1
+            // There is no gentler step before this one — the notice appears on
+            // the last day or not at all — so it arrives already pressing.
+            isPressing = true
 
         case let .licensed(license):
             switch license.kind {

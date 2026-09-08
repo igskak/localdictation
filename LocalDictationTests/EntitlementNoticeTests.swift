@@ -43,31 +43,41 @@ final class EntitlementNoticeTests: XCTestCase {
 
     // MARK: - The ungated window
 
-    func testTheCountdownStartsWithTheFirstDictation() throws {
-        let standing = GraceStanding(dictationsRemaining: 4, expiresAt: now.addingTimeInterval(20 * 3600))
+    /// Days one and two say nothing at all. The window is only three days
+    /// wide, so a notice with the trial's own three-day threshold would be on
+    /// screen from the first minute — which this file exists to argue against.
+    func testTheFirstTwoDaysSayNothing() {
+        for remaining in [3 * 86_400.0, 2 * 86_400.0, 86_400.0 + 60] {
+            let standing = GraceStanding(expiresAt: now.addingTimeInterval(remaining))
+            XCTAssertNil(
+                EntitlementNotice(state: .ungated(standing), now: now),
+                "\(remaining / 86_400) days out"
+            )
+        }
+    }
+
+    func testTheLastDayIsWarnedAboutAndArrivesPressing() throws {
+        let standing = GraceStanding(expiresAt: now.addingTimeInterval(20 * 3600))
         let notice = try XCTUnwrap(EntitlementNotice(state: .ungated(standing), now: now))
 
-        XCTAssertEqual(notice.headline, "4 dictations left before activation")
+        XCTAssertEqual(notice.headline, "Your last day before activation")
         XCTAssertEqual(notice.actionTitle, "Activate…")
-        XCTAssertFalse(notice.isPressing)
-    }
-
-    /// Both numbers, because the window closes on whichever runs out first and
-    /// a countdown that shows only the slower one surprises people.
-    func testTheDeadlineIsNamedAlongsideTheCount() throws {
-        let standing = GraceStanding(dictationsRemaining: 2, expiresAt: now.addingTimeInterval(3600))
-        let notice = try XCTUnwrap(EntitlementNotice(state: .ungated(standing), now: now))
-
-        XCTAssertTrue(notice.detail.contains("whichever comes first"))
-        XCTAssertTrue(notice.detail.contains("fourteen days"))
-    }
-
-    func testTheLastPressIsSaidInTheSingularAndPressed() throws {
-        let standing = GraceStanding(dictationsRemaining: 1, expiresAt: now.addingTimeInterval(3600))
-        let notice = try XCTUnwrap(EntitlementNotice(state: .ungated(standing), now: now))
-
-        XCTAssertEqual(notice.headline, "One dictation left before activation")
+        // There is no gentler step before this one, so it does not get one.
         XCTAssertTrue(notice.isPressing)
+    }
+
+    /// What the address actually buys, in the sentence that asks for it.
+    func testTheNoticeSaysWhatTheEmailAdds() throws {
+        let standing = GraceStanding(expiresAt: now.addingTimeInterval(3600))
+        let notice = try XCTUnwrap(EntitlementNotice(state: .ungated(standing), now: now))
+
+        XCTAssertTrue(notice.detail.contains("ten more days"))
+        XCTAssertFalse(notice.detail.contains("whichever comes first"), "there is only one way for the window to end now")
+    }
+
+    /// Nothing has been spent, so there is nothing to count down.
+    func testAnUntouchedRecordSaysNothing() {
+        XCTAssertNil(EntitlementNotice(state: .ungated(.untouched), now: now))
     }
 
     // MARK: - The trial
@@ -92,7 +102,7 @@ final class EntitlementNoticeTests: XCTestCase {
     /// Nothing here ever refuses anything — the notice is shown while the app
     /// is working, and the state it is drawn from still allows dictation.
     func testTheNoticeOnlyAppearsWhileDictationStillWorks() {
-        let standing = GraceStanding(dictationsRemaining: 1, expiresAt: now.addingTimeInterval(600))
+        let standing = GraceStanding(expiresAt: now.addingTimeInterval(600))
         XCTAssertTrue(EntitlementState.ungated(standing).allowsDictation)
 
         let license = makeLicense(kind: .trial, expiresAt: now.addingTimeInterval(3600))

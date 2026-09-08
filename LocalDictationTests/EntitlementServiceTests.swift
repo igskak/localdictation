@@ -9,14 +9,8 @@ final class EntitlementServiceTests: XCTestCase {
     private let origin = Date(timeIntervalSince1970: 1_700_000_000)
     private let device = "test-device-0001"
 
-    private final class Clock: @unchecked Sendable {
-        private let lock = NSLock()
-        private var now: Date
-        init(_ now: Date) { self.now = now }
-        var value: Date { lock.withLock { now } }
-        func advance(_ interval: TimeInterval) { lock.withLock { now += interval } }
-        func set(_ date: Date) { lock.withLock { now = date } }
-    }
+    /// Shared with the other suites that have to watch a window close.
+    private typealias Clock = TestClock
 
     private func makeService(
         store: InMemoryEntitlementStore = InMemoryEntitlementStore(),
@@ -35,6 +29,14 @@ final class EntitlementServiceTests: XCTestCase {
         )
     }
 
+    /// Dictates once to start the clock, then steps past the three ungated
+    /// days. The window is time, so this is the only way to the wall.
+    private func spendTheUngatedWindow(_ service: EntitlementService, _ clock: Clock) {
+        service.recordSuccessfulDictation()
+        clock.advance(EntitlementPolicy.ungatedDuration + 60)
+        service.refresh()
+    }
+
     // MARK: - Counting
 
     /// The window is spent on text the user actually received. A press that
@@ -46,13 +48,19 @@ final class EntitlementServiceTests: XCTestCase {
         let service = makeService(store: store, clock: clock)
 
         XCTAssertTrue(service.state.allowsDictation)
-        for _ in 0..<5 {
+
+        // However much is dictated, the window is time and not presses.
+        for _ in 0..<20 {
             service.recordSuccessfulDictation()
             clock.advance(60)
         }
+        XCTAssertTrue(service.state.allowsDictation, "twenty dictations inside the window cost nothing")
+
+        clock.advance(EntitlementPolicy.ungatedDuration)
+        service.refresh()
 
         XCTAssertEqual(service.state, .locked(.activationRequired))
-        XCTAssertEqual(store.stored?.successfulDictations, 5)
+        XCTAssertEqual(store.stored?.firstDictationAt, origin)
     }
 
     func testTheTrialClockStartsAtTheFirstDictationAndNotAtInstall() {
@@ -74,7 +82,7 @@ final class EntitlementServiceTests: XCTestCase {
         let store = InMemoryEntitlementStore()
         let service = makeService(store: store, authority: authority, clock: clock)
 
-        for _ in 0..<5 { service.recordSuccessfulDictation() }
+        spendTheUngatedWindow(service, clock)
         XCTAssertFalse(service.state.allowsDictation)
 
         let token = try TestLicenseIssuer.issue(kind: .lifetime, deviceID: device, expiresAt: nil, signingKey: signingKey)
@@ -122,7 +130,7 @@ final class EntitlementServiceTests: XCTestCase {
         let clock = Clock(origin)
         let (authority, signingKey) = TestLicenseIssuer.makeAuthority()
         let service = makeService(authority: authority, clock: clock)
-        for _ in 0..<5 { service.recordSuccessfulDictation() }
+        spendTheUngatedWindow(service, clock)
         let token = try TestLicenseIssuer.issue(kind: .lifetime, deviceID: device, expiresAt: nil, signingKey: signingKey)
         XCTAssertNoThrow(try service.enter(key: token).get())
 
@@ -225,7 +233,7 @@ final class EntitlementServiceTests: XCTestCase {
         let backend = FakeActivationBackend()
         backend.setReleaseError(.unreachable("no network"))
         let service = makeService(authority: authority, backend: backend, clock: clock)
-        for _ in 0..<5 { service.recordSuccessfulDictation() }
+        spendTheUngatedWindow(service, clock)
         let token = try TestLicenseIssuer.issue(kind: .lifetime, deviceID: device, expiresAt: nil, signingKey: signingKey)
         XCTAssertNoThrow(try service.enter(key: token).get())
 
@@ -302,8 +310,7 @@ final class EntitlementServiceTests: XCTestCase {
         let (authority, signingKey) = TestLicenseIssuer.makeAuthority()
         let service = makeService(authority: authority, telemetry: telemetry, clock: clock)
 
-        service.recordSuccessfulDictation()
-        for _ in 0..<4 { service.recordSuccessfulDictation() }
+        spendTheUngatedWindow(service, clock)
         // The window is used up and the Mac is locked — and that on its own
         // sends nothing. A lock is a fact about a Mac; a paywall is a fact
         // about a person, and only the second one is worth money.

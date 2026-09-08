@@ -20,9 +20,11 @@ final class DictationCoordinatorLicensingTests: XCTestCase {
         let entitlement: EntitlementService
         let store: InMemoryEntitlementStore
         let signingKey: Curve25519.Signing.PrivateKey
+        let clock: TestClock
     }
 
     private func makeHarness(text: String = "der termin steht") -> Harness {
+        let clock = TestClock(Date())
         let engine = FakeTranscriptionService()
         engine.setResult(.fixture(text: text, profile: .german))
         let hotkey = FakeHotkeyService()
@@ -43,7 +45,7 @@ final class DictationCoordinatorLicensingTests: XCTestCase {
             deviceIdentity: FixedDeviceIdentity(device),
             backend: UnconfiguredActivationBackend(),
             telemetry: RecordingTelemetryService(),
-            clock: { Date() }
+            clock: { clock.value }
         )
         let coordinator = DictationCoordinator(
             permissionService: FakeMicrophonePermissionService(authorization: .authorized),
@@ -64,8 +66,20 @@ final class DictationCoordinatorLicensingTests: XCTestCase {
             engine: engine,
             entitlement: entitlement,
             store: store,
-            signingKey: signingKey
+            signingKey: signingKey,
+            clock: clock
         )
+    }
+
+    /// Dictates once to start the clock, then moves past the three ungated
+    /// days. The window is time now, so this is the only way to the wall — no
+    /// number of presses reaches it.
+    private func closeTheUngatedWindow(_ harness: Harness) async throws {
+        try await dictate(harness)
+        harness.coordinator.clearTranscript()
+        harness.clock.advance(EntitlementPolicy.ungatedDuration + 60)
+        harness.entitlement.refresh()
+        try await settle()
     }
 
     private func dictate(_ harness: Harness) async throws {
@@ -74,31 +88,31 @@ final class DictationCoordinatorLicensingTests: XCTestCase {
         try await waitUntil("result ready") { harness.coordinator.result != nil }
     }
 
-    /// The ungated window: five dictations, no email, no key, no interruption.
-    func testTheFirstFiveDictationsAskForNothing() async throws {
+    /// The ungated window: three days, no email, no key, no interruption, and
+    /// no limit on how much is said inside them. It used to end on the fifth
+    /// dictation, which is what this test used to assert.
+    func testDictatingRepeatedlyInsideTheWindowAsksForNothing() async throws {
         let harness = makeHarness()
 
-        for _ in 0..<5 {
+        for _ in 0..<8 {
             try await dictate(harness)
             harness.coordinator.clearTranscript()
         }
 
-        XCTAssertEqual(harness.store.stored?.successfulDictations, 5)
+        XCTAssertTrue(harness.coordinator.entitlement.allowsDictation)
+        XCTAssertNotNil(harness.store.stored?.firstDictationAt, "the clock started on the first one")
     }
 
-    /// The fifth dictation is still delivered in full. The lock it produces
-    /// applies to the press after it — text the user has already spoken has
-    /// been earned, and taking it away to enforce a trial would be the worst
-    /// thing this feature could do.
-    func testTheDictationThatClosesTheWindowStillArrives() async throws {
+    /// A lock that lands while a result is on screen never takes it away. Text
+    /// the user has already spoken has been earned, and removing it to enforce
+    /// a trial would be the worst thing this feature could do.
+    func testALockArrivingAfterAResultLeavesTheResultAlone() async throws {
         let harness = makeHarness()
 
-        for index in 0..<5 {
-            try await dictate(harness)
-            // The last result is left in place — it is what the assertion below
-            // is about.
-            if index < 4 { harness.coordinator.clearTranscript() }
-        }
+        try await dictate(harness)
+        harness.clock.advance(EntitlementPolicy.ungatedDuration + 60)
+        harness.entitlement.refresh()
+        try await settle()
 
         XCTAssertEqual(harness.coordinator.result?.cleanedText, "Der termin steht.")
         XCTAssertEqual(harness.coordinator.entitlement, .locked(.activationRequired))
@@ -106,10 +120,7 @@ final class DictationCoordinatorLicensingTests: XCTestCase {
 
     func testALockedMacNeverOpensTheMicrophone() async throws {
         let harness = makeHarness()
-        for _ in 0..<5 {
-            try await dictate(harness)
-            harness.coordinator.clearTranscript()
-        }
+        try await closeTheUngatedWindow(harness)
         try await waitUntil("locked") { harness.coordinator.state == .locked(.activationRequired) }
         let startsBefore = harness.capture.startCount
         let stopsBefore = harness.capture.stopCount
@@ -132,10 +143,7 @@ final class DictationCoordinatorLicensingTests: XCTestCase {
     /// The press is the ask, and the ask is what the price answers.
     func testALockedPressAsksForThePaywall() async throws {
         let harness = makeHarness()
-        for _ in 0..<5 {
-            try await dictate(harness)
-            harness.coordinator.clearTranscript()
-        }
+        try await closeTheUngatedWindow(harness)
         try await waitUntil("locked") { harness.coordinator.state == .locked(.activationRequired) }
         // Becoming locked is not a request. A Mac can lock in the background,
         // at launch, with nobody looking at it.
@@ -170,25 +178,23 @@ final class DictationCoordinatorLicensingTests: XCTestCase {
 
     /// A press that recognized nothing produced no value, so it costs nothing.
     /// Two utterances of nine seconds came back empty on a real Mac while Phase
-    /// 4 was being measured; charging a user a fifth of their window for that
-    /// would be indefensible.
-    func testADictationThatRecognizesNothingIsNotCounted() async throws {
+    /// 4 was being measured. Starting somebody's trial on a press that gave
+    /// them no words would be charging them for silence.
+    func testADictationThatRecognizesNothingDoesNotStartTheTrial() async throws {
         let harness = makeHarness(text: "")
 
         harness.hotkey.emit(.pressed)
         harness.hotkey.emit(.released)
         try await waitUntil("back to ready") { harness.coordinator.state == .ready }
 
-        XCTAssertEqual(harness.entitlement.successfulDictationCount, 0)
+        // The empty press must not have started anybody's trial.
+        XCTAssertNil(harness.entitlement.trialStartedAt)
         XCTAssertTrue(harness.coordinator.entitlement.allowsDictation)
     }
 
     func testAKeyUnlocksTheHotkeyImmediately() async throws {
         let harness = makeHarness()
-        for _ in 0..<5 {
-            try await dictate(harness)
-            harness.coordinator.clearTranscript()
-        }
+        try await closeTheUngatedWindow(harness)
         try await waitUntil("locked") { harness.coordinator.state == .locked(.activationRequired) }
 
         let token = try TestLicenseIssuer.issue(
@@ -206,10 +212,7 @@ final class DictationCoordinatorLicensingTests: XCTestCase {
 
     func testARefusedKeyLeavesTheMacLockedAndSaysWhy() async throws {
         let harness = makeHarness()
-        for _ in 0..<5 {
-            try await dictate(harness)
-            harness.coordinator.clearTranscript()
-        }
+        try await closeTheUngatedWindow(harness)
         try await waitUntil("locked") { harness.coordinator.state == .locked(.activationRequired) }
 
         let foreign = try TestLicenseIssuer.issue(

@@ -11,15 +11,16 @@ final class LicensePresentationTests: XCTestCase {
 
         XCTAssertTrue(presentation.showsActivation)
         XCTAssertFalse(presentation.showsOffers, "an app nobody has finished trying is not a sales page")
-        XCTAssertTrue(presentation.detail.contains("\(EntitlementPolicy.ungatedDictations)"))
+        XCTAssertTrue(presentation.detail.contains("three days"))
     }
 
-    func testTheCountdownNamesBothWaysTheWindowCanClose() {
-        let standing = GraceStanding(dictationsRemaining: 2, expiresAt: now.addingTimeInterval(3600))
+    /// One deadline, named as a date, and what the address adds after it.
+    func testTheCountdownNamesTheDeadlineAndWhatFollowsIt() {
+        let standing = GraceStanding(expiresAt: now.addingTimeInterval(3600))
         let presentation = LicensePresentation(state: .ungated(standing), now: now)
 
-        XCTAssertTrue(presentation.detail.contains("2 dictations"))
-        XCTAssertTrue(presentation.detail.contains("whichever comes first"))
+        XCTAssertTrue(presentation.detail.contains("Nothing is asked for until"))
+        XCTAssertTrue(presentation.detail.contains("ten more days"))
     }
 
     func testALockedTrialLeadsWithTheOfferAndNotWithTheForm() {
@@ -147,14 +148,17 @@ final class LicensePresentationTests: XCTestCase {
             "Your annual license is on this Mac now."
         )
         XCTAssertTrue(LicensePresentation.activationSucceeded(.lifetime).contains("lifetime"))
-        XCTAssertTrue(LicensePresentation.activationSucceeded(.trial).contains("fourteen days"))
+        XCTAssertTrue(LicensePresentation.activationSucceeded(.trial).contains("ten days"))
+        // It used to say the days ran "from your first dictation". They never
+        // did — the service issues them from the moment of activation.
+        XCTAssertFalse(LicensePresentation.activationSucceeded(.trial).contains("first dictation"))
 
         for kind in [LicenseKind.annual, .lifetime] {
             XCTAssertFalse(
                 LicensePresentation.activationSucceeded(kind).contains("trial"),
                 "a paid licence is never described as a trial"
             )
-            XCTAssertFalse(LicensePresentation.activationSucceeded(kind).contains("fourteen"))
+            XCTAssertFalse(LicensePresentation.activationSucceeded(kind).contains("ten days"))
         }
 
         // A key that verified but left no licence to read is still an

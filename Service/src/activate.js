@@ -11,7 +11,22 @@ import { normalizeEmail } from "./email.js";
 import { DEVICE_PATTERN, issueToken } from "./token.js";
 import { activationMail } from "./mailer.js";
 
-export const TRIAL_SECONDS = 14 * 86400;
+/// Ten days, from the moment of activation.
+///
+/// **This number and `EntitlementPolicy.trialDuration` in the app are one
+/// decision in two languages.** This side puts the date in the key; the app
+/// side is what lets the app name that date *before* the user hands over their
+/// address, and an app predicting fourteen while this issues ten lies at the
+/// exact moment it is asking to be trusted. A test in the app reads this file
+/// and fails when the two drift.
+///
+/// The app also gives three ungated days before anyone is asked for an address,
+/// so a trial is thirteen days for somebody who activates the moment they are
+/// asked. This service does not know the date of the first dictation — the
+/// request has two fields and `docs/PHASE_8.md` froze it that way — so a person
+/// who activates later gets slightly more than ten from that point, which is
+/// the right way round for that error to fall.
+export const TRIAL_SECONDS = 10 * 86400;
 export const DEVICE_LIMIT = 2;
 
 /// Generous per address and per Mac — a person pressing a button that seems not

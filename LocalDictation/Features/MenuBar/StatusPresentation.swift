@@ -218,7 +218,7 @@ struct StatusPresentation: Sendable, Equatable {
             switch lock {
             case .activationRequired:
                 title = "Activate to keep going"
-                detail = "The first dictations are ungated. Add your email under Settings → License and the trial runs for fourteen days."
+                detail = "The first three days are ungated. Add your email under Settings → License and the trial runs for ten more days."
             case let .expired(.trial, at):
                 title = "Trial finished"
                 detail = "The trial ended \(Self.dayFormatter.string(from: at)). A license brings it back, on this Mac and one more."

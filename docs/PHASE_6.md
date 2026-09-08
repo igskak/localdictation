@@ -7,8 +7,8 @@ one property that made it worth building.
 
 ```text
 install
-  -> dictate: the first five utterances, or the first 24 hours, ask for nothing
-  -> email  -> a signed key for this Mac -> fourteen full days
+  -> dictate: the first three days ask for nothing
+  -> email  -> a signed key for this Mac -> ten full days
   -> buy    -> a signed key for this Mac -> annual, or forever
                  |
                  +-> every check happens on this Mac, offline, against a
@@ -85,6 +85,11 @@ activation of the app; if it could leave `.locked`, clicking the menu bar would
 unlock the product. It cannot, and a test says so.
 
 ### What the window is spent on
+
+> Amended after release. The window is three days now and nothing is spent by
+> dictating — but what counts as a dictation still decides when the clock
+> *starts*, so the paragraph below survives its own reason for existing. See
+> `docs/REFINEMENTS.md`.
 
 Five dictations, and a dictation is *text the user received*. A press that
 recognized nothing costs nothing — `docs/PHASE_4_COMPATIBILITY.md` records two
@@ -176,8 +181,12 @@ inbox.
 
 ## Acceptance criteria
 
-- The first five dictations, or the first 24 hours from the first one, need no
-  email and no key. Both halves of "whichever comes first" are asserted.
+- The first three days from the first dictation need no email and no key.
+  > Amended after release. This shipped as five dictations or 24 hours,
+  > whichever came first, and the count is what went wrong: five utterances is
+  > about two minutes of real use. See `docs/REFINEMENTS.md`, "The wall moved
+  > from the fifth dictation to the third day". The trial it opens is ten days
+  > rather than fourteen, so the two together are thirteen.
 - The dictation that closes the window is still delivered in full.
 - A locked Mac never opens the microphone, and re-reading microphone
   authorization cannot unlock it.

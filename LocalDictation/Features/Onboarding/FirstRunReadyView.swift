@@ -58,10 +58,10 @@ struct FirstRunReadyView: View {
                 if coordinator.hasEntitlementService {
                     step(
                         symbol: "envelope",
-                        title: "The first \(EntitlementPolicy.ungatedDictations) dictations ask for nothing",
-                        detail: "After that — or 24 hours after the first one — an email address keeps it running "
-                            + "for fourteen more days, free. Nothing you dictate ever leaves this Mac, and that "
-                            + "does not change when you activate."
+                        title: "The first three days ask for nothing",
+                        detail: "They start at your first dictation, not now. After them an email address keeps "
+                            + "it running for ten more days, free. Nothing you dictate ever leaves this Mac, and "
+                            + "that does not change when you activate."
                     )
                 }
             }

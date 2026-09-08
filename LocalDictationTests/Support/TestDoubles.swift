@@ -772,6 +772,22 @@ final class FakeActivationBackend: ActivationBackend, @unchecked Sendable {
     }
 }
 
+/// A clock the test moves by hand.
+///
+/// Every window in this product is measured in days now, so a test that wants
+/// to see one close cannot get there by doing something five times. It has to
+/// say what time it is.
+final class TestClock: @unchecked Sendable {
+    private let lock = NSLock()
+    private var now: Date
+
+    init(_ now: Date) { self.now = now }
+
+    var value: Date { lock.withLock { now } }
+    func advance(_ interval: TimeInterval) { lock.withLock { now += interval } }
+    func set(_ date: Date) { lock.withLock { now = date } }
+}
+
 /// Collects the product events instead of sending them, which is also what the
 /// shipping service does — see `LocalOnlyTelemetryService`.
 final class RecordingTelemetryService: ProductTelemetryService, @unchecked Sendable {

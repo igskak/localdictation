@@ -28,9 +28,12 @@ final class PaywallWindowTests: XCTestCase {
         let coordinator: DictationCoordinator
         let hotkey: FakeHotkeyService
         let telemetry: RecordingTelemetryService
+        let entitlement: EntitlementService
+        let clock: TestClock
     }
 
     private func makeHarness() -> Harness {
+        let clock = TestClock(Date())
         let engine = FakeTranscriptionService()
         engine.setResult(.fixture(text: "der termin steht", profile: .german))
         let hotkey = FakeHotkeyService()
@@ -50,7 +53,7 @@ final class PaywallWindowTests: XCTestCase {
             deviceIdentity: FixedDeviceIdentity(device),
             backend: UnconfiguredActivationBackend(),
             telemetry: telemetry,
-            clock: { Date() }
+            clock: { clock.value }
         )
         let coordinator = DictationCoordinator(
             permissionService: FakeMicrophonePermissionService(authorization: .authorized),
@@ -64,32 +67,39 @@ final class PaywallWindowTests: XCTestCase {
             languageProfile: .german
         )
         coordinator.activate()
-        return Harness(coordinator: coordinator, hotkey: hotkey, telemetry: telemetry)
+        return Harness(
+            coordinator: coordinator,
+            hotkey: hotkey,
+            telemetry: telemetry,
+            entitlement: entitlement,
+            clock: clock
+        )
     }
 
-    /// Spends the ungated window the way a user does.
+    /// Spends the ungated window the way a user does: one dictation to start
+    /// the clock, then past the third day.
     ///
     /// The wait at the end is on the **state machine** and not on
     /// `entitlement.lock`, and the difference is the whole of a flake that took
-    /// three runs to catch. The entitlement turns locked as soon as the fifth
-    /// dictation is counted, while that dictation is still being inserted --
-    /// and `.inserting` is busy. `RecordingStateMachine` refuses
-    /// `.hotkeyPressed` while anything is busy, on purpose: words in flight
-    /// finish on their own terms. So a press emitted in that gap is correctly
-    /// swallowed, `paywallRequests` never moves, no window is ever made, and
-    /// the test waits fifteen seconds for a price that was never asked for.
+    /// three runs to catch. The entitlement can turn locked while the dictation
+    /// that started the clock is still being inserted -- and `.inserting` is
+    /// busy. `RecordingStateMachine` refuses `.hotkeyPressed` while anything is
+    /// busy, on purpose: words in flight finish on their own terms. So a press
+    /// emitted in that gap is correctly swallowed, `paywallRequests` never
+    /// moves, no window is ever made, and the test waits fifteen seconds for a
+    /// price that was never asked for.
     ///
     /// `.locked` is not busy. Waiting for it is waiting for a press to be
     /// accepted, which is what every caller here actually needs.
-    /// `DictationCoordinatorLicensingTests` has waited on this predicate all
-    /// along; this file had the weaker one.
     private func lock(_ harness: Harness) async throws {
-        for _ in 0..<5 {
-            harness.hotkey.emit(.pressed)
-            harness.hotkey.emit(.released)
-            try await waitUntil("result") { harness.coordinator.result != nil }
-            harness.coordinator.clearTranscript()
-        }
+        harness.hotkey.emit(.pressed)
+        harness.hotkey.emit(.released)
+        try await waitUntil("result") { harness.coordinator.result != nil }
+        harness.coordinator.clearTranscript()
+
+        harness.clock.advance(EntitlementPolicy.ungatedDuration + 60)
+        harness.entitlement.refresh()
+
         try await waitUntil("locked") { harness.coordinator.entitlement.lock != nil }
         try await waitUntil("the machine has settled into the lock", timeout: windowTimeout) {
             if case .locked = harness.coordinator.state { true } else { false }
@@ -276,13 +286,14 @@ final class PaywallWindowTests: XCTestCase {
     func testTheWallComesDownWhenTheMacIsLicensed() async throws {
         let (authority, signingKey) = TestLicenseIssuer.makeAuthority()
         let telemetry = RecordingTelemetryService()
+        let clock = TestClock(Date())
         let entitlement = EntitlementService(
             store: InMemoryEntitlementStore(),
             authority: authority,
             deviceIdentity: FixedDeviceIdentity(device),
             backend: UnconfiguredActivationBackend(),
             telemetry: telemetry,
-            clock: { Date() }
+            clock: { clock.value }
         )
         let engine = FakeTranscriptionService()
         engine.setResult(.fixture(text: "der termin steht", profile: .german))
@@ -309,7 +320,13 @@ final class PaywallWindowTests: XCTestCase {
         )
         coordinator.activate()
         let controller = PaywallWindowController(coordinator: coordinator)
-        try await lock(Harness(coordinator: coordinator, hotkey: hotkey, telemetry: telemetry))
+        try await lock(Harness(
+            coordinator: coordinator,
+            hotkey: hotkey,
+            telemetry: telemetry,
+            entitlement: entitlement,
+            clock: clock
+        ))
 
         hotkey.emit(.pressed)
         hotkey.emit(.released)

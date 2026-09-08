@@ -132,16 +132,18 @@ final class EntitlementService {
 
     /// One successful dictation: text was recognized and handed to the user.
     ///
-    /// This is what the ungated window is spent on, so what counts as one
-    /// matters. A press that recognized nothing, a cancelled recording, and a
-    /// failed transcription are not dictations and cost nothing — the user got
-    /// no value and must not pay for it out of five.
+    /// Only the *first* one matters now, and it matters a great deal: it starts
+    /// both clocks — the three ungated days and the ten an activated trial
+    /// runs for. So what counts as a dictation is still the same careful
+    /// question it was when five of them were the window. A press that
+    /// recognized nothing, a cancelled recording, and a failed transcription
+    /// are not dictations: starting somebody's trial on a press that gave them
+    /// no words would be charging them for silence.
     func recordSuccessfulDictation() {
         let now = clock()
         record.observe(now: now)
         let isFirst = record.firstDictationAt == nil
         if isFirst { record.firstDictationAt = now }
-        record.successfulDictations += 1
         persist()
         if isFirst { telemetry.send(.trialStarted) }
         reevaluate()
@@ -273,8 +275,7 @@ final class EntitlementService {
     }
 
     #if DEBUG
-    /// Read by the tests that assert what the window is spent on.
-    var successfulDictationCount: Int { record.successfulDictations }
+    /// Read by the tests that assert when the window opens.
     var trialStartedAt: Date? { record.firstDictationAt }
     #endif
 }
@@ -282,7 +283,7 @@ final class EntitlementService {
 extension EntitlementState {
     var logLabel: String {
         switch self {
-        case let .ungated(standing): "ungated(\(standing.dictationsRemaining) left)"
+        case let .ungated(standing): standing.expiresAt.map { "ungated(until \($0))" } ?? "ungated(untouched)"
         case let .licensed(license): "licensed(\(license.kind.rawValue))"
         case let .locked(lock): "locked(\(lock.logLabel))"
         }

@@ -11,13 +11,12 @@ final class EntitlementStorePrivacyTests: XCTestCase {
             .appendingPathComponent("license.json")
     }
 
-    func testTheRecordHoldsSixFieldsAndNothingElse() throws {
+    func testTheRecordHoldsFiveFieldsAndNothingElse() throws {
         let url = temporaryURL()
         defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
         let store = FileEntitlementStore(url: url)
         var record = UsageRecord.new(at: Date(timeIntervalSince1970: 1_700_000_000))
         record.firstDictationAt = Date(timeIntervalSince1970: 1_700_000_100)
-        record.successfulDictations = 3
         record.licenseToken = "LD1.aaa.bbb"
 
         try store.save(record)
@@ -27,7 +26,8 @@ final class EntitlementStorePrivacyTests: XCTestCase {
         )
         XCTAssertEqual(
             Set(json.keys),
-            ["installedAt", "installID", "firstDictationAt", "successfulDictations", "furthestSeenAt", "licenseToken"]
+            // The dictation counter is gone with the window it used to gate.
+            ["installedAt", "installID", "firstDictationAt", "furthestSeenAt", "licenseToken"]
         )
     }
 
@@ -36,7 +36,6 @@ final class EntitlementStorePrivacyTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
         let store = FileEntitlementStore(url: url)
         var record = UsageRecord.new(at: Date(timeIntervalSince1970: 1_700_000_000))
-        record.successfulDictations = 2
         record.firstDictationAt = Date(timeIntervalSince1970: 1_700_000_500)
 
         try store.save(record)

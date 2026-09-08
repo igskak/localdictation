@@ -109,7 +109,8 @@ final class SettingsViewLayoutTests: XCTestCase {
     /// the one most likely to be laid out next to something it was never seen
     /// beside.
     func testTheMenuLaysOutWithTheEntitlementCountdown() async throws {
-        let coordinator = makeCoordinator(entitlement: makeEntitlementService(dictationsSpent: 4))
+        // The notice only exists on the last of the three ungated days.
+        let coordinator = makeCoordinator(entitlement: makeEntitlementService(daysElapsed: 2.5))
 
         XCTAssertNotNil(EntitlementNotice(state: coordinator.entitlement))
         try await renderMenu(coordinator)
@@ -117,7 +118,7 @@ final class SettingsViewLayoutTests: XCTestCase {
 
     /// And the wall itself, which replaces it.
     func testTheMenuLaysOutWithTheLicensingWall() async throws {
-        let coordinator = makeCoordinator(entitlement: makeEntitlementService(dictationsSpent: 5))
+        let coordinator = makeCoordinator(entitlement: makeEntitlementService(daysElapsed: 4))
 
         XCTAssertEqual(coordinator.entitlement, .locked(.activationRequired))
         try await renderMenu(coordinator)
@@ -133,16 +134,27 @@ final class SettingsViewLayoutTests: XCTestCase {
         try await settle()
     }
 
-    /// A licensing service that has already spent part of the ungated window,
-    /// without a clock or a file.
-    private func makeEntitlementService(dictationsSpent: Int) -> EntitlementService {
+    /// A licensing service that is already some way into the ungated window,
+    /// without a file. The window is three days, so getting into it means
+    /// moving a clock rather than pressing something repeatedly.
+    ///
+    /// Anchored to the real clock rather than a fixed epoch, because the views
+    /// being laid out build their own `EntitlementNotice` against `Date()`. A
+    /// record whose deadline sits in 2023 produces no notice and the test would
+    /// pass by rendering nothing.
+    private func makeEntitlementService(daysElapsed: Double) -> EntitlementService {
+        let firstDictation = Date().addingTimeInterval(-daysElapsed * 86_400)
+        let clock = TestClock(firstDictation)
         let service = EntitlementService(
             store: InMemoryEntitlementStore(),
             authority: LicenseAuthority(publicKeyBase64: ""),
             deviceIdentity: FixedDeviceIdentity("0123456789abcdef0123456789abcdef"),
-            telemetry: RecordingTelemetryService()
+            telemetry: RecordingTelemetryService(),
+            clock: { clock.value }
         )
-        for _ in 0..<dictationsSpent { service.recordSuccessfulDictation() }
+        service.recordSuccessfulDictation()
+        clock.set(Date())
+        service.refresh()
         return service
     }
 }

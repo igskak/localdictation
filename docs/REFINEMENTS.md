@@ -405,13 +405,14 @@ not happen.
 and called itself "the one item that is safe to leave". It was, right up to the
 first question that needed it.
 
-That question is whether the wall at the fifth dictation is where people give
-up. `docs/PRODUCT_SCOPE.md` has said since the first draft that the download is
-never gated and that activation is required after five dictations or 24 hours,
-and five dictations is a demo rather than a trial — a real user spends them in
-one conversation. Whether that costs anything is not knowable from this side of
-the screen, and every event that would answer it was being built, envelope and
-all, and written to a log on the user's own Mac where nobody would ever read it.
+That question is whether the wall is where people give up. `docs/PRODUCT_SCOPE.md`
+has said since the first draft that the download is never gated and that
+activation is required at the end of an ungated window. Whether that window
+costs anything is not knowable from this side of the screen, and every event
+that would answer it was being built, envelope and all, and written to a log on
+the user's own Mac where nobody would ever read it. (The next entry moves that
+window from five dictations to three days — a change argued from the shape of
+the product rather than from data, because this measurement had not run yet.)
 
 So three of the ten are now sent, and seven are not:
 
@@ -446,3 +447,64 @@ clear — the same rule `HTTPActivationBackend` has, for the same reason.
 Rows are kept ninety days and swept behind the answer, the way the rate counters
 already were. Retention that depends on somebody remembering to run something is
 not retention.
+
+## The wall moved from the fifth dictation to the third day
+
+`docs/PRODUCT_SCOPE.md` had said since its first draft that activation is
+required after five dictations or 24 hours, whichever comes first. The count is
+what was wrong with it. A dictation in this product is a whole utterance, so a
+person actually using it spent all five in one conversation and met the wall
+about two minutes in — before they had formed any opinion worth trading an email
+address for. The 24-hour half almost never fired, because nobody gets to the
+second day with four dictations spent.
+
+An email at that moment is asked for at the worst point on the curve: the
+product has been demonstrated but not yet been useful. So the window is now
+three days from the first successful dictation, and how much is said inside them
+is nobody's business.
+
+There is deliberately no count any more. Two ways to end one window meant two
+sentences to write, two thresholds to warn on, and a countdown in the menu bar
+that measured presses while the user was thinking in days. `UsageRecord` loses
+`successfulDictations` with it — a field that is written, persisted and read by
+nobody is worse than one that is not there, and this record's whole documented
+virtue is that it is small enough to read in one breath.
+
+**The trial itself became ten days**, so that three ungated plus ten activated
+is thirteen — close to the fortnight the scope always meant. That number now
+lives in two languages: `EntitlementPolicy.trialDuration` in the app, which is
+what lets the app *name* the expiry date before the user hands over an address,
+and `TRIAL_SECONDS` in `Service/src/activate.js`, which is what actually goes in
+the key. An app predicting fourteen while the service issues ten lies at the
+exact moment it is asking to be trusted, so
+`EntitlementPolicyTests.testTheAppAndTheServiceAgreeOnHowLongATrialIs` reads the
+service's own source and fails when they drift.
+
+### Two things this exposed rather than introduced
+
+**A sentence that was already false.** `LicensePresentation.activationSucceeded`
+told an activated user "the trial runs for fourteen days from your first
+dictation". It never did: the service issues from the moment of activation and
+does not know the date of the first dictation — the request has two fields and
+`docs/PHASE_8.md` froze it that way. While the ungated window was 24 hours the
+gap was too small to notice. At three days it is a sentence the user can catch
+out, so it now says what happens.
+
+**A lock that answered the wrong question.** `EntitlementPolicy` checked "have
+fourteen days passed since the first dictation" *before* the ungated deadline,
+which was unreachable while the window was 24 hours and reachable the moment it
+became three days. Somebody who dictated once, never activated, and came back a
+fortnight later was told their trial had expired and shown the offers. They had
+never had a trial — and the service would still issue them one, because neither
+their address nor their Mac has taken it. That branch is gone: without a key
+there is nothing to expire, so an unactivated record is always asked to
+activate.
+
+### What the notice does now
+
+The ungated window is three days and the trial's own warning threshold is three
+days, so reusing it would have put the countdown on screen from the first
+minute — against this file's own argument that a countdown which is always
+visible is one nobody reads on the day it matters. `EntitlementNotice` gets a
+threshold of its own: the last day, or nothing, and it arrives already pressing
+because there is no gentler step before it.

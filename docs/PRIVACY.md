@@ -166,7 +166,7 @@ happen. Off means none of the three is sent and nothing else about the app
 changes — not the trial, not the dictation, not the licence.
 
 **Why it is on by default, said plainly.** These three events exist to answer
-one question: how many people stop at the fifth dictation. A count that only
+one question: how many people stop at the wall rather than paying. A count that only
 includes people who opted in is a count of people who did not stop, which
 answers a different question. That is the reason, it is not a good enough
 reason to be quiet about, and so it is written on the first-run screen and

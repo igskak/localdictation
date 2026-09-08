@@ -31,7 +31,7 @@ const SEED = Uint8Array.from({ length: 32 }, (_, index) => (index * 7 + 11) % 25
 const DEVICE = "0123456789abcdef0123456789abcdef";
 const EMAIL = "parity@example.com";
 const ISSUED = 1767225600; // 2026-01-01T00:00:00Z
-const TRIAL_EXPIRES = ISSUED + 14 * 86400;
+const TRIAL_EXPIRES = ISSUED + 10 * 86400;
 const ANNUAL_EXPIRES = ISSUED + 365 * 86400;
 
 const KEYS = [

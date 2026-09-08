@@ -80,11 +80,12 @@ enum EntitlementLock: Sendable, Equatable {
 /// first, and a countdown that shows only the slower of the two is a countdown
 /// that surprises people.
 struct GraceStanding: Sendable, Equatable {
-    let dictationsRemaining: Int
-    /// `nil` until the first successful dictation starts the clock.
+    /// When the ungated window ends. `nil` until the first successful dictation
+    /// starts the clock — and `nil` is not "expired", it is "nothing has been
+    /// spent, so there is nothing to count down".
     let expiresAt: Date?
 
-    static let untouched = GraceStanding(dictationsRemaining: EntitlementPolicy.ungatedDictations, expiresAt: nil)
+    static let untouched = GraceStanding(expiresAt: nil)
 }
 
 /// The single answer to "may this Mac dictate, and what should it be told".

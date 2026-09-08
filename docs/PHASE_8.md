@@ -152,10 +152,14 @@ could stay a table and a mailer.
    unexpired annual, then an unexpired trial.
 4. **No entitlement** → issue a trial, unless this address or this device has
    already had one: a second trial is `422` with a message that names the
-   offers. `expires = now + 14 days`. The app measures its own fourteen days
-   from the first dictation and the service does not know that date; a user who
-   activates late therefore gets slightly more than fourteen days of dictation,
-   which is the right way round for that error to fall.
+   offers. `expires = now + 10 days` — it was fourteen until the ungated window
+   became three days; `docs/REFINEMENTS.md` has why, and
+   `EntitlementPolicyTests.testTheAppAndTheServiceAgreeOnHowLongATrialIs` reads
+   `TRIAL_SECONDS` out of this service so the app's predicted date and the
+   issued one cannot drift. The app measures nothing here: it names the date
+   before the address is handed over, and the service does not know the date of
+   the first dictation, so a user who activates late gets slightly more than
+   ten days of dictation — the right way round for that error to fall.
 5. **Device slot.** If this device is already registered against the license,
    re-issue the same key and return `200` — the call is idempotent, and a user
    who presses the button twice must not spend their second Mac on it. If the

@@ -41,7 +41,7 @@ The selection is explicit and ordered: the first language is preferred, and it d
 - Ephemeral replay of a risky audio fragment.
 - Accessibility insertion with clipboard fallback.
 - User dictionaries scoped by language.
-- Email-key activation for up to two Macs without a product account. Download is never gated, but email activation is required after the initial five dictations or 24 hours from the first successful dictation, whichever comes first, to continue the trial.
+- Email-key activation for up to two Macs without a product account. Download is never gated, but email activation is required after three days from the first successful dictation to continue the trial.
 
 ## Deliberately after MVP
 
@@ -55,7 +55,7 @@ The selection is explicit and ordered: the first language is preferred, and it d
 
 ## Commercial assumptions
 
-- Fourteen-day full trial.
+- Three ungated days from the first successful dictation, then a ten-day full trial on an email address. Thirteen days for somebody who activates when asked; the service issues its ten from the moment of activation and does not know the date of the first dictation, so a late activation is worth slightly more. See `docs/REFINEMENTS.md` for why the window is days rather than a count of dictations.
 - EUR 99 lifetime as the primary launch offer.
 - EUR 49 annual as the secondary offer.
 - The exact lifetime update policy must be decided before checkout implementation. Current recommendation: permanent use of the purchased major version and all of its minor updates.

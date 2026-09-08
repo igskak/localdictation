@@ -87,7 +87,6 @@ final class LifetimeUpdatePolicyTests: XCTestCase {
     func testALifetimeLicenseOnAMajorItDidNotBuyLocksWithItsOwnSentence() {
         var record = UsageRecord.new(at: issued)
         record.firstDictationAt = issued
-        record.successfulDictations = 20
 
         let state = EntitlementPolicy.evaluate(
             record: record,
@@ -110,7 +109,6 @@ final class LifetimeUpdatePolicyTests: XCTestCase {
     func testTheSameLicenseOnTheVersionItBoughtIsSimplyLicensed() {
         var record = UsageRecord.new(at: issued)
         record.firstDictationAt = issued
-        record.successfulDictations = 20
 
         let state = EntitlementPolicy.evaluate(
             record: record,

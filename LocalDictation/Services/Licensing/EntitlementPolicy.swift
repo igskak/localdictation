@@ -15,9 +15,6 @@ struct UsageRecord: Codable, Sendable, Equatable {
     var installID: String
     /// When the trial clock started. `nil` until the app has produced text.
     var firstDictationAt: Date?
-    /// Successful dictations only — a press that recognized nothing has not
-    /// spent anything and must not cost the user part of their window.
-    var successfulDictations: Int
     /// The furthest point in time this Mac has ever been seen at.
     ///
     /// Not a diagnostic: it is the whole clock-tampering defence. Elapsed time
@@ -34,7 +31,6 @@ struct UsageRecord: Codable, Sendable, Equatable {
             installedAt: now,
             installID: UUID().uuidString,
             firstDictationAt: nil,
-            successfulDictations: 0,
             furthestSeenAt: now,
             licenseToken: nil
         )
@@ -53,15 +49,38 @@ struct UsageRecord: Codable, Sendable, Equatable {
 /// Nothing here touches the disk, the clock, or the network, so every rule the
 /// product promises is decided by a function a test can call with a date.
 enum EntitlementPolicy {
-    /// `docs/PRODUCT_SCOPE.md`: the download is never gated, and activation is
-    /// required after the initial five dictations or 24 hours from the first
-    /// successful one, whichever comes first.
-    static let ungatedDictations = 5
-    static let ungatedDuration: TimeInterval = 24 * 3600
-    /// The fourteen-day full trial, measured from the first successful
-    /// dictation rather than from installation: a download someone opened once
-    /// and came back to a week later has not had a trial.
-    static let trialDuration: TimeInterval = 14 * 86_400
+    /// Three days before the app asks for anything, measured from the first
+    /// successful dictation.
+    ///
+    /// It used to be five dictations or 24 hours, whichever came first, and the
+    /// count is what went wrong: a dictation is a whole utterance, so a real
+    /// user spent all five in one conversation and met the wall about two
+    /// minutes in — before they had formed an opinion worth trading an address
+    /// for. Three days is the same ask moved to a point where the product has
+    /// already been useful. `docs/REFINEMENTS.md` records why.
+    ///
+    /// There is deliberately no dictation count any more. Two ways to end the
+    /// same window meant two sentences to write, two thresholds to warn on, and
+    /// a countdown in the menu bar that measured presses while the user was
+    /// thinking in days.
+    static let ungatedDuration: TimeInterval = 3 * 86_400
+    /// The ten days an activated trial runs for, measured from the first
+    /// successful dictation rather than from installation: a download someone
+    /// opened once and came back to a week later has not had a trial.
+    ///
+    /// **This number and `TRIAL_SECONDS` in `Service/src/activate.js` are one
+    /// decision in two languages.** The service decides the date that goes in
+    /// the key; this constant is what lets the app name that date *before* the
+    /// user hands over their address, and an app that predicts fourteen while
+    /// the service issues ten lies at the exact moment it is asking to be
+    /// trusted. `EntitlementPolicyTests.testTheAppAndTheServiceAgreeOnHowLongATrialIs`
+    /// reads the service's own source and fails when they drift.
+    ///
+    /// Three days ungated plus ten activated is thirteen. The service issues
+    /// its ten from the moment of activation and does not know the date of the
+    /// first dictation, so somebody who activates late gets slightly more —
+    /// which is the right way round for that error to fall. `docs/PHASE_8.md`.
+    static let trialDuration: TimeInterval = 10 * 86_400
 
     /// The one decision. `license` is already verified — signature and device
     /// are the key reader's job, not the policy's.
@@ -96,25 +115,29 @@ enum EntitlementPolicy {
             return .ungated(.untouched)
         }
 
-        let elapsed = now.timeIntervalSince(started)
-        if elapsed >= trialDuration {
-            return .locked(.expired(.trial, at: started.addingTimeInterval(trialDuration)))
-        }
-
-        let dictationsRemaining = max(ungatedDictations - record.successfulDictations, 0)
+        // Deliberately no "the trial expired" branch here. Without a key there
+        // is no trial to expire: this record belongs to somebody who dictated,
+        // never gave an address, and came back. The service will still issue
+        // them a trial — neither their address nor their Mac has taken one —
+        // so telling them their trial is over would hide an offer that is
+        // still open and lead the paywall with a price instead of the form.
+        //
+        // This used to be checked first, and it was reachable: three ungated
+        // days are shorter than ten trial days, so anybody returning after a
+        // fortnight was told their trial had run out. They had never had one.
         let deadline = started.addingTimeInterval(ungatedDuration)
-        if dictationsRemaining == 0 || now >= deadline {
+        if now >= deadline {
             return .locked(.activationRequired)
         }
 
-        return .ungated(GraceStanding(dictationsRemaining: dictationsRemaining, expiresAt: deadline))
+        return .ungated(GraceStanding(expiresAt: deadline))
     }
 
     /// When a trial key issued now should expire.
     ///
     /// The issuer decides the date, but the app has to be able to say what it
     /// will be before the user hands over their address — an activation that
-    /// silently resets the fourteen days would be a different product, and one
+    /// silently resets the ten days would be a different product, and one
     /// that rewards deleting a file.
     static func trialExpiry(firstDictationAt: Date?, now: Date) -> Date {
         (firstDictationAt ?? now).addingTimeInterval(trialDuration)

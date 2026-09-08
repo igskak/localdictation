@@ -45,16 +45,14 @@ struct LicensePresentation: Sendable, Equatable {
             if let expiresAt = standing.expiresAt {
                 headline = "Trial, not yet activated"
                 detail = """
-                \(Self.count(standing.dictationsRemaining, "dictation")) left before activation, \
-                or until \(Self.moment.string(from: expiresAt)) — whichever comes first. \
-                Adding your email turns this into the full fourteen days.
+                Nothing is asked for until \(Self.moment.string(from: expiresAt)). \
+                Adding your email after that adds ten more days, free.
                 """
             } else {
                 headline = "Ready to use, nothing asked for yet"
                 detail = """
-                The first \(EntitlementPolicy.ungatedDictations) dictations need no email and no key. \
-                After that — or 24 hours after the first one — an email keeps the trial \
-                running for fourteen days.
+                The first three days need no email and no key. After that, an email \
+                keeps the trial running for ten more days.
                 """
             }
 
@@ -90,8 +88,8 @@ struct LicensePresentation: Sendable, Equatable {
                 showsActivation = true
                 headline = "Activate to keep dictating"
                 detail = """
-                The ungated window is used up. An email address gets you a key for this Mac and \
-                fourteen full days; nothing else about the app changes, and nothing you have \
+                The first three days are over. An email address gets you a key for this Mac and \
+                ten full days; nothing else about the app changes, and nothing you have \
                 dictated has left it.
                 """
             case let .expired(.trial, at):
@@ -161,10 +159,17 @@ struct LicensePresentation: Sendable, Equatable {
     /// It said "the trial runs for fourteen days" to a paying customer holding
     /// a year, which is the kind of sentence that makes a person check whether
     /// their money arrived.
+    ///
+    /// The trial sentence was wrong in a second way, and it is fixed here: it
+    /// said the days ran "from your first dictation", and they never did. The
+    /// service issues them from the moment of activation and does not know the
+    /// date of the first dictation — `docs/PHASE_8.md` froze the request at two
+    /// fields on purpose. While the ungated window was 24 hours the gap was too
+    /// small to notice; at three days it is a sentence the user can catch out.
     static func activationSucceeded(_ kind: LicenseKind?) -> String {
         switch kind {
         case .trial:
-            "Activated. The trial runs for fourteen days from your first dictation."
+            "Activated. The trial runs for ten days from today."
         case .annual:
             "Your annual license is on this Mac now."
         case .lifetime:
