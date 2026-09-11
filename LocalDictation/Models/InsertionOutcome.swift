@@ -49,20 +49,15 @@ enum ClipboardReason: String, Sendable, Equatable, CaseIterable {
     var message: String {
         switch self {
         case .notTrusted:
-            "Copied to the clipboard. Grant Accessibility access to have it typed for you."
+            L10n.string("Copied to the clipboard. Grant Accessibility access to have it typed for you.")
         case .cannotSynthesizeEvents:
-            """
-            Copied to the clipboard: macOS is not letting LocalDictation press ⌘V for you. \
-            Its Accessibility permission stops applying when the app itself changes, so switching \
-            LocalDictation off and on again in System Settings → Privacy & Security → Accessibility \
-            is what restores it.
-            """
+            L10n.string("Copied to the clipboard: macOS is not letting Witness press ⌘V for you. Its Accessibility permission stops applying when the app itself changes, so switching Witness off and on again in System Settings → Privacy & Security → Accessibility is what restores it.")
         case .noTarget:
-            "Copied to the clipboard — there was no other application to put it in."
+            L10n.string("Copied to the clipboard — there was no other application to put it in.")
         case .targetChanged:
-            "Copied to the clipboard: you moved to a different application while this was being prepared."
+            L10n.string("Copied to the clipboard: you moved to a different application while this was being prepared.")
         case .insertionFailed:
-            "Copied to the clipboard: that application would not accept the text directly."
+            L10n.string("Copied to the clipboard: that application would not accept the text directly.")
         }
     }
 }
@@ -88,19 +83,12 @@ enum RefusalReason: String, Sendable, Equatable, CaseIterable {
     func message(holder: String? = nil) -> String {
         switch self {
         case .secureField:
-            return "Nothing was inserted: the focus is in a password field. The text is here and was not copied."
+            return L10n.string("Nothing was inserted: the focus is in a password field. The text is here and was not copied.")
         case .secureInput:
             guard let holder else {
-                return """
-                Nothing was inserted: an application has secure input enabled, which blocks dictation \
-                everywhere until it stops. The text is here and was not copied.
-                """
+                return L10n.string("Nothing was inserted: an application has secure input enabled, which blocks dictation everywhere until it stops. The text is here and was not copied.")
             }
-            return """
-            Nothing was inserted: \(holder) has secure input enabled, which blocks dictation everywhere \
-            until it stops. Switching to it and clicking into an ordinary field usually clears it; \
-            quitting it always does. The text is here and was not copied.
-            """
+            return L10n.format("Nothing was inserted: %@ has secure input enabled, which blocks dictation everywhere until it stops. Switching to it and clicking into an ordinary field usually clears it; quitting it always does. The text is here and was not copied.", holder)
         }
     }
 }

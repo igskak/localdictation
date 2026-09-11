@@ -16,9 +16,9 @@ enum LicenseKind: String, Codable, Sendable, Equatable, CaseIterable {
 
     var displayName: String {
         switch self {
-        case .trial: "Trial"
-        case .annual: "Annual"
-        case .lifetime: "Lifetime"
+        case .trial: L10n.string("Trial")
+        case .annual: L10n.string("Annual")
+        case .lifetime: L10n.string("Lifetime")
         }
     }
 

@@ -45,8 +45,10 @@ struct SpeechLanguage: RawRepresentable, Sendable, Hashable, Identifiable, Compa
         LanguageCatalog.byCode[rawValue]!
     }
 
-    /// The name shown in an English interface.
-    var displayName: String { entry.englishName }
+    /// The name shown in the current interface language.
+    var displayName: String {
+        L10n.interfaceLocale.localizedString(forLanguageCode: rawValue) ?? entry.englishName
+    }
     /// The name the language calls itself.
     var nativeName: String { entry.nativeName }
     var script: LanguageScript { entry.script }

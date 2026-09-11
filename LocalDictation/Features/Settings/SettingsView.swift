@@ -74,7 +74,7 @@ struct SettingsView: View {
                 Text("On, a result with nothing worth checking goes straight into the application you were typing in. Off, it waits in this menu for an explicit insert. A result that does need review always waits for you either way.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
-                LabeledContent("Accessibility access", value: coordinator.accessibilityAuthorization == .trusted ? "Granted" : "Not granted")
+                LabeledContent("Accessibility access", value: L10n.string(coordinator.accessibilityAuthorization == .trusted ? "Granted" : "Not granted"))
                 if coordinator.needsAccessibilityTrust {
                     HStack {
                         Button("Allow…") { coordinator.requestAccessibilityTrust() }
@@ -203,7 +203,7 @@ struct DiagnosticsView: View {
     var body: some View {
         Form {
             Section("Input") {
-                LabeledContent("Device", value: coordinator.diagnostics.format?.inputDescription ?? "Not opened yet")
+                LabeledContent("Device", value: coordinator.diagnostics.format?.inputDescription ?? L10n.string("Not opened yet"))
                 LabeledContent("Normalized output", value: coordinator.diagnostics.format?.outputDescription ?? "16000 Hz · mono · Float32")
             }
 
@@ -238,7 +238,7 @@ struct DiagnosticsView: View {
                     LabeledContent("Flagged", value: "\(risk.flaggedSpanCount)")
                     LabeledContent("Signals", value: risk.spanCategories.isEmpty ? "\u{2014}" : risk.spanCategories.joined(separator: ", "))
                     LabeledContent("Highest weight", value: String(format: "%.2f", risk.maximumWeight))
-                    LabeledContent("Attention", value: risk.deservesAttention ? "Offered" : "None")
+                    LabeledContent("Attention", value: L10n.string(risk.deservesAttention ? "Offered" : "None"))
                 }
 
                 Section("Last insertion") {
@@ -474,7 +474,7 @@ private struct HotkeyRecorderRow: View {
     private var content: some View {
         LabeledContent("Shortcut") {
             HStack(spacing: 8) {
-                Text(coordinator.isCapturingHotkey ? "Press a combination…" : coordinator.binding.displayString)
+                Text(verbatim: coordinator.isCapturingHotkey ? L10n.string("Press a combination…") : coordinator.binding.displayString)
                     .font(.body.monospaced())
                     .foregroundStyle(coordinator.isCapturingHotkey ? Color.accentColor : .primary)
 
@@ -543,7 +543,7 @@ private struct HotkeyRecorderRow: View {
 
         removeMonitor()
         if let error = coordinator.finishHotkeyCapture(with: candidate) {
-            failure = "\(candidate.displayString) cannot be used: \(error.message)."
+            failure = L10n.format("%1$@ cannot be used: %2$@.", candidate.displayString, error.message)
         } else {
             failure = nil
         }

@@ -14,17 +14,17 @@ enum LicenseKeyError: Error, Sendable, Equatable {
     var message: String {
         switch self {
         case .malformed:
-            "That does not look like a license key. Copy the whole line from the activation email, including the LD1 at the front."
+            L10n.string("That does not look like a license key. Copy the whole line from the activation email, including the LD1 at the front.")
         case let .unsupportedVersion(version):
-            "This key is version \(version), which this build does not know how to read. Update Witness."
+            L10n.format("This key is version %@, which this build does not know how to read. Update Witness.", version)
         case .noAuthority:
-            "This build carries no license authority key, so it cannot check any license. It is a development build."
+            L10n.string("This build carries no license authority key, so it cannot check any license. It is a development build.")
         case .badSignature:
-            "This key did not verify. It may have been edited in transit — paste it again straight from the email."
+            L10n.string("This key did not verify. It may have been edited in transit — paste it again straight from the email.")
         case .wrongDevice:
-            "This key was issued for a different Mac. Each Mac gets its own key, and a license covers two."
+            L10n.string("This key was issued for a different Mac. Each Mac gets its own key, and a license covers two.")
         case .inconsistentDates:
-            "This key's dates do not make sense, which means it was not issued by us."
+            L10n.string("This key's dates do not make sense, which means it was not issued by us.")
         }
     }
 }

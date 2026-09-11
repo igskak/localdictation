@@ -32,7 +32,7 @@ struct InsertionTarget: Sendable, Equatable, Identifiable {
     /// What the user is told the text went into. The bundle identifier is the
     /// fallback because it is the only thing guaranteed to be there.
     var displayName: String {
-        applicationName ?? bundleIdentifier ?? "the previous application"
+        applicationName ?? bundleIdentifier ?? L10n.string("the previous application")
     }
 
     /// Identity for logs and diagnostics: never the display name, which is

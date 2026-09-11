@@ -18,17 +18,17 @@ enum RecordingActivation: String, Sendable, Equatable, Codable, CaseIterable, Id
 
     var displayName: String {
         switch self {
-        case .pushToTalk: "Hold to talk"
-        case .toggle: "Press to start and stop"
+        case .pushToTalk: L10n.string("Hold to talk")
+        case .toggle: L10n.string("Press to start and stop")
         }
     }
 
     var explanation: String {
         switch self {
         case .pushToTalk:
-            "The microphone is open only while the key is down. Best for a sentence at a time."
+            L10n.string("The microphone is open only while the key is down. Best for a sentence at a time.")
         case .toggle:
-            "One press starts, the next finishes. Best for anything longer than a key is comfortable to hold."
+            L10n.string("One press starts, the next finishes. Best for anything longer than a key is comfortable to hold.")
         }
     }
 }

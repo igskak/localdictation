@@ -84,16 +84,16 @@ enum TranscriptionModelState: Sendable, Equatable {
             switch preparation.phase {
             case .downloading:
                 if let progress = preparation.progress {
-                    "Downloading the speech model… \(Int((progress * 100).rounded()))%"
+                    L10n.format("Downloading the speech model… %lld%%", Int64((progress * 100).rounded()))
                 } else {
-                    "Downloading the speech model…"
+                    L10n.string("Downloading the speech model…")
                 }
             case .loading:
-                "Loading the speech model…"
+                L10n.string("Loading the speech model…")
             case .compilingForThisSystem:
-                "Preparing the speech model for this Mac. The first time on a new macOS version takes several minutes; after that it is seconds."
+                L10n.string("Preparing the speech model for this Mac. The first time on a new macOS version takes several minutes; after that it is seconds.")
             }
-        case .ready: "Ready"
+        case .ready: L10n.string("Ready")
         case let .failed(detail): detail
         }
     }
@@ -109,15 +109,15 @@ enum TranscriptionError: Error, Sendable, Equatable {
     var message: String {
         switch self {
         case let .modelUnavailable(detail):
-            "Speech model unavailable: \(detail)"
+            L10n.format("Speech model unavailable: %@", detail)
         case let .unsupportedProfile(profile):
-            "\(profile.displayName) is not supported by the current speech engine"
+            L10n.format("%@ is not supported by the current speech engine", profile.displayName)
         case .emptyAudio:
-            "Nothing was recorded"
+            L10n.string("Nothing was recorded")
         case .cancelled:
-            "Transcription was cancelled"
+            L10n.string("Transcription was cancelled")
         case let .engineFailure(detail):
-            "Transcription failed: \(detail)"
+            L10n.format("Transcription failed: %@", detail)
         }
     }
 }

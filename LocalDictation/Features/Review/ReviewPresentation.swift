@@ -115,9 +115,9 @@ struct ReviewPresentation: Sendable, Equatable {
     private static func fragment(for span: RiskSpan) -> String {
         guard span.text.isEmpty else { return span.text }
         if case let .cleanupEdit(kind) = span.reason, kind == .fillerRemoval {
-            return "removed here"
+            return L10n.string("removed here")
         }
-        return "at this position"
+        return L10n.string("at this position")
     }
 
     /// The headline above the strip. It says how many fragments are worth
@@ -125,9 +125,9 @@ struct ReviewPresentation: Sendable, Equatable {
     /// this will take one second or ten.
     var summary: String {
         switch flaggedCount {
-        case 0: "Nothing flagged"
-        case 1: "1 fragment worth checking"
-        default: "\(flaggedCount) fragments worth checking"
+        case 0: L10n.string("Nothing flagged")
+        case 1: L10n.string("1 fragment worth checking")
+        default: L10n.format("%lld fragments worth checking", Int64(flaggedCount))
         }
     }
 
@@ -135,6 +135,8 @@ struct ReviewPresentation: Sendable, Equatable {
     /// underlines are not five more things they were supposed to worry about.
     var secondarySummary: String? {
         guard secondaryCount > 0 else { return nil }
-        return secondaryCount == 1 ? "1 more marked for context" : "\(secondaryCount) more marked for context"
+        return secondaryCount == 1
+            ? L10n.string("1 more marked for context")
+            : L10n.format("%lld more marked for context", Int64(secondaryCount))
     }
 }

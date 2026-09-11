@@ -15,10 +15,10 @@ struct TextEdit: Sendable, Equatable {
 
         var label: String {
             switch self {
-            case .spacing: "Spacing"
-            case .punctuation: "Punctuation"
-            case .capitalization: "Capitalization"
-            case .fillerRemoval: "Filler removed"
+            case .spacing: L10n.string("Spacing")
+            case .punctuation: L10n.string("Punctuation")
+            case .capitalization: L10n.string("Capitalization")
+            case .fillerRemoval: L10n.string("Filler removed")
             }
         }
 

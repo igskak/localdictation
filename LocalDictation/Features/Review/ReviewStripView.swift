@@ -162,7 +162,7 @@ struct ReviewStripView: View {
 
     private var actions: some View {
         HStack {
-            Button(coordinator.prefersRawTranscript ? "Show cleaned text" : "Show raw transcript") {
+            Button(L10n.string(coordinator.prefersRawTranscript ? "Show cleaned text" : "Show raw transcript")) {
                 coordinator.prefersRawTranscript.toggle()
                 didCopy = false
             }
@@ -177,7 +177,7 @@ struct ReviewStripView: View {
             // found it, and a replacement that lands in the wrong place is
             // worse than no replacement. What the app can do is hand the user
             // the version they decided they wanted.
-            Button(didCopy ? "Copied" : copyTitle) {
+            Button(didCopy ? L10n.string("Copied") : copyTitle) {
                 let text = result.text(preferringRaw: coordinator.prefersRawTranscript)
                 let pasteboard = NSPasteboard.general
                 pasteboard.clearContents()
@@ -194,7 +194,7 @@ struct ReviewStripView: View {
     }
 
     private var copyTitle: String {
-        coordinator.prefersRawTranscript ? "Copy raw" : "Copy"
+        L10n.string(coordinator.prefersRawTranscript ? "Copy raw" : "Copy")
     }
 }
 

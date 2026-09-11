@@ -33,19 +33,19 @@ enum AudioCaptureError: Error, Sendable, Equatable {
     var message: String {
         switch self {
         case .noInputDevice:
-            "No microphone input device is available"
+            L10n.string("No microphone input device is available")
         case let .unsupportedInputFormat(detail):
-            "Unsupported input format (\(detail))"
+            L10n.format("Unsupported input format (%@)", detail)
         case let .converterUnavailable(detail):
-            "Audio converter unavailable (\(detail))"
+            L10n.format("Audio converter unavailable (%@)", detail)
         case let .conversionFailed(detail):
-            "Audio conversion failed (\(detail))"
+            L10n.format("Audio conversion failed (%@)", detail)
         case let .engineStartFailed(detail):
-            "Audio engine failed to start (\(detail))"
+            L10n.format("Audio engine failed to start (%@)", detail)
         case .inputDeviceChanged:
-            "The input device changed during recording"
+            L10n.string("The input device changed during recording")
         case .notRecording:
-            "No recording is in progress"
+            L10n.string("No recording is in progress")
         }
     }
 
@@ -60,11 +60,11 @@ enum AudioCaptureError: Error, Sendable, Equatable {
     var interruptionMessage: String {
         switch self {
         case .inputDeviceChanged:
-            "The microphone changed while you were speaking, so the recording ended there. Whatever you had already said was kept."
+            L10n.string("The microphone changed while you were speaking, so the recording ended there. Whatever you had already said was kept.")
         case .noInputDevice:
-            "The microphone went away while you were speaking, so the recording ended there. Whatever you had already said was kept."
+            L10n.string("The microphone went away while you were speaking, so the recording ended there. Whatever you had already said was kept.")
         default:
-            "The recording ended early: \(message.lowercased()). Whatever you had already said was kept."
+            L10n.format("The recording ended early: %@. Whatever you had already said was kept.", message.lowercased())
         }
     }
 }

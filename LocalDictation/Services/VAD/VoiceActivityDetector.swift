@@ -60,11 +60,11 @@ enum VoiceActivityState: String, Sendable, Equatable {
 
     var label: String {
         switch self {
-        case .idle: "Waiting for speech"
-        case .speaking: "Speech"
-        case .trailingSilence: "Trailing silence"
-        case .endedBySilence: "Ended (silence)"
-        case .endedByMaximumDuration: "Ended (maximum duration)"
+        case .idle: L10n.string("Waiting for speech")
+        case .speaking: L10n.string("Speech")
+        case .trailingSilence: L10n.string("Trailing silence")
+        case .endedBySilence: L10n.string("Ended (silence)")
+        case .endedByMaximumDuration: L10n.string("Ended (maximum duration)")
         }
     }
 }

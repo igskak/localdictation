@@ -50,13 +50,13 @@ enum HotkeyRegistrationError: Error, Sendable, Equatable {
     var message: String {
         switch self {
         case .alreadyInUse:
-            "the shortcut is already used by macOS or another app"
+            L10n.string("the shortcut is already used by macOS or another app")
         case .noModifier:
-            "a shortcut needs at least one of ⌘ ⌥ ⌃ ⇧, or it would take that key away from every app"
+            L10n.string("a shortcut needs at least one of ⌘ ⌥ ⌃ ⇧, or it would take that key away from every app")
         case let .handlerInstallationFailed(status):
-            "the event handler could not be installed (OSStatus \(status))"
+            L10n.format("the event handler could not be installed (OSStatus %d)", status)
         case let .registrationFailed(status):
-            "registration failed (OSStatus \(status))"
+            L10n.format("registration failed (OSStatus %d)", status)
         }
     }
 }

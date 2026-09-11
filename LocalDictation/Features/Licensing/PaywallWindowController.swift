@@ -208,7 +208,7 @@ struct PaywallView: View {
                 TextField("Email address", text: $email, prompt: Text("you@example.com"))
                     .textFieldStyle(.roundedBorder)
                     .disabled(isRequesting)
-                Button(isRequesting ? "Sending…" : presentation.activationButtonTitle) {
+                Button(isRequesting ? L10n.string("Sending…") : presentation.activationButtonTitle) {
                     Task { await requestActivation() }
                 }
                 .keyboardShortcut(.defaultAction)
@@ -220,7 +220,7 @@ struct PaywallView: View {
             Text(
                 coordinator.canRequestActivation
                     ? presentation.activationHint
-                    : "This build has no activation service yet. Press “Enter a key…” and paste one instead — that path works offline and is what the app checks in either case."
+                    : L10n.string("This build has no activation service yet. Press “Enter a key…” and paste one instead — that path works offline and is what the app checks in either case.")
             )
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -235,16 +235,16 @@ struct PaywallView: View {
             if StoreFront.isOpen { CheckoutConsent(coordinator: coordinator) }
 
             OfferRow(
-                title: "Lifetime",
+                title: L10n.string("Lifetime"),
                 price: StoreFront.lifetimePrice,
-                detail: "Paid once. Covers two Macs and every update to this major version.",
+                detail: L10n.string("Paid once. Covers two Macs and every update to this major version."),
                 isBuyable: StoreFront.lifetimeCheckout != nil && coordinator.hasCheckoutConsent
             ) { coordinator.openCheckout(.lifetime) }
 
             OfferRow(
-                title: "Annual",
+                title: L10n.string("Annual"),
                 price: StoreFront.annualPrice,
-                detail: "Renewed each year. Covers two Macs.",
+                detail: L10n.string("Renewed each year. Covers two Macs."),
                 isBuyable: StoreFront.annualCheckout != nil && coordinator.hasCheckoutConsent
             ) { coordinator.openCheckout(.annual) }
 

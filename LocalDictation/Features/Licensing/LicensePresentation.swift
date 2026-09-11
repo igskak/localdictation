@@ -29,8 +29,8 @@ struct LicensePresentation: Sendable, Equatable {
     /// What the form is called, what its button says, and the sentence under
     /// it. All three travel with the flag because which of the two errands the
     /// form is running changes all three, and copy in this file is testable.
-    private(set) var activationTitle = "Activate the trial"
-    private(set) var activationButtonTitle = "Send me a key"
+    private(set) var activationTitle = L10n.string("Activate the trial")
+    private(set) var activationButtonTitle = L10n.string("Send me a key")
     /// Two jobs, and the second one is newer than the first.
     ///
     /// The privacy sentence has been here since Phase 6. The sentence after it
@@ -40,10 +40,7 @@ struct LicensePresentation: Sendable, Equatable {
     /// and unlocks the app before the mail is even sent. Saying so here costs a
     /// line and saves the person who would otherwise sit waiting for an email
     /// in order to use software that is already working.
-    private(set) var activationHint = "The key comes straight back here and unlocks the app — there is nothing "
-        + "to fetch from your mail and nothing to paste. The address and an identifier for this Mac are the "
-        + "only things sent, and they are sent only when you press the button. No audio, no text, and nothing "
-        + "from your dictionary ever leaves this Mac."
+    private(set) var activationHint = L10n.string("The key comes straight back here and unlocks the app — there is nothing to fetch from your mail and nothing to paste. The address and an identifier for this Mac are the only things sent, and they are sent only when you press the button. No audio, no text, and nothing from your dictionary ever leaves this Mac.")
     let symbol: String
 
     init(state: EntitlementState, now: Date = Date()) {
@@ -53,17 +50,11 @@ struct LicensePresentation: Sendable, Equatable {
             showsOffers = false
             showsActivation = true
             if let expiresAt = standing.expiresAt {
-                headline = "Trial, not yet activated"
-                detail = """
-                Nothing is asked for until \(Self.moment.string(from: expiresAt)). \
-                Adding your email after that adds ten more days, free.
-                """
+                headline = L10n.string("Trial, not yet activated")
+                detail = L10n.format("Nothing is asked for until %@. Adding your email after that adds ten more days, free.", Self.moment.string(from: expiresAt))
             } else {
-                headline = "Ready to use, nothing asked for yet"
-                detail = """
-                The first three days need no email and no key. After that, an email \
-                keeps the trial running for ten more days.
-                """
+                headline = L10n.string("Ready to use, nothing asked for yet")
+                detail = L10n.string("The first three days need no email and no key. After that, an email keeps the trial running for ten more days.")
             }
 
         case let .licensed(license):
@@ -72,22 +63,22 @@ struct LicensePresentation: Sendable, Equatable {
             switch license.kind {
             case .trial:
                 showsOffers = true
-                headline = "Trial, activated"
-                detail = Self.remaining(license, now: now, suffix: "A license keeps it after that, on this Mac and one more.")
+                headline = L10n.string("Trial, activated")
+                detail = Self.remaining(license, now: now, suffix: L10n.string("A license keeps it after that, on this Mac and one more."))
                 retrieveInstead()
             case .annual:
                 showsOffers = false
-                headline = "Annual license"
-                detail = Self.remaining(license, now: now, suffix: "Licensed to \(license.email).")
+                headline = L10n.string("Annual license")
+                detail = Self.remaining(license, now: now, suffix: L10n.format("Licensed to %@.", license.email))
                 retrieveInstead()
             case .lifetime:
                 showsOffers = false
-                headline = "Lifetime license"
-                detail = """
-                Licensed to \(license.email). This Mac needs nothing further — no renewal, and no \
-                connection. It covers version \(LifetimeUpdatePolicy.coveredMajor(issuedAt: license.issuedAt)) \
-                and every update to it.
-                """
+                headline = L10n.string("Lifetime license")
+                detail = L10n.format(
+                    "Licensed to %1$@. This Mac needs nothing further — no renewal, and no connection. It covers version %2$lld and every update to it.",
+                    license.email,
+                    Int64(LifetimeUpdatePolicy.coveredMajor(issuedAt: license.issuedAt))
+                )
             }
 
         case let .locked(lock):
@@ -96,31 +87,21 @@ struct LicensePresentation: Sendable, Equatable {
                 symbol = "envelope"
                 showsOffers = false
                 showsActivation = true
-                headline = "Activate to keep dictating"
-                detail = """
-                The first three days are over. An email address gets you a key for this Mac and \
-                ten full days; nothing else about the app changes, and nothing you have \
-                dictated has left it.
-                """
+                headline = L10n.string("Activate to keep dictating")
+                detail = L10n.string("The first three days are over. An email address gets you a key for this Mac and ten full days; nothing else about the app changes, and nothing you have dictated has left it.")
             case let .expired(.trial, at):
                 symbol = "lock"
                 showsOffers = true
                 showsActivation = false
-                headline = "The trial ended"
-                detail = """
-                Fourteen days ran out on \(Self.moment.string(from: at)). Your dictionary and \
-                settings are untouched and come straight back with a license.
-                """
+                headline = L10n.string("The trial ended")
+                detail = L10n.format("Fourteen days ran out on %@. Your dictionary and settings are untouched and come straight back with a license.", Self.moment.string(from: at))
                 retrieveInstead()
             case let .expired(kind, at):
                 symbol = "lock"
                 showsOffers = true
                 showsActivation = false
-                headline = "\(kind.displayName) license expired"
-                detail = """
-                It ran out on \(Self.moment.string(from: at)). Renewing unlocks dictation again on \
-                this Mac; nothing local was removed.
-                """
+                headline = L10n.format("%@ license expired", kind.displayName)
+                detail = L10n.format("It ran out on %@. Renewing unlocks dictation again on this Mac; nothing local was removed.", Self.moment.string(from: at))
                 retrieveInstead()
 
             // The one refusal in this product that is not about time. The
@@ -130,12 +111,12 @@ struct LicensePresentation: Sendable, Equatable {
                 symbol = "arrow.down.circle"
                 showsOffers = true
                 showsActivation = false
-                headline = "This version is newer than your license"
-                detail = """
-                Your lifetime license covers version \(covered) and every update to it, forever. \
-                This is version \(running). Download version \(covered) again from the website and \
-                it works exactly as it did — or move to version \(running) below.
-                """
+                headline = L10n.string("This version is newer than your license")
+                detail = L10n.format(
+                    "Your lifetime license covers version %1$lld and every update to it, forever. This is version %2$lld. Download version %1$lld again from the website and it works exactly as it did — or move to version %2$lld below.",
+                    Int64(covered),
+                    Int64(running)
+                )
                 retrieveInstead()
             }
         }
@@ -145,16 +126,14 @@ struct LicensePresentation: Sendable, Equatable {
     /// the same one call to the same service, a different errand.
     private mutating func retrieveInstead() {
         offersKeyRetrieval = true
-        activationTitle = "Already bought a license?"
-        activationButtonTitle = "Send my key"
-        activationHint = "The address you bought with fetches a key for this Mac. It and an identifier "
-            + "for this Mac are the only things sent, and only when you press the button — no audio, "
-            + "no text, and nothing from your dictionary."
+        activationTitle = L10n.string("Already bought a license?")
+        activationButtonTitle = L10n.string("Send my key")
+        activationHint = L10n.string("The address you bought with fetches a key for this Mac. It and an identifier for this Mac are the only things sent, and only when you press the button — no audio, no text, and nothing from your dictionary.")
     }
 
     private static func remaining(_ license: License, now: Date, suffix: String) -> String {
         guard let days = license.daysRemaining(at: now), let expiresAt = license.expiresAt else { return suffix }
-        return "\(Self.count(days, "day")) left, until \(Self.moment.string(from: expiresAt)). \(suffix)"
+        return L10n.format("%1$@ left, until %2$@. %3$@", Self.count(days, "day"), Self.moment.string(from: expiresAt), suffix)
     }
 
     /// What to say once a key has arrived and been accepted.
@@ -186,13 +165,13 @@ struct LicensePresentation: Sendable, Equatable {
     static func activationSucceeded(_ kind: LicenseKind?) -> String {
         switch kind {
         case .trial:
-            "Activated, and there is nothing else to enter. The trial runs for ten days from today."
+            L10n.string("Activated, and there is nothing else to enter. The trial runs for ten days from today.")
         case .annual:
-            "Your annual license is on this Mac now. There is nothing else to enter."
+            L10n.string("Your annual license is on this Mac now. There is nothing else to enter.")
         case .lifetime:
-            "Your lifetime license is on this Mac now. There is nothing else to enter — no renewal, and no connection."
+            L10n.string("Your lifetime license is on this Mac now. There is nothing else to enter — no renewal, and no connection.")
         case nil:
-            "The key for this Mac was accepted."
+            L10n.string("The key for this Mac was accepted.")
         }
     }
 
@@ -214,14 +193,19 @@ struct LicensePresentation: Sendable, Equatable {
     /// It is shown only after an activation. Entering a key by hand sends no
     /// mail, and promising one there would be a sentence about something that
     /// did not happen.
-    static let keyByMailNote = """
-    A copy of the key is also on its way to that address. You do not need it now —     it is for when you reinstall Witness or replace this Mac. If it never arrives,     press the button again: the same key comes back here and the mail is retried.
-    """
+    static var keyByMailNote: String {
+        L10n.string("A copy of the key is also on its way to that address. You do not need it now — it is for when you reinstall Witness or replace this Mac. If it never arrives, press the button again: the same key comes back here and the mail is retried.")
+    }
 
     /// "1 day", "5 days". Small, and the alternative is a string with a
     /// parenthesised plural in it.
     static func count(_ value: Int, _ noun: String) -> String {
-        "\(value) \(noun)\(value == 1 ? "" : "s")"
+        if noun == "day" {
+            return value == 1
+                ? L10n.format("%lld day", Int64(value))
+                : L10n.format("%lld days", Int64(value))
+        }
+        return "\(value) \(noun)\(value == 1 ? "" : "s")"
     }
 
     private static let moment: DateFormatter = {

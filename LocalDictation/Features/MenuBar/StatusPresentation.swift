@@ -59,9 +59,9 @@ struct StatusPresentation: Sendable, Equatable {
         // the true thing to say.
         if state == .ready, modelState.isLongWait {
             let isArriving = modelState.isPreparing
-            title = isArriving ? "Getting the speech model" : "The speech model is not ready"
+            title = L10n.string(isArriving ? "Getting the speech model" : "The speech model is not ready")
             detail = isArriving
-                ? "\(modelState.label) It happens once. Dictation starts the moment it is here."
+                ? L10n.format("%@ It happens once. Dictation starts the moment it is here.", modelState.label)
                 : modelState.label
             systemImage = isArriving ? "arrow.down.circle" : "exclamationmark.triangle"
             tint = isArriving ? .neutral : .warning
@@ -72,8 +72,8 @@ struct StatusPresentation: Sendable, Equatable {
         }
 
         if state == .ready, attentionIsPending {
-            title = "Worth a look"
-            detail = "Some fragments in the last result are worth checking. The text is already in place."
+            title = L10n.string("Worth a look")
+            detail = L10n.string("Some fragments in the last result are worth checking. The text is already in place.")
             systemImage = "exclamationmark.triangle"
             tint = .warning
             showsPermissionRequest = false
@@ -87,7 +87,7 @@ struct StatusPresentation: Sendable, Equatable {
         // why nothing came back, and "nothing was heard" would send the user to
         // check a microphone that was working until it left.
         if state == .ready, let captureInterruption {
-            title = "Recording ended early"
+            title = L10n.string("Recording ended early")
             detail = captureInterruption
             systemImage = "mic.badge.xmark"
             tint = .warning
@@ -114,8 +114,8 @@ struct StatusPresentation: Sendable, Equatable {
 
         switch state {
         case .launching:
-            title = "Starting up"
-            detail = "Checking microphone access."
+            title = L10n.string("Starting up")
+            detail = L10n.string("Checking microphone access.")
             systemImage = "mic.circle"
             tint = .neutral
             showsPermissionRequest = false
@@ -123,8 +123,8 @@ struct StatusPresentation: Sendable, Equatable {
             showsRecoveryAction = false
 
         case .needsPermission:
-            title = "Microphone access required"
-            detail = "Grant access to enable push-to-talk dictation."
+            title = L10n.string("Microphone access required")
+            detail = L10n.string("Grant access to enable push-to-talk dictation.")
             systemImage = "mic.circle"
             tint = .warning
             showsPermissionRequest = true
@@ -132,8 +132,8 @@ struct StatusPresentation: Sendable, Equatable {
             showsRecoveryAction = false
 
         case .requestingPermission:
-            title = "Waiting for your answer"
-            detail = "Approve the macOS microphone prompt."
+            title = L10n.string("Waiting for your answer")
+            detail = L10n.string("Approve the macOS microphone prompt.")
             systemImage = "mic.circle"
             tint = .neutral
             showsPermissionRequest = false
@@ -141,10 +141,10 @@ struct StatusPresentation: Sendable, Equatable {
             showsRecoveryAction = false
 
         case let .permissionDenied(restricted):
-            title = restricted ? "Microphone access restricted" : "Microphone access denied"
+            title = L10n.string(restricted ? "Microphone access restricted" : "Microphone access denied")
             detail = restricted
-                ? "A device policy blocks microphone access. Contact whoever manages this Mac."
-                : "Enable Witness under Privacy & Security → Microphone, then return here."
+                ? L10n.string("A device policy blocks microphone access. Contact whoever manages this Mac.")
+                : L10n.string("Enable Witness under Privacy & Security → Microphone, then return here.")
             systemImage = "exclamationmark.triangle"
             tint = .warning
             showsPermissionRequest = false
@@ -152,7 +152,7 @@ struct StatusPresentation: Sendable, Equatable {
             showsRecoveryAction = false
 
         case .ready:
-            title = "Ready"
+            title = L10n.string("Ready")
             detail = Self.startInstruction(binding, activation)
             systemImage = "waveform.circle"
             tint = .ready
@@ -161,8 +161,8 @@ struct StatusPresentation: Sendable, Equatable {
             showsRecoveryAction = false
 
         case .starting:
-            title = "Starting capture"
-            detail = "Opening the microphone."
+            title = L10n.string("Starting capture")
+            detail = L10n.string("Opening the microphone.")
             systemImage = "waveform.circle"
             tint = .active
             showsPermissionRequest = false
@@ -170,7 +170,7 @@ struct StatusPresentation: Sendable, Equatable {
             showsRecoveryAction = false
 
         case .recording:
-            title = "Recording"
+            title = L10n.string("Recording")
             detail = Self.finishInstruction(binding, activation)
             systemImage = "waveform.circle.fill"
             tint = .active
@@ -179,8 +179,8 @@ struct StatusPresentation: Sendable, Equatable {
             showsRecoveryAction = false
 
         case .finishing:
-            title = "Finishing utterance"
-            detail = "Closing the capture buffer."
+            title = L10n.string("Finishing utterance")
+            detail = L10n.string("Closing the capture buffer.")
             systemImage = "waveform.circle"
             tint = .active
             showsPermissionRequest = false
@@ -192,10 +192,10 @@ struct StatusPresentation: Sendable, Equatable {
             // already captured and throwing it away would be worse. But saying
             // "Transcribing" while the engine is still loading reads as a hang,
             // so the wait is named for what it is.
-            title = modelState.isPreparing ? "Waiting for the speech model" : "Transcribing"
+            title = L10n.string(modelState.isPreparing ? "Waiting for the speech model" : "Transcribing")
             detail = modelState.isPreparing
-                ? "Your recording is held in memory. Transcription starts the moment the model finishes loading."
-                : "Recognizing speech on this Mac. \(Self.startInstruction(binding, activation))"
+                ? L10n.string("Your recording is held in memory. Transcription starts the moment the model finishes loading.")
+                : L10n.format("Recognizing speech on this Mac. %@", Self.startInstruction(binding, activation))
             systemImage = "waveform.badge.magnifyingglass"
             tint = .active
             showsPermissionRequest = false
@@ -203,8 +203,8 @@ struct StatusPresentation: Sendable, Equatable {
             showsRecoveryAction = false
 
         case .inserting:
-            title = "Inserting"
-            detail = "Putting the text where you were typing."
+            title = L10n.string("Inserting")
+            detail = L10n.string("Putting the text where you were typing.")
             systemImage = "text.cursor"
             tint = .active
             showsPermissionRequest = false
@@ -217,17 +217,17 @@ struct StatusPresentation: Sendable, Equatable {
             // the user — an address, or a purchase — and never both.
             switch lock {
             case .activationRequired:
-                title = "Activate to keep going"
-                detail = "The first three days are ungated. Add your email under Settings → License and the trial runs for ten more days."
+                title = L10n.string("Activate to keep going")
+                detail = L10n.string("The first three days are ungated. Add your email under Settings → License and the trial runs for ten more days.")
             case let .expired(.trial, at):
-                title = "Trial finished"
-                detail = "The trial ended \(Self.dayFormatter.string(from: at)). A license brings it back, on this Mac and one more."
+                title = L10n.string("Trial finished")
+                detail = L10n.format("The trial ended %@. A license brings it back, on this Mac and one more.", Self.dayFormatter.string(from: at))
             case let .expired(kind, at):
-                title = "\(kind.displayName) license expired"
-                detail = "It ran out \(Self.dayFormatter.string(from: at)). Renewing unlocks dictation again; nothing on this Mac was touched."
+                title = L10n.format("%@ license expired", kind.displayName)
+                detail = L10n.format("It ran out %@. Renewing unlocks dictation again; nothing on this Mac was touched.", Self.dayFormatter.string(from: at))
             case let .updateRequired(covered, running):
-                title = "This version is newer than your license"
-                detail = "Your lifetime license covers version \(covered) and every update to it. This is version \(running). Version \(covered) keeps working forever."
+                title = L10n.string("This version is newer than your license")
+                detail = L10n.format("Your lifetime license covers version %1$@ and every update to it. This is version %2$@. Version %1$@ keeps working forever.", covered, running)
             }
             systemImage = "lock.circle"
             tint = .warning
@@ -237,7 +237,7 @@ struct StatusPresentation: Sendable, Equatable {
             showsLicenseAction = true
 
         case let .failed(failure):
-            title = "Needs attention"
+            title = L10n.string("Needs attention")
             detail = failure.message
             systemImage = "exclamationmark.triangle"
             tint = .warning
@@ -255,15 +255,15 @@ struct StatusPresentation: Sendable, Equatable {
     /// one thing that will not work.
     private static func startInstruction(_ binding: HotkeyBinding, _ activation: RecordingActivation) -> String {
         switch activation {
-        case .pushToTalk: "Hold \(binding.displayString) to record."
-        case .toggle: "Press \(binding.displayString) to start recording."
+        case .pushToTalk: L10n.format("Hold %@ to record.", binding.displayString)
+        case .toggle: L10n.format("Press %@ to start recording.", binding.displayString)
         }
     }
 
     private static func finishInstruction(_ binding: HotkeyBinding, _ activation: RecordingActivation) -> String {
         switch activation {
-        case .pushToTalk: "Release \(binding.displayString) to finish."
-        case .toggle: "Press \(binding.displayString) again to finish."
+        case .pushToTalk: L10n.format("Release %@ to finish.", binding.displayString)
+        case .toggle: L10n.format("Press %@ again to finish.", binding.displayString)
         }
     }
 

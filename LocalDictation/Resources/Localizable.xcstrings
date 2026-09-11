@@ -1,0 +1,2794 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "Which languages do you speak?": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Welche Sprachen sprichst du?"
+          }
+        }
+      }
+    },
+    "Every utterance is recognized as one of the languages you pick here, and never as one you did not. Pick as many as you actually use — there is nothing to switch between afterwards.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jede Äußerung wird als eine der hier ausgewählten Sprachen erkannt – niemals als eine, die du nicht ausgewählt hast. Wähle alle Sprachen, die du tatsächlich verwendest; später musst du nicht zwischen ihnen wechseln."
+          }
+        }
+      }
+    },
+    "Continue": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weiter"
+          }
+        }
+      }
+    },
+    "You can change this at any time in Settings → Languages.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du kannst dies jederzeit unter Einstellungen → Sprachen ändern."
+          }
+        }
+      }
+    },
+    "Everything here is in Settings, and the menu bar icon is where the app lives.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alles hier findest du auch in den Einstellungen. Über das Menüleistensymbol erreichst du Witness jederzeit."
+          }
+        }
+      }
+    },
+    "Start dictating": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diktieren"
+          }
+        }
+      }
+    },
+    "Allow microphone…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mikrofon erlauben …"
+          }
+        }
+      }
+    },
+    "Open Privacy Settings": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datenschutzeinstellungen öffnen"
+          }
+        }
+      }
+    },
+    "Re-check": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erneut prüfen"
+          }
+        }
+      }
+    },
+    "Ask again": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erneut fragen"
+          }
+        }
+      }
+    },
+    "Open Settings": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einstellungen öffnen"
+          }
+        }
+      }
+    },
+    "Try again": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erneut versuchen"
+          }
+        }
+      }
+    },
+    "Search languages": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprachen suchen"
+          }
+        }
+      }
+    },
+    "Measured end to end": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Durchgängig geprüft"
+          }
+        }
+      }
+    },
+    "Everything else the engine knows": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle weiteren unterstützten Sprachen"
+          }
+        }
+      }
+    },
+    "German, English, Russian, and Ukrainian are measured end to end: recognition, cleanup, and every mark the review can show. The rest are recognized, and the marks that are calibrated per language stay off rather than guess.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deutsch, Englisch, Russisch und Ukrainisch sind durchgängig geprüft: Erkennung, Bereinigung und alle Hinweise der Überprüfung. Andere Sprachen werden erkannt; sprachabhängige Hinweise bleiben dort deaktiviert, statt Vermutungen anzuzeigen."
+          }
+        }
+      }
+    },
+    "Preferred": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bevorzugt"
+          }
+        }
+      }
+    },
+    "The preferred language decides a short phrase that could be either — “okay”, “ja”, a name on its own. A sentence long enough to be recognized is decided by what was said, not by this.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die bevorzugte Sprache entscheidet bei kurzen, mehrdeutigen Äußerungen – etwa „okay“, „ja“ oder einem einzelnen Namen. Bei längeren Sätzen entscheidet das Gesprochene selbst."
+          }
+        }
+      }
+    },
+    "Raw transcript, exactly as recognized": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rohtranskript, genau wie erkannt"
+          }
+        }
+      }
+    },
+    "Play this fragment from memory": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieses Fragment aus dem Arbeitsspeicher abspielen"
+          }
+        }
+      }
+    },
+    "Close": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schließen"
+          }
+        }
+      }
+    },
+    "Email address": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "E-Mail-Adresse"
+          }
+        }
+      }
+    },
+    "you@example.com": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "du@beispiel.de"
+          }
+        }
+      }
+    },
+    "Not now": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nicht jetzt"
+          }
+        }
+      }
+    },
+    "Enter a key…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schlüssel eingeben …"
+          }
+        }
+      }
+    },
+    "Enter a key": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schlüssel eingeben"
+          }
+        }
+      }
+    },
+    "License key": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lizenzschlüssel"
+          }
+        }
+      }
+    },
+    "Use this key": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diesen Schlüssel verwenden"
+          }
+        }
+      }
+    },
+    "Licenses": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lizenzen"
+          }
+        }
+      }
+    },
+    "This Mac": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieser Mac"
+          }
+        }
+      }
+    },
+    "Identifier": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kennung"
+          }
+        }
+      }
+    },
+    "Record": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datensatz"
+          }
+        }
+      }
+    },
+    "Buy": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kaufen"
+          }
+        }
+      }
+    },
+    "General": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allgemein"
+          }
+        }
+      }
+    },
+    "Languages": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprachen"
+          }
+        }
+      }
+    },
+    "Boundary": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grenzen"
+          }
+        }
+      }
+    },
+    "Dictionary": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wörterbuch"
+          }
+        }
+      }
+    },
+    "License": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lizenz"
+          }
+        }
+      }
+    },
+    "Diagnostics": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diagnose"
+          }
+        }
+      }
+    },
+    "Witness Settings": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Witness-Einstellungen"
+          }
+        }
+      }
+    },
+    "Shortcut": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tastenkürzel"
+          }
+        }
+      }
+    },
+    "Mode": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modus"
+          }
+        }
+      }
+    },
+    "Startup": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start"
+          }
+        }
+      }
+    },
+    "Privacy": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datenschutz"
+          }
+        }
+      }
+    },
+    "Send three events about the trial": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drei Ereignisse zur Testphase senden"
+          }
+        }
+      }
+    },
+    "Insertion": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einfügen"
+          }
+        }
+      }
+    },
+    "Insert automatically when nothing needs review": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatisch einfügen, wenn keine Überprüfung nötig ist"
+          }
+        }
+      }
+    },
+    "Accessibility access": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bedienungshilfen-Zugriff"
+          }
+        }
+      }
+    },
+    "Allow…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erlauben …"
+          }
+        }
+      }
+    },
+    "Review": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Überprüfung"
+          }
+        }
+      }
+    },
+    "Phase": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phase"
+          }
+        }
+      }
+    },
+    "Settings file": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einstellungsdatei"
+          }
+        }
+      }
+    },
+    "Voice activity thresholds": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schwellenwerte der Sprachaktivität"
+          }
+        }
+      }
+    },
+    "Speech threshold (RMS)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprachschwelle (RMS)"
+          }
+        }
+      }
+    },
+    "Silence threshold (RMS)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stille-Schwelle (RMS)"
+          }
+        }
+      }
+    },
+    "Boundaries": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grenzen"
+          }
+        }
+      }
+    },
+    "Trailing silence": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stille am Ende"
+          }
+        }
+      }
+    },
+    "Maximum utterance": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maximale Äußerung"
+          }
+        }
+      }
+    },
+    "Input": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eingang"
+          }
+        }
+      }
+    },
+    "Device": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gerät"
+          }
+        }
+      }
+    },
+    "Normalized output": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Normalisierte Ausgabe"
+          }
+        }
+      }
+    },
+    "Current buffer": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktueller Puffer"
+          }
+        }
+      }
+    },
+    "Duration": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dauer"
+          }
+        }
+      }
+    },
+    "Frames": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frames"
+          }
+        }
+      }
+    },
+    "Utilization": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auslastung"
+          }
+        }
+      }
+    },
+    "Peak level": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spitzenpegel"
+          }
+        }
+      }
+    },
+    "Dropped frames": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verworfene Frames"
+          }
+        }
+      }
+    },
+    "Voice activity": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprachaktivität"
+          }
+        }
+      }
+    },
+    "Speech start": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprachbeginn"
+          }
+        }
+      }
+    },
+    "Last utterance": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Letzte Äußerung"
+          }
+        }
+      }
+    },
+    "Sample rate": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abtastrate"
+          }
+        }
+      }
+    },
+    "End reason": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Endgrund"
+          }
+        }
+      }
+    },
+    "Last result": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Letztes Ergebnis"
+          }
+        }
+      }
+    },
+    "Cleanup edits": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bereinigungen"
+          }
+        }
+      }
+    },
+    "Edit kinds": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bearbeitungsarten"
+          }
+        }
+      }
+    },
+    "Risk spans": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Risikostellen"
+          }
+        }
+      }
+    },
+    "Flagged": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Markiert"
+          }
+        }
+      }
+    },
+    "Signals": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Signale"
+          }
+        }
+      }
+    },
+    "Highest weight": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Höchste Gewichtung"
+          }
+        }
+      }
+    },
+    "Attention": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aufmerksamkeit"
+          }
+        }
+      }
+    },
+    "Last insertion": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Letztes Einfügen"
+          }
+        }
+      }
+    },
+    "Outcome": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ergebnis"
+          }
+        }
+      }
+    },
+    "Target": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ziel"
+          }
+        }
+      }
+    },
+    "Audio lifetime": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audio-Lebensdauer"
+          }
+        }
+      }
+    },
+    "Retained frames": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Behaltene Frames"
+          }
+        }
+      }
+    },
+    "Last error": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Letzter Fehler"
+          }
+        }
+      }
+    },
+    "Debug export": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Debug-Export"
+          }
+        }
+      }
+    },
+    "Export last utterance as WAV…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Letzte Äußerung als WAV exportieren …"
+          }
+        }
+      }
+    },
+    "Add a term": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Begriff hinzufügen"
+          }
+        }
+      }
+    },
+    "Name, product, or term": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name, Produkt oder Begriff"
+          }
+        }
+      }
+    },
+    "Add": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hinzufügen"
+          }
+        }
+      }
+    },
+    "Remove this term": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diesen Begriff entfernen"
+          }
+        }
+      }
+    },
+    "Storage": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speicherort"
+          }
+        }
+      }
+    },
+    "Cancel": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abbrechen"
+          }
+        }
+      }
+    },
+    "Change…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ändern …"
+          }
+        }
+      }
+    },
+    "Reset": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zurücksetzen"
+          }
+        }
+      }
+    },
+    "Open Login Items": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anmeldeobjekte öffnen"
+          }
+        }
+      }
+    },
+    "Settings": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einstellungen"
+          }
+        }
+      }
+    },
+    "Quit": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beenden"
+          }
+        }
+      }
+    },
+    "Allow microphone access…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mikrofonzugriff erlauben …"
+          }
+        }
+      }
+    },
+    "Input level": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eingangspegel"
+          }
+        }
+      }
+    },
+    "Language": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprache"
+          }
+        }
+      }
+    },
+    "Get the speech model": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprachmodell laden"
+          }
+        }
+      }
+    },
+    "Dictation is blocked right now": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diktieren ist derzeit blockiert"
+          }
+        }
+      }
+    },
+    "Type text for you": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Text für dich eingeben"
+          }
+        }
+      }
+    },
+    "Check": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prüfen"
+          }
+        }
+      }
+    },
+    "Hold %@ and speak": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Halte %@ gedrückt und sprich"
+          }
+        }
+      }
+    },
+    "Let go and the text arrives where your cursor is. That is the whole of it — there is no window to switch to and nothing to click.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lass los, und der Text erscheint an der Cursorposition. Mehr ist nicht nötig: kein Fensterwechsel und kein Klick."
+          }
+        }
+      }
+    },
+    "Nothing you dictate ever leaves this Mac. Three events about the trial itself do — when it starts, when it asks for an email, and when it shows the offers — with no more than an app version, a macOS version, and a random number made at install. Settings → Privacy turns them off.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nichts von dem, was du diktierst, verlässt diesen Mac. Nur drei Ereignisse zur Testphase werden gesendet: ihr Start, die Abfrage der E-Mail-Adresse und das Anzeigen der Angebote – jeweils nur mit App-Version, macOS-Version und einer bei der Installation erzeugten Zufallsnummer. Unter Einstellungen → Datenschutz kannst du dies deaktivieren."
+          }
+        }
+      }
+    },
+    "The speech model is ready": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Sprachmodell ist bereit"
+          }
+        }
+      }
+    },
+    "The speech model did not arrive": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Sprachmodell konnte nicht geladen werden"
+          }
+        }
+      }
+    },
+    "The speech model is downloading": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Sprachmodell wird geladen"
+          }
+        }
+      }
+    },
+    "Recognition runs on this Mac, with no network and no account.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Erkennung läuft auf diesem Mac – ohne Netzwerk und ohne Konto."
+          }
+        }
+      }
+    },
+    "%@ It is about 600 MB and needs a connection once; everything after that is offline.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Es ist etwa 600 MB groß und benötigt einmalig eine Verbindung; danach funktioniert alles offline."
+          }
+        }
+      }
+    },
+    "About 600 MB, fetched once, usually within five minutes. It started on its own when the app launched — you can close this window and it keeps going. Afterwards recognition runs on this Mac with no network at all.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Etwa 600 MB, einmalig geladen, normalerweise in weniger als fünf Minuten. Der Download begann beim App-Start automatisch und läuft weiter, wenn du dieses Fenster schließt. Danach erfolgt die Erkennung vollständig offline auf diesem Mac."
+          }
+        }
+      }
+    },
+    "No language here is called “%@”.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Sprache heißt hier „%@“."
+          }
+        }
+      }
+    },
+    "Lifetime": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dauerlizenz"
+          }
+        }
+      }
+    },
+    "Annual": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jahreslizenz"
+          }
+        }
+      }
+    },
+    "Trial": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Testphase"
+          }
+        }
+      }
+    },
+    "Annual license": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jahreslizenz"
+          }
+        }
+      }
+    },
+    "Lifetime license": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dauerlizenz"
+          }
+        }
+      }
+    },
+    "Ready": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bereit"
+          }
+        }
+      }
+    },
+    "Ready to dictate": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bereit zum Diktieren"
+          }
+        }
+      }
+    },
+    "Waiting for speech": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Warte auf Sprache"
+          }
+        }
+      }
+    },
+    "Speech": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprache"
+          }
+        }
+      }
+    },
+    "Ended (silence)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beendet (Stille)"
+          }
+        }
+      }
+    },
+    "Ended (maximum duration)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beendet (Maximaldauer)"
+          }
+        }
+      }
+    },
+    "Downloading the speech model…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprachmodell wird geladen …"
+          }
+        }
+      }
+    },
+    "Downloading the speech model… %lld%%": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprachmodell wird geladen … %lld %%"
+          }
+        }
+      }
+    },
+    "Loading the speech model…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprachmodell wird geladen …"
+          }
+        }
+      }
+    },
+    "Preparing the speech model for this Mac. The first time on a new macOS version takes several minutes; after that it is seconds.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Sprachmodell wird für diesen Mac vorbereitet. Nach einer neuen macOS-Version dauert dies beim ersten Mal einige Minuten, danach nur Sekunden."
+          }
+        }
+      }
+    },
+    "Speech model unavailable: %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprachmodell nicht verfügbar: %@"
+          }
+        }
+      }
+    },
+    "%@ is not supported by the current speech engine": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ wird von der aktuellen Spracherkennung nicht unterstützt"
+          }
+        }
+      }
+    },
+    "Nothing was recorded": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Es wurde nichts aufgenommen"
+          }
+        }
+      }
+    },
+    "Transcription was cancelled": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Transkription wurde abgebrochen"
+          }
+        }
+      }
+    },
+    "Transcription failed: %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transkription fehlgeschlagen: %@"
+          }
+        }
+      }
+    },
+    "No microphone input device is available": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kein Mikrofon-Eingabegerät verfügbar"
+          }
+        }
+      }
+    },
+    "Unsupported input format (%@)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nicht unterstütztes Eingabeformat (%@)"
+          }
+        }
+      }
+    },
+    "Audio converter unavailable (%@)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audiokonverter nicht verfügbar (%@)"
+          }
+        }
+      }
+    },
+    "Audio conversion failed (%@)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audiokonvertierung fehlgeschlagen (%@)"
+          }
+        }
+      }
+    },
+    "Audio engine failed to start (%@)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audio-Engine konnte nicht gestartet werden (%@)"
+          }
+        }
+      }
+    },
+    "The input device changed during recording": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Eingabegerät wurde während der Aufnahme gewechselt"
+          }
+        }
+      }
+    },
+    "No recording is in progress": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Es läuft keine Aufnahme"
+          }
+        }
+      }
+    },
+    "The microphone changed while you were speaking, so the recording ended there. Whatever you had already said was kept.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Mikrofon wurde während des Sprechens gewechselt. Die Aufnahme wurde beendet; das bereits Gesagte blieb erhalten."
+          }
+        }
+      }
+    },
+    "The microphone went away while you were speaking, so the recording ended there. Whatever you had already said was kept.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Mikrofon war während des Sprechens nicht mehr verfügbar. Die Aufnahme wurde beendet; das bereits Gesagte blieb erhalten."
+          }
+        }
+      }
+    },
+    "The recording ended early: %@. Whatever you had already said was kept.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Aufnahme wurde vorzeitig beendet: %@. Das bereits Gesagte blieb erhalten."
+          }
+        }
+      }
+    },
+    "Hotkey unavailable: %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tastenkürzel nicht verfügbar: %@"
+          }
+        }
+      }
+    },
+    "Recording could not start: %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aufnahme konnte nicht gestartet werden: %@"
+          }
+        }
+      }
+    },
+    "Recording stopped: %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aufnahme beendet: %@"
+          }
+        }
+      }
+    },
+    "Nothing was heard": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nichts gehört"
+          }
+        }
+      }
+    },
+    "Nothing was recognized": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nichts erkannt"
+          }
+        }
+      }
+    },
+    "the current input device": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "das aktuelle Eingabegerät"
+          }
+        }
+      }
+    },
+    "That fragment has no audio to play": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Für dieses Fragment ist kein Audio zum Abspielen vorhanden"
+          }
+        }
+      }
+    },
+    "Playback failed: %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wiedergabe fehlgeschlagen: %@"
+          }
+        }
+      }
+    },
+    "Number": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zahl"
+          }
+        }
+      }
+    },
+    "Amount": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Betrag"
+          }
+        }
+      }
+    },
+    "Date": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datum"
+          }
+        }
+      }
+    },
+    "Name": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name"
+          }
+        }
+      }
+    },
+    "Close to “%@”": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ähnlich wie „%@“"
+          }
+        }
+      }
+    },
+    "Not a word": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kein Wort"
+          }
+        }
+      }
+    },
+    "%@ word": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wort auf %@"
+          }
+        }
+      }
+    },
+    "Uncertain": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unsicher"
+          }
+        }
+      }
+    },
+    "Spacing": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abstände"
+          }
+        }
+      }
+    },
+    "Punctuation": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeichensetzung"
+          }
+        }
+      }
+    },
+    "Capitalization": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Großschreibung"
+          }
+        }
+      }
+    },
+    "Filler removed": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Füllwort entfernt"
+          }
+        }
+      }
+    },
+    "Hold to talk": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gedrückt halten zum Sprechen"
+          }
+        }
+      }
+    },
+    "Press to start and stop": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zum Starten und Stoppen drücken"
+          }
+        }
+      }
+    },
+    "The microphone is open only while the key is down. Best for a sentence at a time.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Mikrofon ist nur geöffnet, solange die Taste gedrückt bleibt. Ideal für einzelne Sätze."
+          }
+        }
+      }
+    },
+    "One press starts, the next finishes. Best for anything longer than a key is comfortable to hold.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein Tastendruck startet, der nächste beendet die Aufnahme. Ideal für längere Texte."
+          }
+        }
+      }
+    },
+    "Space": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leertaste"
+          }
+        }
+      }
+    },
+    "Return": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeilenschalter"
+          }
+        }
+      }
+    },
+    "Enter": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eingabe"
+          }
+        }
+      }
+    },
+    "Tab": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tabulator"
+          }
+        }
+      }
+    },
+    "Escape": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escape"
+          }
+        }
+      }
+    },
+    "Delete": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Löschen"
+          }
+        }
+      }
+    },
+    "Forward Delete": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vorwärts löschen"
+          }
+        }
+      }
+    },
+    "Help": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hilfe"
+          }
+        }
+      }
+    },
+    "Home": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pos1"
+          }
+        }
+      }
+    },
+    "End": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ende"
+          }
+        }
+      }
+    },
+    "Page Up": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bild auf"
+          }
+        }
+      }
+    },
+    "Page Down": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bild ab"
+          }
+        }
+      }
+    },
+    "Key %lld": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Taste %lld"
+          }
+        }
+      }
+    },
+    "Insert": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einfügen"
+          }
+        }
+      }
+    },
+    "Insert into %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In %@ einfügen"
+          }
+        }
+      }
+    },
+    "Check what was marked": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Markierte Stellen prüfen"
+          }
+        }
+      }
+    },
+    "Check 1 flagged fragment": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 markiertes Fragment prüfen"
+          }
+        }
+      }
+    },
+    "Check %lld flagged fragments": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld markierte Fragmente prüfen"
+          }
+        }
+      }
+    },
+    "Any of %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eine von: %@"
+          }
+        }
+      }
+    },
+    "Only %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nur %@"
+          }
+        }
+      }
+    },
+    "Raw transcript": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rohtranskript"
+          }
+        }
+      }
+    },
+    "Transcript": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transkript"
+          }
+        }
+      }
+    },
+    "Copy": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopieren"
+          }
+        }
+      }
+    },
+    "Copied": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopiert"
+          }
+        }
+      }
+    },
+    "Open License settings": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lizenzeinstellungen öffnen"
+          }
+        }
+      }
+    },
+    "Activate…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktivieren …"
+          }
+        }
+      }
+    },
+    "Show cleaned text": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bereinigten Text anzeigen"
+          }
+        }
+      }
+    },
+    "Show raw transcript": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rohtranskript anzeigen"
+          }
+        }
+      }
+    },
+    "Copy raw": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rohtext kopieren"
+          }
+        }
+      }
+    },
+    "Nothing flagged": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nichts markiert"
+          }
+        }
+      }
+    },
+    "1 fragment worth checking": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 Fragment prüfen"
+          }
+        }
+      }
+    },
+    "%lld fragments worth checking": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld Fragmente prüfen"
+          }
+        }
+      }
+    },
+    "1 more marked for context": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 weitere Stelle als Kontext markiert"
+          }
+        }
+      }
+    },
+    "%lld more marked for context": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld weitere Stellen als Kontext markiert"
+          }
+        }
+      }
+    },
+    "removed here": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "hier entfernt"
+          }
+        }
+      }
+    },
+    "at this position": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "an dieser Stelle"
+          }
+        }
+      }
+    },
+    "Not granted": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nicht gewährt"
+          }
+        }
+      }
+    },
+    "Granted": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gewährt"
+          }
+        }
+      }
+    },
+    "Not opened yet": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noch nicht geöffnet"
+          }
+        }
+      }
+    },
+    "Offered": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Angeboten"
+          }
+        }
+      }
+    },
+    "None": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine"
+          }
+        }
+      }
+    },
+    "Press a combination…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tastenkombination drücken …"
+          }
+        }
+      }
+    },
+    "%1$@ cannot be used: %2$@.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ kann nicht verwendet werden: %2$@."
+          }
+        }
+      }
+    },
+    "Activate the trial": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Testphase aktivieren"
+          }
+        }
+      }
+    },
+    "Send me a key": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schlüssel anfordern"
+          }
+        }
+      }
+    },
+    "Already bought a license?": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bereits eine Lizenz gekauft?"
+          }
+        }
+      }
+    },
+    "Send my key": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meinen Schlüssel senden"
+          }
+        }
+      }
+    },
+    "Sending…": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wird gesendet …"
+          }
+        }
+      }
+    },
+    "Trial, not yet activated": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Testphase, noch nicht aktiviert"
+          }
+        }
+      }
+    },
+    "Ready to use, nothing asked for yet": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einsatzbereit, noch keine Angaben nötig"
+          }
+        }
+      }
+    },
+    "Trial, activated": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Testphase aktiviert"
+          }
+        }
+      }
+    },
+    "Activate to keep dictating": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktivieren, um weiter zu diktieren"
+          }
+        }
+      }
+    },
+    "The trial ended": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Testphase ist abgelaufen"
+          }
+        }
+      }
+    },
+    "This version is newer than your license": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Version ist neuer als deine Lizenz"
+          }
+        }
+      }
+    },
+    "Your annual license is on this Mac now. There is nothing else to enter.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Jahreslizenz ist jetzt auf diesem Mac. Weitere Eingaben sind nicht nötig."
+          }
+        }
+      }
+    },
+    "Your lifetime license is on this Mac now. There is nothing else to enter — no renewal, and no connection.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Dauerlizenz ist jetzt auf diesem Mac. Weitere Eingaben, Verlängerungen oder eine Verbindung sind nicht nötig."
+          }
+        }
+      }
+    },
+    "The key for this Mac was accepted.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Schlüssel für diesen Mac wurde akzeptiert."
+          }
+        }
+      }
+    },
+    "%lld day": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld Tag"
+          }
+        }
+      }
+    },
+    "%lld days": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld Tage"
+          }
+        }
+      }
+    },
+    "Paid once. Covers two Macs and every update to this major version.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einmalzahlung. Gilt für zwei Macs und alle Updates dieser Hauptversion."
+          }
+        }
+      }
+    },
+    "Renewed each year. Covers two Macs.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jährliche Verlängerung. Gilt für zwei Macs."
+          }
+        }
+      }
+    },
+    "Renews automatically each year, and can be cancelled any time — it then runs to its date. Covers two Macs.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verlängert sich jährlich automatisch und kann jederzeit gekündigt werden; sie läuft dann bis zum Enddatum weiter. Gilt für zwei Macs."
+          }
+        }
+      }
+    },
+    "Your last day before activation": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Letzter Tag vor der Aktivierung"
+          }
+        }
+      }
+    },
+    "The trial ends today": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Testphase endet heute"
+          }
+        }
+      }
+    },
+    "The trial ends in %lld days": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Testphase endet in %lld Tagen"
+          }
+        }
+      }
+    },
+    "Your license ends today": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Lizenz endet heute"
+          }
+        }
+      }
+    },
+    "Your license ends in %lld days": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Lizenz endet in %lld Tagen"
+          }
+        }
+      }
+    },
+    "Activate to keep going": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktivieren, um fortzufahren"
+          }
+        }
+      }
+    },
+    "Trial finished": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Testphase beendet"
+          }
+        }
+      }
+    },
+    "%@ license expired": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ abgelaufen"
+          }
+        }
+      }
+    },
+    "Needs attention": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktion erforderlich"
+          }
+        }
+      }
+    },
+    "Worth a look": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prüfung empfohlen"
+          }
+        }
+      }
+    },
+    "Recording ended early": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aufnahme vorzeitig beendet"
+          }
+        }
+      }
+    },
+    "Starting up": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wird gestartet"
+          }
+        }
+      }
+    },
+    "Checking microphone access.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mikrofonzugriff wird geprüft."
+          }
+        }
+      }
+    },
+    "Microphone access required": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mikrofonzugriff erforderlich"
+          }
+        }
+      }
+    },
+    "Grant access to enable push-to-talk dictation.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erlaube den Zugriff, um per Tastendruck zu diktieren."
+          }
+        }
+      }
+    },
+    "Waiting for your answer": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Warte auf deine Antwort"
+          }
+        }
+      }
+    },
+    "Approve the macOS microphone prompt.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bestätige die Mikrofonabfrage von macOS."
+          }
+        }
+      }
+    },
+    "Microphone access restricted": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mikrofonzugriff eingeschränkt"
+          }
+        }
+      }
+    },
+    "Microphone access denied": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mikrofonzugriff verweigert"
+          }
+        }
+      }
+    },
+    "A device policy blocks microphone access. Contact whoever manages this Mac.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eine Geräterichtlinie blockiert den Mikrofonzugriff. Wende dich an die Verwaltung dieses Macs."
+          }
+        }
+      }
+    },
+    "Enable Witness under Privacy & Security → Microphone, then return here.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktiviere Witness unter Datenschutz & Sicherheit → Mikrofon und kehre dann hierher zurück."
+          }
+        }
+      }
+    },
+    "Starting capture": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aufnahme wird gestartet"
+          }
+        }
+      }
+    },
+    "Opening the microphone.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mikrofon wird geöffnet."
+          }
+        }
+      }
+    },
+    "Recording": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aufnahme"
+          }
+        }
+      }
+    },
+    "Finishing utterance": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Äußerung wird abgeschlossen"
+          }
+        }
+      }
+    },
+    "Closing the capture buffer.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aufnahmepuffer wird geschlossen."
+          }
+        }
+      }
+    },
+    "Waiting for the speech model": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Warte auf das Sprachmodell"
+          }
+        }
+      }
+    },
+    "Transcribing": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wird transkribiert"
+          }
+        }
+      }
+    },
+    "Your recording is held in memory. Transcription starts the moment the model finishes loading.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Aufnahme bleibt im Arbeitsspeicher. Die Transkription beginnt, sobald das Modell geladen ist."
+          }
+        }
+      }
+    },
+    "Recognizing speech on this Mac. %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spracherkennung auf diesem Mac. %@"
+          }
+        }
+      }
+    },
+    "Inserting": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wird eingefügt"
+          }
+        }
+      }
+    },
+    "Putting the text where you were typing.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Text wird an der bisherigen Eingabestelle eingefügt."
+          }
+        }
+      }
+    },
+    "Hold %@ to record.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Halte %@ zum Aufnehmen gedrückt."
+          }
+        }
+      }
+    },
+    "Press %@ to start recording.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drücke %@, um die Aufnahme zu starten."
+          }
+        }
+      }
+    },
+    "Release %@ to finish.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lass %@ los, um die Aufnahme zu beenden."
+          }
+        }
+      }
+    },
+    "Press %@ again to finish.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drücke %@ erneut, um die Aufnahme zu beenden."
+          }
+        }
+      }
+    },
+    "%1$@ left, until %2$@. %3$@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch %1$@, bis %2$@. %3$@"}}}},
+    "%1$@ · %2$lld Hz · %3$lld ch": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%1$@ · %2$lld Hz · %3$lld Kan."}}}},
+    "%@ It happens once. Dictation starts the moment it is here.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%@ Dies geschieht nur einmal. Sobald es verfügbar ist, kannst du diktieren."}}}},
+    "Some fragments in the last result are worth checking. The text is already in place.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Einige Stellen im letzten Ergebnis solltest du prüfen. Der Text wurde bereits eingefügt."}}}},
+    "Nothing is asked for until %@. Adding your email after that adds ten more days, free.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Bis %@ sind keine Angaben nötig. Danach erhältst du mit deiner E-Mail-Adresse zehn weitere kostenlose Tage."}}}},
+    "The trial ended %@. A license brings it back, on this Mac and one more.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die Testphase endete am %@. Eine Lizenz aktiviert Witness auf diesem und einem weiteren Mac."}}}},
+    "The first three days are over. An email address gets you a key for this Mac and ten full days; nothing else about the app changes, and nothing you have dictated has left it.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die ersten drei Tage sind vorbei. Mit einer E-Mail-Adresse erhältst du einen Schlüssel für diesen Mac und zehn weitere Tage. Keine Diktatinhalte verlassen die App."}}}},
+    "The first three days are ungated. Add your email under Settings → License and the trial runs for ten more days.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die ersten drei Tage sind ohne Aktivierung nutzbar. Gib unter Einstellungen → Lizenz deine E-Mail-Adresse ein, um zehn weitere Tage zu erhalten."}}}},
+    "The first three days need no email and no key. After that, an email keeps the trial running for ten more days.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Für die ersten drei Tage brauchst du weder E-Mail-Adresse noch Schlüssel. Danach verlängert eine E-Mail-Adresse die Testphase um zehn Tage."}}}},
+    "The speech model is not ready": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Sprachmodell ist nicht bereit"}}}},
+    "The speech model is still arriving": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Sprachmodell wird noch geladen"}}}},
+    "The speech model is ready. Hold %@ and speak — the text lands where your cursor is.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Sprachmodell ist bereit. Halte %@ gedrückt und sprich – der Text erscheint an der Cursorposition."}}}},
+    "Nothing was inserted: the focus is in a password field. The text is here and was not copied.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Nichts wurde eingefügt: Der Fokus befindet sich in einem Passwortfeld. Der Text ist weiterhin hier und wurde nicht kopiert."}}}},
+    "Copied to the clipboard. Grant Accessibility access to have it typed for you.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"In die Zwischenablage kopiert. Erlaube den Bedienungshilfen-Zugriff, damit Witness den Text für dich eingibt."}}}},
+    "Copied to the clipboard — there was no other application to put it in.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"In die Zwischenablage kopiert – es gab keine andere App zum Einfügen."}}}},
+    "Settings could not be read: %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Einstellungen konnten nicht gelesen werden: %@"}}}},
+    "Settings could not be saved: %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Einstellungen konnten nicht gespeichert werden: %@"}}}},
+    "The dictionary could not be read: %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Wörterbuch konnte nicht gelesen werden: %@"}}}},
+    "The dictionary could not be saved: %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Wörterbuch konnte nicht gespeichert werden: %@"}}}},
+    "The license record could not be read: %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Lizenzdatensatz konnte nicht gelesen werden: %@"}}}},
+    "The license record could not be saved: %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Lizenzdatensatz konnte nicht gespeichert werden: %@"}}}},
+    "That address does not look complete. The key is sent to it, so a typo means it goes nowhere.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Diese Adresse scheint unvollständig zu sein. Prüfe sie auf Tippfehler."}}}},
+    "That does not look like a license key. Copy the whole line from the activation email, including the LD1 at the front.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das sieht nicht wie ein Lizenzschlüssel aus. Kopiere die vollständige Zeile aus der Aktivierungs-E-Mail, einschließlich LD1 am Anfang."}}}},
+    "The activation service could not be reached: %@. Your dictation still works until the trial window closes.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Aktivierungsdienst ist nicht erreichbar: %@. Bis zum Ende der Testphase kannst du weiter diktieren."}}}},
+    "This license already covers two Macs. Release one of them before activating a third.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Diese Lizenz wird bereits auf zwei Macs verwendet. Entferne einen davon, bevor du einen dritten aktivierst."}}}},
+    "The activation service replied with something unreadable.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die Antwort des Aktivierungsdienstes konnte nicht gelesen werden."}}}},
+    "This address or this Mac has already had the free trial. A license keeps it dictating: €99 once, or €49 a year, both covering two Macs.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Für diese Adresse oder diesen Mac wurde die Testphase bereits genutzt. Eine Lizenz kostet einmalig 99 € oder 49 € pro Jahr und gilt für zwei Macs."}}}},
+    "the shortcut is already used by macOS or another app": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"das Tastenkürzel wird bereits von macOS oder einer anderen App verwendet"}}}},
+    "the previous application": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"die vorherige App"}}}},
+    " — %lld%% of about 600 MB": {"localizations":{"de":{"stringUnit":{"state":"translated","value":" – %lld %% von etwa 600 MB"}}}},
+    "%1$@ of speech came back empty, so nothing was inserted. Say it again, or check that the language profile — %2$@ — is the one you spoke.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die Erkennung für %1$@ ergab keinen Text. Sprich erneut oder prüfe, ob das Profil „%2$@“ deiner Sprache entspricht."}}}},
+    "A copy of the key is also on its way to that address. You do not need it now — it is for when you reinstall Witness or replace this Mac. If it never arrives, press the button again: the same key comes back here and the mail is retried.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Eine Kopie des Schlüssels wird auch an diese Adresse gesendet. Du brauchst sie nur nach einer Neuinstallation oder beim Austausch dieses Macs. Falls sie nicht ankommt, drücke die Taste erneut."}}}},
+    "A license keeps it after that, on this Mac and one more.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Mit einer Lizenz kannst du danach auf diesem und einem weiteren Mac weiterarbeiten."}}}},
+    "Activated, and there is nothing else to enter. The trial runs for ten days from today.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Aktiviert. Weitere Eingaben sind nicht nötig. Die Testphase läuft ab heute zehn Tage."}}}},
+    "Copied to the clipboard: macOS is not letting Witness press ⌘V for you. Its Accessibility permission stops applying when the app itself changes, so switching Witness off and on again in System Settings → Privacy & Security → Accessibility is what restores it.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"In die Zwischenablage kopiert: macOS erlaubt Witness derzeit nicht, ⌘V für dich zu drücken. Deaktiviere und aktiviere Witness unter Systemeinstellungen → Datenschutz & Sicherheit → Bedienungshilfen."}}}},
+    "Copied to the clipboard: that application would not accept the text directly.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"In die Zwischenablage kopiert: Diese App hat den Text nicht direkt angenommen."}}}},
+    "Copied to the clipboard: you moved to a different application while this was being prepared.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"In die Zwischenablage kopiert: Du hast während der Verarbeitung zu einer anderen App gewechselt."}}}},
+    "Fourteen days ran out on %@. Your dictionary and settings are untouched and come straight back with a license.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die vierzehn Tage sind am %@ abgelaufen. Wörterbuch und Einstellungen bleiben unverändert und sind mit einer Lizenz sofort wieder verfügbar."}}}},
+    "It ran out %@. Renewing unlocks dictation again; nothing on this Mac was touched.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sie ist am %@ abgelaufen. Eine Verlängerung schaltet das Diktieren wieder frei; lokale Daten wurden nicht verändert."}}}},
+    "It ran out on %@. Renewing unlocks dictation again on this Mac; nothing local was removed.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sie ist am %@ abgelaufen. Eine Verlängerung schaltet das Diktieren wieder frei; lokale Daten wurden nicht entfernt."}}}},
+    "It runs out on %@. A license keeps this Mac dictating; your dictionary and settings stay exactly as they are either way.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sie läuft am %@ ab. Mit einer Lizenz kannst du weiter diktieren; Wörterbuch und Einstellungen bleiben unverändert."}}}},
+    "It runs out on %@. Renewing before then means dictation never stops; nothing local is touched either way.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sie läuft am %@ ab. Bei rechtzeitiger Verlängerung kannst du ohne Unterbrechung weiter diktieren; lokale Daten bleiben unverändert."}}}},
+    "Licensed to %1$@. This Mac needs nothing further — no renewal, and no connection. It covers version %2$lld and every update to it.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Lizenziert für %1$@. Dieser Mac benötigt weder Verlängerung noch Verbindung. Abgedeckt sind Version %2$lld und alle zugehörigen Updates."}}}},
+    "Licensed to %@.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Lizenziert für %@."}}}},
+    "Nothing was inserted: %@ has secure input enabled, which blocks dictation everywhere until it stops. Switching to it and clicking into an ordinary field usually clears it; quitting it always does. The text is here and was not copied.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Nichts wurde eingefügt: %@ hat die sichere Eingabe aktiviert. Wechsle dorthin und klicke in ein normales Feld oder beende die App. Der Text wurde nicht kopiert."}}}},
+    "Nothing was inserted: an application has secure input enabled, which blocks dictation everywhere until it stops. The text is here and was not copied.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Nichts wurde eingefügt: Eine App hat die sichere Eingabe aktiviert und blockiert damit das Diktieren. Der Text wurde nicht kopiert."}}}},
+    "Nothing was recorded yet — Witness is downloading the speech model%@. It happens once, usually within five minutes, and afterwards recognition runs entirely on this Mac. Hold %@ again when it is here; Witness will say so.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch nichts aufgenommen – Witness lädt das Sprachmodell%@. Dies geschieht einmalig und dauert meist weniger als fünf Minuten. Danach läuft die Erkennung vollständig auf diesem Mac. Halte %@ erneut gedrückt, sobald es bereit ist."}}}},
+    "Nothing was recorded yet — macOS is preparing the speech model for this Mac. It happens once per macOS version and takes a few minutes. Hold %@ again when it is here; Witness will say so.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch nichts aufgenommen – macOS bereitet das Sprachmodell für diesen Mac vor. Dies geschieht einmal pro macOS-Version und dauert einige Minuten. Halte %@ danach erneut gedrückt."}}}},
+    "Nothing was recorded yet — the speech model is loading. That takes seconds. Hold %@ again in a moment.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch nichts aufgenommen – das Sprachmodell wird geladen. Das dauert nur Sekunden. Halte %@ gleich erneut gedrückt."}}}},
+    "Nothing was recorded yet — the speech model is not on this Mac. The download has just started: about 600 MB, once, usually within five minutes. Hold %@ again when it is here; Witness will say so.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch nichts aufgenommen – das Sprachmodell fehlt auf diesem Mac. Der einmalige Download von etwa 600 MB wurde gestartet und dauert meist weniger als fünf Minuten. Halte %@ danach erneut gedrückt."}}}},
+    "Nothing was recorded — the speech model is not ready. %@ Witness is trying again; the menu bar icon shows how it is going.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Nichts aufgenommen – das Sprachmodell ist nicht bereit. %@ Witness versucht es erneut; den Fortschritt siehst du in der Menüleiste."}}}},
+    "That key did not verify, so nothing was changed.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Schlüssel konnte nicht bestätigt werden. Es wurde nichts geändert."}}}},
+    "That key was issued for a different Mac, so nothing was changed.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Schlüssel wurde für einen anderen Mac ausgestellt. Es wurde nichts geändert."}}}},
+    "That request was missing the Mac or the key it belongs to.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"In der Anfrage fehlte der Mac oder der zugehörige Schlüssel."}}}},
+    "The activation service has no record of that key.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Aktivierungsdienst kennt diesen Schlüssel nicht."}}}},
+    "The activation service refused this request (%lld). Paste a key from your email instead, or write to support.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Aktivierungsdienst hat die Anfrage abgelehnt (%lld). Füge stattdessen einen Schlüssel aus deiner E-Mail ein oder kontaktiere den Support."}}}},
+    "The address you bought with fetches a key for this Mac. It and an identifier for this Mac are the only things sent, and only when you press the button — no audio, no text, and nothing from your dictionary.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Mit der beim Kauf verwendeten Adresse wird ein Schlüssel für diesen Mac abgerufen. Nur sie und eine Mac-Kennung werden beim Drücken der Taste gesendet – keine Audio- oder Textinhalte und nichts aus deinem Wörterbuch."}}}},
+    "The first three days ask for nothing; they end %@. An email address adds ten more days, free, and nothing else changes.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die ersten drei Tage erfordern keine Angaben und enden am %@. Mit einer E-Mail-Adresse erhältst du kostenlos zehn weitere Tage."}}}},
+    "The key comes straight back here and unlocks the app — there is nothing to fetch from your mail and nothing to paste. The address and an identifier for this Mac are the only things sent, and they are sent only when you press the button. No audio, no text, and nothing from your dictionary ever leaves this Mac.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Schlüssel kehrt direkt hierher zurück und aktiviert die App. Nur die Adresse und eine Mac-Kennung werden beim Drücken der Taste gesendet. Audio, Text und Wörterbuch bleiben auf diesem Mac."}}}},
+    "The microphone was open for %1$@ and never picked up speech (peak level %2$@). Check that %3$@ is what you are speaking into, and that it is not muted.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Mikrofon war %1$@ geöffnet, hat aber keine Sprache erkannt (Spitzenpegel %2$@). Prüfe, ob du in %3$@ sprichst und ob es nicht stummgeschaltet ist."}}}},
+    "This build carries no license authority key, so it cannot check any license. It is a development build.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Diese Entwicklungs-Version enthält keinen öffentlichen Lizenzschlüssel und kann keine Lizenz prüfen."}}}},
+    "This build has no activation service yet. Paste a key below instead — that path works offline and is what the app checks in either case.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Diese Version hat noch keinen Aktivierungsdienst. Füge unten einen Schlüssel ein; dies funktioniert offline."}}}},
+    "This build has no activation service yet. Press “Enter a key…” and paste one instead — that path works offline and is what the app checks in either case.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Diese Version hat noch keinen Aktivierungsdienst. Wähle „Schlüssel eingeben …“ und füge einen Schlüssel ein; dies funktioniert offline."}}}},
+    "This build has no activation service. Paste a license key instead, or use a build from the product website.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Diese Version hat keinen Aktivierungsdienst. Füge einen Lizenzschlüssel ein oder verwende eine Version von der Produktwebsite."}}}},
+    "This build sent an identifier the activation service does not recognize. Update Witness and try again.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Diese Version hat eine unbekannte Kennung gesendet. Aktualisiere Witness und versuche es erneut."}}}},
+    "This key did not verify. It may have been edited in transit — paste it again straight from the email.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Dieser Schlüssel konnte nicht bestätigt werden. Füge ihn erneut direkt aus der E-Mail ein."}}}},
+    "This key is version %@, which this build does not know how to read. Update Witness.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Dieser Schlüssel hat Version %@, die diese App-Version nicht lesen kann. Aktualisiere Witness."}}}},
+    "This key was issued for a different Mac. Each Mac gets its own key, and a license covers two.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Dieser Schlüssel wurde für einen anderen Mac ausgestellt. Jeder Mac erhält einen eigenen Schlüssel; eine Lizenz gilt für zwei Macs."}}}},
+    "This key's dates do not make sense, which means it was not issued by us.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die Datumsangaben dieses Schlüssels sind ungültig. Er wurde nicht von uns ausgestellt."}}}},
+    "Your lifetime license covers version %1$@ and every update to it. This is version %2$@. Version %1$@ keeps working forever.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Deine Dauerlizenz gilt für Version %1$@ und alle zugehörigen Updates. Dies ist Version %2$@. Version %1$@ funktioniert dauerhaft weiter."}}}},
+    "Your lifetime license covers version %1$lld and every update to it, forever. This is version %2$lld. Download version %1$lld again from the website and it works exactly as it did — or move to version %2$lld below.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Deine Dauerlizenz gilt dauerhaft für Version %1$lld und alle zugehörigen Updates. Dies ist Version %2$lld. Lade Version %1$lld erneut von der Website oder wechsle unten zu Version %2$lld."}}}},
+    "a shortcut needs at least one of ⌘ ⌥ ⌃ ⇧, or it would take that key away from every app": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"ein Tastenkürzel benötigt mindestens eine der Tasten ⌘ ⌥ ⌃ ⇧"}}}},
+    "it answered with an error (%lld).": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"der Dienst antwortete mit einem Fehler (%lld)."}}}},
+    "it is asking us to wait a moment. Try again shortly.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"der Dienst bittet um etwas Geduld. Versuche es gleich erneut."}}}},
+    "macOS cannot find this copy of the app to start it. Move Witness to your Applications folder and try again.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"macOS kann diese App-Version nicht zum Starten finden. Verschiebe Witness in den Programme-Ordner und versuche es erneut."}}}},
+    "macOS gave an answer this app does not recognize.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"macOS hat eine unbekannte Antwort geliefert."}}}},
+    "macOS is holding this off. Open Login Items in System Settings and allow Witness there.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"macOS verhindert dies. Öffne die Anmeldeobjekte in den Systemeinstellungen und erlaube Witness dort."}}}},
+    "macOS refused: %@ A build running from Xcode cannot open at login — move Witness to your Applications folder and open it from there.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"macOS hat abgelehnt: %@ Eine aus Xcode gestartete Version kann nicht automatisch geöffnet werden. Verschiebe Witness in den Programme-Ordner und starte es dort."}}}},
+    "registration failed (OSStatus %d)": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Registrierung fehlgeschlagen (OSStatus %d)"}}}},
+    "the event handler could not be installed (OSStatus %d)": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"der Ereignishandler konnte nicht installiert werden (OSStatus %d)"}}}},
+    "the reply was not an HTTP response": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"die Antwort war keine HTTP-Antwort"}}}},
+    "Audio stays in memory on this Mac. Nothing is written to disk during normal capture, and nothing you dictate is ever sent anywhere. A recording is discarded as soon as the app decides no review is needed, and otherwise when the review ends.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Audio bleibt im Arbeitsspeicher dieses Macs. Bei einer normalen Aufnahme wird nichts auf die Festplatte geschrieben und keine Diktatinhalte werden versendet. Die Aufnahme wird gelöscht, sobald keine Überprüfung nötig ist – andernfalls nach Abschluss der Überprüfung."}}}},
+    "On, the app says when a trial starts, when it asks for an email, and when it puts the offers on screen — with the app version, the macOS version, and a random number made at install that is not derived from this Mac. That is the whole message; there is no fourth field and nothing about what you said. Off, it sends none of them and nothing else changes.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Wenn aktiviert, meldet die App den Start der Testphase, die Abfrage der E-Mail-Adresse und das Anzeigen der Angebote – zusammen mit App-Version, macOS-Version und einer zufälligen Installationskennung. Weitere Felder oder Diktatinhalte werden nicht gesendet. Wenn deaktiviert, werden auch diese Ereignisse nicht gesendet."}}}},
+    "On, a result with nothing worth checking goes straight into the application you were typing in. Off, it waits in this menu for an explicit insert. A result that does need review always waits for you either way.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Wenn aktiviert, wird ein Ergebnis ohne Prüfhinweise direkt in die zuvor verwendete App eingefügt. Wenn deaktiviert, wartet es in diesem Menü auf dein Einfügen. Ergebnisse mit Prüfhinweisen warten immer auf dich."}}}},
+    "Without Accessibility access the text is copied to the clipboard instead. A development build loses this permission on every rebuild, because macOS keys it to the code signature.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Ohne Bedienungshilfen-Zugriff wird der Text stattdessen in die Zwischenablage kopiert. Eine Entwicklungs-Version verliert diese Berechtigung nach jeder neuen Signatur."}}}},
+    "The review step appears only when a fragment is worth checking — an amount, a date, a name, a dictionary near-miss, or a word the app removed. When nothing is marked, the text is simply ready and the recording is discarded immediately.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die Überprüfung erscheint nur für Stellen, die du prüfen solltest – etwa Beträge, Daten, Namen, ähnliche Wörterbucheinträge oder entfernte Wörter. Wenn nichts markiert ist, ist der Text sofort fertig und die Aufnahme wird verworfen."}}}},
+    "Phase 6 adds the trial, activation, and licensing. Dictation itself is unchanged: the words still go straight into the application you were typing in, and everything about them still stays on this Mac.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Phase 6 ergänzt Testphase, Aktivierung und Lizenzierung. Das Diktieren bleibt unverändert: Der Text gelangt direkt in die zuvor verwendete App und alle Inhalte bleiben auf diesem Mac."}}}},
+    "Trailing silence is reported, never used to trim captured speech. Changes apply to the next recording. These thresholds are the one thing in Settings that is not written to disk — they are tuning, and they start from the defaults on every launch.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Stille am Ende wird nur gemeldet und niemals zum Kürzen der Sprache verwendet. Änderungen gelten ab der nächsten Aufnahme. Diese Schwellenwerte werden nicht gespeichert und bei jedem Start auf die Standardwerte gesetzt."}}}},
+    "The method and the application, which is what anyone asks first when an app misbehaves. The inserted text appears nowhere in here and in no log line.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Gespeichert werden nur die Methode und die Ziel-App – die wichtigsten Angaben bei einer Fehlersuche. Der eingefügte Text erscheint weder hier noch in einem Protokoll."}}}},
+    "A recording is held only while a review can still use it. Zero here means the app is no longer holding the last utterance.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Eine Aufnahme bleibt nur so lange erhalten, wie sie für eine Überprüfung gebraucht wird. Null bedeutet, dass die letzte Äußerung nicht mehr im Speicher liegt."}}}},
+    "Debug builds only. Writes a file solely to the location you choose in the save panel; normal capture never touches the file system.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Nur für Debug-Versionen. Eine Datei wird ausschließlich am im Speicherdialog gewählten Ort geschrieben; normale Aufnahmen greifen nicht auf das Dateisystem zu."}}}},
+    "Selecting more languages costs nothing on a sentence the engine can hear clearly. It costs on the short ones: two words in Russian and two in Ukrainian look much alike, and the more languages are in play the more often one of those lands in the wrong one.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Bei klar erkennbaren Sätzen schaden zusätzliche Sprachen nicht. Bei kurzen Äußerungen können sich beispielsweise russische und ukrainische Wörter ähneln; je mehr Sprachen ausgewählt sind, desto eher wird eine davon verwechselt."}}}},
+    "A word that comes out close to one of your terms, but not equal to it, is marked for review. An exact match is not: it came out right.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Ein erkanntes Wort, das einem deiner Begriffe ähnelt, aber nicht exakt entspricht, wird zur Überprüfung markiert. Ein exakter Treffer nicht – er wurde korrekt erkannt."}}}},
+    "No terms yet. Add the names and words you dictate often and would notice being wrong.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch keine Begriffe. Füge Namen und Wörter hinzu, die du häufig diktierst und deren falsche Erkennung dir auffallen würde."}}}},
+    "This file is the only thing the app persists. Transcripts and recordings stay in memory.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Nur diese Datei wird dauerhaft gespeichert. Transkripte und Aufnahmen bleiben im Arbeitsspeicher."}}}},
+    "The shortcut is not registered, so the hotkey does nothing. Pick another combination.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Tastenkürzel ist nicht registriert und hat daher keine Wirkung. Wähle eine andere Kombination."}}}},
+    "At least one of ⌘ ⌥ ⌃ ⇧ is required. A bare key would be taken away from every application on this Mac.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Mindestens eine der Tasten ⌘ ⌥ ⌃ ⇧ ist erforderlich. Eine einzelne Taste würde in allen Apps dieses Macs blockiert."}}}},
+    "An app with no Dock icon is one nobody remembers to open, and a hotkey belonging to an app that is not running reads as a broken hotkey.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Eine App ohne Dock-Symbol wird leicht vergessen. Deshalb sollte Witness beim Anmelden starten, damit das Tastenkürzel immer funktioniert."}}}},
+    "Witness needs Accessibility access to put text into other applications. Without it, results go to the clipboard.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Witness benötigt Bedienungshilfen-Zugriff, um Text in andere Apps einzufügen. Ohne diesen Zugriff werden Ergebnisse in die Zwischenablage kopiert."}}}},
+    "Checkout is not open yet. When it is, these buttons hand the purchase to Stripe in your browser — the app never sees a card number.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Checkout ist noch nicht geöffnet. Sobald er verfügbar ist, übergeben diese Tasten den Kauf im Browser an Stripe; die App sieht niemals eine Kartennummer."}}}},
+    "Checkout is not open yet. When it is, these buttons open the payment page in your browser — the app never sees a card number, and the key still comes back here, to this Mac.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Checkout ist noch nicht geöffnet. Sobald er verfügbar ist, öffnen diese Tasten die Zahlungsseite im Browser. Die App sieht niemals eine Kartennummer; der Schlüssel gelangt direkt zurück auf diesen Mac."}}}},
+    "The identifier is a one-way hash of this Mac's hardware UUID. It is what makes a license cover two Macs rather than any number of them, and it cannot be turned back into a serial number or matched against anything outside this app.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die Kennung ist ein nicht umkehrbarer Hash der Hardware-UUID dieses Macs. So kann eine Lizenz auf zwei Macs begrenzt werden. Die Kennung lässt sich weder in eine Seriennummer zurückverwandeln noch außerhalb dieser App abgleichen."}}}},
+    "This is a development build: it carries no authority key, so no license can verify here. Only the ungated window applies.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Dies ist eine Entwicklungs-Version ohne öffentlichen Lizenzschlüssel. Deshalb kann hier keine Lizenz geprüft werden; nur der lizenzfreie Zeitraum gilt."}}}},
+    "Send my licence key as soon as I have paid. I understand that I give up my right of withdrawal once delivery begins.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sende meinen Lizenzschlüssel sofort nach der Zahlung. Mir ist bewusst, dass mein Widerrufsrecht mit Beginn der Lieferung erlischt."}}}},
+    "OK": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"OK"}}}},
+    "Getting the speech model": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sprachmodell wird geladen"}}}},
+    "Removing…": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Wird entfernt …"}}}},
+    "Remove from this Mac": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Von diesem Mac entfernen"}}}}
+  },
+  "version": "1.0"
+}

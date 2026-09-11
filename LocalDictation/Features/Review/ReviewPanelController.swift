@@ -404,7 +404,9 @@ struct AftermathView: View {
     let dismiss: () -> Void
 
     private var attentionText: String {
-        flaggedCount == 1 ? "1 fragment worth checking" : "\(flaggedCount) fragments worth checking"
+        flaggedCount == 1
+            ? L10n.string("1 fragment worth checking")
+            : L10n.format("%lld fragments worth checking", Int64(flaggedCount))
     }
 
     var body: some View {
@@ -433,7 +435,7 @@ struct AftermathView: View {
 
             HStack {
                 Spacer()
-                Button(flaggedCount > 0 ? "Not now" : "OK", action: dismiss)
+                Button(L10n.string(flaggedCount > 0 ? "Not now" : "OK"), action: dismiss)
                     .keyboardShortcut(.defaultAction)
             }
         }

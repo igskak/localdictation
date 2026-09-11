@@ -6,8 +6,8 @@ enum GlossaryStoreError: Error, Equatable {
 
     var message: String {
         switch self {
-        case let .unreadable(detail): "The dictionary could not be read: \(detail)"
-        case let .unwritable(detail): "The dictionary could not be saved: \(detail)"
+        case let .unreadable(detail): L10n.format("The dictionary could not be read: %@", detail)
+        case let .unwritable(detail): L10n.format("The dictionary could not be saved: %@", detail)
         }
     }
 }

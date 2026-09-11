@@ -12,7 +12,12 @@ struct CaptureFormatDescription: Sendable, Equatable {
 
     var inputDescription: String {
         let device = inputDeviceName ?? "Unknown input device"
-        return "\(device) · \(Int(inputSampleRate.rounded())) Hz · \(inputChannelCount) ch"
+        return L10n.format(
+            "%1$@ · %2$lld Hz · %3$lld ch",
+            device,
+            Int64(inputSampleRate.rounded()),
+            Int64(inputChannelCount)
+        )
     }
 
     var outputDescription: String {

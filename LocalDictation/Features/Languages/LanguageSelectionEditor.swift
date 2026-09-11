@@ -34,7 +34,7 @@ struct LanguageSelectionEditor: View {
                 }
 
                 if verifiedMatches.isEmpty, otherMatches.isEmpty {
-                    Text("No language here is called \u{201C}\(search)\u{201D}.")
+                    Text(verbatim: L10n.format("No language here is called “%@”.", search))
                         .foregroundStyle(.secondary)
                 }
             }

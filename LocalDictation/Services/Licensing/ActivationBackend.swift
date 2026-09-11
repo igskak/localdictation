@@ -30,15 +30,15 @@ enum ActivationError: Error, Sendable, Equatable {
     var message: String {
         switch self {
         case .notConfigured:
-            "This build has no activation service. Paste a license key instead, or use a build from the product website."
+            L10n.string("This build has no activation service. Paste a license key instead, or use a build from the product website.")
         case .invalidEmail:
-            "That address does not look complete. The key is sent to it, so a typo means it goes nowhere."
+            L10n.string("That address does not look complete. The key is sent to it, so a typo means it goes nowhere.")
         case let .unreachable(detail):
-            "The activation service could not be reached: \(detail). Your dictation still works until the trial window closes."
+            L10n.format("The activation service could not be reached: %@. Your dictation still works until the trial window closes.", detail)
         case let .rejected(detail):
             detail
         case .deviceLimitReached:
-            "This license already covers two Macs. Release one of them before activating a third."
+            L10n.string("This license already covers two Macs. Release one of them before activating a third.")
         }
     }
 }

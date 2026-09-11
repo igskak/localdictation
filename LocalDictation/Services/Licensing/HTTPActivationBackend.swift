@@ -117,7 +117,7 @@ struct HTTPActivationBackend: ActivationBackend {
         }
 
         guard let http = response as? HTTPURLResponse else {
-            throw ActivationError.unreachable("the reply was not an HTTP response")
+            throw ActivationError.unreachable(L10n.string("the reply was not an HTTP response"))
         }
         guard data.count <= Self.maximumResponseBytes else {
             throw ActivationError.rejected("The activation service replied with something too large to be a license key.")
@@ -182,7 +182,7 @@ struct HTTPActivationBackend: ActivationBackend {
             throw ActivationError.unreachable("the reply was not an HTTP response")
         }
         guard data.count <= Self.maximumResponseBytes else {
-            throw ActivationError.rejected("The activation service replied with something unreadable.")
+            throw ActivationError.rejected(L10n.string("The activation service replied with something unreadable."))
         }
 
         let reply = ActivationReply(data)
@@ -195,10 +195,13 @@ struct HTTPActivationBackend: ActivationBackend {
         case 404 where reply.errorCode == "unknown_key":
             return false
         case 429:
-            throw ActivationError.unreachable("it is asking us to wait a moment. Try again shortly.")
+            throw ActivationError.unreachable(L10n.string("it is asking us to wait a moment. Try again shortly."))
         case 500...599:
-            throw ActivationError.unreachable("it answered with an error (\(http.statusCode)).")
+            throw ActivationError.unreachable(L10n.format("it answered with an error (%lld).", Int64(http.statusCode)))
         default:
+            if let message = reply.serverMessage {
+                throw ActivationError.rejected(message)
+            }
             throw reply.error(status: http.statusCode)
         }
     }
@@ -265,16 +268,44 @@ private struct ActivationReply {
     /// refusals apart rather than show a sentence.
     var errorCode: String? { payload?.error }
 
+    /// Unknown server codes may still carry a useful, bounded explanation.
+    /// Stable codes are translated locally below; this remains the forward-
+    /// compatible fallback for a newer service talking to an older app.
+    var serverMessage: String? { ServerMessage.sanitized(payload?.message) }
+
     func error(status: Int) -> ActivationError {
         switch payload?.error {
         case "invalid_email": return .invalidEmail
         case "device_limit": return .deviceLimitReached
         default: break
         }
-        if let message = ServerMessage.sanitized(payload?.message) {
-            return .rejected(message)
+        if let code = payload?.error {
+            switch code {
+            case "invalid_device":
+                return .rejected(L10n.string("This build sent an identifier the activation service does not recognize. Update Witness and try again."))
+            case "trial_used":
+                return .rejected(L10n.string("This address or this Mac has already had the free trial. A license keeps it dictating: €99 once, or €49 a year, both covering two Macs."))
+            case "invalid_request":
+                return .rejected(L10n.string("That request was missing the Mac or the key it belongs to."))
+            case "bad_key":
+                return .rejected(L10n.string("That key did not verify, so nothing was changed."))
+            case "device_mismatch":
+                return .rejected(L10n.string("That key was issued for a different Mac, so nothing was changed."))
+            case "unknown_key":
+                return .rejected(L10n.string("The activation service has no record of that key."))
+            default:
+                break
+            }
         }
-        return .rejected("The activation service refused this request (\(status)). Paste a key from your email instead, or write to support.")
+        if let serverMessage {
+            return .rejected(serverMessage)
+        }
+        return .rejected(
+            L10n.format(
+                "The activation service refused this request (%lld). Paste a key from your email instead, or write to support.",
+                Int64(status)
+            )
+        )
     }
 }
 

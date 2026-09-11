@@ -26,8 +26,8 @@ enum AudioPlaybackError: Error, Equatable {
 
     var message: String {
         switch self {
-        case .emptyFragment: "That fragment has no audio to play"
-        case let .engineFailure(detail): "Playback failed: \(detail)"
+        case .emptyFragment: L10n.string("That fragment has no audio to play")
+        case let .engineFailure(detail): L10n.format("Playback failed: %@", detail)
         }
     }
 }

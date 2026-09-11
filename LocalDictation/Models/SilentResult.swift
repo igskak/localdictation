@@ -27,8 +27,8 @@ enum SilentResult: Sendable, Equatable {
 
     var title: String {
         switch self {
-        case .nothingHeard: "Nothing was heard"
-        case .nothingRecognized: "Nothing was recognized"
+        case .nothingHeard: L10n.string("Nothing was heard")
+        case .nothingRecognized: L10n.string("Nothing was recognized")
         }
     }
 
@@ -37,17 +37,19 @@ enum SilentResult: Sendable, Equatable {
     var message: String {
         switch self {
         case let .nothingHeard(duration, peakLevel, inputDeviceName):
-            let device = inputDeviceName.map { "“\($0)”" } ?? "the current input device"
-            return """
-            The microphone was open for \(Self.seconds(duration)) and never picked up speech \
-            (peak level \(Self.level(peakLevel))). Check that \(device) is what you are speaking \
-            into, and that it is not muted.
-            """
+            let device = inputDeviceName.map { "“\($0)”" } ?? L10n.string("the current input device")
+            return L10n.format(
+                "The microphone was open for %1$@ and never picked up speech (peak level %2$@). Check that %3$@ is what you are speaking into, and that it is not muted.",
+                Self.seconds(duration),
+                Self.level(peakLevel),
+                device
+            )
         case let .nothingRecognized(duration, profileLabel):
-            return """
-            \(Self.seconds(duration)) of speech came back empty, so nothing was inserted. \
-            Say it again, or check that the language profile — \(profileLabel) — is the one you spoke.
-            """
+            return L10n.format(
+                "%1$@ of speech came back empty, so nothing was inserted. Say it again, or check that the language profile — %2$@ — is the one you spoke.",
+                Self.seconds(duration),
+                profileLabel
+            )
         }
     }
 

@@ -16,18 +16,18 @@ import Foundation
 /// `charactersIgnoringModifiers`.
 enum HotkeyKeyLabel {
     private static let named: [UInt16: String] = [
-        UInt16(kVK_Space): "Space",
-        UInt16(kVK_Return): "Return",
-        UInt16(kVK_ANSI_KeypadEnter): "Enter",
-        UInt16(kVK_Tab): "Tab",
-        UInt16(kVK_Escape): "Escape",
-        UInt16(kVK_Delete): "Delete",
-        UInt16(kVK_ForwardDelete): "Forward Delete",
-        UInt16(kVK_Help): "Help",
-        UInt16(kVK_Home): "Home",
-        UInt16(kVK_End): "End",
-        UInt16(kVK_PageUp): "Page Up",
-        UInt16(kVK_PageDown): "Page Down",
+        UInt16(kVK_Space): L10n.string("Space"),
+        UInt16(kVK_Return): L10n.string("Return"),
+        UInt16(kVK_ANSI_KeypadEnter): L10n.string("Enter"),
+        UInt16(kVK_Tab): L10n.string("Tab"),
+        UInt16(kVK_Escape): L10n.string("Escape"),
+        UInt16(kVK_Delete): L10n.string("Delete"),
+        UInt16(kVK_ForwardDelete): L10n.string("Forward Delete"),
+        UInt16(kVK_Help): L10n.string("Help"),
+        UInt16(kVK_Home): L10n.string("Home"),
+        UInt16(kVK_End): L10n.string("End"),
+        UInt16(kVK_PageUp): L10n.string("Page Up"),
+        UInt16(kVK_PageDown): L10n.string("Page Down"),
         UInt16(kVK_LeftArrow): "←",
         UInt16(kVK_RightArrow): "→",
         UInt16(kVK_UpArrow): "↑",
@@ -52,12 +52,14 @@ enum HotkeyKeyLabel {
     /// that displays as nothing is one the user cannot tell from an unset one.
     static func label(forKeyCode keyCode: UInt16, characters: String?) -> String {
         if let named = named[keyCode] { return named }
-        guard let characters, let first = characters.first else { return "Key \(keyCode)" }
+        guard let characters, let first = characters.first else {
+            return L10n.format("Key %lld", Int64(keyCode))
+        }
         // Control characters and other unprintables reach here for keys the
         // table does not name; showing one would put a glyph nobody recognizes
         // in the middle of a shortcut.
         guard let scalar = first.unicodeScalars.first, scalar.value >= 0x20, scalar.value != 0x7F else {
-            return "Key \(keyCode)"
+            return L10n.format("Key %lld", Int64(keyCode))
         }
         return String(first).uppercased()
     }

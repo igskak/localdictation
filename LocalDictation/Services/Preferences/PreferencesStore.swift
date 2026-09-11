@@ -6,8 +6,8 @@ enum PreferencesStoreError: Error, Equatable {
 
     var message: String {
         switch self {
-        case let .unreadable(detail): "Settings could not be read: \(detail)"
-        case let .unwritable(detail): "Settings could not be saved: \(detail)"
+        case let .unreadable(detail): L10n.format("Settings could not be read: %@", detail)
+        case let .unwritable(detail): L10n.format("Settings could not be saved: %@", detail)
         }
     }
 }

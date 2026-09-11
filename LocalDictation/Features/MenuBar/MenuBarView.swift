@@ -138,16 +138,16 @@ struct MenuBarView: View {
     }
 
     private var insertTitle: String {
-        guard let target = coordinator.insertionTargetName else { return "Insert" }
-        return "Insert into \(target)"
+        guard let target = coordinator.insertionTargetName else { return L10n.string("Insert") }
+        return L10n.format("Insert into %@", target)
     }
 
     private func reviewTitle(for result: DictationResult) -> String {
         let count = result.flaggedSpans.count
         switch count {
-        case 0: return "Check what was marked"
-        case 1: return "Check 1 flagged fragment"
-        default: return "Check \(count) flagged fragments"
+        case 0: return L10n.string("Check what was marked")
+        case 1: return L10n.string("Check 1 flagged fragment")
+        default: return L10n.format("Check %lld flagged fragments", Int64(count))
         }
     }
 
@@ -259,9 +259,9 @@ private struct LanguagePinPicker: View {
     var body: some View {
         if profile.isMixed {
             Picker("Language", selection: $pinned) {
-                Text("Any of \(profile.shortLabel)").tag(SpeechLanguage?.none)
+                Text(verbatim: L10n.format("Any of %@", profile.shortLabel)).tag(SpeechLanguage?.none)
                 ForEach(profile.languages) { language in
-                    Text("Only \(language.displayName)").tag(SpeechLanguage?.some(language))
+                    Text(verbatim: L10n.format("Only %@", language.displayName)).tag(SpeechLanguage?.some(language))
                 }
             }
             .font(.caption)
@@ -338,7 +338,7 @@ private struct ResultView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text(prefersRaw ? "Raw transcript" : "Transcript")
+                Text(verbatim: L10n.string(prefersRaw ? "Raw transcript" : "Transcript"))
                     .font(.caption)
                 Spacer()
                 Text(result.profile.shortLabel)
@@ -356,7 +356,7 @@ private struct ResultView: View {
             .frame(maxHeight: 120)
 
             HStack {
-                Button(didCopy ? "Copied" : "Copy") {
+                Button(L10n.string(didCopy ? "Copied" : "Copy")) {
                     let pasteboard = NSPasteboard.general
                     pasteboard.clearContents()
                     pasteboard.setString(text, forType: .string)
@@ -423,7 +423,7 @@ private struct LicenseLockView: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Button(presentation.showsActivation ? "Activate…" : "Open License settings", action: openLicenseSettings)
+            Button(L10n.string(presentation.showsActivation ? "Activate…" : "Open License settings"), action: openLicenseSettings)
                 .font(.caption)
         }
         .padding(8)

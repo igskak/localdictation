@@ -97,7 +97,7 @@ struct LicenseView: View {
                 .disabled(isRequesting)
 
             HStack {
-                Button(isRequesting ? "Sending…" : presentation.activationButtonTitle) {
+                Button(isRequesting ? L10n.string("Sending…") : presentation.activationButtonTitle) {
                     Task { await requestActivation() }
                 }
                 .disabled(isRequesting || email.isEmpty || !coordinator.canRequestActivation)
@@ -110,7 +110,7 @@ struct LicenseView: View {
             Text(
                 coordinator.canRequestActivation
                     ? presentation.activationHint
-                    : "This build has no activation service yet. Paste a key below instead — that path works offline and is what the app checks in either case."
+                    : L10n.string("This build has no activation service yet. Paste a key below instead — that path works offline and is what the app checks in either case.")
             )
             .font(.callout)
             .foregroundStyle(.secondary)
@@ -130,7 +130,7 @@ struct LicenseView: View {
                     .disabled(key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
                 if coordinator.entitlement.license != nil {
-                    Button(isReleasing ? "Removing…" : "Remove from this Mac") {
+                    Button(L10n.string(isReleasing ? "Removing…" : "Remove from this Mac")) {
                         Task { await releaseFromThisMac() }
                     }
                     .disabled(isReleasing)
@@ -151,20 +151,20 @@ struct LicenseView: View {
             if StoreFront.isOpen { CheckoutConsent(coordinator: coordinator) }
 
             OfferRow(
-                title: "Lifetime",
+                title: L10n.string("Lifetime"),
                 price: StoreFront.lifetimePrice,
                 detail: LifetimeUpdatePolicy.promise(),
                 isBuyable: StoreFront.lifetimeCheckout != nil && coordinator.hasCheckoutConsent
             ) { coordinator.openCheckout(.lifetime) }
 
             OfferRow(
-                title: "Annual",
+                title: L10n.string("Annual"),
                 price: StoreFront.annualPrice,
                 // Named as a subscription, because it is one. The service
                 // does not kill a cancelled licence — it runs to the date it
                 // was paid for — and that is worth saying at the moment of the
                 // decision rather than in a support reply.
-                detail: "Renews automatically each year, and can be cancelled any time — it then runs to its date. Covers two Macs.",
+                detail: L10n.string("Renews automatically each year, and can be cancelled any time — it then runs to its date. Covers two Macs."),
                 isBuyable: StoreFront.annualCheckout != nil && coordinator.hasCheckoutConsent
             ) { coordinator.openCheckout(.annual) }
 

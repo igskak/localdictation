@@ -33,9 +33,9 @@ enum SpeechModelNotice: Sendable, Equatable {
 
     var title: String {
         switch self {
-        case .preparing, .starting: "The speech model is still arriving"
-        case .failed: "The speech model is not ready"
-        case .ready: "Ready to dictate"
+        case .preparing, .starting: L10n.string("The speech model is still arriving")
+        case .failed: L10n.string("The speech model is not ready")
+        case .ready: L10n.string("Ready to dictate")
         }
     }
 
@@ -46,37 +46,34 @@ enum SpeechModelNotice: Sendable, Equatable {
         case let .preparing(preparation, hotkey):
             switch preparation.phase {
             case .downloading:
-                return """
-                Nothing was recorded yet — Witness is downloading the speech model\
-                \(Self.percentage(preparation.progress)). It happens once, usually within five minutes, \
-                and afterwards recognition runs entirely on this Mac. Hold \(hotkey) again when it is \
-                here; Witness will say so.
-                """
+                return L10n.format(
+                    "Nothing was recorded yet — Witness is downloading the speech model%@. It happens once, usually within five minutes, and afterwards recognition runs entirely on this Mac. Hold %@ again when it is here; Witness will say so.",
+                    Self.percentage(preparation.progress),
+                    hotkey
+                )
             case .loading:
-                return """
-                Nothing was recorded yet — the speech model is loading. That takes seconds. \
-                Hold \(hotkey) again in a moment.
-                """
+                return L10n.format(
+                    "Nothing was recorded yet — the speech model is loading. That takes seconds. Hold %@ again in a moment.",
+                    hotkey
+                )
             case .compilingForThisSystem:
-                return """
-                Nothing was recorded yet — macOS is preparing the speech model for this Mac. \
-                It happens once per macOS version and takes a few minutes. Hold \(hotkey) again \
-                when it is here; Witness will say so.
-                """
+                return L10n.format(
+                    "Nothing was recorded yet — macOS is preparing the speech model for this Mac. It happens once per macOS version and takes a few minutes. Hold %@ again when it is here; Witness will say so.",
+                    hotkey
+                )
             }
         case let .starting(hotkey):
-            return """
-            Nothing was recorded yet — the speech model is not on this Mac. The download has just \
-            started: about 600 MB, once, usually within five minutes. Hold \(hotkey) again when it \
-            is here; Witness will say so.
-            """
+            return L10n.format(
+                "Nothing was recorded yet — the speech model is not on this Mac. The download has just started: about 600 MB, once, usually within five minutes. Hold %@ again when it is here; Witness will say so.",
+                hotkey
+            )
         case let .failed(detail):
-            return """
-            Nothing was recorded — the speech model is not ready. \(detail) Witness is trying again; \
-            the menu bar icon shows how it is going.
-            """
+            return L10n.format(
+                "Nothing was recorded — the speech model is not ready. %@ Witness is trying again; the menu bar icon shows how it is going.",
+                detail
+            )
         case let .ready(hotkey):
-            return "The speech model is ready. Hold \(hotkey) and speak — the text lands where your cursor is."
+            return L10n.format("The speech model is ready. Hold %@ and speak — the text lands where your cursor is.", hotkey)
         }
     }
 
@@ -104,6 +101,6 @@ enum SpeechModelNotice: Sendable, Equatable {
     /// gets nothing rather than a fabricated estimate.
     private static func percentage(_ progress: Double?) -> String {
         guard let progress else { return "" }
-        return " — \(Int((progress * 100).rounded()))% of about 600 MB"
+        return L10n.format(" — %lld%% of about 600 MB", Int64((progress * 100).rounded()))
     }
 }

@@ -31,7 +31,7 @@ enum LoginItemState: Sendable, Equatable {
         case .enabled, .disabled:
             nil
         case .requiresApproval:
-            "macOS is holding this off. Open Login Items in System Settings and allow Witness there."
+            L10n.string("macOS is holding this off. Open Login Items in System Settings and allow Witness there.")
         case let .unavailable(reason):
             reason
         }
@@ -69,9 +69,9 @@ final class SMAppServiceLoginItem: LoginItemService {
         case .requiresApproval:
             .requiresApproval
         case .notFound:
-            .unavailable("macOS cannot find this copy of the app to start it. Move Witness to your Applications folder and try again.")
+            .unavailable(L10n.string("macOS cannot find this copy of the app to start it. Move Witness to your Applications folder and try again."))
         @unknown default:
-            .unavailable("macOS gave an answer this app does not recognize.")
+            .unavailable(L10n.string("macOS gave an answer this app does not recognize."))
         }
     }
 
@@ -89,11 +89,10 @@ final class SMAppServiceLoginItem: LoginItemService {
             // sentence: macOS will not make a login item out of an app running
             // from DerivedData, and "operation not permitted" on its own sends
             // people looking for a permission that does not exist.
-            let reason = """
-            macOS refused: \(error.localizedDescription) \
-            A build running from Xcode cannot open at login — move LocalDictation to your \
-            Applications folder and open it from there.
-            """
+            let reason = L10n.format(
+                "macOS refused: %@ A build running from Xcode cannot open at login — move Witness to your Applications folder and open it from there.",
+                error.localizedDescription
+            )
             Log.application.error("Open at login failed: \(error.localizedDescription, privacy: .public)")
             return .unavailable(reason)
         }

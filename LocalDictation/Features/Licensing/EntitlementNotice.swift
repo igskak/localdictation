@@ -43,12 +43,9 @@ struct EntitlementNotice: Sendable, Equatable {
             let days = Int((seconds / 86_400).rounded(.up))
             guard days <= Self.ungatedWarningDays else { return nil }
 
-            headline = "Your last day before activation"
-            detail = """
-            The first three days ask for nothing; they end \(Self.moment.string(from: expiresAt)). \
-            An email address adds ten more days, free, and nothing else changes.
-            """
-            actionTitle = "Activate…"
+            headline = L10n.string("Your last day before activation")
+            detail = L10n.format("The first three days ask for nothing; they end %@. An email address adds ten more days, free, and nothing else changes.", Self.moment.string(from: expiresAt))
+            actionTitle = L10n.string("Activate…")
             symbol = "envelope"
             // There is no gentler step before this one — the notice appears on
             // the last day or not at all — so it arrives already pressing.
@@ -62,12 +59,11 @@ struct EntitlementNotice: Sendable, Equatable {
                     days <= Self.trialWarningDays,
                     let expiresAt = license.expiresAt
                 else { return nil }
-                headline = days <= 1 ? "The trial ends today" : "The trial ends in \(days) days"
-                detail = """
-                It runs out on \(Self.moment.string(from: expiresAt)). A license keeps this Mac \
-                dictating; your dictionary and settings stay exactly as they are either way.
-                """
-                actionTitle = "Open License settings"
+                headline = days <= 1
+                    ? L10n.string("The trial ends today")
+                    : L10n.format("The trial ends in %lld days", Int64(days))
+                detail = L10n.format("It runs out on %@. A license keeps this Mac dictating; your dictionary and settings stay exactly as they are either way.", Self.moment.string(from: expiresAt))
+                actionTitle = L10n.string("Open License settings")
                 symbol = "clock.badge.exclamationmark"
                 isPressing = days <= 1
 
@@ -77,12 +73,11 @@ struct EntitlementNotice: Sendable, Equatable {
                     days <= Self.annualWarningDays,
                     let expiresAt = license.expiresAt
                 else { return nil }
-                headline = days <= 1 ? "Your license ends today" : "Your license ends in \(days) days"
-                detail = """
-                It runs out on \(Self.moment.string(from: expiresAt)). Renewing before then means \
-                dictation never stops; nothing local is touched either way.
-                """
-                actionTitle = "Open License settings"
+                headline = days <= 1
+                    ? L10n.string("Your license ends today")
+                    : L10n.format("Your license ends in %lld days", Int64(days))
+                detail = L10n.format("It runs out on %@. Renewing before then means dictation never stops; nothing local is touched either way.", Self.moment.string(from: expiresAt))
+                actionTitle = L10n.string("Open License settings")
                 symbol = "clock.badge.exclamationmark"
                 isPressing = days <= Self.trialWarningDays
 

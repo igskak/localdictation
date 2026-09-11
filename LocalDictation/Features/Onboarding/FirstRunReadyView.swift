@@ -33,12 +33,9 @@ struct FirstRunReadyView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("Hold \(coordinator.binding.displayString) and speak")
+                Text(verbatim: L10n.format("Hold %@ and speak", coordinator.binding.displayString))
                     .font(.title2)
-                Text(
-                    "Let go and the text arrives where your cursor is. That is the whole of it — "
-                        + "there is no window to switch to and nothing to click."
-                )
+                Text(verbatim: L10n.string("Let go and the text arrives where your cursor is. That is the whole of it — there is no window to switch to and nothing to click."))
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -73,12 +70,7 @@ struct FirstRunReadyView: View {
             // on has to be said out loud somewhere the user is actually
             // looking. The sentence names what leaves and where the switch is;
             // `docs/PRIVACY.md` names the five fields.
-            Text(
-                "Nothing you dictate ever leaves this Mac. Three events about the trial itself do — when it "
-                    + "starts, when it asks for an email, and when it shows the offers — with no more than an app "
-                    + "version, a macOS version, and a random number made at install. Settings → Privacy turns "
-                    + "them off."
-            )
+            Text(verbatim: L10n.string("Nothing you dictate ever leaves this Mac. Three events about the trial itself do — when it starts, when it asks for an email, and when it shows the offers — with no more than an app version, a macOS version, and a random number made at install. Settings → Privacy turns them off."))
             .font(.caption)
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
@@ -215,22 +207,20 @@ struct FirstRunReadyView: View {
 
     private var modelTitle: String {
         switch coordinator.transcriptionModelState {
-        case .ready: "The speech model is ready"
-        case .failed: "The speech model did not arrive"
-        case .preparing, .unavailable: "The speech model is downloading"
+        case .ready: L10n.string("The speech model is ready")
+        case .failed: L10n.string("The speech model did not arrive")
+        case .preparing, .unavailable: L10n.string("The speech model is downloading")
         }
     }
 
     private var modelDetail: String {
         switch coordinator.transcriptionModelState {
         case .ready:
-            "Recognition runs on this Mac, with no network and no account."
+            L10n.string("Recognition runs on this Mac, with no network and no account.")
         case let .failed(detail):
-            "\(detail) It is about 600 MB and needs a connection once; everything after that is offline."
+            L10n.format("%@ It is about 600 MB and needs a connection once; everything after that is offline.", detail)
         case .preparing, .unavailable:
-            "About 600 MB, fetched once, usually within five minutes. It started on its own when the app "
-                + "launched — you can close this window and it keeps going. Afterwards recognition runs on "
-                + "this Mac with no network at all."
+            L10n.string("About 600 MB, fetched once, usually within five minutes. It started on its own when the app launched — you can close this window and it keeps going. Afterwards recognition runs on this Mac with no network at all.")
         }
     }
 
@@ -246,9 +236,9 @@ struct FirstRunReadyView: View {
                 .foregroundStyle(.secondary)
                 .frame(width: 20)
             VStack(alignment: .leading, spacing: 4) {
-                Text(title)
+                Text(verbatim: L10n.string(title))
                     .font(.callout.weight(.medium))
-                Text(detail)
+                Text(verbatim: L10n.string(detail))
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)

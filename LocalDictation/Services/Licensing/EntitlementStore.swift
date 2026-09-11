@@ -6,8 +6,8 @@ enum EntitlementStoreError: Error, Equatable {
 
     var message: String {
         switch self {
-        case let .unreadable(detail): "The license record could not be read: \(detail)"
-        case let .unwritable(detail): "The license record could not be saved: \(detail)"
+        case let .unreadable(detail): L10n.format("The license record could not be read: %@", detail)
+        case let .unwritable(detail): L10n.format("The license record could not be saved: %@", detail)
         }
     }
 }

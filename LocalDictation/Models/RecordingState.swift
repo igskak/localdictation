@@ -11,11 +11,11 @@ enum RecordingFailure: Sendable, Equatable {
     var message: String {
         switch self {
         case let .hotkeyRegistration(detail):
-            "Hotkey unavailable: \(detail)"
+            L10n.format("Hotkey unavailable: %@", detail)
         case let .captureStart(detail):
-            "Recording could not start: \(detail)"
+            L10n.format("Recording could not start: %@", detail)
         case let .captureInterrupted(detail):
-            "Recording stopped: \(detail)"
+            L10n.format("Recording stopped: %@", detail)
         case let .transcription(detail):
             detail
         }
