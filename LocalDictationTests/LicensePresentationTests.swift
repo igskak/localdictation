@@ -197,4 +197,49 @@ final class LicensePresentationTests: XCTestCase {
         )
     }
 
+    // MARK: - No trial length that can go stale
+
+    /// Every sentence the licensing surfaces can show, in every state, held
+    /// against the trial lengths the app used to have.
+    ///
+    /// "Fourteen days ran out" shipped in 0.4.0 and 0.5.0, both ten-day trials.
+    /// It was capitalised, so a case-sensitive search for "fourteen" walked
+    /// past it, and no test pinned that one sentence. Sweeping all of them is
+    /// cheaper than remembering which ones carry a number.
+    func testNoLicensingSentenceStillNamesTheOldTrial() {
+        let issued = now
+        let license = { (kind: LicenseKind, expiresAt: Date?) in
+            License(id: "lic", email: "owner@example.com", kind: kind, deviceID: "device", issuedAt: issued, expiresAt: expiresAt)
+        }
+        let states: [EntitlementState] = [
+            .ungated(.untouched),
+            .ungated(GraceStanding(expiresAt: now.addingTimeInterval(3600))),
+            .licensed(license(.trial, now.addingTimeInterval(2 * 86_400))),
+            .licensed(license(.annual, now.addingTimeInterval(5 * 86_400))),
+            .licensed(license(.lifetime, nil)),
+            .locked(.activationRequired),
+            .locked(.expired(.trial, at: now)),
+            .locked(.expired(.annual, at: now)),
+            .locked(.updateRequired(coveredMajor: 1, runningMajor: 2)),
+        ]
+
+        var sentences: [String] = [LicensePresentation.keyByMailNote]
+        for kind in [LicenseKind.trial, .annual, .lifetime] {
+            sentences.append(LicensePresentation.activationSucceeded(kind))
+        }
+        for state in states {
+            let presentation = LicensePresentation(state: state, now: now)
+            sentences += [presentation.headline, presentation.detail, presentation.activationHint, presentation.activationTitle]
+            if let notice = EntitlementNotice(state: state, now: now) {
+                sentences += [notice.headline, notice.detail]
+            }
+        }
+
+        for sentence in sentences {
+            let lowered = sentence.lowercased()
+            XCTAssertFalse(lowered.contains("fourteen") || lowered.contains("vierzehn"), "still names fourteen: \(sentence)")
+            XCTAssertFalse(lowered.contains("14 days") || lowered.contains("14-day") || lowered.contains("14 tage"), "still names 14 days: \(sentence)")
+            XCTAssertFalse(lowered.contains("five dictations") || lowered.contains("fünf diktat"), "still counts dictations: \(sentence)")
+        }
+    }
 }

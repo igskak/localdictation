@@ -318,7 +318,7 @@ struct CheckoutConsent: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Toggle(isOn: isOn) {
-                Text("Send my licence key as soon as I have paid. I understand that I give up my right of withdrawal once delivery begins.")
+                Text("Send my license key as soon as I have paid. I understand that I give up my right of withdrawal once delivery begins.")
                     .fixedSize(horizontal: false, vertical: true)
             }
             Text("Ich verlange ausdrücklich die sofortige Ausführung des Vertrags und bestätige, dass ich dadurch mein Widerrufsrecht verliere.")

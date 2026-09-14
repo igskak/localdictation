@@ -94,7 +94,12 @@ struct LicensePresentation: Sendable, Equatable {
                 showsOffers = true
                 showsActivation = false
                 headline = L10n.string("The trial ended")
-                detail = L10n.format("Fourteen days ran out on %@. Your dictionary and settings are untouched and come straight back with a license.", Self.moment.string(from: at))
+                // No number of days, on purpose. The trial is not one length —
+                // three ungated days, then ten from activation, and a late
+                // activation is worth slightly more — and a duplicated number
+                // is what went stale here: this said "Fourteen" in English and
+                // "vierzehn" in German through two releases of a ten-day trial.
+                detail = L10n.format("The trial ran out on %@. Your dictionary and settings are untouched and come straight back with a license.", Self.moment.string(from: at))
                 retrieveInstead()
             case let .expired(kind, at):
                 symbol = "lock"
