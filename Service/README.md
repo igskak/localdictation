@@ -23,6 +23,7 @@ src/
   release.js    POST /v1/devices/release: the key is the proof
   webhook.js    POST /v1/purchases/webhook: money becoming an entitlement
   events.js     POST /v1/events: three funnel events, and no address anywhere
+  analytics.js  trials, sales, renewals and refunds, reported to PostHog EU
   providers.js  Paddle and Stripe, behind one shape
   token.js      the frozen payload, byte for byte
   signing.js    Ed25519, and the check that the secret matches the shipped app

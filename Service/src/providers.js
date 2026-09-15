@@ -150,6 +150,10 @@ export const stripe = {
         lookup: [subscriptionOf(object)],
         refs: [object.id, object.charge, object.payment_intent],
         orderID: subscriptionOf(object) ?? object.id ?? null,
+        // What was paid, for the analytics event and nothing else: no licence
+        // decision reads it.
+        amount: object.amount_paid ?? null,
+        currency: object.currency ?? null,
         at: now,
       };
     }
@@ -162,6 +166,10 @@ export const stripe = {
         id,
         effect: "refund",
         lookup: [object.payment_intent, object.charge, object.invoice, object.id],
+        // A dispute carries `amount`; a refund carries what was actually given
+        // back, which can be less than the charge.
+        amount: object.amount_refunded ?? object.amount ?? null,
+        currency: object.currency ?? null,
       };
     }
 
@@ -200,6 +208,8 @@ export const stripe = {
       // subscription checkout has none, so its own id is next.
       orderID: object.payment_intent ?? object.subscription ?? object.id ?? null,
       refs: [object.id, object.payment_intent, object.subscription, object.invoice],
+      amount: object.amount_total ?? null,
+      currency: object.currency ?? null,
       at: now,
     };
   },

@@ -10,8 +10,19 @@
 
 import { ANNUAL_SECONDS } from "./providers.js";
 import { purchaseMail, renewalMail } from "./mailer.js";
+import { EVENTS, money } from "./analytics.js";
 
-export async function handleEvent({ event, provider, env, store, now, mailer, log, uuid = () => crypto.randomUUID() }) {
+export async function handleEvent({
+  event,
+  provider,
+  env,
+  store,
+  now,
+  mailer,
+  log,
+  analytics = { capture() {} },
+  uuid = () => crypto.randomUUID(),
+}) {
   const parsed = provider.parse(event, env, now);
 
   // Not a shape this service recognised. Answered 202 rather than 400 so the
@@ -73,6 +84,18 @@ export async function handleEvent({ event, provider, env, store, now, mailer, lo
     if (license) {
       await store.killLicense(license.id);
       log("license marked dead", { license: license.id });
+      // Negative, so that summing revenue over every event is net takings.
+      const refunded = money(parsed.amount, parsed.currency);
+      analytics.capture(
+        EVENTS.license_refunded,
+        license.id,
+        {
+          kind: license.kind,
+          provider: provider.name,
+          ...(refunded.revenue === undefined ? {} : { revenue: -refunded.revenue, currency: refunded.currency }),
+        },
+        now,
+      );
       return { status: 200, body: { received: true, applied: true } };
     }
     // Almost always another product on the same account, which is why this is
@@ -100,6 +123,12 @@ export async function handleEvent({ event, provider, env, store, now, mailer, lo
     });
     await store.recordRefs(license.id, parsed.refs ?? [], now);
     log("license renewed", { license: license.id, kind: license.kind });
+    analytics.capture(
+      EVENTS.license_renewed,
+      license.id,
+      { kind: license.kind, provider: provider.name, ...money(parsed.amount, parsed.currency) },
+      now,
+    );
 
     // The address comes off the licence rather than out of the event: it is the
     // one this service issued keys to, whatever the invoice happens to carry.
@@ -146,6 +175,20 @@ export async function handleEvent({ event, provider, env, store, now, mailer, lo
   await store.recordRefs(license.id, parsed.refs ?? [], now);
 
   log("license from a purchase", { license: license.id, kind: license.kind });
+  // `kind` is what was bought, not what the licence became: a lifetime bought on
+  // top of an annual is a lifetime sale. Idempotency was claimed above, so a
+  // redelivered event never reaches this line twice.
+  analytics.capture(
+    EVENTS.license_purchased,
+    license.id,
+    {
+      kind: parsed.kind,
+      provider: provider.name,
+      upgrade: Boolean(existing && existing.kind !== "trial"),
+      ...money(parsed.amount, parsed.currency),
+    },
+    now,
+  );
 
   try {
     await mailer.send({ to: parsed.email, ...purchaseMail({ kind: license.kind, expiresAt: license.expires_at }) });

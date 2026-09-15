@@ -10,6 +10,7 @@
 import { normalizeEmail } from "./email.js";
 import { DEVICE_PATTERN, issueToken } from "./token.js";
 import { activationMail } from "./mailer.js";
+import { EVENTS } from "./analytics.js";
 
 /// Ten days, from the moment of activation.
 ///
@@ -38,7 +39,17 @@ export const RATE_LIMITS = {
   address: { limit: 120, window: 3600 },
 };
 
-export async function activate({ body, store, now, clientIP, signingKey, mailer, log, uuid = () => crypto.randomUUID() }) {
+export async function activate({
+  body,
+  store,
+  now,
+  clientIP,
+  signingKey,
+  mailer,
+  log,
+  analytics = { capture() {} },
+  uuid = () => crypto.randomUUID(),
+}) {
   // Counted before anything is validated, so a flood of malformed bodies costs
   // the sender its budget rather than costing this service a database.
   if ((await store.bump(`ip:${clientIP}`, now, RATE_LIMITS.address.window)) > RATE_LIMITS.address.limit) {
@@ -95,6 +106,9 @@ export async function activate({ body, store, now, clientIP, signingKey, mailer,
       device,
     });
     log("license created", { license: license.id, kind: license.kind });
+    // Only here, where a trial row is actually created. A second press of the
+    // button re-issues the same key and must not count as a second trial.
+    analytics.capture(EVENTS.trial_issued, license.id, { kind: "trial" }, now);
   }
 
   let slot = await store.slot(license.id, device);

@@ -64,6 +64,15 @@ PAYMENT_LINK_ANNUAL = "plink_1UBsxhHOSgmME2jEYQctLUIb"
 PRICE_LIFETIME = "price_1UBstqHOSgmME2jEJc3X8NVq"
 PRICE_ANNUAL = ""
 
+# PostHog, EU cloud, project 271280 — the same project the website reports to,
+# so trials and sales land on the dashboard next to visits and downloads.
+# `phc_` keys are write-only and public by design: the website ships this one to
+# every browser. `Service/src/analytics.js` refuses any host outside the EU
+# region, because the privacy policy says these events are processed there.
+# Remove POSTHOG_KEY and the service sends nothing.
+POSTHOG_KEY = "phc_r2TiozST3mu9RfMWdXCRJB2B9kKr5LEDLEiPsiAXb5hp"
+POSTHOG_HOST = "https://eu.i.posthog.com"
+
 # Created in the EEUR region, which is where the licence table lives and what
 # `docs/PRIVACY.md` has to say about it. The binding is `DB` and not the name
 # wrangler suggests: the code reads `env.DB`.

@@ -14,6 +14,7 @@ import { record, RETENTION_SECONDS } from "./events.js";
 import { handleEvent } from "./webhook.js";
 import { providerFor, signatureHeader } from "./providers.js";
 import { createMailer } from "./mailer.js";
+import { createAnalytics } from "./analytics.js";
 
 /// Structured, one line per event, and never an address. The key id is what a
 /// support conversation is conducted in; a log that carries the customer's
@@ -63,7 +64,7 @@ export default {
 
     if (route === "/v1/purchases/webhook") {
       if (request.method !== "POST") return json(405, { error: "method_not_allowed" });
-      return handleWebhook(request, env);
+      return handleWebhook(request, env, ctx);
     }
 
     return json(404, { error: "not_found" });
@@ -87,6 +88,7 @@ async function handleActivate(request, env, ctx) {
       clientIP: clientAddress(request),
       signingKey: await signingKey(env),
       mailer: createMailer(env, log),
+      analytics: createAnalytics(env, { log, ctx }),
       log,
     });
   } catch (error) {
@@ -165,7 +167,7 @@ async function handleEvents(request, env, ctx) {
 /// The signature is over the body **as it arrived**, so this is the one route
 /// that reads text before it reads JSON. Parsing and re-serializing first is how
 /// a signature check quietly becomes decoration.
-async function handleWebhook(request, env) {
+async function handleWebhook(request, env, ctx) {
   const log = makeLog("/v1/purchases/webhook");
   const provider = providerFor(env);
   if (!provider) {
@@ -203,6 +205,7 @@ async function handleWebhook(request, env) {
       store: new Store(env.DB),
       now,
       mailer: createMailer(env, log),
+      analytics: createAnalytics(env, { log, ctx }),
       log,
     });
     return json(result.status, result.body);
