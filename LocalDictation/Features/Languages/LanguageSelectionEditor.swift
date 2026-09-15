@@ -19,6 +19,7 @@ struct LanguageSelectionEditor: View {
         VStack(alignment: .leading, spacing: 10) {
             TextField("Search languages", text: $search)
                 .textFieldStyle(.roundedBorder)
+                .font(.callout)
 
             List {
                 if !verifiedMatches.isEmpty {
@@ -39,6 +40,13 @@ struct LanguageSelectionEditor: View {
                 }
             }
             .frame(minHeight: 220)
+            .scrollContentBackground(.hidden)
+            .background(WitnessStyle.surface)
+            .clipShape(RoundedRectangle(cornerRadius: WitnessStyle.cornerRadius, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: WitnessStyle.cornerRadius, style: .continuous)
+                    .stroke(WitnessStyle.line, lineWidth: 1)
+            }
 
             Text("German, English, Russian, and Ukrainian are measured end to end: recognition, cleanup, and every mark the review can show. The rest are recognized, and the marks that are calibrated per language stay off rather than guess.")
                 .font(.caption)
@@ -47,6 +55,7 @@ struct LanguageSelectionEditor: View {
 
             preferredRow
         }
+        .tint(WitnessStyle.accent)
     }
 
     // MARK: - Rows

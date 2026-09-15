@@ -1,6 +1,66 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "LOCAL DICTATION": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "LOKALE DIKTIERFUNKTION"
+          }
+        }
+      }
+    },
+    "On this Mac": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auf diesem Mac"
+          }
+        }
+      }
+    },
+    "SETUP · 1 OF 2": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "EINRICHTUNG · 1 VON 2"
+          }
+        }
+      }
+    },
+    "SETUP · 2 OF 2": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "EINRICHTUNG · 2 VON 2"
+          }
+        }
+      }
+    },
+    "Witness only listens for languages you choose.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Witness hört nur auf die Sprachen, die du auswählst."
+          }
+        }
+      }
+    },
+    "Your languages": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Sprachen"
+          }
+        }
+      }
+    },
     "Which languages do you speak?": {
       "localizations": {
         "de": {

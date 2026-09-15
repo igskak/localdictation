@@ -31,62 +31,76 @@ struct FirstRunReadyView: View {
     let finish: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack {
+                WitnessBrand()
+                Spacer()
+                Text("SETUP · 2 OF 2")
+                    .font(.caption2.weight(.semibold))
+                    .tracking(0.8)
+                    .foregroundStyle(WitnessStyle.faint)
+            }
+
             VStack(alignment: .leading, spacing: 6) {
                 Text(verbatim: L10n.format("Hold %@ and speak", coordinator.binding.displayString))
-                    .font(.title2)
+                    .font(.largeTitle.weight(.medium))
+                    .tracking(-1.2)
                 Text(verbatim: L10n.string("Let go and the text arrives where your cursor is. That is the whole of it — there is no window to switch to and nothing to click."))
                 .font(.callout)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(WitnessStyle.muted)
                 .fixedSize(horizontal: false, vertical: true)
             }
 
-            VStack(alignment: .leading, spacing: 12) {
-                microphoneStep
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    microphoneStep
 
-                if coordinator.hasTranscriptionEngine {
-                    modelStep
-                }
+                    if coordinator.hasTranscriptionEngine {
+                        modelStep
+                    }
 
-                if coordinator.canInsert {
-                    accessibilityStep
-                }
+                    if coordinator.canInsert {
+                        accessibilityStep
+                    }
 
-                if coordinator.hasEntitlementService {
-                    step(
-                        symbol: "envelope",
-                        title: "The first three days ask for nothing",
-                        detail: "They start at your first dictation, not now. After them an email address keeps "
-                            + "it running for ten more days, free. Nothing you dictate ever leaves this Mac, and "
-                            + "that does not change when you activate."
-                    )
+                    if coordinator.hasEntitlementService {
+                        step(
+                            symbol: "envelope",
+                            title: "The first three days ask for nothing",
+                            detail: "They start at your first dictation, not now. After them an email address keeps "
+                                + "it running for ten more days, free. Nothing you dictate ever leaves this Mac, and "
+                                + "that does not change when you activate."
+                        )
+                    }
                 }
+                .witnessCard(.neutral)
+
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "shield.checkered")
+                        .foregroundStyle(WitnessStyle.success)
+                        .accessibilityHidden(true)
+                    Text(verbatim: L10n.string("Nothing you dictate ever leaves this Mac. Three events about the trial itself do — when it starts, when it asks for an email, and when it shows the offers — with no more than an app version, a macOS version, and a random number made at install. Settings → Privacy turns them off."))
+                        .font(.caption)
+                        .foregroundStyle(WitnessStyle.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.top, 14)
             }
-
-            Spacer(minLength: 0)
-
-            // The one thing on this screen that is about the app rather than
-            // about getting started, and it is here because a switch defaulted
-            // on has to be said out loud somewhere the user is actually
-            // looking. The sentence names what leaves and where the switch is;
-            // `docs/PRIVACY.md` names the five fields.
-            Text(verbatim: L10n.string("Nothing you dictate ever leaves this Mac. Three events about the trial itself do — when it starts, when it asks for an email, and when it shows the offers — with no more than an app version, a macOS version, and a random number made at install. Settings → Privacy turns them off."))
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
 
             HStack {
                 Text("Everything here is in Settings, and the menu bar icon is where the app lives.")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(WitnessStyle.muted)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer()
                 Button("Start dictating", action: finish)
+                    .buttonStyle(WitnessPrimaryButtonStyle())
                     .keyboardShortcut(.defaultAction)
             }
         }
-        .padding(20)
+        .padding(28)
         .frame(width: 520, height: 620, alignment: .topLeading)
+        .witnessWindow()
         .task {
             await coordinator.refreshTranscriptionModelState()
             // The two system dialogs, in order, while this window is behind
@@ -231,19 +245,23 @@ struct FirstRunReadyView: View {
         @ViewBuilder action: () -> some View = { EmptyView() }
     ) -> some View {
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: symbol)
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .frame(width: 20)
+            WitnessIconTile(systemImage: symbol, tint: stepTint(for: symbol))
             VStack(alignment: .leading, spacing: 4) {
                 Text(verbatim: L10n.string(title))
                     .font(.callout.weight(.medium))
                 Text(verbatim: L10n.string(detail))
                     .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(WitnessStyle.muted)
                     .fixedSize(horizontal: false, vertical: true)
                 action()
+                    .buttonStyle(WitnessSecondaryButtonStyle())
             }
         }
+    }
+
+    private func stepTint(for symbol: String) -> Color {
+        if symbol.contains("checkmark") { return WitnessStyle.success }
+        if symbol.contains("exclamationmark") { return WitnessStyle.warning }
+        return WitnessStyle.muted
     }
 }

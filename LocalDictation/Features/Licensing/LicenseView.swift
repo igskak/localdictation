@@ -47,14 +47,14 @@ struct LicenseView: View {
             thisMac
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
+        .background(WitnessStyle.canvas)
     }
 
     private var standing: some View {
         Section {
             HStack(alignment: .top, spacing: 10) {
-                Image(systemName: presentation.symbol)
-                    .font(.title2)
-                    .foregroundStyle(.secondary)
+                WitnessIconTile(systemImage: presentation.symbol, tint: WitnessStyle.accent)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(presentation.headline)
                         .font(.headline)
@@ -70,13 +70,13 @@ struct LicenseView: View {
                 case let .failure(message):
                     Label(message, systemImage: "exclamationmark.circle")
                         .font(.callout)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(WitnessStyle.warning)
                         .fixedSize(horizontal: false, vertical: true)
                 case let .success(message, note):
                     VStack(alignment: .leading, spacing: 4) {
                         Label(message, systemImage: "checkmark.circle")
                             .font(.callout)
-                            .foregroundStyle(.green)
+                            .foregroundStyle(WitnessStyle.success)
                             .fixedSize(horizontal: false, vertical: true)
                         if let note {
                             Text(note)
@@ -100,6 +100,7 @@ struct LicenseView: View {
                 Button(isRequesting ? L10n.string("Sending…") : presentation.activationButtonTitle) {
                     Task { await requestActivation() }
                 }
+                .buttonStyle(WitnessPrimaryButtonStyle())
                 .disabled(isRequesting || email.isEmpty || !coordinator.canRequestActivation)
 
                 if isRequesting {
@@ -127,12 +128,14 @@ struct LicenseView: View {
 
             HStack {
                 Button("Use this key") { useKey() }
+                    .buttonStyle(WitnessPrimaryButtonStyle())
                     .disabled(key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
                 if coordinator.entitlement.license != nil {
                     Button(L10n.string(isReleasing ? "Removing…" : "Remove from this Mac")) {
                         Task { await releaseFromThisMac() }
                     }
+                    .buttonStyle(WitnessSecondaryButtonStyle())
                     .disabled(isReleasing)
                 }
             }
@@ -190,7 +193,7 @@ struct LicenseView: View {
             if let error = coordinator.licenseStoreErrorDescription {
                 Text(error)
                     .font(.callout)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(WitnessStyle.warning)
             }
             Text("The identifier is a one-way hash of this Mac's hardware UUID. It is what makes a license cover two Macs rather than any number of them, and it cannot be turned back into a serial number or matched against anything outside this app.")
                 .font(.callout)
@@ -281,8 +284,10 @@ struct OfferRow: View {
             }
             Spacer()
             Button("Buy", action: buy)
+                .buttonStyle(WitnessPrimaryButtonStyle())
                 .disabled(!isBuyable)
         }
+        .witnessCard(.neutral, padding: 12)
     }
 }
 
@@ -335,5 +340,6 @@ struct CheckoutConsent: View {
             }
             .font(.caption)
         }
+        .witnessCard(.neutral, padding: 12)
     }
 }

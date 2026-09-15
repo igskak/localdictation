@@ -36,13 +36,23 @@ struct LanguageSetupView: View {
     let confirm: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack {
+                WitnessBrand()
+                Spacer()
+                Text("SETUP · 1 OF 2")
+                    .font(.caption2.weight(.semibold))
+                    .tracking(0.8)
+                    .foregroundStyle(WitnessStyle.faint)
+            }
+
             VStack(alignment: .leading, spacing: 6) {
                 Text("Which languages do you speak?")
-                    .font(.title2)
+                    .font(.largeTitle.weight(.medium))
+                    .tracking(-1.2)
                 Text("Every utterance is recognized as one of the languages you pick here, and never as one you did not. Pick as many as you actually use — there is nothing to switch between afterwards.")
                     .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(WitnessStyle.muted)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
@@ -54,6 +64,7 @@ struct LanguageSetupView: View {
                     .foregroundStyle(.secondary)
                 Spacer()
                 Button("Continue", action: confirm)
+                    .buttonStyle(WitnessPrimaryButtonStyle())
                     .keyboardShortcut(.defaultAction)
             }
 
@@ -61,8 +72,9 @@ struct LanguageSetupView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
-        .padding(20)
+        .padding(28)
         .frame(width: 520, height: 620)
+        .witnessWindow()
     }
 }
 

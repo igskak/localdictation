@@ -8,26 +8,43 @@ struct SettingsView: View {
     @EnvironmentObject private var coordinator: DictationCoordinator
 
     var body: some View {
-        TabView {
-            generalTab
-                .tabItem { Label("General", systemImage: "gearshape") }
+        VStack(spacing: 0) {
+            HStack {
+                WitnessBrand()
+                Spacer()
+                Text("Settings")
+                    .font(.callout.weight(.medium))
+                    .foregroundStyle(WitnessStyle.muted)
+            }
+            .padding(.horizontal, 22)
+            .padding(.vertical, 16)
 
-            LanguagesView()
-                .tabItem { Label("Languages", systemImage: "globe") }
+            Divider().overlay(WitnessStyle.line)
 
-            boundaryTab
-                .tabItem { Label("Boundary", systemImage: "waveform") }
+            TabView {
+                generalTab
+                    .tabItem { Label("General", systemImage: "gearshape") }
 
-            GlossaryView()
-                .tabItem { Label("Dictionary", systemImage: "character.book.closed") }
+                LanguagesView()
+                    .tabItem { Label("Languages", systemImage: "globe") }
 
-            LicenseView()
-                .tabItem { Label("License", systemImage: "key") }
+                boundaryTab
+                    .tabItem { Label("Boundary", systemImage: "waveform") }
 
-            DiagnosticsView()
-                .tabItem { Label("Diagnostics", systemImage: "stethoscope") }
+                GlossaryView()
+                    .tabItem { Label("Dictionary", systemImage: "character.book.closed") }
+
+                LicenseView()
+                    .tabItem { Label("License", systemImage: "key") }
+
+                DiagnosticsView()
+                    .tabItem { Label("Diagnostics", systemImage: "stethoscope") }
+            }
+            .padding(.horizontal, 8)
+            .padding(.bottom, 8)
         }
-        .frame(width: 560, height: 420)
+        .frame(width: 680, height: 540)
+        .witnessWindow()
         .navigationTitle("Witness Settings")
     }
 
@@ -104,12 +121,14 @@ struct SettingsView: View {
                 if let error = coordinator.preferencesErrorDescription {
                     Text(error)
                         .font(.callout)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(WitnessStyle.warning)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
+        .background(WitnessStyle.canvas)
         .onDisappear {
             // A settings window closed mid-capture would otherwise leave the
             // app with no shortcut registered and no sign of why.
@@ -194,6 +213,8 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
+        .background(WitnessStyle.canvas)
     }
 }
 
@@ -261,7 +282,7 @@ struct DiagnosticsView: View {
                 Section("Last error") {
                     Text(error)
                         .font(.callout)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(WitnessStyle.warning)
                 }
             }
 
@@ -279,6 +300,8 @@ struct DiagnosticsView: View {
             #endif
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
+        .background(WitnessStyle.canvas)
     }
 
     #if DEBUG
@@ -313,6 +336,17 @@ private struct LanguagesView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                WitnessIconTile(systemImage: "globe", tint: WitnessStyle.accent)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Your languages")
+                        .font(.headline)
+                    Text("Witness only listens for languages you choose.")
+                        .font(.caption)
+                        .foregroundStyle(WitnessStyle.muted)
+                }
+            }
+
             LanguageSelectionEditor(selection: $coordinator.languageProfile)
 
             Text("Selecting more languages costs nothing on a sentence the engine can hear clearly. It costs on the short ones: two words in Russian and two in Ukrainian look much alike, and the more languages are in play the more often one of those lands in the wrong one.")
@@ -320,7 +354,8 @@ private struct LanguagesView: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(16)
+        .padding(18)
+        .background(WitnessStyle.canvas)
     }
 }
 
@@ -410,11 +445,13 @@ struct GlossaryView: View {
                 Section("Last error") {
                     Text(error)
                         .font(.callout)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(WitnessStyle.warning)
                 }
             }
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
+        .background(WitnessStyle.canvas)
     }
 
     /// The language a new term is filed under: the one the user picked, while
@@ -496,14 +533,14 @@ private struct HotkeyRecorderRow: View {
         if coordinator.registeredHotkey == nil, !coordinator.isCapturingHotkey {
             Text("The shortcut is not registered, so the hotkey does nothing. Pick another combination.")
                 .font(.callout)
-                .foregroundStyle(.orange)
+                .foregroundStyle(WitnessStyle.warning)
                 .fixedSize(horizontal: false, vertical: true)
         }
 
         if let failure {
             Text(failure)
                 .font(.callout)
-                .foregroundStyle(.orange)
+                .foregroundStyle(WitnessStyle.warning)
                 .fixedSize(horizontal: false, vertical: true)
         }
 
@@ -583,7 +620,7 @@ private struct LaunchAtLoginRow: View {
         if let explanation = controller.state.explanation {
             Text(explanation)
                 .font(.callout)
-                .foregroundStyle(.orange)
+                .foregroundStyle(WitnessStyle.warning)
                 .fixedSize(horizontal: false, vertical: true)
 
             if controller.state == .requiresApproval {

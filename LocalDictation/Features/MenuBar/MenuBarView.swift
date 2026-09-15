@@ -18,7 +18,15 @@ struct MenuBarView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                WitnessBrand(compact: true)
+                Spacer()
+                Label("On this Mac", systemImage: "shield.checkered")
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(WitnessStyle.success)
+            }
+
             header
 
             if coordinator.state == .recording || coordinator.state == .finishing {
@@ -110,24 +118,32 @@ struct MenuBarView: View {
 
             actions
 
-            Divider()
+            Divider().overlay(WitnessStyle.line)
 
             HStack {
-                Button("Settings") {
+                Button {
                     openSettings()
                     NSApp.activate(ignoringOtherApps: true)
+                } label: {
+                    Label("Settings", systemImage: "slider.horizontal.3")
                 }
+                .buttonStyle(.plain)
+                .foregroundStyle(WitnessStyle.muted)
 
                 Spacer()
 
                 Button("Quit") {
                     NSApplication.shared.terminate(nil)
                 }
+                .buttonStyle(.plain)
+                .foregroundStyle(WitnessStyle.faint)
                 .keyboardShortcut("q")
             }
+            .font(.caption)
         }
-        .padding(14)
-        .frame(width: 360)
+        .padding(18)
+        .frame(width: 380)
+        .witnessWindow()
         .onAppear {
             coordinator.refreshAuthorization()
             Task { await coordinator.refreshTranscriptionModelState() }
@@ -152,20 +168,20 @@ struct MenuBarView: View {
     }
 
     private var header: some View {
-        HStack(alignment: .top, spacing: 8) {
-            Image(systemName: presentation.systemImage)
-                .foregroundStyle(tintColor)
-                .font(.title3)
+        HStack(alignment: .top, spacing: 12) {
+            WitnessIconTile(systemImage: presentation.systemImage, tint: tintColor)
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(presentation.title)
                     .font(.headline)
                 Text(presentation.detail)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.callout)
+                    .foregroundStyle(WitnessStyle.muted)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .witnessCard(presentation.tint == .warning ? .warning : presentation.tint == .ready ? .success : .neutral)
     }
 
     @ViewBuilder
@@ -174,6 +190,7 @@ struct MenuBarView: View {
             Button("Allow microphone access…") {
                 Task { await coordinator.requestMicrophoneAccess() }
             }
+            .buttonStyle(WitnessPrimaryButtonStyle())
         }
 
         if presentation.showsSystemSettingsShortcut {
@@ -181,9 +198,11 @@ struct MenuBarView: View {
                 Button("Open Privacy Settings") {
                     coordinator.openSystemSettings()
                 }
+                .buttonStyle(WitnessPrimaryButtonStyle())
                 Button("Re-check") {
                     coordinator.refreshAuthorization()
                 }
+                .buttonStyle(WitnessSecondaryButtonStyle())
             }
         }
 
@@ -191,15 +210,16 @@ struct MenuBarView: View {
             Button("Try again") {
                 coordinator.recoverFromFailure()
             }
+            .buttonStyle(WitnessPrimaryButtonStyle())
         }
     }
 
     private var tintColor: Color {
         switch presentation.tint {
-        case .neutral: .secondary
-        case .ready: .green
-        case .active: .red
-        case .warning: .orange
+        case .neutral: WitnessStyle.muted
+        case .ready: WitnessStyle.success
+        case .active: WitnessStyle.accent
+        case .warning: WitnessStyle.warning
         }
     }
 }
@@ -221,6 +241,7 @@ private struct RecordingLevelView: View {
             .font(.caption2)
             .foregroundStyle(.secondary)
         }
+        .witnessCard(.accent, padding: 12)
     }
 }
 
@@ -242,6 +263,7 @@ private struct LastUtteranceView: View {
             .font(.caption2)
             .foregroundStyle(.secondary)
         }
+        .witnessCard(.neutral, padding: 12)
     }
 }
 
@@ -257,20 +279,23 @@ private struct LanguagePinPicker: View {
     @Binding var pinned: SpeechLanguage?
 
     var body: some View {
-        if profile.isMixed {
-            Picker("Language", selection: $pinned) {
-                Text(verbatim: L10n.format("Any of %@", profile.shortLabel)).tag(SpeechLanguage?.none)
-                ForEach(profile.languages) { language in
-                    Text(verbatim: L10n.format("Only %@", language.displayName)).tag(SpeechLanguage?.some(language))
+        Group {
+            if profile.isMixed {
+                Picker("Language", selection: $pinned) {
+                    Text(verbatim: L10n.format("Any of %@", profile.shortLabel)).tag(SpeechLanguage?.none)
+                    ForEach(profile.languages) { language in
+                        Text(verbatim: L10n.format("Only %@", language.displayName)).tag(SpeechLanguage?.some(language))
+                    }
                 }
+                .font(.caption)
+            } else {
+                LabeledContent("Language") {
+                    Text(profile.primary.displayName)
+                }
+                .font(.caption)
             }
-            .font(.caption)
-        } else {
-            LabeledContent("Language") {
-                Text(profile.primary.displayName)
-            }
-            .font(.caption)
         }
+        .padding(.horizontal, 2)
     }
 }
 
@@ -293,6 +318,7 @@ private struct ModelStateView: View {
                 // old "Prepare speech model…" described a step they never had
                 // to take.
                 Button("Get the speech model", action: prepare)
+                    .buttonStyle(WitnessPrimaryButtonStyle())
             case let .preparing(preparation):
                 // Determinate where there is a real number, which in practice
                 // means the download: a bar that fills is the difference
@@ -307,6 +333,7 @@ private struct ModelStateView: View {
                 EmptyView()
             }
         }
+        .witnessCard(.neutral, padding: 12)
     }
 }
 
@@ -363,9 +390,11 @@ private struct ResultView: View {
                     didCopy = true
                 }
                 .disabled(didCopy)
+                .buttonStyle(WitnessSecondaryButtonStyle())
 
                 if canInsert {
                     Button(insertTitle, action: insert)
+                        .buttonStyle(WitnessPrimaryButtonStyle())
                 }
 
                 Spacer()
@@ -377,6 +406,7 @@ private struct ResultView: View {
                 }
             }
         }
+        .witnessCard(.neutral)
         .onChange(of: text) { didCopy = false }
     }
 }
@@ -400,6 +430,7 @@ private struct InsertionOutcomeView: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .witnessCard(.neutral, padding: 12)
     }
 }
 
@@ -425,10 +456,10 @@ private struct LicenseLockView: View {
 
             Button(L10n.string(presentation.showsActivation ? "Activate…" : "Open License settings"), action: openLicenseSettings)
                 .font(.caption)
+                .buttonStyle(WitnessPrimaryButtonStyle())
         }
-        .padding(8)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+        .witnessCard(.warning, padding: 12)
     }
 }
 
@@ -453,13 +484,10 @@ private struct EntitlementNoticeView: View {
 
             Button(notice.actionTitle, action: openLicenseSettings)
                 .font(.caption)
+                .buttonStyle(WitnessSecondaryButtonStyle())
         }
-        .padding(8)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            notice.isPressing ? Color.orange.opacity(0.12) : Color.secondary.opacity(0.08),
-            in: RoundedRectangle(cornerRadius: 8)
-        )
+        .witnessCard(notice.isPressing ? .warning : .neutral, padding: 12)
     }
 }
 
@@ -486,10 +514,10 @@ private struct SecureInputWarningView: View {
 
             Button("Re-check", action: recheck)
                 .font(.caption)
+                .buttonStyle(WitnessSecondaryButtonStyle())
         }
-        .padding(8)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+        .witnessCard(.warning, padding: 12)
     }
 }
 
@@ -519,8 +547,7 @@ private struct AccessibilityTrustView: View {
             }
             .font(.caption)
         }
-        .padding(8)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+        .witnessCard(.neutral, padding: 12)
     }
 }

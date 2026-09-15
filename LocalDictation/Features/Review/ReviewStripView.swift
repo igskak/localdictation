@@ -42,12 +42,7 @@ struct ReviewStripView: View {
 
             actions
         }
-        .padding(10)
-        .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .stroke(Color.orange.opacity(0.35), lineWidth: 1)
-        )
+        .witnessCard(.warning, padding: 14)
         .onChange(of: result) {
             didCopy = false
             coordinator.stopReplay()
@@ -67,7 +62,7 @@ struct ReviewStripView: View {
             // integral. See `ReviewPanelController.resize(_:toFit:)`.
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.caption)
-                .foregroundStyle(.orange)
+                .foregroundStyle(WitnessStyle.warning)
                 .frame(width: 14, height: 14)
             Text(presentation.summary)
                 .font(.caption.weight(.semibold))
@@ -99,13 +94,18 @@ struct ReviewStripView: View {
         for segment in presentation.segments {
             var piece = AttributedString(segment.text)
             if segment.isFlagged {
-                piece.backgroundColor = Color.orange.opacity(0.3)
+                piece.backgroundColor = WitnessStyle.accent.opacity(0.30)
                 piece.inlinePresentationIntent = .stronglyEmphasized
             } else if segment.isMarked {
                 // Drawn, but quietly. A mark the user never asked to be warned
                 // about should be findable, not loud.
                 piece.underlineStyle = .single
-                piece.underlineColor = NSColor.systemOrange.withAlphaComponent(0.7)
+                piece.underlineColor = NSColor(
+                    red: 1,
+                    green: 104 / 255,
+                    blue: 70 / 255,
+                    alpha: 0.78
+                )
             }
             output.append(piece)
         }
@@ -135,7 +135,7 @@ struct ReviewStripView: View {
                         .padding(.horizontal, 5)
                         .padding(.vertical, 1)
                         .background(
-                            Color.orange.opacity(explanation.isFlagged ? 0.18 : 0.07),
+                            WitnessStyle.accent.opacity(explanation.isFlagged ? 0.22 : 0.08),
                             in: Capsule()
                         )
 
@@ -167,6 +167,7 @@ struct ReviewStripView: View {
                 didCopy = false
             }
             .font(.caption)
+            .buttonStyle(WitnessSecondaryButtonStyle())
 
             Spacer()
 
@@ -185,10 +186,12 @@ struct ReviewStripView: View {
                 didCopy = true
             }
             .disabled(didCopy)
+            .buttonStyle(WitnessSecondaryButtonStyle())
 
             Button("Close") {
                 coordinator.closeReview()
             }
+            .buttonStyle(WitnessPrimaryButtonStyle())
             .keyboardShortcut(.defaultAction)
         }
     }

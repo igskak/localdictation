@@ -54,6 +54,9 @@ final class LanguageSetupWindowController: NSObject, NSWindowDelegate {
             defer: false
         )
         window.title = "Witness"
+        window.titlebarAppearsTransparent = true
+        window.backgroundColor = NSColor(red: 17 / 255, green: 18 / 255, blue: 16 / 255, alpha: 1)
+        window.appearance = NSAppearance(named: .darkAqua)
         window.contentView = NSHostingView(
             rootView: FirstRunView(
                 model: model,

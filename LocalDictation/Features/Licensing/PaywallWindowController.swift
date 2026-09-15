@@ -75,6 +75,9 @@ final class PaywallWindowController: NSObject, NSWindowDelegate {
             defer: false
         )
         window.title = "Witness"
+        window.titlebarAppearsTransparent = true
+        window.backgroundColor = NSColor(red: 17 / 255, green: 18 / 255, blue: 16 / 255, alpha: 1)
+        window.appearance = NSAppearance(named: .darkAqua)
         window.contentView = NSHostingView(
             rootView: PaywallView(
                 coordinator: coordinator,
@@ -158,6 +161,15 @@ struct PaywallView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
+            HStack {
+                WitnessBrand(compact: true)
+                Spacer()
+                Text("LOCAL DICTATION")
+                    .font(.caption2.weight(.semibold))
+                    .tracking(0.8)
+                    .foregroundStyle(WitnessStyle.faint)
+            }
+
             header
 
             // Offers first when there are any: on an expired trial the thing
@@ -167,18 +179,17 @@ struct PaywallView: View {
             if presentation.showsOffers { offers }
             if showsActivationForm { activation }
 
-            Divider()
+            Divider().overlay(WitnessStyle.line)
             footer
         }
         .padding(24)
         .frame(width: 460)
+        .witnessWindow()
     }
 
     private var header: some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: presentation.symbol)
-                .font(.title)
-                .foregroundStyle(.secondary)
+            WitnessIconTile(systemImage: presentation.symbol, tint: WitnessStyle.warning)
             VStack(alignment: .leading, spacing: 6) {
                 Text(presentation.headline)
                     .font(.title3.weight(.semibold))
@@ -189,11 +200,12 @@ struct PaywallView: View {
                 if let notice {
                     Text(notice)
                         .font(.callout)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(WitnessStyle.warning)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
+        .witnessCard(.warning)
     }
 
     private var activation: some View {
@@ -211,6 +223,7 @@ struct PaywallView: View {
                 Button(isRequesting ? L10n.string("Sending…") : presentation.activationButtonTitle) {
                     Task { await requestActivation() }
                 }
+                .buttonStyle(WitnessPrimaryButtonStyle())
                 .keyboardShortcut(.defaultAction)
                 .disabled(isRequesting || email.isEmpty || !coordinator.canRequestActivation)
             }
@@ -226,6 +239,7 @@ struct PaywallView: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
+        .witnessCard(.neutral)
     }
 
     private var offers: some View {
@@ -260,8 +274,11 @@ struct PaywallView: View {
     private var footer: some View {
         HStack {
             Button("Enter a key…", action: openLicenseSettings)
+                .buttonStyle(WitnessSecondaryButtonStyle())
             Spacer()
             Button("Not now", action: dismiss)
+                .buttonStyle(.plain)
+                .foregroundStyle(WitnessStyle.muted)
                 .keyboardShortcut(.cancelAction)
         }
     }
