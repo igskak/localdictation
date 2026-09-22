@@ -1991,6 +1991,8 @@
         }
       }
     },
+    "Expanded": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Geöffnet"}}}},
+    "Collapsed": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Geschlossen"}}}},
     "Microphone": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Mikrofon"}}}},
     "Input source": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Eingangsquelle"}}}},
     "Mac built-in microphone": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Integriertes Mac-Mikrofon"}}}},

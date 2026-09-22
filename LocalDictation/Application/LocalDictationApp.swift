@@ -103,6 +103,7 @@ private struct WitnessCardModifier: ViewModifier {
             .overlay {
                 RoundedRectangle(cornerRadius: WitnessStyle.cornerRadius, style: .continuous)
                     .stroke(tone.border, lineWidth: 1)
+                    .allowsHitTesting(false)
             }
     }
 }

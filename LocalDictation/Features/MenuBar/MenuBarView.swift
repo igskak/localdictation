@@ -345,36 +345,56 @@ private struct ModelStateView: View {
 /// so ten long dictations do not overwhelm the menu bar panel.
 private struct RecentDictationsView: View {
     let items: [RecentDictation]
+    @State private var isExpanded = false
     @State private var copiedID: UUID?
 
     var body: some View {
-        DisclosureGroup {
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 8) {
-                    ForEach(items) { item in
-                        HStack(alignment: .top, spacing: 8) {
-                            Text(item.text)
-                                .font(.caption)
-                                .lineLimit(2)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .help(item.text)
+        VStack(alignment: .leading, spacing: 8) {
+            Button {
+                isExpanded.toggle()
+            } label: {
+                HStack(spacing: 8) {
+                    Label("Recent dictations", systemImage: "clock.arrow.circlepath")
+                        .font(.caption.weight(.semibold))
+                    Spacer()
+                    Text(items.count, format: .number)
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .frame(minHeight: 32)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityValue(isExpanded ? L10n.string("Expanded") : L10n.string("Collapsed"))
 
-                            Button(L10n.string(copiedID == item.id ? "Copied" : "Copy")) {
-                                let pasteboard = NSPasteboard.general
-                                pasteboard.clearContents()
-                                pasteboard.setString(item.text, forType: .string)
-                                copiedID = item.id
+            if isExpanded {
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 8) {
+                        ForEach(items) { item in
+                            HStack(alignment: .top, spacing: 8) {
+                                Text(item.text)
+                                    .font(.caption)
+                                    .lineLimit(2)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .help(item.text)
+
+                                Button(L10n.string(copiedID == item.id ? "Copied" : "Copy")) {
+                                    let pasteboard = NSPasteboard.general
+                                    pasteboard.clearContents()
+                                    pasteboard.setString(item.text, forType: .string)
+                                    copiedID = item.id
+                                }
+                                .buttonStyle(WitnessSecondaryButtonStyle())
                             }
-                            .buttonStyle(WitnessSecondaryButtonStyle())
+                            if item.id != items.last?.id { Divider() }
                         }
-                        if item.id != items.last?.id { Divider() }
                     }
                 }
+                .frame(maxHeight: 240)
             }
-            .frame(maxHeight: 240)
-        } label: {
-            Label("Recent dictations", systemImage: "clock.arrow.circlepath")
-                .font(.caption.weight(.semibold))
         }
         .witnessCard(.neutral, padding: 12)
     }
