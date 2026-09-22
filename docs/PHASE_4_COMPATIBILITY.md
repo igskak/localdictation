@@ -61,9 +61,10 @@ the development Mac, and every measurement quoted here has a timestamp.
 - **An application that reads the pasteboard slowly.** The previous contents
   went back after a flat 200 ms whether the target had read them or not, so a
   busy Electron app, a virtual machine, or a remote desktop could lose the
-  dictation with no notice. A readable field is now watched for up to 600 ms,
-  the pasteboard goes back as soon as the text lands, and a field that reports
-  itself unchanged is reported as *not* inserted.
+  dictation with no notice. A readable field is now watched for up to 600 ms.
+  The pasteboard goes back only when the field confirms this dictation's exact
+  text; otherwise the new text remains on the clipboard with a notice. A field
+  that exposes no value gets a 200 ms settling delay.
 - **A modifier still held.** The synthetic ⌘V carries whatever the user is
   physically holding, and ⇧⌘V or ⌥⌘V means something else in most editors. The
   paste now waits up to 100 ms for the modifiers to clear.

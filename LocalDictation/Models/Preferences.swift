@@ -47,6 +47,8 @@ enum RecordingActivation: String, Sendable, Equatable, Codable, CaseIterable, Id
 /// A settings file is not optional for these. A shortcut that reverts to
 /// ⌥Space on every launch is not a configurable shortcut, and a language
 /// selection that resets is a product asking the same question every morning.
+/// The microphone choice belongs here too: it must survive a launch without
+/// changing the system-wide sound input.
 struct Preferences: Sendable, Equatable, Codable {
     var hotkeyKeyCode: UInt32
     var hotkeyModifiers: UInt32
@@ -54,6 +56,8 @@ struct Preferences: Sendable, Equatable, Codable {
     var activation: RecordingActivation
     var languageProfile: LanguageProfile
     var insertsAutomatically: Bool
+    /// The app's own microphone choice; it never changes the macOS default.
+    var audioInput: AudioInputSelection
     /// Whether the user has ever been asked which languages they speak.
     ///
     /// Not the same question as "is a profile stored". Every build since
@@ -85,7 +89,8 @@ struct Preferences: Sendable, Equatable, Codable {
         languageProfile: .default,
         insertsAutomatically: true,
         hasChosenLanguages: false,
-        sharesProductEvents: true
+        sharesProductEvents: true,
+        audioInput: .builtIn
     )
 
     /// Decoded field by field only so the newest one can be absent.
@@ -101,6 +106,7 @@ struct Preferences: Sendable, Equatable, Codable {
         activation = try container.decode(RecordingActivation.self, forKey: .activation)
         languageProfile = try container.decode(LanguageProfile.self, forKey: .languageProfile)
         insertsAutomatically = try container.decode(Bool.self, forKey: .insertsAutomatically)
+        audioInput = try container.decodeIfPresent(AudioInputSelection.self, forKey: .audioInput) ?? .builtIn
         hasChosenLanguages = try container.decodeIfPresent(Bool.self, forKey: .hasChosenLanguages) ?? false
         // Absent on a file written by a build that had nothing to transmit.
         // `true` is the same answer that build gave in practice — it sent
@@ -117,7 +123,8 @@ struct Preferences: Sendable, Equatable, Codable {
         languageProfile: LanguageProfile,
         insertsAutomatically: Bool,
         hasChosenLanguages: Bool,
-        sharesProductEvents: Bool = true
+        sharesProductEvents: Bool = true,
+        audioInput: AudioInputSelection = .builtIn
     ) {
         self.hotkeyKeyCode = hotkeyKeyCode
         self.hotkeyModifiers = hotkeyModifiers
@@ -125,6 +132,7 @@ struct Preferences: Sendable, Equatable, Codable {
         self.activation = activation
         self.languageProfile = languageProfile
         self.insertsAutomatically = insertsAutomatically
+        self.audioInput = audioInput
         self.hasChosenLanguages = hasChosenLanguages
         self.sharesProductEvents = sharesProductEvents
     }

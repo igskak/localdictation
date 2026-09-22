@@ -116,6 +116,10 @@ struct MenuBarView: View {
                 LastUtteranceView(summary: summary)
             }
 
+            if !coordinator.recentDictations.isEmpty {
+                RecentDictationsView(items: coordinator.recentDictations)
+            }
+
             actions
 
             Divider().overlay(WitnessStyle.line)
@@ -332,6 +336,45 @@ private struct ModelStateView: View {
             case .ready:
                 EmptyView()
             }
+        }
+        .witnessCard(.neutral, padding: 12)
+    }
+}
+
+/// Session-only copy history. The list is collapsed until the user asks for it
+/// so ten long dictations do not overwhelm the menu bar panel.
+private struct RecentDictationsView: View {
+    let items: [RecentDictation]
+    @State private var copiedID: UUID?
+
+    var body: some View {
+        DisclosureGroup {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 8) {
+                    ForEach(items) { item in
+                        HStack(alignment: .top, spacing: 8) {
+                            Text(item.text)
+                                .font(.caption)
+                                .lineLimit(2)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .help(item.text)
+
+                            Button(L10n.string(copiedID == item.id ? "Copied" : "Copy")) {
+                                let pasteboard = NSPasteboard.general
+                                pasteboard.clearContents()
+                                pasteboard.setString(item.text, forType: .string)
+                                copiedID = item.id
+                            }
+                            .buttonStyle(WitnessSecondaryButtonStyle())
+                        }
+                        if item.id != items.last?.id { Divider() }
+                    }
+                }
+            }
+            .frame(maxHeight: 240)
+        } label: {
+            Label("Recent dictations", systemImage: "clock.arrow.circlepath")
+                .font(.caption.weight(.semibold))
         }
         .witnessCard(.neutral, padding: 12)
     }

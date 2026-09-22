@@ -6,6 +6,7 @@ import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @EnvironmentObject private var coordinator: DictationCoordinator
+    @State private var availableAudioInputs: [SystemAudioInput.Device] = []
 
     var body: some View {
         VStack(spacing: 0) {
@@ -75,6 +76,38 @@ struct SettingsView: View {
                 LaunchAtLoginRow()
             }
 
+            Section("Microphone") {
+                Picker("Input source", selection: audioInputBinding) {
+                    Text("Mac built-in microphone").tag(AudioInputSelection.builtIn)
+                    Text("macOS default input").tag(AudioInputSelection.systemDefault)
+                    ForEach(availableAudioInputs) { device in
+                        Text(device.name).tag(AudioInputSelection.device(uid: device.uid))
+                    }
+                    if case let .device(uid) = coordinator.audioInputSelection,
+                       !availableAudioInputs.contains(where: { $0.uid == uid }) {
+                        Text("Previously selected microphone (unavailable)")
+                            .tag(AudioInputSelection.device(uid: uid))
+                    }
+                }
+                Button("Refresh microphones") { refreshAudioInputs() }
+                if case let .device(uid) = coordinator.audioInputSelection,
+                   !availableAudioInputs.contains(where: { $0.uid == uid }) {
+                    Text("The selected microphone is unavailable. Witness will use another available microphone until it returns.")
+                        .font(.callout)
+                        .foregroundStyle(WitnessStyle.warning)
+                }
+                if coordinator.audioInputSelection == .builtIn,
+                   !availableAudioInputs.contains(where: \.isBuiltIn) {
+                    Text("The Mac microphone is unavailable. Witness will use another available microphone.")
+                        .font(.callout)
+                        .foregroundStyle(WitnessStyle.warning)
+                }
+                Text("The Mac microphone keeps dictation independent of AirPods connected to your iPhone. Changes apply to the next recording; Witness does not change the macOS sound input.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
             Section("Privacy") {
                 Text("Audio stays in memory on this Mac. Nothing is written to disk during normal capture, and nothing you dictate is ever sent anywhere. A recording is discarded as soon as the app decides no review is needed, and otherwise when the review ends.")
                     .font(.callout)
@@ -129,6 +162,7 @@ struct SettingsView: View {
         .formStyle(.grouped)
         .scrollContentBackground(.hidden)
         .background(WitnessStyle.canvas)
+        .onAppear { refreshAudioInputs() }
         .onDisappear {
             // A settings window closed mid-capture would otherwise leave the
             // app with no shortcut registered and no sign of why.
@@ -144,6 +178,17 @@ struct SettingsView: View {
             get: { coordinator.activation },
             set: { coordinator.setActivation($0) }
         )
+    }
+
+    private var audioInputBinding: Binding<AudioInputSelection> {
+        Binding(
+            get: { coordinator.audioInputSelection },
+            set: { coordinator.setAudioInputSelection($0) }
+        )
+    }
+
+    private func refreshAudioInputs() {
+        availableAudioInputs = SystemAudioInput.availableInputDevices()
     }
 
     private var boundaryTab: some View {

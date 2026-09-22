@@ -24,6 +24,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        #if DEBUG
+        // Unit tests run inside a Witness host process. Starting the live
+        // coordinator there registers a second global hotkey and loads a
+        // second 1.5 GB model alongside the person's running app. The tests
+        // construct and activate their own injected coordinators instead.
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
+            Log.application.info("Witness test host launched without live services")
+            return
+        }
+        #endif
         Log.application.info("Witness launched as a menu bar utility")
         if let coordinator = Self.coordinator {
             reviewPanel = ReviewPanelController(coordinator: coordinator)

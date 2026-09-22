@@ -47,6 +47,19 @@ final class DictationCoordinatorTests: XCTestCase {
         XCTAssertEqual(coordinator.diagnostics.format?.outputSampleRate, AudioTargetFormat.sampleRate)
     }
 
+    func testMicrophoneChoiceReachesTheNextCapture() async throws {
+        let (coordinator, _, hotkey, capture) = makeCoordinator()
+        coordinator.activate()
+        coordinator.setAudioInputSelection(.device(uid: "chosen-microphone"))
+
+        hotkey.emit(.pressed)
+        try await waitUntil("recording starts with the chosen microphone") { coordinator.state == .recording }
+        XCTAssertEqual(capture.selectedInputAtStart, .device(uid: "chosen-microphone"))
+
+        hotkey.emit(.released)
+        try await waitUntil("recording completes") { coordinator.state == .ready }
+    }
+
     func testReleaseBeforeEngineStartsStillCompletesOneUtterance() async throws {
         let (coordinator, _, hotkey, capture) = makeCoordinator()
         capture.delayStart(nanoseconds: 40_000_000)

@@ -6,8 +6,8 @@ enum InsertionMethod: String, Sendable, Equatable, CaseIterable {
     /// clipboard, no synthetic keys, and the target's own undo usually reverses
     /// it in one step.
     case focusedElement
-    /// Written to the pasteboard and pasted with a synthetic ⌘V, with the
-    /// previous pasteboard contents restored afterwards.
+    /// Written to the pasteboard and pasted with a synthetic ⌘V. The previous
+    /// contents are restored only after the new text is verified in the field.
     case syntheticPaste
 
     var label: String {
@@ -45,6 +45,9 @@ enum ClipboardReason: String, Sendable, Equatable, CaseIterable {
     case noTarget
     case targetChanged
     case insertionFailed
+    /// The target changed, but Accessibility could not confirm it pasted this
+    /// utterance. Keep the new text on the clipboard for recovery.
+    case unverifiedPaste
 
     var message: String {
         switch self {
@@ -58,6 +61,8 @@ enum ClipboardReason: String, Sendable, Equatable, CaseIterable {
             L10n.string("Copied to the clipboard: you moved to a different application while this was being prepared.")
         case .insertionFailed:
             L10n.string("Copied to the clipboard: that application would not accept the text directly.")
+        case .unverifiedPaste:
+            L10n.string("The new dictation is on the clipboard. Check what the application pasted; Witness could not verify that it used this recording.")
         }
     }
 }

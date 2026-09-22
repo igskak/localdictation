@@ -269,3 +269,22 @@ final class InsertionVerificationTests: XCTestCase {
         )
     }
 }
+
+final class PasteContentVerificationTests: XCTestCase {
+    func testOnlyTheNewPayloadConfirmsPaste() {
+        let selection = NSRange(location: 6, length: 0)
+        let expected = PasteContentVerification.expectedValue("new words", replacing: selection, in: "draft ")
+        XCTAssertEqual(expected, "draft new words")
+        XCTAssertNotEqual(expected, "draft old words")
+    }
+
+    func testReplacementAndUnobservableFields() {
+        let selection = NSRange(location: 6, length: 3)
+        XCTAssertEqual(
+            PasteContentVerification.expectedValue("новый", replacing: selection, in: "draft old"),
+            "draft новый"
+        )
+        XCTAssertNil(PasteContentVerification.expectedValue("новый", replacing: nil, in: "draft old"))
+        XCTAssertNil(PasteContentVerification.expectedValue("новый", replacing: selection, in: nil))
+    }
+}

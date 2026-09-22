@@ -29,8 +29,8 @@ protocol PreferencesStore: Sendable {
 ///
 /// Readable in a text editor, like `license.json`, and for the same reason: a
 /// file the app will not show its owner is a file the app is keeping from them.
-/// There is nothing here worth hiding — a key code, a modifier mask, a mode, a
-/// language pair, and one boolean.
+/// It contains only explicit app choices, including the preferred microphone
+/// UID, and never audio or recognized text.
 ///
 /// A file that cannot be read is a first run rather than a failure. Settings
 /// are a convenience, and refusing to dictate because one of them is corrupt

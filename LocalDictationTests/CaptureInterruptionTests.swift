@@ -4,8 +4,10 @@ import XCTest
 /// What an input device changing mid-sentence costs.
 ///
 /// AirPods connecting, a dock being plugged in, a headset going to sleep: all
-/// of them raise `AVAudioEngineConfigurationChange` while the user is speaking.
-/// The recording used to end in `.failed` with the captured audio discarded,
+/// of them can raise `AVAudioEngineConfigurationChange` while the user is
+/// speaking. Capture first checks whether the selected input actually changed;
+/// these tests cover the case where it did. The recording used to end in
+/// `.failed` with the captured audio discarded,
 /// which is the app taking back words that had already been said —
 /// `docs/PHASE_6.md` spends a section refusing to do exactly that for a trial
 /// that runs out, and this is the same rule.

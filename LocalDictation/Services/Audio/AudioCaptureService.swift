@@ -1,15 +1,46 @@
 import Foundation
 
+/// A per-app input choice. Core Audio device IDs can change across launches,
+/// so an explicit device is identified by its stable UID instead.
+enum AudioInputSelection: Sendable, Hashable, Codable {
+    case builtIn
+    case systemDefault
+    case device(uid: String)
+
+    init(from decoder: any Decoder) throws {
+        let value = try decoder.singleValueContainer().decode(String.self)
+        switch value {
+        case "builtIn": self = .builtIn
+        case "systemDefault": self = .systemDefault
+        default:
+            guard value.hasPrefix("device:"), value.count > "device:".count else {
+                throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "Invalid audio input selection"))
+            }
+            self = .device(uid: String(value.dropFirst("device:".count)))
+        }
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .builtIn: try container.encode("builtIn")
+        case .systemDefault: try container.encode("systemDefault")
+        case let .device(uid): try container.encode("device:\(uid)")
+        }
+    }
+}
+
 /// The single normalized capture format for the whole pipeline.
 enum AudioTargetFormat {
     static let sampleRate: Double = 16_000
     static let channelCount: Int = 1
 }
 
-/// Capture parameters owned by the coordinator. Phase 1 keeps these in memory
-/// only: no persistence layer is introduced yet.
+/// Capture parameters owned by the coordinator. Voice activity tuning remains
+/// memory-only; the microphone choice is restored from Preferences.
 struct AudioCaptureConfiguration: Sendable, Equatable {
     var voiceActivity: VoiceActivityConfiguration
+    var inputSelection: AudioInputSelection = .builtIn
     /// Hard ceiling for the in-memory buffer. Derived from the VAD maximum so the
     /// buffer can never grow past one bounded utterance.
     var maximumUtteranceDuration: TimeInterval { voiceActivity.maximumUtteranceDuration }
@@ -23,6 +54,7 @@ struct AudioCaptureConfiguration: Sendable, Equatable {
 
 enum AudioCaptureError: Error, Sendable, Equatable {
     case noInputDevice
+    case inputDeviceSelectionFailed(String)
     case unsupportedInputFormat(String)
     case converterUnavailable(String)
     case conversionFailed(String)
@@ -34,6 +66,8 @@ enum AudioCaptureError: Error, Sendable, Equatable {
         switch self {
         case .noInputDevice:
             L10n.string("No microphone input device is available")
+        case let .inputDeviceSelectionFailed(detail):
+            L10n.format("Could not open the selected microphone (%@)", detail)
         case let .unsupportedInputFormat(detail):
             L10n.format("Unsupported input format (%@)", detail)
         case let .converterUnavailable(detail):

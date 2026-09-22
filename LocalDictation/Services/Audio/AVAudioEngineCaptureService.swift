@@ -1,4 +1,6 @@
 import AVFoundation
+import AudioToolbox
+import CoreAudio
 import Foundation
 
 /// `AVAudioEngine`-backed capture.
@@ -9,17 +11,41 @@ import Foundation
 /// Engine lifecycle is guarded by an unfair lock because `AVAudioEngine` is not
 /// `Sendable` and start/stop can arrive from different tasks.
 final class AVAudioEngineCaptureService: AudioCaptureService, @unchecked Sendable {
+    enum ConfigurationChangeAction: Equatable {
+        case keepRecording
+        case resumeEngine
+        case interrupt
+    }
+
+    static func actionAfterConfigurationChange(
+        engineIsRunning: Bool,
+        expectedInputID: AudioDeviceID,
+        resolvedInputID: AudioDeviceID?,
+        inputFormatMatches: Bool
+    ) -> ConfigurationChangeAction {
+        if engineIsRunning { return .keepRecording }
+        guard resolvedInputID == expectedInputID, inputFormatMatches else { return .interrupt }
+        return .resumeEngine
+    }
+
     private struct Session {
+        let engine: AVAudioEngine
+        let inputNode: AVAudioInputNode
         let sink: PCMCaptureSink
         let converter: AudioFormatConverter
         let format: CaptureFormatDescription
+        let inputSelection: AudioInputSelection
+        let inputDeviceID: AudioDeviceID
     }
 
     private let lock = UnfairLock()
-    private let engine = AVAudioEngine()
+    private let lifecycleLock = UnfairLock()
     private var session: Session?
     private var configurationObserver: NSObjectProtocol?
     private var interruptionHandler: (@Sendable (AudioCaptureError) -> Void)?
+    private var recoveringEngine: AVAudioEngine?
+    private var recoveryAttempts = 0
+    private var lastRecoveryUptime: TimeInterval = 0
 
     init() {}
 
@@ -33,16 +59,39 @@ final class AVAudioEngineCaptureService: AudioCaptureService, @unchecked Sendabl
         configuration: AudioCaptureConfiguration,
         onInterruption: @escaping @Sendable (AudioCaptureError) -> Void
     ) async throws -> CaptureFormatDescription {
-        // Tear down any previous session before touching the engine graph.
-        teardown()
-
+        // A fresh graph lets each utterance bind its chosen input before the
+        // I/O unit is initialized, including after an AirPods route change.
+        if lock.withLock({ session != nil }) {
+            _ = await stop(reason: .interrupted)
+        }
+        let engine = AVAudioEngine()
         let inputNode = engine.inputNode
+        guard let resolution = SystemAudioInput.resolve(configuration.inputSelection) else {
+            throw AudioCaptureError.noInputDevice
+        }
+        if configuration.inputSelection != .systemDefault {
+            guard let audioUnit = inputNode.audioUnit else {
+                throw AudioCaptureError.inputDeviceSelectionFailed("input audio unit is unavailable")
+            }
+            var deviceID = resolution.device.id
+            let status = AudioUnitSetProperty(
+                audioUnit,
+                kAudioOutputUnitProperty_CurrentDevice,
+                kAudioUnitScope_Global,
+                0,
+                &deviceID,
+                UInt32(MemoryLayout<AudioDeviceID>.size)
+            )
+            guard status == noErr else {
+                throw AudioCaptureError.inputDeviceSelectionFailed("Core Audio status \(status)")
+            }
+        }
+
         let inputFormat = inputNode.outputFormat(forBus: 0)
         guard inputFormat.sampleRate > 0, inputFormat.channelCount > 0 else {
             throw AudioCaptureError.noInputDevice
         }
 
-        let device = SystemAudioInput.defaultInputDevice()
         let converter = try AudioFormatConverter(inputFormat: inputFormat)
         let detector = EnergyVoiceActivityDetector(
             configuration: configuration.voiceActivity,
@@ -54,7 +103,7 @@ final class AVAudioEngineCaptureService: AudioCaptureService, @unchecked Sendabl
             detector: detector
         )
         let format = CaptureFormatDescription(
-            inputDeviceName: device?.name,
+            inputDeviceName: resolution.device.name,
             inputSampleRate: inputFormat.sampleRate,
             inputChannelCount: Int(inputFormat.channelCount),
             outputSampleRate: AudioTargetFormat.sampleRate,
@@ -63,11 +112,20 @@ final class AVAudioEngineCaptureService: AudioCaptureService, @unchecked Sendabl
         )
 
         lock.withLock {
-            session = Session(sink: sink, converter: converter, format: format)
+            session = Session(
+                engine: engine,
+                inputNode: inputNode,
+                sink: sink,
+                converter: converter,
+                format: format,
+                inputSelection: configuration.inputSelection,
+                inputDeviceID: resolution.device.id
+            )
             interruptionHandler = onInterruption
+            recoveringEngine = nil
+            recoveryAttempts = 0
+            lastRecoveryUptime = 0
         }
-
-        observeConfigurationChanges()
 
         // The tap closure runs on a real-time audio thread.
         inputNode.installTap(onBus: 0, bufferSize: 4096, format: inputFormat) { [weak self] buffer, _ in
@@ -80,13 +138,25 @@ final class AVAudioEngineCaptureService: AudioCaptureService, @unchecked Sendabl
             try engine.start()
         } catch {
             inputNode.removeTap(onBus: 0)
+            engine.stop()
             teardown()
             throw AudioCaptureError.engineStartFailed(error.localizedDescription)
+        }
+
+        // Selecting a per-app input can itself queue a configuration notice.
+        // Observe only after the graph is running, then recover if a later
+        // hardware change actually stops it.
+        observeConfigurationChanges(engine: engine)
+        if !engine.isRunning {
+            scheduleRecovery(for: engine)
         }
 
         Log.audio.info(
             "Capture started: input \(Int(inputFormat.sampleRate)) Hz \(inputFormat.channelCount) ch, output 16000 Hz mono, capacity \(sink.capacityFrames) frames"
         )
+        if resolution.usedFallback {
+            Log.audio.notice("Preferred microphone unavailable; capture uses another local input")
+        }
         return format
     }
 
@@ -96,11 +166,16 @@ final class AVAudioEngineCaptureService: AudioCaptureService, @unchecked Sendabl
     }
 
     func stop(reason: UtteranceEndReason) async -> CapturedUtterance? {
-        guard let current = lock.withLock({ session }) else { return nil }
+        guard let current = lock.withLock({ () -> Session? in
+            interruptionHandler = nil
+            return session
+        }) else { return nil }
         let sink = current.sink
 
-        engine.inputNode.removeTap(onBus: 0)
-        engine.stop()
+        lifecycleLock.withLock {
+            current.inputNode.removeTap(onBus: 0)
+            current.engine.stop()
+        }
 
         // The tap is gone, so draining the resampler here is race-free and keeps
         // the trailing milliseconds of speech that are still inside the converter.
@@ -135,26 +210,103 @@ final class AVAudioEngineCaptureService: AudioCaptureService, @unchecked Sendabl
 
     // MARK: - Device changes
 
-    private func observeConfigurationChanges() {
+    private func observeConfigurationChanges(engine: AVAudioEngine) {
         guard lock.withLock({ configurationObserver == nil }) else { return }
         let observer = NotificationCenter.default.addObserver(
             forName: .AVAudioEngineConfigurationChange,
             object: engine,
             queue: nil
-        ) { [weak self] _ in
+        ) { [weak self, weak engine] _ in
+            guard let engine else { return }
             guard let self else { return }
-            let handler = self.lock.withLock { self.interruptionHandler }
-            guard handler != nil else { return }
-            Log.audio.notice("Audio engine configuration changed during capture")
-            handler?(.inputDeviceChanged)
+            self.scheduleRecovery(for: engine)
         }
         lock.withLock { configurationObserver = observer }
     }
 
+    private func scheduleRecovery(for engine: AVAudioEngine) {
+        let shouldRecover = lock.withLock { () -> Bool in
+            guard session?.engine === engine, interruptionHandler != nil, recoveringEngine == nil else { return false }
+            recoveringEngine = engine
+            return true
+        }
+        guard shouldRecover else { return }
+
+        // Apple's configuration callback runs on an internal audio queue. Do
+        // not stop, restart, or deallocate the engine from that callback.
+        Task.detached(priority: .userInitiated) { [weak self] in
+            self?.recover(engine)
+        }
+    }
+
+    private func recover(_ engine: AVAudioEngine) {
+        let failure: AudioCaptureError? = lifecycleLock.withLock {
+            guard let current = lock.withLock({ session?.engine === engine && interruptionHandler != nil ? session : nil }) else {
+                return nil
+            }
+            // A tap and converter are valid only for the input format they
+            // were created with. A changed format needs a fresh utterance.
+            let resolved = SystemAudioInput.resolve(current.inputSelection)
+            let inputFormat = current.inputNode.outputFormat(forBus: 0)
+            let action = Self.actionAfterConfigurationChange(
+                engineIsRunning: engine.isRunning,
+                expectedInputID: current.inputDeviceID,
+                resolvedInputID: resolved?.device.id,
+                inputFormatMatches: inputFormat.sampleRate == current.format.inputSampleRate
+                    && Int(inputFormat.channelCount) == current.format.inputChannelCount
+            )
+            switch action {
+            case .keepRecording:
+                return nil
+            case .interrupt:
+                return resolved == nil ? .noInputDevice : .inputDeviceChanged
+            case .resumeEngine:
+                break
+            }
+
+            let attempt = lock.withLock { () -> Int in
+                let now = ProcessInfo.processInfo.systemUptime
+                if now - lastRecoveryUptime > 2 { recoveryAttempts = 0 }
+                lastRecoveryUptime = now
+                recoveryAttempts += 1
+                return recoveryAttempts
+            }
+            guard attempt <= 4 else {
+                return .engineStartFailed("the audio engine stopped repeatedly")
+            }
+
+            do {
+                try engine.start()
+                guard engine.isRunning else {
+                    return .engineStartFailed("the audio engine did not resume")
+                }
+                Log.audio.notice("Audio engine resumed with the same microphone")
+                return nil
+            } catch {
+                return .engineStartFailed(error.localizedDescription)
+            }
+        }
+
+        let handler = lock.withLock { () -> (@Sendable (AudioCaptureError) -> Void)? in
+            if recoveringEngine === engine { recoveringEngine = nil }
+            return session?.engine === engine ? interruptionHandler : nil
+        }
+        if let failure {
+            handler?(failure)
+        }
+    }
+
     private func teardown() {
-        lock.withLock {
+        let observer = lock.withLock { () -> NSObjectProtocol? in
             session = nil
             interruptionHandler = nil
+            recoveringEngine = nil
+            recoveryAttempts = 0
+            lastRecoveryUptime = 0
+            let observer = configurationObserver
+            configurationObserver = nil
+            return observer
         }
+        if let observer { NotificationCenter.default.removeObserver(observer) }
     }
 }

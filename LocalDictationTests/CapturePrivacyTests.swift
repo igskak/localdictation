@@ -1,4 +1,5 @@
 import AVFoundation
+import CoreAudio
 import XCTest
 @testable import Witness
 
@@ -156,5 +157,87 @@ final class CapturePrivacyTests: XCTestCase {
         }
 
         XCTAssertEqual(sink.snapshot().frameCount, 100_000)
+    }
+}
+
+final class AudioInputSelectionTests: XCTestCase {
+    private let mac = SystemAudioInput.Device(
+        id: 1, uid: "mac-mic", name: "Mac microphone",
+        transportType: kAudioDeviceTransportTypeBuiltIn, nominalSampleRate: 48_000
+    )
+    private let headphones = SystemAudioInput.Device(
+        id: 2, uid: "headset-mic", name: "Headset microphone",
+        transportType: kAudioDeviceTransportTypeBluetooth, nominalSampleRate: 24_000
+    )
+
+    func testBuiltInChoiceIgnoresBluetoothSystemDefault() {
+        let resolution = SystemAudioInput.resolve(.builtIn, among: [headphones, mac], defaultID: headphones.id)
+        XCTAssertEqual(resolution?.device, mac)
+        XCTAssertEqual(resolution?.usedFallback, false)
+    }
+
+    func testExplicitHeadsetChoiceUsesHeadset() {
+        let resolution = SystemAudioInput.resolve(
+            .device(uid: headphones.uid), among: [mac, headphones], defaultID: mac.id
+        )
+        XCTAssertEqual(resolution?.device, headphones)
+        XCTAssertEqual(resolution?.usedFallback, false)
+    }
+
+    func testDisconnectedHeadsetFallsBackToMacMicrophone() {
+        let resolution = SystemAudioInput.resolve(
+            .device(uid: headphones.uid), among: [mac], defaultID: nil
+        )
+        XCTAssertEqual(resolution?.device, mac)
+        XCTAssertEqual(resolution?.usedFallback, true)
+    }
+
+    func testSystemDefaultChoiceFollowsSystem() {
+        let resolution = SystemAudioInput.resolve(
+            .systemDefault, among: [mac, headphones], defaultID: headphones.id
+        )
+        XCTAssertEqual(resolution?.device, headphones)
+    }
+
+    func testNoInputDeviceDoesNotInventOne() {
+        XCTAssertNil(SystemAudioInput.resolve(.builtIn, among: [], defaultID: nil))
+    }
+}
+
+final class AudioEngineConfigurationTests: XCTestCase {
+    func testOutputRouteChangeKeepsBuiltInMicRecording() {
+        XCTAssertEqual(
+            AVAudioEngineCaptureService.actionAfterConfigurationChange(
+                engineIsRunning: false,
+                expectedInputID: 1,
+                resolvedInputID: 1,
+                inputFormatMatches: true
+            ),
+            .resumeEngine
+        )
+    }
+
+    func testActualInputChangeStillEndsCurrentCapture() {
+        XCTAssertEqual(
+            AVAudioEngineCaptureService.actionAfterConfigurationChange(
+                engineIsRunning: false,
+                expectedInputID: 1,
+                resolvedInputID: 2,
+                inputFormatMatches: true
+            ),
+            .interrupt
+        )
+    }
+
+    func testStaleNoticeDoesNotRestartRunningEngine() {
+        XCTAssertEqual(
+            AVAudioEngineCaptureService.actionAfterConfigurationChange(
+                engineIsRunning: true,
+                expectedInputID: 1,
+                resolvedInputID: 1,
+                inputFormatMatches: true
+            ),
+            .keepRecording
+        )
     }
 }

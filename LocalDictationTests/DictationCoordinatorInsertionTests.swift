@@ -86,6 +86,48 @@ final class DictationCoordinatorInsertionTests: XCTestCase {
         )
     }
 
+    func testCompletedInsertionAddsOneCopyableHistoryEntry() async throws {
+        let harness = makeHarness(transcript: Self.quietTranscript)
+        record(harness)
+        try await waitUntil("insertion finished") { harness.coordinator.lastInsertion != nil }
+
+        XCTAssertEqual(harness.coordinator.recentDictations.map(\.text), ["Der termin steht."])
+    }
+
+    func testRefusedInsertionDoesNotEnterHistory() async throws {
+        let harness = makeHarness(transcript: Self.quietTranscript)
+        harness.insertion.outcome = .refused(.secureField, holder: nil)
+        record(harness)
+        try await waitUntil("insertion refused") { harness.coordinator.lastInsertion != nil }
+
+        XCTAssertTrue(harness.coordinator.recentDictations.isEmpty)
+    }
+
+    func testManualInsertionDoesNotDuplicateHistory() async throws {
+        let harness = makeHarness(transcript: Self.quietTranscript)
+        harness.coordinator.insertsAutomatically = false
+        record(harness)
+        try await waitUntil("result is ready") { harness.coordinator.result != nil }
+        XCTAssertEqual(harness.coordinator.recentDictations.count, 1)
+
+        harness.coordinator.insertCurrentResult()
+        try await waitUntil("manual insertion finished") { harness.coordinator.lastInsertion != nil }
+        XCTAssertEqual(harness.coordinator.recentDictations.count, 1)
+    }
+
+    func testManualRefusalRemovesTheCurrentHistoryEntry() async throws {
+        let harness = makeHarness(transcript: Self.quietTranscript)
+        harness.coordinator.insertsAutomatically = false
+        harness.insertion.outcome = .refused(.secureField, holder: nil)
+        record(harness)
+        try await waitUntil("result is ready") { harness.coordinator.result != nil }
+        XCTAssertEqual(harness.coordinator.recentDictations.count, 1)
+
+        harness.coordinator.insertCurrentResult()
+        try await waitUntil("manual insertion refused") { harness.coordinator.lastInsertion != nil }
+        XCTAssertTrue(harness.coordinator.recentDictations.isEmpty)
+    }
+
     /// The decision that makes a wrong target impossible: the application is
     /// captured when the recording starts, before transcription and review had
     /// any chance to let the user move on.

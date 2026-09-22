@@ -68,6 +68,34 @@ final class RepeatedDictationTests: XCTestCase {
         try await waitUntil("the app settles") { harness.coordinator.state == .ready }
     }
 
+    func testRecentDictationsKeepOnlyTenTextsNewestFirstUntilDeactivation() async throws {
+        let harness = makeHarness(transcript: Self.quiet)
+        var expected: [String] = []
+
+        for number in 1...12 {
+            harness.engine.setResult(.fixture(text: "nachricht \(number)", profile: .german))
+            try await dictate(harness)
+            expected.insert(try XCTUnwrap(harness.coordinator.result).cleanedText, at: 0)
+        }
+
+        XCTAssertEqual(harness.coordinator.recentDictations.map(\.text), Array(expected.prefix(10)))
+
+        harness.coordinator.clearTranscript()
+        XCTAssertEqual(harness.coordinator.recentDictations.count, 10)
+
+        harness.coordinator.deactivate()
+        XCTAssertTrue(harness.coordinator.recentDictations.isEmpty)
+    }
+
+    func testEmptyDictationDoesNotEnterRecentHistory() async throws {
+        let harness = makeHarness(transcript: .empty(profile: .german, engineIdentifier: "fake"))
+        harness.hotkey.emit(.pressed)
+        harness.hotkey.emit(.released)
+        try await waitUntil("the empty result arrives") { harness.coordinator.result != nil }
+
+        XCTAssertTrue(harness.coordinator.recentDictations.isEmpty)
+    }
+
     func testSixtyQuietDictationsLeaveNoAudioBehind() async throws {
         let harness = makeHarness(transcript: Self.quiet)
 

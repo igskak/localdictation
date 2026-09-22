@@ -26,7 +26,7 @@ final class PreferencesStoreTests: XCTestCase {
         FilePreferencesStore(url: directory.appendingPathComponent("preferences.json"))
     }
 
-    func testTheFileHoldsSevenFieldsAndNothingElse() throws {
+    func testTheFileHoldsOnlySettingsFields() throws {
         let store = store()
         try store.save(.default)
 
@@ -42,6 +42,7 @@ final class PreferencesStoreTests: XCTestCase {
                 "activation",
                 "languageProfile",
                 "insertsAutomatically",
+                "audioInput",
                 "hasChosenLanguages",
                 "sharesProductEvents",
             ]
@@ -77,6 +78,7 @@ final class PreferencesStoreTests: XCTestCase {
         // it transmitted nothing because there was nowhere to send it, and this
         // build asks on the first-run screen before the first event can happen.
         XCTAssertTrue(loaded.sharesProductEvents)
+        XCTAssertEqual(loaded.audioInput, .builtIn)
     }
 
     /// The switch survives a reload like every other choice in this file. A
@@ -88,6 +90,15 @@ final class PreferencesStoreTests: XCTestCase {
         try store.save(preferences)
 
         XCTAssertFalse(try store.load().sharesProductEvents)
+    }
+
+    func testSelectedMicrophoneSurvivesAReload() throws {
+        let store = store()
+        var preferences = Preferences.default
+        preferences.audioInput = .device(uid: "example-microphone-uid")
+        try store.save(preferences)
+
+        XCTAssertEqual(try store.load().audioInput, .device(uid: "example-microphone-uid"))
     }
 
     func testASelectionOfThreeLanguagesSurvivesAReload() throws {

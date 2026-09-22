@@ -13,8 +13,8 @@ import Carbon.HIToolbox
 /// than a failure.
 ///
 /// Everything here runs on the main actor and synchronously, apart from two
-/// genuine waits: the pasteboard the target has to read before the previous
-/// contents go back, and the moment a written field is given to prove it kept
+/// genuine waits: the target has to prove it pasted this utterance before the
+/// previous clipboard contents go back, and a written field must prove it kept
 /// the text. Accessibility calls to a responsive application return in well
 /// under a millisecond; the messaging timeout bounds the case where the target
 /// has hung, which is a state the user's Mac is already visibly in.
@@ -25,10 +25,9 @@ final class AXTextInsertionService: TextInsertionService {
     /// what reads as a freeze.
     private static let messagingTimeout: Float = 0.5
 
-    /// How long the target application is given to read the pasteboard before
-    /// the previous contents go back. Long enough for the applications in the
-    /// compatibility matrix, short enough that the user's clipboard is not
-    /// ours for any noticeable time.
+    /// How long an element with no readable state gets to process ⌘V before
+    /// the result is reported as unverified and the new text stays available
+    /// on the clipboard.
     private static let pasteSettlingDelay = Duration.milliseconds(200)
 
     /// How long a written field is given before it is measured a second time.
@@ -44,9 +43,8 @@ final class AXTextInsertionService: TextInsertionService {
     private static let frontmostPollInterval = Duration.milliseconds(40)
     private static let frontmostPollAttempts = 15
 
-    /// How long a readable field is watched for the pasted text to appear.
-    /// Fifteen reads at 40 ms again, which is well past the point where an
-    /// application under load has read the pasteboard.
+    /// How long a readable field is watched for this utterance's text to appear.
+    /// Fifteen reads at 40 ms give a busy application time to process ⌘V.
     private static let pasteVerificationAttempts = 15
 
     /// How long the user's fingers are given to come off the modifier keys
@@ -372,11 +370,24 @@ final class AXTextInsertionService: TextInsertionService {
             .flatMap(characterBeforeCaret(in:))
             .map { InsertionSpacing.prefix(forCharacterBefore: $0, text: text) } ?? ""
         let before = element.map(fingerprint(of:))
+        let beforeValue = element.flatMap { string(of: $0, attribute: kAXValueAttribute) }
+        let selection = element.flatMap(selectedRange(of:)).map {
+            NSRange(location: $0.location, length: $0.length)
+        }
+        let payload = prefix + text
+        let expectedValue = PasteContentVerification.expectedValue(payload, replacing: selection, in: beforeValue)
 
         let snapshot = pasteboard.snapshot()
-        let ourChangeCount = pasteboard.write(prefix + text)
+        let ourChangeCount = pasteboard.write(payload)
 
         await waitForModifiersToClear()
+        guard !Task.isCancelled else {
+            // A new recording superseded this insertion before ⌘V was sent.
+            // No target could have read our payload, so the clipboard is safe
+            // to restore. The coordinator discards this cancelled outcome.
+            pasteboard.restore(snapshot, ifChangeCountIs: ourChangeCount)
+            return .copiedToClipboard(.insertionFailed)
+        }
 
         guard postCommandV(source: source) else {
             // Nothing was pasted, so the text stays on the pasteboard for the
@@ -384,46 +395,55 @@ final class AXTextInsertionService: TextInsertionService {
             return .copiedToClipboard(.insertionFailed)
         }
 
-        guard await pasteLanded(in: element, before: before) else {
-            // The field is readable and says it is unchanged: the ⌘V went
-            // somewhere that did nothing with it. The text is deliberately
-            // left on the pasteboard rather than restored away from the user,
-            // and the outcome says so instead of reporting an insertion the
-            // way a swallowed direct write once did.
+        let pastePostedAt = Date()
+        let status = await pasteLanded(in: element, before: before, expectedValue: expectedValue)
+        Log.insertion.info(
+            "Paste check \(status.rawValue, privacy: .public) after \(Int(Date().timeIntervalSince(pastePostedAt) * 1_000), privacy: .public) ms"
+        )
+        switch status {
+        case .unchanged:
             Log.insertion.debug("The paste did not reach the field")
             return .copiedToClipboard(.insertionFailed)
+        case .unverified:
+            // A caret movement may be an unrelated editor update. Restoring
+            // the old clipboard here lets a delayed ⌘V paste the old dictation.
+            Log.insertion.debug("The field changed, but the pasted text could not be verified")
+            return .copiedToClipboard(.unverifiedPaste)
+        case .verified:
+            pasteboard.restore(snapshot, ifChangeCountIs: ourChangeCount)
+            return finish(.inserted(.syntheticPaste), target: target)
         }
-
-        pasteboard.restore(snapshot, ifChangeCountIs: ourChangeCount)
-        return finish(.inserted(.syntheticPaste), target: target)
     }
 
     /// Waits for the pasted text to appear, and says whether it did.
     ///
-    /// This replaces a flat 200 ms sleep, which was a bet that every
-    /// application reads the pasteboard within 200 ms of the ⌘V. One that is
-    /// busy, or that is talking to a virtual machine or a remote desktop, reads
-    /// it later — and by then the previous pasteboard contents are back and the
-    /// user's dictation is gone with no notice, because the app had already
-    /// called it an insertion.
-    ///
-    /// So a field that describes itself is watched instead: any change to its
-    /// length or its caret means the paste arrived, and the pasteboard goes
-    /// back the moment it does — sooner than 200 ms in the common case. A field
-    /// that describes nothing cannot be watched, so it gets the settling delay
-    /// and the benefit of the doubt, exactly as an unverifiable direct write
-    /// does.
-    private func pasteLanded(in element: AXUIElement?, before: TextFieldFingerprint?) async -> Bool {
-        guard let element, let before, before.isReadable else {
+    /// A changed count or caret is not proof that *this* utterance arrived: a
+    /// web editor can update those while it is still processing ⌘V. Only the
+    /// expected field value allows the previous clipboard contents to return.
+    private enum PasteStatus: String { case verified, unverified, unchanged }
+
+    private func pasteLanded(
+        in element: AXUIElement?,
+        before: TextFieldFingerprint?,
+        expectedValue: String?
+    ) async -> PasteStatus {
+        // If Accessibility cannot expose the selected range and value, no
+        // amount of polling can verify which text landed. Keep this utterance
+        // on the clipboard after one short settling interval.
+        guard let element, let before, before.isReadable, let expectedValue else {
             try? await Task.sleep(for: Self.pasteSettlingDelay)
-            return true
+            return .unverified
         }
 
+        var changed = false
         for _ in 1...Self.pasteVerificationAttempts {
             try? await Task.sleep(for: Self.frontmostPollInterval)
-            if InsertionVerification.didApply(before: before, after: fingerprint(of: element)) { return true }
+            if string(of: element, attribute: kAXValueAttribute) == expectedValue { return .verified }
+            if InsertionVerification.didApply(before: before, after: fingerprint(of: element)) {
+                changed = true
+            }
         }
-        return false
+        return changed ? .unverified : .unchanged
     }
 
     /// Waits for the user's fingers to come off the modifier keys.
@@ -436,6 +456,7 @@ final class AXTextInsertionService: TextInsertionService {
     /// hotkey is released, so this wait usually returns on its first look.
     private func waitForModifiersToClear() async {
         for _ in 1...Self.modifierPollAttempts {
+            guard !Task.isCancelled else { return }
             guard !heldModifiers.isEmpty else { return }
             try? await Task.sleep(for: Self.modifierPollInterval)
         }

@@ -118,6 +118,7 @@ final class FakeAudioCaptureService: AudioCaptureService, @unchecked Sendable {
     private var interruptionHandler: (@Sendable (AudioCaptureError) -> Void)?
 
     private(set) var startCount = 0
+    private(set) var selectedInputAtStart: AudioInputSelection?
     private(set) var stopCount = 0
     private(set) var stopReasons: [UtteranceEndReason] = []
 
@@ -153,6 +154,7 @@ final class FakeAudioCaptureService: AudioCaptureService, @unchecked Sendable {
     ) async throws -> CaptureFormatDescription {
         let (error, delay): (AudioCaptureError?, UInt64) = lock.withLock {
             startCount += 1
+            selectedInputAtStart = configuration.inputSelection
             interruptionHandler = onInterruption
             let error = startError
             startError = nil

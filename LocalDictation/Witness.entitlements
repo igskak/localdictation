@@ -11,7 +11,7 @@
 	     AGENTS.md and docs/PHASE_4.md record that Accessibility insertion into
 	     other applications cannot work inside the sandbox, which is the reason
 	     this ships outside the Mac App Store. Accessibility itself is not an
-	     entitlement at all -- it is a grant the user makes in System Settings.
+	     entitlement at all; it is a grant the user makes in System Settings.
 	     Apple Events would need com.apple.security.automation.apple-events; the
 	     app sends none, inserting text through the Accessibility API and
 	     CGEvent instead. -->

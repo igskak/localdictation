@@ -161,3 +161,21 @@ enum InsertionVerification {
         return before != after
     }
 }
+
+/// A changed caret or character count does not prove which text was pasted.
+/// Compare the field's value against the exact replacement expected at the
+/// selection captured before ⌘V. Values are used only in memory and never logged.
+enum PasteContentVerification {
+    static func expectedValue(
+        _ payload: String,
+        replacing selection: NSRange?,
+        in before: String?
+    ) -> String? {
+        guard let selection, let before else { return nil }
+        let original = before as NSString
+        guard selection.location >= 0,
+              selection.length >= 0,
+              NSMaxRange(selection) <= original.length else { return nil }
+        return original.replacingCharacters(in: selection, with: payload)
+    }
+}

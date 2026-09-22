@@ -1,6 +1,13 @@
 import Combine
 import Foundation
 
+/// Text retained for this app session only. Audio and recognition metadata do
+/// not belong in the copy history.
+struct RecentDictation: Identifiable, Equatable {
+    let id = UUID()
+    let text: String
+}
+
 /// Orchestrates permission, hotkey, and capture services into the Phase 1 slice:
 /// hotkey press -> capture -> bounded utterance -> diagnostics.
 ///
@@ -19,6 +26,9 @@ final class DictationCoordinator: ObservableObject {
     @Published private(set) var transcript: Transcript?
     /// The transcript after cleanup, risk marking, and the review decision.
     @Published private(set) var result: DictationResult?
+    /// The ten most recent usable texts, newest first. Never persisted.
+    @Published private(set) var recentDictations: [RecentDictation] = []
+    private var currentResultWasRemembered = false
     /// Set inside review when the user asks for the raw transcript back.
     /// Reset on every new utterance, so a recovery never leaks into the next one.
     @Published var prefersRawTranscript = false
@@ -307,6 +317,13 @@ final class DictationCoordinator: ObservableObject {
     var transcriptionEngineName: String? { transcriptionService?.displayName }
     var hasTranscriptionEngine: Bool { transcriptionService != nil }
 
+    var audioInputSelection: AudioInputSelection { configuration.inputSelection }
+
+    func setAudioInputSelection(_ selection: AudioInputSelection) {
+        configuration.inputSelection = selection
+        persistPreferences()
+    }
+
     // MARK: - Lifecycle
 
     /// Reads the current authorization without prompting and registers the hotkey.
@@ -371,6 +388,7 @@ final class DictationCoordinator: ObservableObject {
         cancelTranscription()
         fragmentPlayer?.stop()
         releaseRetainedAudio()
+        recentDictations.removeAll()
         hotkeyService.unregister()
         registeredHotkey = nil
         if captureIsRunning {
@@ -672,6 +690,7 @@ final class DictationCoordinator: ObservableObject {
         releaseRetainedAudio()
         transcript = nil
         result = nil
+        currentResultWasRemembered = false
         prefersRawTranscript = false
         lastInsertion = nil
         attentionIsPending = false
@@ -1164,6 +1183,18 @@ final class DictationCoordinator: ObservableObject {
         guard generation == insertionGeneration else { return }
         insertionTask = nil
         lastInsertion = outcome
+        switch outcome {
+        case .refused:
+            // A secure field or secure input must not leave a copyable entry.
+            if currentResultWasRemembered {
+                recentDictations.removeFirst()
+                currentResultWasRemembered = false
+            }
+        default:
+            if let result, !currentResultWasRemembered {
+                remember(result.cleanedText)
+            }
+        }
         diagnostics.lastInsertion = InsertionDiagnostics(outcome: outcome, target: insertionTarget)
         insertionTarget = nil
         // A clipboard fallback for want of trust is the moment the ask makes
@@ -1421,6 +1452,7 @@ final class DictationCoordinator: ObservableObject {
         activation = preferences.activation
         languageProfile = preferences.languageProfile
         insertsAutomatically = preferences.insertsAutomatically
+        configuration.inputSelection = preferences.audioInput
         hasChosenLanguages = preferences.hasChosenLanguages
         sharesProductEvents = preferences.sharesProductEvents
         // `isApplyingPreferences` suppresses the write-back, not this: the
@@ -1455,7 +1487,8 @@ final class DictationCoordinator: ObservableObject {
             languageProfile: languageProfile,
             insertsAutomatically: insertsAutomatically,
             hasChosenLanguages: hasChosenLanguages,
-            sharesProductEvents: sharesProductEvents
+            sharesProductEvents: sharesProductEvents,
+            audioInput: configuration.inputSelection
         )
     }
 
@@ -1605,7 +1638,17 @@ final class DictationCoordinator: ObservableObject {
         // words appear where they were already typing, every time, and the
         // checking is offered afterwards to whoever wants it.
         if insertsAutomatically, performInsertion(of: result.cleanedText) { return }
+        if !result.isEmpty, !secureInput.isEnabled {
+            remember(result.cleanedText)
+        }
         apply(.transcriptionFinished)
+    }
+
+    private func remember(_ text: String) {
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        recentDictations.insert(RecentDictation(text: text), at: 0)
+        currentResultWasRemembered = true
+        if recentDictations.count > 10 { recentDictations.removeLast() }
     }
 
     /// Cleanup, risk marking, and the review decision for one transcript.

@@ -255,6 +255,7 @@ actor WhisperKitTranscriptionService: TranscriptionService {
         // time. Pinning what the ranking says makes that miss unreachable
         // instead of recoverable, and costs one decode rather than two.
         let language = try await decodedLanguage(for: profile, samples: utterance.samples, using: engine)
+        let languageReadyAt = Date()
 
         try Task.checkCancellation()
 
@@ -263,9 +264,16 @@ actor WhisperKitTranscriptionService: TranscriptionService {
             options: Self.decodingOptions(pinnedTo: language),
             using: engine
         )
+        let decodedAt = Date()
 
         try Task.checkCancellation()
         lastDecodedLanguage = (language, Date())
+
+        // Local timing only: these two durations reveal whether language
+        // selection or decoding dominates, without recording any speech data.
+        Log.transcription.info(
+            "Inference stages: language \(String(format: "%.2f", languageReadyAt.timeIntervalSince(started)), privacy: .public) s, decode \(String(format: "%.2f", decodedAt.timeIntervalSince(languageReadyAt)), privacy: .public) s"
+        )
 
         let processingDuration = Date().timeIntervalSince(started)
         let segments = results.flatMap(\.segments)

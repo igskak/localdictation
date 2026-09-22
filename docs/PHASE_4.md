@@ -137,7 +137,8 @@ Three methods, tried in order, each with a recorded outcome:
    believed, it is checked* below — so the field is measured before and after,
    and a write that changed nothing falls through to the next method.
 2. **Synthetic paste.** Write to the pasteboard, post ⌘V, restore the previous
-   pasteboard contents once the paste has been **seen to land**. Needed where
+   pasteboard contents only after **this utterance's text** is verified in the
+   target field. Needed where
    the element is not exposed or not settable — much of Electron, some web
    fields — and used for **anything focused that cannot be written directly**,
    whatever the application says about it. See *An application is not asked for
@@ -148,12 +149,11 @@ Three methods, tried in order, each with a recorded outcome:
    machine or a remote desktop, reads it later — and by then the previous
    contents are back and the user's dictation is gone, with no notice, because
    the app had already called it an insertion. So a readable field is watched
-   for up to 600 ms and the pasteboard goes back the moment the text arrives,
-   which is usually sooner than the old fixed wait. A field that reports itself
-   unchanged for the whole window did not get the text, and says so instead of
-   reporting an insertion. A field that describes nothing at all cannot be
-   watched, so it gets the settling delay and the benefit of the doubt, exactly
-   as an unverifiable direct write does.
+   for up to 600 ms. A changed caret or character count alone is not enough:
+   a web editor may update those before its paste reads the clipboard. If the
+   exact new text cannot be verified, it stays on the clipboard and the user
+   is told to check what landed. A field that exposes no value gets a 200 ms
+   settling delay rather than 600 ms of polling that cannot verify it.
 
    The ⌘V also waits for the user's fingers to come off the modifier keys.
    A synthetic ⌘V carries whatever is physically held down with it, and ⇧⌘V is
@@ -309,7 +309,7 @@ The measurement and what it changed are in `docs/PHASE_4_MEASUREMENT.md`.
 ### Pasteboard handling
 
 - The synthetic-paste path saves the current pasteboard contents, writes the
-  text, posts the key event, and restores.
+  text, posts the key event, and restores only after verifying the new text.
 - Restoration is guarded by `NSPasteboard.changeCount`: restore only if nothing
   else changed the pasteboard in the meantime.
 - Restoration of arbitrary pasteboard types is best-effort and must be described
@@ -401,8 +401,8 @@ and completes a third that Phase 2 left half-measured:
   clipboard and the user is told.
 - A secure text field or enabled secure input produces a refusal, with nothing
   written to the pasteboard.
-- The pasteboard is restored after a synthetic paste, and is not restored when
-  the clipboard is the deliberate outcome.
+- The pasteboard is restored after a verified synthetic paste. If the target
+  cannot confirm what it pasted, the new dictation stays on the clipboard.
 - Insertion is unavailable but the whole rest of the app works when
   Accessibility trust has not been granted; granting it recovers without a
   relaunch.
