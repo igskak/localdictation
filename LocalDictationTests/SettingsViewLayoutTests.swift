@@ -124,6 +124,29 @@ final class SettingsViewLayoutTests: XCTestCase {
         try await renderMenu(coordinator)
     }
 
+    func testExpandedRecentDictationsHaveAVisibleViewport() {
+        let items = (1...3).map { RecentDictation(text: "A previous dictation number \($0)") }
+        let collapsed = renderRecentDictations(items, expanded: false)
+        let expanded = renderRecentDictations(items, expanded: true)
+
+        XCTAssertGreaterThan(
+            expanded.height,
+            collapsed.height + 150,
+            "The expanded history must reserve visible height for its rows."
+        )
+    }
+
+    private func renderRecentDictations(_ items: [RecentDictation], expanded: Bool) -> NSSize {
+        let hosting = NSHostingView(
+            rootView: RecentDictationsView(items: items, initiallyExpanded: expanded)
+                .frame(width: 336)
+        )
+        hosting.layoutSubtreeIfNeeded()
+        let size = hosting.fittingSize
+        hosting.removeFromSuperview()
+        return size
+    }
+
     private func renderMenu(_ coordinator: DictationCoordinator) async throws {
         let hosting = NSHostingView(rootView: MenuBarView().environmentObject(coordinator))
         hosting.frame = NSRect(x: 0, y: 0, width: 360, height: 600)

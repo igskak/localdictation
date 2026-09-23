@@ -343,10 +343,23 @@ private struct ModelStateView: View {
 
 /// Session-only copy history. The list is collapsed until the user asks for it
 /// so ten long dictations do not overwhelm the menu bar panel.
-private struct RecentDictationsView: View {
+struct RecentDictationsView: View {
     let items: [RecentDictation]
-    @State private var isExpanded = false
+    @State private var isExpanded: Bool
     @State private var copiedID: UUID?
+
+    init(items: [RecentDictation], initiallyExpanded: Bool = false) {
+        self.items = items
+        _isExpanded = State(initialValue: initiallyExpanded)
+    }
+
+    private var listHeight: CGFloat {
+        // A ScrollView has no useful intrinsic height in a MenuBarExtra window.
+        // A maximum alone therefore collapses to almost zero when it appears.
+        // Give each visible row enough room for two text lines and its copy
+        // button, then cap the viewport so a long history scrolls.
+        min(CGFloat(items.count) * 54, 240)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -393,7 +406,7 @@ private struct RecentDictationsView: View {
                         }
                     }
                 }
-                .frame(maxHeight: 240)
+                .frame(height: listHeight)
             }
         }
         .witnessCard(.neutral, padding: 12)
