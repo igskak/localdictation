@@ -172,6 +172,13 @@ final class FakeAudioCaptureService: AudioCaptureService, @unchecked Sendable {
         lock.withLock { snapshotValue }
     }
 
+    func capturedPrefix(frames: Int) -> [Float]? {
+        lock.withLock {
+            guard snapshotValue.frameCount >= frames else { return nil }
+            return [Float](repeating: 0.1, count: frames)
+        }
+    }
+
     func stop(reason: UtteranceEndReason) async -> CapturedUtterance? {
         let snapshot: CaptureSnapshot = lock.withLock {
             stopCount += 1
@@ -211,6 +218,11 @@ final class FakeTranscriptionService: TranscriptionService, @unchecked Sendable 
     private(set) var prepareCount = 0
     private(set) var requestedProfiles: [LanguageProfile] = []
     private(set) var cancelledCount = 0
+    private(set) var languageHeadStarts: [(frames: Int, profile: LanguageProfile)] = []
+
+    func beginLanguageDetection(prefix: [Float], profile: LanguageProfile) async {
+        lock.withLock { languageHeadStarts.append((frames: prefix.count, profile: profile)) }
+    }
 
     func setResult(_ transcript: Transcript) {
         lock.withLock { result = transcript; error = nil }

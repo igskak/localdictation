@@ -207,6 +207,9 @@ final class DictationCoordinator: ObservableObject {
     private var machine = RecordingStateMachine()
     private var pollTimer: Timer?
     private var captureIsRunning = false
+    /// Whether this recording has already handed the engine its opening.
+    /// Reset per press, so one head start runs per utterance.
+    private var hasRequestedLanguageHeadStart = false
     private var pendingEndReason: UtteranceEndReason?
     private let pollInterval: TimeInterval
     private var transcriptionTask: Task<Void, Never>?
@@ -702,6 +705,7 @@ final class DictationCoordinator: ObservableObject {
         captureInterruption = nil
         isShowingReview = false
         pendingEndReason = nil
+        hasRequestedLanguageHeadStart = false
 
         // The target is captured here, at the start, and not read again when
         // the text is ready. By then the user may have moved on: transcription
@@ -1767,7 +1771,34 @@ final class DictationCoordinator: ObservableObject {
         if snapshot.reachedCapacity || snapshot.voiceActivity.state == .endedByMaximumDuration {
             Log.audio.notice("Maximum utterance duration reached; finishing capture")
             endCapture(reason: .maximumDuration)
+            return
         }
+
+        requestLanguageHeadStart(snapshot)
+    }
+
+    /// Hands the engine the opening of the recording so it can settle the
+    /// language while the user is still talking.
+    ///
+    /// Whisper cannot decode until it knows which language to decode as, and
+    /// finding out costs a full encoder pass over a fixed thirty-second window
+    /// however short the utterance is. Paid here it overlaps with speech the
+    /// user is still producing; paid where it used to be, it landed whole on
+    /// the wait that starts when they stop. Nothing downstream depends on this
+    /// having happened — the engine decides the language either way.
+    ///
+    /// Only profiles with more than one language reach the detector at all, so
+    /// only they are offered a head start.
+    private func requestLanguageHeadStart(_ snapshot: CaptureSnapshot) {
+        guard !hasRequestedLanguageHeadStart else { return }
+        guard let transcriptionService else { return }
+        let profile = effectiveProfile
+        guard profile.isMixed else { return }
+        guard snapshot.frameCount >= LanguageHeadStart.frames else { return }
+        guard let prefix = captureService.capturedPrefix(frames: LanguageHeadStart.frames) else { return }
+
+        hasRequestedLanguageHeadStart = true
+        Task { await transcriptionService.beginLanguageDetection(prefix: prefix, profile: profile) }
     }
 
     // MARK: - State plumbing

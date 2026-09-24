@@ -24,6 +24,10 @@ struct LanguageDecision: Sendable, Equatable {
         /// Ambiguous, and the previous utterance's language is one of the two
         /// leaders: a person mid-paragraph is still in the same language.
         case continuedFromPrevious
+        /// Too short to have been detected at all, and the previous utterance
+        /// is recent. Nothing was ranked: a word and a half is less evidence
+        /// than what the same person was speaking moments ago.
+        case carriedOverFromPrevious
         /// Ambiguous, and the preferred language is one of the two leaders.
         case fellBackToPreferred
         /// Ambiguous, and neither the previous nor the preferred language is in

@@ -122,6 +122,26 @@ enum TranscriptionError: Error, Sendable, Equatable {
     }
 }
 
+/// How much of a recording an engine is given to decide its language before the
+/// user has finished speaking.
+///
+/// Whisper cannot decode until it knows the language, and finding out costs a
+/// full encoder pass over a fixed thirty-second window however short the
+/// utterance is — the same pass the decode then runs again. Handed the opening
+/// of the recording, the engine can pay that while the user is still talking,
+/// which takes it off the wait that starts when they stop.
+///
+/// The duration is a compromise between the two things it trades: the head
+/// start needs enough speech for Whisper's language head to mean anything, and
+/// it has to begin early enough to finish before an ordinary sentence does.
+/// Utterances shorter than this never get one, and are decided by
+/// `LanguageDecision` from what came before them instead.
+enum LanguageHeadStart {
+    static let duration: TimeInterval = 1.5
+
+    static var frames: Int { Int((duration * AudioTargetFormat.sampleRate).rounded()) }
+}
+
 /// Local transcription boundary.
 ///
 /// Implementations must run inference off the main actor, must honor task
@@ -149,9 +169,27 @@ protocol TranscriptionService: AnyObject, Sendable {
     /// propagate — when the surrounding task is cancelled, so a superseded
     /// request can never deliver a stale transcript.
     func transcribe(_ utterance: CapturedUtterance, profile: LanguageProfile) async throws -> Transcript
+
+    /// Offers the opening of an utterance that is still being spoken, so an
+    /// engine that must decide a language before it can decode may do that work
+    /// now rather than after the user stops.
+    ///
+    /// Advisory in both directions: the caller may never call it, and the
+    /// engine may ignore it. Nothing `transcribe` returns may depend on whether
+    /// this was called, and an engine must never start a model load from here —
+    /// a recording is not a place to wait for weights.
+    ///
+    /// Deliberately has no default implementation, even though most engines
+    /// want an empty one. A default here is a trap: an actor satisfying it with
+    /// a synchronous method declares a *different* overload, the empty default
+    /// wins both the witness and the call, and the whole optimization does
+    /// nothing while every test still passes. That is exactly what happened.
+    /// Required, it is a compile error instead.
+    func beginLanguageDetection(prefix: [Float], profile: LanguageProfile) async
 }
 
 extension TranscriptionService {
+
     /// Convenience for engines that support every profile they are asked about.
     func supportsAllProfiles() -> Bool {
         LanguageProfile.all.allSatisfy(supports)

@@ -55,6 +55,10 @@ final class AppleSpeechTranscriptionService: TranscriptionService {
         return .ready
     }
 
+    /// `SFSpeechRecognizer` is bound to one locale, so there is no language to
+    /// decide and nothing a head start could do ahead of time.
+    func beginLanguageDetection(prefix: [Float], profile: LanguageProfile) async {}
+
     func prepare(for profile: LanguageProfile) async throws {
         let status = await Self.requestAuthorization()
         switch status {

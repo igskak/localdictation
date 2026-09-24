@@ -52,6 +52,17 @@ actor WhisperKitTranscriptionService: TranscriptionService {
     /// actor should be able to set it.
     private var lastDecodedLanguage: (language: SpeechLanguage, at: Date)?
 
+    /// The language distribution being computed for an utterance that is still
+    /// being spoken, together with the audio it is being computed from.
+    ///
+    /// It carries probabilities rather than a decided language on purpose. The
+    /// expensive half — mel plus a full encoder pass — is what has to run early;
+    /// the rule that turns a distribution into one language is arithmetic, and
+    /// it depends on what the user was speaking a moment ago and on which
+    /// languages they currently have selected. Both are properties of the
+    /// moment the utterance ends, not of the moment the head start began.
+    private var headStart: (prefix: [Float], task: Task<[String: Float]?, Never>)?
+
     /// What the in-flight load is doing, for `modelState`. Nil when idle.
     private var preparation: ModelPreparation?
     /// When the current load started, so a load that outruns
@@ -114,6 +125,62 @@ actor WhisperKitTranscriptionService: TranscriptionService {
 
     func prepare(for profile: LanguageProfile) async throws {
         _ = try await loadedEngine()
+    }
+
+    // MARK: - Language head start
+
+    /// Spelled `async` to match the protocol requirement exactly. A synchronous
+    /// method on an actor is callable the same way from outside, but it is a
+    /// *different* overload from the one the protocol declares, and the empty
+    /// default in `extension TranscriptionService` wins the resolution — which
+    /// is how this silently did nothing at all while every test passed.
+    func beginLanguageDetection(prefix: [Float], profile: LanguageProfile) async {
+        // A single selected language never reaches the detector at all, so
+        // there is nothing to run ahead of.
+        guard profile.isMixed else { return }
+        guard prefix.count >= LanguageHeadStart.frames else { return }
+        if let existing = headStart {
+            // One call arrives per press, so a different opening means a
+            // different recording and this one supersedes it. Left to expire on
+            // its own, a head start from a recording that was abandoned before
+            // it could be transcribed would refuse the next one and cost the
+            // following utterance its own.
+            guard existing.prefix != prefix else { return }
+            existing.task.cancel()
+        }
+        // Deliberately does not load. `loadedEngine()` would start a 600 MB
+        // download or a minutes-long compilation from inside a recording, and
+        // the head start is an optimization: absent an engine it simply does
+        // not happen and `transcribe` decides the language the way it always
+        // did.
+        guard engine != nil else { return }
+
+        // `[self]` rather than the engine, for the same reason `startLoad` does
+        // it: the task then runs under this actor's isolation and the
+        // non-`Sendable` `WhisperKit` never crosses a boundary. What comes back
+        // out is a plain dictionary.
+        headStart = (prefix, Task { [self] in
+            guard let engine else { return nil }
+            return try? await engine.detectLangauge(audioArray: prefix).langProbs
+        })
+    }
+
+    /// The distribution computed while this utterance was being spoken, if the
+    /// head start was for this utterance and it produced one.
+    ///
+    /// Matched by the audio itself rather than by a token or a lifecycle call.
+    /// A recording that is abandoned, superseded, or interrupted leaves a head
+    /// start behind, and the only thing that makes it impossible to spend that
+    /// answer on somebody else's sentence is checking that this sentence
+    /// literally begins with the audio it was computed from.
+    private func headStartProbabilities(for samples: [Float]) async -> [String: Float]? {
+        guard let headStart else { return nil }
+        self.headStart = nil
+        guard samples.count >= headStart.prefix.count, samples.starts(with: headStart.prefix) else {
+            headStart.task.cancel()
+            return nil
+        }
+        return await headStart.task.value
     }
 
     /// The loaded engine, loading it once if nobody has yet.
@@ -254,7 +321,8 @@ actor WhisperKitTranscriptionService: TranscriptionService {
         // Polish, in Latin script — and then detected and decoded a second
         // time. Pinning what the ranking says makes that miss unreachable
         // instead of recoverable, and costs one decode rather than two.
-        let language = try await decodedLanguage(for: profile, samples: utterance.samples, using: engine)
+        let selection = try await decodedLanguage(for: profile, samples: utterance.samples, using: engine)
+        let language = selection.language
         let languageReadyAt = Date()
 
         try Task.checkCancellation()
@@ -271,8 +339,11 @@ actor WhisperKitTranscriptionService: TranscriptionService {
 
         // Local timing only: these two durations reveal whether language
         // selection or decoding dominates, without recording any speech data.
+        // The marker says whether the language stage was paid on this wait or
+        // while the user was still speaking, which is the difference the head
+        // start exists to make and the only way to see it in one line.
         Log.transcription.info(
-            "Inference stages: language \(String(format: "%.2f", languageReadyAt.timeIntervalSince(started)), privacy: .public) s, decode \(String(format: "%.2f", decodedAt.timeIntervalSince(languageReadyAt)), privacy: .public) s"
+            "Inference stages: language \(String(format: "%.2f", languageReadyAt.timeIntervalSince(started)), privacy: .public) s \(selection.source.rawValue, privacy: .public), decode \(String(format: "%.2f", decodedAt.timeIntervalSince(languageReadyAt)), privacy: .public) s"
         )
 
         let processingDuration = Date().timeIntervalSince(started)
@@ -304,12 +375,37 @@ actor WhisperKitTranscriptionService: TranscriptionService {
         }
     }
 
+    /// The language this utterance will be decoded as, and what it cost to
+    /// arrive at. Only the log reads the source: it is the one line that says
+    /// whether the language stage was paid on the user's wait.
+    private struct LanguageSelection {
+        enum Source: String {
+            /// One language selected, so nothing was detected at all.
+            case singleLanguage = "(single)"
+            /// Decided while the user was still speaking.
+            case headStart = "(ahead)"
+            /// Too short to detect; carried over from the previous utterance.
+            case carriedOver = "(carried)"
+            /// Detected after the recording ended, on the wait.
+            case detectedOnTheWait = "(on the wait)"
+        }
+
+        let language: SpeechLanguage
+        let source: Source
+    }
+
     /// Which of the user's languages to decode this utterance as.
     ///
     /// A single-language profile never reaches the engine's detector at all,
-    /// which is both correct and the cheaper path. Everything else asks for the
-    /// full distribution once and hands it, the profile, and the previous
-    /// utterance's language to `LanguageDecision`.
+    /// which is both correct and the cheaper path. Everything else wants the
+    /// full distribution, and there are three ways to have one, in descending
+    /// order of what they cost the user:
+    ///
+    /// 1. The head start ran while they were still speaking. Free.
+    /// 2. The utterance was too short to have had one. A couple of words carry
+    ///    almost no evidence anyway, so what they were speaking a moment ago is
+    ///    a better answer than a full encoder pass over a word and a half.
+    /// 3. Neither. The detector runs here, on the wait, as it always did.
     ///
     /// Falls back to the recent language and then to the preferred one when the
     /// detector cannot be reached — producing a transcript in a language the
@@ -318,17 +414,34 @@ actor WhisperKitTranscriptionService: TranscriptionService {
         for profile: LanguageProfile,
         samples: [Float],
         using engine: WhisperKit
-    ) async throws -> SpeechLanguage {
-        guard profile.isMixed else { return profile.primary }
+    ) async throws -> LanguageSelection {
+        guard profile.isMixed else {
+            return LanguageSelection(language: profile.primary, source: .singleLanguage)
+        }
 
-        // The WhisperKit method is spelled `detectLangauge`; the typo is theirs
-        // and is part of the public API.
-        guard let probabilities = try? await engine.detectLangauge(audioArray: samples).langProbs else {
+        var source = LanguageSelection.Source.headStart
+        var probabilities = await headStartProbabilities(for: samples)
+
+        if probabilities == nil, samples.count < LanguageHeadStart.frames,
+           let recent = recentLanguage(in: profile) {
+            let decision = LanguageDecision(language: recent, reason: .carriedOverFromPrevious)
+            log(decision, for: profile)
+            return LanguageSelection(language: decision.language, source: .carriedOver)
+        }
+
+        if probabilities == nil {
+            source = .detectedOnTheWait
+            // The WhisperKit method is spelled `detectLangauge`; the typo is
+            // theirs and is part of the public API.
+            probabilities = try? await engine.detectLangauge(audioArray: samples).langProbs
+        }
+
+        guard let probabilities else {
             let fallback = recentLanguage(in: profile) ?? profile.primary
             Log.transcription.notice(
                 "Language detection unavailable; decoding \(profile.shortLabel, privacy: .public) as \(fallback.rawValue, privacy: .public)"
             )
-            return fallback
+            return LanguageSelection(language: fallback, source: source)
         }
 
         let decision = LanguageDecision.choose(
@@ -336,12 +449,16 @@ actor WhisperKitTranscriptionService: TranscriptionService {
             probabilities: probabilities,
             previous: recentLanguage(in: profile)
         )
-        // Logged for every mixed utterance, because "why is this Russian" is a
-        // question the user will ask and the answer is a rule, not a mood.
+        log(decision, for: profile)
+        return LanguageSelection(language: decision.language, source: source)
+    }
+
+    /// Logged for every mixed utterance, because "why is this Russian" is a
+    /// question the user will ask and the answer is a rule, not a mood.
+    private func log(_ decision: LanguageDecision, for profile: LanguageProfile) {
         Log.transcription.info(
             "\(profile.shortLabel, privacy: .public) decoded as \(decision.language.rawValue, privacy: .public) (\(decision.reason.rawValue, privacy: .public))"
         )
-        return decision.language
     }
 
     /// The last decoded language, while it is still worth knowing.

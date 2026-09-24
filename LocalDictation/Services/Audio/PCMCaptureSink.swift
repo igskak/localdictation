@@ -41,6 +41,20 @@ final class PCMCaptureSink: @unchecked Sendable {
         }
     }
 
+    /// Copies the opening of the utterance out while it is still being spoken,
+    /// or returns nil when fewer than `frames` frames have arrived.
+    ///
+    /// The array is allocated before the lock is taken so the audio thread can
+    /// never be made to wait on an allocator.
+    func prefix(frames: Int) -> [Float]? {
+        guard frames > 0 else { return nil }
+        var samples = [Float](repeating: 0, count: frames)
+        let copied = samples.withUnsafeMutableBufferPointer { destination in
+            lock.withLock { buffer.copySamples(firstFrames: frames, into: destination) }
+        }
+        return copied ? samples : nil
+    }
+
     /// Copies the utterance out of the ring of preallocated storage.
     func finish(reason: UtteranceEndReason) -> CapturedUtterance {
         lock.withLock {

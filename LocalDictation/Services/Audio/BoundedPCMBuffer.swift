@@ -67,6 +67,27 @@ final class BoundedPCMBuffer {
         return Array(UnsafeBufferPointer(start: base, count: frameCount))
     }
 
+    /// Copies the opening `frames` samples into `destination`, reporting whether
+    /// that many have arrived yet.
+    ///
+    /// Storage fills forward and never wraps, so the first frames are the start
+    /// of the utterance rather than whatever the buffer happens to hold at the
+    /// moment — which is what makes this readable while a recording is still
+    /// running. Allocation-free on purpose: the caller holds the same lock the
+    /// real-time thread takes, and a `malloc` under it is exactly the unbounded
+    /// stall the capture path is written to avoid.
+    func copySamples(firstFrames frames: Int, into destination: UnsafeMutableBufferPointer<Float>) -> Bool {
+        guard
+            frames > 0,
+            frameCount >= frames,
+            destination.count >= frames,
+            let source = storage.baseAddress,
+            let target = destination.baseAddress
+        else { return false }
+        target.update(from: source, count: frames)
+        return true
+    }
+
     func withSamples<T>(_ body: (UnsafeBufferPointer<Float>) throws -> T) rethrows -> T {
         try body(UnsafeBufferPointer(start: storage.baseAddress, count: frameCount))
     }
