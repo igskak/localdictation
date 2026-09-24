@@ -165,11 +165,6 @@ final class AVAudioEngineCaptureService: AudioCaptureService, @unchecked Sendabl
         return sink.snapshot()
     }
 
-    func capturedPrefix(frames: Int) -> [Float]? {
-        guard let sink = lock.withLock({ session?.sink }) else { return nil }
-        return sink.prefix(frames: frames)
-    }
-
     func stop(reason: UtteranceEndReason) async -> CapturedUtterance? {
         guard let current = lock.withLock({ () -> Session? in
             interruptionHandler = nil

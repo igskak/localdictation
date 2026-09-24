@@ -115,13 +115,6 @@ protocol AudioCaptureService: AnyObject, Sendable {
     /// Non-blocking read of live counters, safe to call from the main actor.
     func snapshot() -> CaptureSnapshot
 
-    /// Copy of the opening of the recording in progress, or nil when fewer than
-    /// `frames` frames have arrived. Safe to call from the main actor.
-    ///
-    /// Exists so work that depends only on the start of an utterance can run
-    /// while the user is still speaking instead of after they stop.
-    func capturedPrefix(frames: Int) -> [Float]?
-
     /// Stops capture and returns the completed utterance, if one was running.
     func stop(reason: UtteranceEndReason) async -> CapturedUtterance?
 }

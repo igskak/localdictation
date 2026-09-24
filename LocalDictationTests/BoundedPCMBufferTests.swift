@@ -21,35 +21,6 @@ final class BoundedPCMBufferTests: XCTestCase {
         XCTAssertEqual(buffer.peakLevel, 0.7, accuracy: 0.0001, "Peak must not decay inside one utterance")
     }
 
-    func testPrefixCopyRefusesUntilEnoughFramesHaveArrived() {
-        let buffer = BoundedPCMBuffer(capacityFrames: 10)
-        buffer.append([1, 2])
-
-        var destination = [Float](repeating: 0, count: 4)
-        let copied = destination.withUnsafeMutableBufferPointer {
-            buffer.copySamples(firstFrames: 4, into: $0)
-        }
-
-        XCTAssertFalse(copied, "Two frames cannot answer for four")
-        XCTAssertEqual(destination, [0, 0, 0, 0], "A refused copy must leave the destination alone")
-    }
-
-    func testPrefixCopyReturnsTheOpeningOfTheUtteranceNotItsTail() {
-        let buffer = BoundedPCMBuffer(capacityFrames: 10)
-        buffer.append([1, 2, 3])
-        buffer.append([4, 5, 6, 7])
-
-        var destination = [Float](repeating: 0, count: 4)
-        let copied = destination.withUnsafeMutableBufferPointer {
-            buffer.copySamples(firstFrames: 4, into: $0)
-        }
-
-        XCTAssertTrue(copied)
-        XCTAssertEqual(destination, [1, 2, 3, 4])
-        XCTAssertEqual(buffer.frameCount, 7, "Reading the opening must not consume anything")
-        XCTAssertEqual(buffer.makeSamples(), [1, 2, 3, 4, 5, 6, 7])
-    }
-
     func testOverflowIsCountedAndBufferStaysBounded() {
         let buffer = BoundedPCMBuffer(capacityFrames: 4)
         buffer.append([1, 2, 3])
