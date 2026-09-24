@@ -11,6 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// appear while the user is in another application and has not clicked
     /// anything of ours.
     private var reviewPanel: ReviewPanelController?
+    private var activityPanel: DictationActivityPanelController?
 
     /// Owns the first-run language question. Nil once it has been answered,
     /// which for a returning user is before the app ever runs.
@@ -37,6 +38,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Log.application.info("Witness launched as a menu bar utility")
         if let coordinator = Self.coordinator {
             reviewPanel = ReviewPanelController(coordinator: coordinator)
+            activityPanel = DictationActivityPanelController(coordinator: coordinator)
             // Before `activate`: the entitlement is evaluated in there, and a
             // Mac that launches already locked should have a listener for the
             // first press rather than for the second.

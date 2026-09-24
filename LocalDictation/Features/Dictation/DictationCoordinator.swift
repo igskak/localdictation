@@ -250,6 +250,9 @@ final class DictationCoordinator: ObservableObject {
     /// The application the current utterance was spoken into, captured when
     /// recording started rather than read when inserting.
     private var insertionTarget: InsertionTarget?
+    /// Application identity only, for the on-screen activity badge to find its
+    /// caret without reading or retaining any text from the target field.
+    var activityTargetProcessIdentifier: pid_t? { insertionTarget?.processIdentifier }
     private var insertionTask: Task<Void, Never>?
     /// Runs only while Accessibility trust is missing. See `startTrustPolling`.
     private var trustPollTimer: Timer?
