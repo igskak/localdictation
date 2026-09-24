@@ -1,6 +1,10 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Updates": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Updates"}}}},
+    "Installed version": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Installierte Version"}}}},
+    "Check for updates…": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Auf Updates prüfen …"}}}},
+    "Witness checks only when you press this button. If an update is available, you can review it, install it here, and relaunch the app.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Witness prüft nur, wenn du diese Taste drückst. Ist ein Update verfügbar, kannst du es ansehen, hier installieren und die App neu starten."}}}},
     "LOCAL DICTATION": {
       "localizations": {
         "de": {

@@ -6,6 +6,7 @@ import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @EnvironmentObject private var coordinator: DictationCoordinator
+    @ObservedObject private var updater = AppUpdater.shared
     @State private var availableAudioInputs: [SystemAudioInput.Device] = []
 
     var body: some View {
@@ -74,6 +75,16 @@ struct SettingsView: View {
 
             Section("Startup") {
                 LaunchAtLoginRow()
+            }
+
+            Section("Updates") {
+                LabeledContent("Installed version", value: AppVersion.short)
+                Button("Check for updates…") { updater.checkForUpdates() }
+                    .disabled(!updater.canCheckForUpdates)
+                Text("Witness checks only when you press this button. If an update is available, you can review it, install it here, and relaunch the app.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             Section("Microphone") {

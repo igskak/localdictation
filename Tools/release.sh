@@ -50,6 +50,12 @@ BUILD="build"
 ARCHIVE="$BUILD/Witness.xcarchive"
 EXPORT="$BUILD/export"
 APP="$EXPORT/Witness.app"
+UPDATE_FEED="$BUILD/update-feed"
+SPARKLE_KEY="${SPARKLE_KEY:-Secrets/sparkle-ed25519.key}"
+PACKAGE_ARGS=()
+if [ -n "${XCODE_SOURCE_PACKAGES_DIR:-}" ]; then
+    PACKAGE_ARGS=(-clonedSourcePackagesDirPath "$XCODE_SOURCE_PACKAGES_DIR")
+fi
 
 die() {
     echo "release: $1" >&2
@@ -84,11 +90,19 @@ xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1 ||
 # The credentials this needs live next to the repository, and the release is the
 # moment to be sure none of them has been committed. An ignore rule protects
 # against an accident; this catches the accident that already happened.
-TRACKED_SECRETS="$(git ls-files | grep -iE '\.p8$|\.p12$|\.provisionprofile$|AuthKey' || true)"
+TRACKED_SECRETS="$(git ls-files | grep -iE '\.p8$|\.p12$|\.provisionprofile$|AuthKey|sparkle-ed25519\.key$' || true)"
 [ -z "$TRACKED_SECRETS" ] || die "these are tracked by git and must not be:
 $TRACKED_SECRETS
   Remove them from the index with 'git rm --cached', and rotate them: anything
   that has been committed has to be assumed public."
+
+[ -f "$SPARKLE_KEY" ] || die "no Sparkle update signing key at $SPARKLE_KEY.
+  Restore the private key used for SUPublicEDKey before publishing an update."
+EMBEDDED_SPARKLE_KEY="$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' LocalDictation/Resources/Info.plist)"
+DERIVED_SPARKLE_KEY="$(swift -e 'import Foundation; import CryptoKit; guard let seed = Data(base64Encoded: try String(contentsOfFile: CommandLine.arguments[1], encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines)) else { exit(1) }; print(try Curve25519.Signing.PrivateKey(rawRepresentation: seed).publicKey.rawRepresentation.base64EncodedString())' "$SPARKLE_KEY")" ||
+    die "could not derive a public key from the Sparkle signing seed"
+[ "$DERIVED_SPARKLE_KEY" = "$EMBEDDED_SPARKLE_KEY" ] ||
+    die "Sparkle signing key does not match SUPublicEDKey in Info.plist"
 
 
 # A release built from uncommitted work is a release nobody can reproduce, and
@@ -98,7 +112,7 @@ if [ -n "$(git status --porcelain)" ] && [ "${ALLOW_DIRTY:-0}" != "1" ] && [ "$C
 fi
 
 VERSION="$(
-    xcodebuild -project "$PROJECT" -scheme "$SCHEME" -configuration Release -showBuildSettings 2>/dev/null |
+    xcodebuild -project "$PROJECT" -scheme "$SCHEME" -configuration Release "${PACKAGE_ARGS[@]}" -showBuildSettings 2>/dev/null |
         awk '/ MARKETING_VERSION = /{print $3; exit}'
 )"
 [ -n "$VERSION" ] || die "could not read MARKETING_VERSION out of the project"
@@ -118,7 +132,7 @@ fi
 
 step "Archiving"
 
-rm -rf "$ARCHIVE" "$EXPORT" "$BUILD/dmg" "$BUILD/Witness.zip" "$BUILD/Witness-rw.dmg" "$DMG"
+rm -rf "$ARCHIVE" "$EXPORT" "$UPDATE_FEED" "$BUILD/Sparkle-tools" "$BUILD/dmg" "$BUILD/Witness.zip" "$BUILD/Witness-rw.dmg" "$DMG"
 mkdir -p "$BUILD"
 
 # `DEVELOPMENT_TEAM` is passed here rather than committed to the project. It
@@ -139,6 +153,7 @@ mkdir -p "$BUILD"
 xcodebuild archive \
     -project "$PROJECT" -scheme "$SCHEME" \
     -configuration Release \
+    "${PACKAGE_ARGS[@]}" \
     -destination 'generic/platform=macOS' \
     -archivePath "$ARCHIVE" \
     CODE_SIGN_STYLE=Manual \
@@ -285,6 +300,34 @@ codesign --force --sign "$IDENTITY" --timestamp "$DMG"
 xcrun notarytool submit "$DMG" --keychain-profile "$NOTARY_PROFILE" --wait
 xcrun stapler staple "$DMG"
 
+# The same notarized disk image is both the website download and the Sparkle
+# update. Sparkle signs its bytes and the appcast with a separate Ed25519 key;
+# the private key remains in ignored Secrets/ and never goes into the app.
+step "Generating the signed update feed"
+# The release tool is distributed with the same pinned Sparkle version as the
+# framework. Verify the archive before executing a downloaded binary.
+SPARKLE_TOOLS_ZIP="$BUILD/Sparkle-for-SPM-2.10.0.zip"
+SPARKLE_TOOLS_DIR="$BUILD/Sparkle-tools"
+curl --fail --location --silent --show-error --retry 3 \
+    -o "$SPARKLE_TOOLS_ZIP" \
+    "https://github.com/sparkle-project/Sparkle/releases/download/2.10.0/Sparkle-for-Swift-Package-Manager.zip"
+EXPECTED_SPARKLE_SHA256="17e28312b8e18ab7cdbbe09a6fb28cc55a5479ec6c371dbc07cdecd2a14fd959"
+ACTUAL_SPARKLE_SHA256="$(shasum -a 256 "$SPARKLE_TOOLS_ZIP" | awk '{print $1}')"
+[ "$ACTUAL_SPARKLE_SHA256" = "$EXPECTED_SPARKLE_SHA256" ] || die "Sparkle tools archive failed SHA-256 verification"
+unzip -oq "$SPARKLE_TOOLS_ZIP" bin/generate_appcast -d "$SPARKLE_TOOLS_DIR"
+SPARKLE_APPCAST="$SPARKLE_TOOLS_DIR/bin/generate_appcast"
+mkdir -p "$UPDATE_FEED"
+cp "$DMG" "$UPDATE_FEED/Witness.dmg"
+"$SPARKLE_APPCAST" \
+    --ed-key-file "$SPARKLE_KEY" \
+    --download-url-prefix "https://github.com/igskak/localdictation/releases/download/v$VERSION/" \
+    --maximum-deltas 0 \
+    --maximum-versions 1 \
+    --link "https://witnessmac.com/download" \
+    -o "$UPDATE_FEED/appcast.xml" \
+    "$UPDATE_FEED"
+[ -s "$UPDATE_FEED/appcast.xml" ] || die "Sparkle produced no appcast.xml"
+
 # ---------------------------------------------------------------------------
 # Proof, rather than the belief that it worked
 # ---------------------------------------------------------------------------
@@ -336,6 +379,7 @@ fi
 cat <<DONE
 
 Done: $DMG
+Update assets: $UPDATE_FEED/Witness.dmg and $UPDATE_FEED/appcast.xml
 
 Two things this script cannot check for you:
   - Open the image on a Mac that has never seen this app, from a download

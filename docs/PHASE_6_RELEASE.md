@@ -196,8 +196,10 @@ be serving a redirect to a file that is not there, which looks from the outside
 like a working button.
 
 ```sh
-cp build/Witness-$VERSION.dmg /tmp/Witness.dmg
-gh release create v$VERSION /tmp/Witness.dmg --target "$(git rev-parse HEAD)"
+gh release create v$VERSION \
+  build/update-feed/Witness.dmg \
+  build/update-feed/appcast.xml \
+  --target "$(git rev-parse HEAD)"
 ```
 
 The tag names the commit the image was actually built from, which is the only
@@ -208,24 +210,41 @@ anything.
 
 ## Updates
 
-**Deferred, with the reason recorded rather than left implicit.**
+Settings now offers a manual **Check for updates** action backed by Sparkle
+2.10.0. macOS has no system updater for apps distributed directly by Developer
+ID, so Sparkle is the necessary third-party dependency. The licence and bundled
+code notices are in `LocalDictation/Resources/Sparkle-LICENSE.txt`; that file
+is copied into the app bundle. Automatic checks, automatic installation and
+Sparkle system profiling are disabled in `Info.plist`.
 
-A signed update channel means Sparkle. `AGENTS.md` forbids a third-party
-dependency where the standard frameworks suffice, and here they do not —
-macOS ships no updater for direct-distribution apps. But Sparkle brings its own
-signing key, its own XPC services, its own appcast hosting, and its own
-attack surface, and adopting it before there is a website to host an appcast on
-would be adopting it for nothing.
+The feed URL is the `appcast.xml` asset on the latest GitHub release. The
+private Ed25519 seed is `Secrets/sparkle-ed25519.key` by default, ignored by
+Git, with its public counterpart embedded as `SUPublicEDKey` in `Info.plist`.
+**Back this seed up in a secure place outside the repository before the first
+release.** Losing it means an existing app cannot verify a newly signed feed
+or update; rotating it needs a separately planned migration. Do not put the
+seed in a release asset, commit, issue, or CI log.
 
-What is worth doing first, and is not built here either, is the small honest
-version of it: a version check against a static JSON file, no automatic
-download, and a link to the website. That is one network call, it is
-enumerable in the privacy policy alongside the model download, and it can be
-switched off. Sparkle earns its place when there are enough users that "open
-the website and download it again" stops being reasonable.
+`Tools/release.sh` notarizes and staples the Developer ID app and DMG, then
+downloads the pinned Sparkle release tools with a verified SHA-256 and creates
+`build/update-feed/Witness.dmg` and `build/update-feed/appcast.xml`. Publish
+both assets together on `v$VERSION`. The appcast points at the versioned
+release URL, while `SUFeedURL` uses the latest release URL. **Increment both
+`MARKETING_VERSION` and `CURRENT_PROJECT_VERSION`** before each release;
+Sparkle uses the latter to decide whether an update is newer. Confirm the
+release assets are publicly accessible and test an update from the preceding
+signed version before telling users it is available.
 
-Until then the release is a download from the product website, and the app does
-not check for anything.
+When releasing from an isolated worktree, `SPARKLE_KEY` can point to the
+absolute path of the ignored signing seed in the main checkout. If Xcode's
+binary package download stalls on this Mac, `XCODE_SOURCE_PACKAGES_DIR` can
+point to an already resolved Xcode `SourcePackages` directory; the release
+script passes it to the project build. Keep this path local to the machine.
+
+The current channel must contain only versions a current licence can install.
+Before shipping a separately licensed future major version, preserve the old
+channel and add an entitlement-aware upgrade path. The existing terms promise
+that people can keep using their purchased major version.
 
 ## Privacy policy — what must be disclosed before the first public build
 
@@ -239,6 +258,8 @@ things that can leave the Mac is:
 | Email address + device hash | The user presses "Send me a key" | The activation service (`Service/`) | Issuing a license key |
 | A license key the user already holds | The user presses "Remove from this Mac" | The same service | Freeing one of the two Macs the license covers |
 | The ten product events in `docs/PHASE_6.md` | Not transmitted today | — | Funnel measurement, when a collector exists |
+| Update catalogue request | Settings button | GitHub Releases | Finds a newer signed version; request URL, IP address, and User-Agent reach GitHub |
+| Signed update download | Confirmation in Sparkle's window | GitHub Releases | Downloads the chosen release; request URL, IP address, and User-Agent reach GitHub |
 
 Audio, transcripts, the dictionary, clipboard contents, the names of
 applications dictated into, and everything derived from any of them appear

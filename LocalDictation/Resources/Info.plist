@@ -32,6 +32,19 @@
 	<string>Witness uses on-device speech recognition to turn your dictation into text. Audio and text stay on this Mac.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>SUFeedURL</key>
+	<string>https://github.com/igskak/localdictation/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>sPeh0e6Mjwm1tak9tv4keTlz4/sBEdzDnGDYFr2LubU=</string>
+	<key>SUEnableAutomaticChecks</key>
+	<false/>
+	<key>SUAllowsAutomaticUpdates</key>
+	<false/>
+	<key>SUEnableSystemProfiling</key>
+	<false/>
+	<key>SUVerifyUpdateBeforeExtraction</key>
+	<true/>
+	<key>SURequireSignedFeed</key>
+	<true/>
 </dict>
 </plist>
-

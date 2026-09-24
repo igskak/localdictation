@@ -93,7 +93,7 @@ Two Phase 3 decisions are worth knowing before reading the code:
 - **The deterministic signals come first and model confidence comes last.** Numbers, dates, amounts, names, dictionary near-misses, cleanup edits, and language switching are facts about the text. Model confidence is wired up and measured but carries a weight of **zero**, because Phase 2 found weak — and on Russian, negative — separation between the confidence of correct and incorrect tokens. It earns a weight from a measurement on real speech, not from an assumption.
 - **A dropped word is not chased.** If the engine swallows "не" or "nicht", no rule can flag what is absent. The app does not build a mechanism for it; the reasoning is recorded in `docs/PHASE_3.md`. The consequence is that audio replay is offered only for a marked fragment, and the recording is discarded the moment the app decides no review is needed.
 
-There is deliberately no updater and nothing is transmitted. The user dictionary, the licensing record, and the settings file are the only things that persist — transcripts and audio stay in memory.
+Settings has a manual, signed update check. It contacts GitHub only when pressed; installing an offered update requires confirmation. The user dictionary, the licensing record, and the settings file are the only app data that persist — transcripts and audio stay in memory. See `docs/PRIVACY.md` for the enumerated network requests.
 
 Read these files before continuing implementation:
 
@@ -110,7 +110,7 @@ Read these files before continuing implementation:
 - `docs/PHASE_5.md` — why the review stopped interrupting, and what it cost.
 - `docs/PHASE_6.md` — the trial, the key format, and what is deliberately not built yet.
 - `docs/PHASE_8.md` — the activation service, the checkout, and the release, as one specification with the wire contract frozen.
-- `docs/PHASE_6_RELEASE.md` — signing, notarization, and the update decision. None of it has been run.
+- `docs/PHASE_6_RELEASE.md` — signing, notarization, and publishing signed updates. A Developer ID release and end-to-end update from a preceding installed version remain to be run.
 - `docs/REFINEMENTS.md` — what the app now says when a dictation produces nothing, who is named when insertion is refused, and the three settings that reach disk.
 - `AGENTS.md` — repository-level engineering constraints.
 
@@ -202,7 +202,8 @@ python3 Tools/generate_pbxproj.py
 
 ## Dependencies
 
-- [WhisperKit](https://github.com/argmaxinc/WhisperKit) 1.1.0, MIT. The only third-party dependency. Rationale in `docs/PHASE_2_BENCHMARK.md`: no system framework at the macOS 14.4 deployment target returns the per-word confidence Phase 3 is built on.
+- [WhisperKit](https://github.com/argmaxinc/WhisperKit) 1.1.0, MIT. Rationale in `docs/PHASE_2_BENCHMARK.md`: no system framework at the macOS 14.4 deployment target returns the per-word confidence Phase 3 is built on.
+- [Sparkle](https://sparkle-project.org/) 2.10.0, MIT. It provides verified in-app updates for direct-distribution macOS apps; macOS has no equivalent system updater. Its complete notice, including bundled code notices, is in `LocalDictation/Resources/Sparkle-LICENSE.txt` and the built app.
 
 ## Privacy
 

@@ -52,7 +52,7 @@ def collect(base):
             relative = os.path.relpath(os.path.join(dirpath, name), ROOT)
             if name.endswith(".swift"):
                 swift.append(relative)
-            elif name.endswith((".plist", ".icns", ".xcstrings")):
+            elif name.endswith((".plist", ".icns", ".xcstrings", ".txt")):
                 other.append(relative)
     return sorted(swift), sorted(other)
 
@@ -76,7 +76,7 @@ def resources(paths):
     `INFOPLIST_FILE` build setting, and copying it as a resource as well would
     put a second one inside `Contents/Resources`.
     """
-    return [path for path in paths if path.endswith((".icns", ".xcstrings"))]
+    return [path for path in paths if path.endswith((".icns", ".xcstrings", ".txt"))]
 
 
 class Tree:
