@@ -52,6 +52,12 @@ EXPORT="$BUILD/export"
 APP="$EXPORT/Witness.app"
 UPDATE_FEED="$BUILD/update-feed"
 SPARKLE_KEY="${SPARKLE_KEY:-Secrets/sparkle-ed25519.key}"
+# Expanded as `${PACKAGE_ARGS[@]+"${PACKAGE_ARGS[@]}"}` everywhere below, never
+# as a plain `"${PACKAGE_ARGS[@]}"`. macOS ships bash 3.2, and there an empty
+# array under `set -u` is an unset variable: the plain form aborts the script
+# with "PACKAGE_ARGS[@]: unbound variable" before it builds anything. Which is
+# to say this script ran only for whoever had XCODE_SOURCE_PACKAGES_DIR set,
+# and failed on the first line that used the array for everybody else.
 PACKAGE_ARGS=()
 if [ -n "${XCODE_SOURCE_PACKAGES_DIR:-}" ]; then
     PACKAGE_ARGS=(-clonedSourcePackagesDirPath "$XCODE_SOURCE_PACKAGES_DIR")
@@ -112,7 +118,7 @@ if [ -n "$(git status --porcelain)" ] && [ "${ALLOW_DIRTY:-0}" != "1" ] && [ "$C
 fi
 
 VERSION="$(
-    xcodebuild -project "$PROJECT" -scheme "$SCHEME" -configuration Release "${PACKAGE_ARGS[@]}" -showBuildSettings 2>/dev/null |
+    xcodebuild -project "$PROJECT" -scheme "$SCHEME" -configuration Release ${PACKAGE_ARGS[@]+"${PACKAGE_ARGS[@]}"} -showBuildSettings 2>/dev/null |
         awk '/ MARKETING_VERSION = /{print $3; exit}'
 )"
 [ -n "$VERSION" ] || die "could not read MARKETING_VERSION out of the project"
@@ -153,7 +159,7 @@ mkdir -p "$BUILD"
 xcodebuild archive \
     -project "$PROJECT" -scheme "$SCHEME" \
     -configuration Release \
-    "${PACKAGE_ARGS[@]}" \
+    ${PACKAGE_ARGS[@]+"${PACKAGE_ARGS[@]}"} \
     -destination 'generic/platform=macOS' \
     -archivePath "$ARCHIVE" \
     CODE_SIGN_STYLE=Manual \
