@@ -261,6 +261,48 @@ validated against measured calibration before it is built, not after.
 Record with every run: corpus name and size, model variant, WhisperKit version,
 macOS version, and machine.
 
+### Leading silence and the language decision, 2026-09-24
+
+`openai_whisper-large-v3-v20240930_turbo` · WhisperKit 1.1.0 · macOS 26.6.2 ·
+Apple M1, 8 cores · corpus `tts-leading-silence` from
+`Tools/make_leading_silence_corpus.py`: every smoke sample with 0.5, 1.0, 1.5
+and 2.5 seconds of room-level noise in front, on mixed profiles (`de+en`,
+`ru+en+uk`), 96 samples.
+
+The smoke corpus starts speaking at sample zero, a real press does not, and
+0.6.6 shipped a language decision taken from the first 1.5 seconds of the
+recording. In the field that turned a Russian dictation into an English
+translation. On this corpus the same rule reproduces it:
+
+| Language decided from | Wrong language | By pause 0.5 / 1.0 / 1.5 / 2.5 s |
+| --- | ---: | --- |
+| The first 1.5 s of the recording (0.6.6) | 45 of 96 | 3 / 6 / 18 / 18 |
+| The whole utterance (0.6.5, 0.6.7) | 0 of 96 | 0 / 0 / 0 / 0 |
+
+Russian goes to English exactly as reported, and Ukrainian goes to Russian
+even behind half a second of pause. **Any change that reduces the audio the
+language detector sees has to pass this corpus with zero wrong languages
+first.** The smoke corpus alone cannot fail such a change.
+
+### Encoder output reuse, 2026-09-24
+
+Same model and machine. A mixed profile encodes the first window twice, once
+for the language and once in the decode, over identical input.
+`EncoderOutputReuse` hands the second pass the first one's output when the
+mel input matches byte for byte. `EncoderReuseParityTests` runs every sample
+with and without it:
+
+| Corpus | Samples | Mixed profile | Without reuse | With reuse | Saved per utterance |
+| --- | ---: | --- | ---: | ---: | ---: |
+| tts-smoke | 24 | no | 17.92 s | 17.78 s | 0.01 s |
+| tts-leading-silence | 96 | yes | 126.48 s | 82.96 s | 0.45 s |
+
+Zero mismatches in language, text, tokens, timings or confidences across all
+120 samples. The single-language corpus is the control: nothing is reused
+there, and nothing changes. On mixed profiles the decode stage drops from
+about 0.70 s to 0.26 s per utterance; the remaining language stage is the
+one encoder pass that still has to happen.
+
 ## Decision
 
 **WhisperKit. Apple's on-device engine is dropped as a candidate.**

@@ -105,6 +105,7 @@
 		D859D70600408B5C5D89BF7E /* WordScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5863A17656C6EA940B9943F /* WordScanner.swift */; };
 		23D309A3F5CDF1886D42064E /* ANEBundleCacheSweeper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10BD72FF553673CD98CEF448 /* ANEBundleCacheSweeper.swift */; };
 		064F324B4E4722F95BD3A74D /* AppleSpeechTranscriptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B70838942728E14765FC09CC /* AppleSpeechTranscriptionService.swift */; };
+		AF0B345781F3B47A33805007 /* EncoderOutputReuse.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD7947965120ED5346FA3F32 /* EncoderOutputReuse.swift */; };
 		93CA9DE37376EB32DB975C1E /* LanguageDecision.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC5D3C8B62C9C8D22DCD6736 /* LanguageDecision.swift */; };
 		E5FBCC52E88ED0D29CFBEA19 /* TranscriptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDAD9627A8E0028EA8EACB3E /* TranscriptionService.swift */; };
 		358E1AE5026D0AE2BA62D96A /* WhisperKitTranscriptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4A6970B56202DAD57A0AD07 /* WhisperKitTranscriptionService.swift */; };
@@ -133,6 +134,8 @@
 		6107D8AC73D3117D65122993 /* DictationCoordinatorTranscriptionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E743B10AAD5CCCBC339A49A8 /* DictationCoordinatorTranscriptionTests.swift */; };
 		7EC813C32A7A3D8C5E5C4D06 /* EditDistanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA55DD319759EE740CA8EB19 /* EditDistanceTests.swift */; };
 		0A4E88B7CBB462923E817D0E /* EditMapTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7FB57FDEB8E1AD4E6838B64 /* EditMapTests.swift */; };
+		7148795906A4049B2127FC14 /* EncoderOutputReuseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8CF52FC9EDDFFB352E50D29 /* EncoderOutputReuseTests.swift */; };
+		97729B7136CE8B700B275084 /* EncoderReuseParityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19C091F4817E89949C68E69A /* EncoderReuseParityTests.swift */; };
 		038145DB15FB92C5B6FF4F0A /* EnergyVoiceActivityDetectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACCD8FECF1DDEA61616108FA /* EnergyVoiceActivityDetectorTests.swift */; };
 		7C4F42BB392F1F4EE056917C /* EntitlementNoticeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA952DB51CE2C534CE386CEA /* EntitlementNoticeTests.swift */; };
 		E20A31170CCD92F5ED121CA0 /* EntitlementPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1376CED7F9EA18F1D9BE07AE /* EntitlementPolicyTests.swift */; };
@@ -298,6 +301,7 @@
 		F5863A17656C6EA940B9943F /* WordScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordScanner.swift; sourceTree = "<group>"; };
 		10BD72FF553673CD98CEF448 /* ANEBundleCacheSweeper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ANEBundleCacheSweeper.swift; sourceTree = "<group>"; };
 		B70838942728E14765FC09CC /* AppleSpeechTranscriptionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleSpeechTranscriptionService.swift; sourceTree = "<group>"; };
+		FD7947965120ED5346FA3F32 /* EncoderOutputReuse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncoderOutputReuse.swift; sourceTree = "<group>"; };
 		EC5D3C8B62C9C8D22DCD6736 /* LanguageDecision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageDecision.swift; sourceTree = "<group>"; };
 		BDAD9627A8E0028EA8EACB3E /* TranscriptionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionService.swift; sourceTree = "<group>"; };
 		E4A6970B56202DAD57A0AD07 /* WhisperKitTranscriptionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhisperKitTranscriptionService.swift; sourceTree = "<group>"; };
@@ -331,6 +335,8 @@
 		E743B10AAD5CCCBC339A49A8 /* DictationCoordinatorTranscriptionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationCoordinatorTranscriptionTests.swift; sourceTree = "<group>"; };
 		AA55DD319759EE740CA8EB19 /* EditDistanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditDistanceTests.swift; sourceTree = "<group>"; };
 		A7FB57FDEB8E1AD4E6838B64 /* EditMapTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditMapTests.swift; sourceTree = "<group>"; };
+		E8CF52FC9EDDFFB352E50D29 /* EncoderOutputReuseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncoderOutputReuseTests.swift; sourceTree = "<group>"; };
+		19C091F4817E89949C68E69A /* EncoderReuseParityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncoderReuseParityTests.swift; sourceTree = "<group>"; };
 		ACCD8FECF1DDEA61616108FA /* EnergyVoiceActivityDetectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnergyVoiceActivityDetectorTests.swift; sourceTree = "<group>"; };
 		FA952DB51CE2C534CE386CEA /* EntitlementNoticeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntitlementNoticeTests.swift; sourceTree = "<group>"; };
 		1376CED7F9EA18F1D9BE07AE /* EntitlementPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntitlementPolicyTests.swift; sourceTree = "<group>"; };
@@ -693,6 +699,7 @@
 			children = (
 				10BD72FF553673CD98CEF448 /* ANEBundleCacheSweeper.swift */,
 				B70838942728E14765FC09CC /* AppleSpeechTranscriptionService.swift */,
+				FD7947965120ED5346FA3F32 /* EncoderOutputReuse.swift */,
 				EC5D3C8B62C9C8D22DCD6736 /* LanguageDecision.swift */,
 				BDAD9627A8E0028EA8EACB3E /* TranscriptionService.swift */,
 				E4A6970B56202DAD57A0AD07 /* WhisperKitTranscriptionService.swift */,
@@ -796,6 +803,8 @@
 				E743B10AAD5CCCBC339A49A8 /* DictationCoordinatorTranscriptionTests.swift */,
 				AA55DD319759EE740CA8EB19 /* EditDistanceTests.swift */,
 				A7FB57FDEB8E1AD4E6838B64 /* EditMapTests.swift */,
+				E8CF52FC9EDDFFB352E50D29 /* EncoderOutputReuseTests.swift */,
+				19C091F4817E89949C68E69A /* EncoderReuseParityTests.swift */,
 				ACCD8FECF1DDEA61616108FA /* EnergyVoiceActivityDetectorTests.swift */,
 				FA952DB51CE2C534CE386CEA /* EntitlementNoticeTests.swift */,
 				1376CED7F9EA18F1D9BE07AE /* EntitlementPolicyTests.swift */,
@@ -1075,6 +1084,7 @@
 				D859D70600408B5C5D89BF7E /* WordScanner.swift in Sources */,
 				23D309A3F5CDF1886D42064E /* ANEBundleCacheSweeper.swift in Sources */,
 				064F324B4E4722F95BD3A74D /* AppleSpeechTranscriptionService.swift in Sources */,
+				AF0B345781F3B47A33805007 /* EncoderOutputReuse.swift in Sources */,
 				93CA9DE37376EB32DB975C1E /* LanguageDecision.swift in Sources */,
 				E5FBCC52E88ED0D29CFBEA19 /* TranscriptionService.swift in Sources */,
 				358E1AE5026D0AE2BA62D96A /* WhisperKitTranscriptionService.swift in Sources */,
@@ -1110,6 +1120,8 @@
 				6107D8AC73D3117D65122993 /* DictationCoordinatorTranscriptionTests.swift in Sources */,
 				7EC813C32A7A3D8C5E5C4D06 /* EditDistanceTests.swift in Sources */,
 				0A4E88B7CBB462923E817D0E /* EditMapTests.swift in Sources */,
+				7148795906A4049B2127FC14 /* EncoderOutputReuseTests.swift in Sources */,
+				97729B7136CE8B700B275084 /* EncoderReuseParityTests.swift in Sources */,
 				038145DB15FB92C5B6FF4F0A /* EnergyVoiceActivityDetectorTests.swift in Sources */,
 				7C4F42BB392F1F4EE056917C /* EntitlementNoticeTests.swift in Sources */,
 				E20A31170CCD92F5ED121CA0 /* EntitlementPolicyTests.swift in Sources */,
@@ -1294,7 +1306,7 @@
 				CODE_SIGN_ENTITLEMENTS = LocalDictation/Witness.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 9;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_PREVIEWS = YES;
@@ -1305,7 +1317,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.6.7;
+				MARKETING_VERSION = 0.6.8;
 				PRODUCT_BUNDLE_IDENTIFIER = com.witnessmac.Witness;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_STRICT_CONCURRENCY = complete;
@@ -1319,7 +1331,7 @@
 				CODE_SIGN_ENTITLEMENTS = LocalDictation/Witness.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 9;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -1329,7 +1341,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.6.7;
+				MARKETING_VERSION = 0.6.8;
 				PRODUCT_BUNDLE_IDENTIFIER = com.witnessmac.Witness;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_STRICT_CONCURRENCY = complete;

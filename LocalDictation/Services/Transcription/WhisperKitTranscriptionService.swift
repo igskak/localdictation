@@ -1,3 +1,4 @@
+import CoreML
 import Foundation
 import WhisperKit
 
@@ -28,6 +29,18 @@ actor WhisperKitTranscriptionService: TranscriptionService {
     private let modelVariant: String
 
     private var engine: WhisperKit?
+
+    /// The encoder WhisperKit is built with when the second pass over the
+    /// first window is skipped. See `EncoderOutputReuse` for why this cannot
+    /// change what the language detector or the decoder see. Nil runs
+    /// WhisperKit's own encoder, which the parity check compares against.
+    private let encoder: ReusingAudioEncoder?
+
+    /// When the previous inference finished, so the log can say how long the
+    /// engine sat idle before this one. A first press after a long pause
+    /// looks slower than a warm one, and without this the two cannot be told
+    /// apart in a log.
+    private var lastInferenceEndedAt: Date?
 
     /// The one load in flight, shared by every caller.
     ///
@@ -65,8 +78,12 @@ actor WhisperKitTranscriptionService: TranscriptionService {
 
     private static let modelRepo = "argmaxinc/whisperkit-coreml"
 
-    init(modelVariant: String = "openai_whisper-large-v3-v20240930_turbo") {
+    init(
+        modelVariant: String = "openai_whisper-large-v3-v20240930_turbo",
+        reusesEncoderOutput: Bool = true
+    ) {
         self.modelVariant = modelVariant
+        encoder = reusesEncoderOutput ? ReusingAudioEncoder() : nil
     }
 
     /// Whisper is multilingual across every language this app can name.
@@ -177,6 +194,7 @@ actor WhisperKitTranscriptionService: TranscriptionService {
                     model: variant,
                     downloadBase: downloadBase,
                     modelFolder: folder.path,
+                    audioEncoder: encoder,
                     verbose: false,
                     logLevel: .error,
                     prewarm: true,
@@ -247,6 +265,14 @@ actor WhisperKitTranscriptionService: TranscriptionService {
 
         try Task.checkCancellation()
         let started = Date()
+        let idle = lastInferenceEndedAt.map { started.timeIntervalSince($0) }
+        defer { lastInferenceEndedAt = Date() }
+
+        // Only a mixed profile encodes the first window twice: once for the
+        // language, once in the decode. A single language never asks for the
+        // language, so there is nothing to remember and nothing is held.
+        if profile.isMixed { encoder?.reuse.beginUtterance() }
+        defer { encoder?.reuse.endUtterance() }
 
         // Decided before the decode rather than corrected after one. The old
         // path decoded with free detection, noticed afterwards when Whisper had
@@ -265,14 +291,21 @@ actor WhisperKitTranscriptionService: TranscriptionService {
             using: engine
         )
         let decodedAt = Date()
+        let reusedPasses = encoder?.reuse.endUtterance() ?? 0
+        let fallbacks = results.reduce(0) { $0 + Int($1.timings.totalDecodingFallbacks) }
 
         try Task.checkCancellation()
         lastDecodedLanguage = (language, Date())
 
-        // Local timing only: these two durations reveal whether language
-        // selection or decoding dominates, without recording any speech data.
+        // Local timing only: counts and durations, no speech data. The two
+        // durations say whether language selection or decoding dominates;
+        // `reused` says whether the decode was spared its encoder pass;
+        // `fallbacks` counts the decodes WhisperKit silently repeated at a
+        // higher temperature, which is what makes the same phrase take one
+        // second once and four the next; `idle` separates a cold first press
+        // from a warm one.
         Log.transcription.info(
-            "Inference stages: language \(String(format: "%.2f", languageReadyAt.timeIntervalSince(started)), privacy: .public) s, decode \(String(format: "%.2f", decodedAt.timeIntervalSince(languageReadyAt)), privacy: .public) s"
+            "Inference stages: language \(String(format: "%.2f", languageReadyAt.timeIntervalSince(started)), privacy: .public) s, decode \(String(format: "%.2f", decodedAt.timeIntervalSince(languageReadyAt)), privacy: .public) s, encoder passes reused \(reusedPasses, privacy: .public), fallbacks \(fallbacks, privacy: .public), idle \(idle.map { String(format: "%.0f s", $0) } ?? "first", privacy: .public)"
         )
 
         let processingDuration = Date().timeIntervalSince(started)
@@ -436,5 +469,35 @@ actor WhisperKitTranscriptionService: TranscriptionService {
     /// survive updates and stay visible to the user.
     static func modelDirectory() -> URL? {
         ApplicationSupportDirectory.subdirectory("Models")
+    }
+}
+
+/// WhisperKit's side of `EncoderOutputReuse`.
+///
+/// Built by composition because WhisperKit's `AudioEncoder` is `public`
+/// rather than `open`. Loading goes through `WhisperMLModel`'s own default
+/// implementation, which assigns `model`; forwarding that property is what
+/// puts the loaded weights into the real encoder underneath, so the compute
+/// units, the prewarm and the Neural Engine compilation are exactly
+/// WhisperKit's.
+private final class ReusingAudioEncoder: AudioEncoding, WhisperMLModel, @unchecked Sendable {
+    let reuse = EncoderOutputReuse()
+    private let base = AudioEncoder()
+
+    var model: MLModel? {
+        get { base.model }
+        set { base.model = newValue }
+    }
+
+    var embedSize: Int? { base.embedSize }
+
+    func encodeFeatures(_ features: any FeatureExtractorOutputType) async throws -> (any AudioEncoderOutputType)? {
+        guard let mel = features as? MLMultiArray else {
+            return try await base.encodeFeatures(features)
+        }
+        if let reused = reuse.reusedOutput(for: mel) { return reused }
+        let output = try await base.encodeFeatures(mel)
+        if let output { reuse.remember(output, for: mel) }
+        return output
     }
 }
