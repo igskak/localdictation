@@ -51,5 +51,19 @@ int main() {
     assert(capture != nullptr);
     witness_audio_capture_stop(capture);
     witness_audio_capture_destroy(capture);
+
+    witness_audio_device_list * devices = reinterpret_cast<witness_audio_device_list *>(0x1);
+    const auto invalid_devices = witness_audio_device_list_create(nullptr, error.data(), error.size());
+    assert(invalid_devices == WITNESS_STATUS_INVALID_ARGUMENT);
+    const auto device_status = witness_audio_device_list_create(&devices, error.data(), error.size());
+    assert(device_status == WITNESS_STATUS_OK || device_status == WITNESS_STATUS_AUDIO_DEVICE_UNAVAILABLE);
+    if (device_status == WITNESS_STATUS_OK) {
+        const size_t device_count = witness_audio_device_list_count(devices);
+        for (size_t index = 0; index < device_count; ++index) {
+            assert(witness_audio_device_id(devices, index) != nullptr);
+            assert(witness_audio_device_name(devices, index) != nullptr);
+        }
+    }
+    witness_audio_device_list_destroy(devices);
     return 0;
 }

@@ -42,6 +42,7 @@ enum witness_audio_sample_format {
 
 typedef struct witness_audio_capture witness_audio_capture;
 typedef struct witness_audio_buffer witness_audio_buffer;
+typedef struct witness_audio_device_list witness_audio_device_list;
 
 struct witness_audio_format {
     uint32_t sample_rate;
@@ -55,6 +56,12 @@ enum witness_audio_packet_flags {
     WITNESS_AUDIO_PACKET_SILENT = 1,
     WITNESS_AUDIO_PACKET_DISCONTINUITY = 2,
     WITNESS_AUDIO_PACKET_INTERRUPTED = 4,
+};
+
+enum witness_audio_device_location {
+    WITNESS_AUDIO_DEVICE_LOCATION_UNKNOWN = 0,
+    WITNESS_AUDIO_DEVICE_LOCATION_BUILT_IN = 1,
+    WITNESS_AUDIO_DEVICE_LOCATION_EXTERNAL = 2,
 };
 
 typedef void (*witness_audio_packet_callback)(
@@ -111,6 +118,19 @@ WITNESS_NATIVE_API enum witness_status witness_audio_resample_to_16khz(
 WITNESS_NATIVE_API const float * witness_audio_buffer_data(const witness_audio_buffer * buffer);
 WITNESS_NATIVE_API size_t witness_audio_buffer_sample_count(const witness_audio_buffer * buffer);
 WITNESS_NATIVE_API void witness_audio_buffer_destroy(witness_audio_buffer * buffer);
+
+WITNESS_NATIVE_API enum witness_status witness_audio_device_list_create(
+    witness_audio_device_list ** result,
+    char * error_utf8,
+    size_t error_capacity);
+WITNESS_NATIVE_API void witness_audio_device_list_destroy(witness_audio_device_list * list);
+WITNESS_NATIVE_API size_t witness_audio_device_list_count(const witness_audio_device_list * list);
+WITNESS_NATIVE_API const char * witness_audio_device_id(const witness_audio_device_list * list, size_t index);
+WITNESS_NATIVE_API const char * witness_audio_device_name(const witness_audio_device_list * list, size_t index);
+WITNESS_NATIVE_API int witness_audio_device_is_default(const witness_audio_device_list * list, size_t index);
+WITNESS_NATIVE_API enum witness_audio_device_location witness_audio_device_location_value(
+    const witness_audio_device_list * list,
+    size_t index);
 
 WITNESS_NATIVE_API enum witness_status witness_context_create(
     const char * model_path_utf8,

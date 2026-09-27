@@ -30,6 +30,7 @@ FetchContent_MakeAvailable(whisper_cpp)
 add_library(Witness.Native SHARED
   src/witness_audio_capture.cpp
   src/witness_audio_conversion.cpp
+  src/witness_audio_devices.cpp
   src/witness_audio_resampler.cpp
   src/witness_native.cpp
   include/witness_native.h

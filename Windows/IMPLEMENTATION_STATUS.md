@@ -25,7 +25,7 @@ cross-targeting on macOS is not reported as Windows validation.
 | --- | --- | --- | --- |
 | W0 | **Complete** | Pinned solution/toolchain/dependencies; Core and WPF shell; successful Windows CI and self-contained artifact; C ABI and real CPU-only RAM PCM-to-whisper smoke with segment timing; signed-manifest/verified-package spike; privacy endpoint inventory; build metadata; baseline hashes | Physical Windows/hardware claims remain intentionally outside W0 |
 | W1 | **Complete** | Recording state machine and cancellation generation; bounded PCM buffer and energy VAD; complete engine language catalog, selection/pin/continuity policy; final-recording language timing guard; Unicode boundary map; conservative cleanup/edit map; all risk signals and release prose bounds; review thresholds/history rules; entitlement/lifetime pure policy; 76 tests passed on macOS and Windows | Windows system lexicon capability remains a W5 platform integration; physical speech accuracy remains W3/W8 |
-| W2 | **In progress** | WPF tray lifecycle, named single-instance lease and non-activating activity badge; pure hold/toggle gesture and audio-device/interruption policies; transactional Win32 hotkey registration with release hook; current-user startup opt-in; bounded native PCM normalization; memory-only event-driven shared-mode WASAPI capture contract | Hotkey/capture app wiring, Windows compile/adapter validation of the new capture layer, 16 kHz Media Foundation resampling, device enumeration/authorization, synthetic UI harness and physical hardware QA |
+| W2 | **In progress** | WPF tray lifecycle, named single-instance lease and non-activating activity badge; hold/toggle hotkeys and startup opt-in; preallocated packet queue and bounded fake-tested capture lifecycle; memory-only event-driven shared-mode WASAPI; PCM16/24/32/Float32 normalization; Media Foundation 44.1/48→16 kHz resampling with drain; stable-ID endpoint enumeration with unknown built-in metadata kept explicit | Hotkey/capture app wiring, Windows CI for lifecycle/enumeration slices, microphone access UX, synthetic UI harness and physical hardware QA |
 | W3 | Not started | Native inference contract exists only as a W0 spike | Model manager, pinned product model/hash, offline reuse, cancellation, word mapping, CPU retry/Vulkan capability, leading-silence language corpus and synthetic DE/EN/RU/UK CI smoke |
 | W4 | Not started | — | UI Automation target/protected checks, modifier wait, clipboard-safe insertion, owned UI harness and race tests |
 | W5 | Not started | W0 shell only; it is not a complete user flow | Review/replay integration, six functional Settings sections, onboarding, glossary, bounded visible history, EN/DE resources, synthetic UI screenshots and full hotkey-to-insert path |
@@ -170,6 +170,14 @@ CI together with its synthetic WAV before artifact assembly.
   The tray/activity lifecycle then kept the full pipeline green in run
   [`36342155220`](https://github.com/igskak/localdictation/actions/runs/36342155220).
   Neither run constitutes a real microphone test.
+- WASAPI compiled under MSVC and its creation/ownership contract passed with
+  Release assertions in run
+  [`36342973047`](https://github.com/igskak/localdictation/actions/runs/36342973047).
+  Media Foundation resampling of synthetic 44.1 and 48 kHz mono Float32 input,
+  including end-of-stream drain, passed in run
+  [`36343401085`](https://github.com/igskak/localdictation/actions/runs/36343401085),
+  together with 8 Windows adapter tests and the existing inference/privacy
+  gates. No hosted run opened or evaluated a real microphone.
 
 ## Known limitations and external gates
 
