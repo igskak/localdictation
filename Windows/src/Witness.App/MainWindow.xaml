@@ -55,11 +55,20 @@
                         BorderThickness="1"
                         BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"
                         CornerRadius="4">
-                    <TextBlock x:Name="StatusText"
-                               Text="Ready. Hold Ctrl+Shift+Space to test local microphone capture."
-                               TextWrapping="Wrap"
-                               automation:AutomationProperties.LiveSetting="Polite"
-                               automation:AutomationProperties.Name="Witness status" />
+                    <StackPanel>
+                        <TextBlock x:Name="StatusText"
+                                   Text="Ready. Hold Ctrl+Shift+Space to test local microphone capture."
+                                   TextWrapping="Wrap"
+                                   automation:AutomationProperties.LiveSetting="Polite"
+                                   automation:AutomationProperties.Name="Witness status" />
+                        <Button x:Name="PrivacySettingsButton"
+                                Content="Open microphone privacy settings"
+                                HorizontalAlignment="Left"
+                                Margin="0,12,0,0"
+                                Visibility="Collapsed"
+                                Click="OpenMicrophonePrivacySettings"
+                                automation:AutomationProperties.Name="Open Windows microphone privacy settings" />
+                    </StackPanel>
                 </Border>
             </StackPanel>
         </Border>

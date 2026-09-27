@@ -155,7 +155,10 @@ internal sealed class DictationCaptureController(
             _ => error.Message,
         };
         await ShowAsync(ActivityVisualState.Error, message).ConfigureAwait(false);
-        await SetMainStatusAsync(message).ConfigureAwait(false);
+        if (error.Status == NativeAudioStatus.AudioAccessDenied)
+            await dispatcher.InvokeAsync(mainWindow.ShowMicrophoneAccessDenied);
+        else
+            await SetMainStatusAsync(message).ConfigureAwait(false);
         _ = HideActivityAfterDelayAsync();
     }
 
