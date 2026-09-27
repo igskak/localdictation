@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "product": "Witness",
+  "appId": "Witness.Windows.Beta",
+  "channel": "beta",
+  "version": "0.1.0",
+  "build": 1,
+  "productMajor": 1,
+  "platform": "windows",
+  "architecture": "x64",
+  "minimumOs": "10.0.26100.0",
+  "sdk": "10.0.401",
+  "runner": "windows-2025",
+  "macBaseline": {
+    "version": "0.6.8",
+    "build": 9,
+    "tag": "v0.6.8",
+    "commit": "c073a8fbad5fe1cca7ef6dcf06fc7c19c2c89b77",
+    "publishedAtUtc": "2026-09-24T18:18:12Z"
+  },
+  "native": {
+    "whisperCppVersion": "v1.9.4",
+    "whisperCppCommit": "927cfce34f31707e17f2bff35c349632fb9e2c3a",
+    "vulkanOptional": true,
+    "cpuRequired": true
+  },
+  "model": null,
+  "authorities": {
+    "license": "windows-beta-separate-unconfigured",
+    "updates": "windows-beta-separate-unconfigured",
+    "macSparkle": "unchanged"
+  }
+}

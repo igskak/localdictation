@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.26100.0</TargetPlatformMinVersion>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AssemblyName>Witness</AssemblyName>
+    <RootNamespace>Witness.App</RootNamespace>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <StartupObject>Witness.App.Program</StartupObject>
+    <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Witness.Core\Witness.Core.csproj" />
+    <ProjectReference Include="..\Witness.Platform.Windows\Witness.Platform.Windows.csproj" />
+    <ProjectReference Include="..\Witness.Update\Witness.Update.csproj" />
+    <PackageReference Include="Velopack" />
+  </ItemGroup>
+</Project>

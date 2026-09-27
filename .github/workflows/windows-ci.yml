@@ -1,0 +1,173 @@
+name: Windows CI
+
+on:
+  pull_request:
+    paths:
+      - "Windows/**"
+      - ".config/dotnet-tools.json"
+      - ".github/workflows/windows-*.yml"
+      - "AGENTS.md"
+  push:
+    branches:
+      - "codex/windows-witness"
+    paths:
+      - "Windows/**"
+      - ".config/dotnet-tools.json"
+      - ".github/workflows/windows-*.yml"
+      - "AGENTS.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+  NUGET_XMLDOC_MODE: skip
+
+jobs:
+  build-test:
+    name: Build and test x64
+    runs-on: windows-2025
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install pinned .NET SDK
+        uses: actions/setup-dotnet@d4c94342e560b34958eacfc5d055d21461ed1c5d # v5.0.0
+        with:
+          dotnet-version: 10.0.401
+          cache: true
+          cache-dependency-path: Windows/**/packages.lock.json
+
+      - name: Record runner boundary
+        shell: pwsh
+        run: |
+          Get-ComputerInfo | Select-Object WindowsProductName, WindowsVersion, OsBuildNumber, OsArchitecture
+          Write-Host "This hosted runner is not evidence for physical Windows 11, standard-user UIPI, microphones, or GPUs."
+
+      - name: Restore locked packages
+        working-directory: Windows
+        run: |
+          dotnet restore Witness.Windows.sln --locked-mode
+          dotnet restore src/Witness.App/Witness.App.csproj --locked-mode -p:PublishProfile=Beta -p:PublishReadyToRun=true
+
+      - name: Build managed solution
+        working-directory: Windows
+        run: dotnet build Witness.Windows.sln --configuration Release --no-restore -m:1
+
+      - name: Run cross-platform Core tests
+        working-directory: Windows
+        run: dotnet test tests/Witness.Core.Tests/Witness.Core.Tests.csproj --configuration Release --no-build --no-restore
+
+      - name: Run signed-update source tests
+        working-directory: Windows
+        run: dotnet test tests/Witness.Update.Tests/Witness.Update.Tests.csproj --configuration Release --no-build --no-restore
+
+      - name: Run Windows platform tests
+        working-directory: Windows
+        run: dotnet test tests/Witness.Platform.Tests/Witness.Platform.Tests.csproj --configuration Release --no-build --no-restore
+
+      - name: Configure native CPU build
+        run: >-
+          cmake -S Windows/native/Witness.Native -B Windows/artifacts/native
+          -G "Visual Studio 17 2022" -A x64
+          -DWITNESS_ENABLE_VULKAN=OFF
+          -DWITNESS_BUILD_TESTS=ON
+
+      - name: Build native CPU adapter
+        run: cmake --build Windows/artifacts/native --config Release --parallel 2
+
+      - name: Run native ownership and ABI tests
+        run: ctest --test-dir Windows/artifacts/native -C Release --output-on-failure
+
+      - name: Download and verify CI-only whisper fixture model
+        shell: pwsh
+        run: |
+          $fixture = Get-Content Windows/config/native-smoke-fixture.json | ConvertFrom-Json
+          $directory = "Windows/artifacts/native-smoke"
+          $model = Join-Path $directory $fixture.model
+          New-Item -ItemType Directory -Path $directory -Force | Out-Null
+          Invoke-WebRequest -Uri $fixture.source -OutFile $model
+          $actualHash = (Get-FileHash -Path $model -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actualHash -ne $fixture.sha256) {
+            throw "Native smoke model SHA-256 mismatch."
+          }
+          if ((Get-Item $model).Length -ne $fixture.sizeBytes) {
+            throw "Native smoke model size mismatch."
+          }
+
+      - name: Generate non-user synthetic speech fixture
+        shell: powershell
+        run: |
+          Add-Type -AssemblyName System.Speech
+          $fixture = Get-Content Windows/config/native-smoke-fixture.json | ConvertFrom-Json
+          $wav = "Windows/artifacts/native-smoke/synthetic-witness.wav"
+          $format = [System.Speech.AudioFormat.SpeechAudioFormatInfo]::new(
+            16000,
+            [System.Speech.AudioFormat.AudioBitsPerSample]::Sixteen,
+            [System.Speech.AudioFormat.AudioChannel]::Mono)
+          $speaker = New-Object System.Speech.Synthesis.SpeechSynthesizer
+          try {
+            $speaker.SetOutputToWaveFile($wav, $format)
+            $speaker.Speak($fixture.audio.text)
+          } finally {
+            $speaker.Dispose()
+          }
+          if ((Get-Item $wav).Length -le 44) {
+            throw "Synthetic speech fixture is empty."
+          }
+
+      - name: Run RAM-only CPU inference smoke
+        shell: pwsh
+        run: |
+          $fixture = Get-Content Windows/config/native-smoke-fixture.json | ConvertFrom-Json
+          $model = Join-Path "Windows/artifacts/native-smoke" $fixture.model
+          $wav = "Windows/artifacts/native-smoke/synthetic-witness.wav"
+          $smoke = Get-ChildItem Windows/artifacts/native -Recurse -Filter witness_native_inference_smoke.exe
+          if ($smoke.Count -ne 1) {
+            throw "Expected one native inference smoke executable; found $($smoke.Count)."
+          }
+          $vulkan = Get-ChildItem Windows/artifacts/native -Recurse -File | Where-Object Name -Match "vulkan"
+          if ($vulkan) {
+            throw "CPU smoke build unexpectedly contains a Vulkan runtime."
+          }
+          & $smoke.FullName $model $wav
+          if ($LASTEXITCODE -ne 0) {
+            throw "Native CPU inference smoke failed with exit code $LASTEXITCODE."
+          }
+
+      - name: Remove native smoke inputs before artifact assembly
+        shell: pwsh
+        run: Remove-Item Windows/artifacts/native-smoke -Recurse -Force
+
+      - name: Publish self-contained W0 shell
+        working-directory: Windows
+        run: >-
+          dotnet publish src/Witness.App/Witness.App.csproj
+          --configuration Release
+          --no-restore
+          -p:PublishProfile=Beta
+          --output artifacts/publish
+
+      - name: Add native CPU binaries
+        shell: pwsh
+        run: |
+          Copy-Item Windows/artifacts/native/bin/Release/*.dll Windows/artifacts/publish -Force
+          if (-not (Test-Path Windows/artifacts/publish/Witness.Native.dll)) {
+            throw "Witness.Native.dll was not produced."
+          }
+
+      - name: Enforce artifact privacy boundary
+        shell: pwsh
+        run: Windows/tools/assert-artifact-privacy.ps1 -Path Windows/artifacts/publish
+
+      - name: Upload W0 build output
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: witness-windows-w0-shell-${{ github.sha }}
+          path: Windows/artifacts/publish
+          if-no-files-found: error
+          retention-days: 7

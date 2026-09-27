@@ -10,6 +10,9 @@
 
 ## Engineering constraints
 
+- The Swift, SwiftUI, AppKit, Apple Silicon, macOS deployment-target, and app-sandbox bullets below apply to the existing Mac target. The separate Windows target follows `Windows/AGENTS.md`. The product privacy, verification, dependency-review, secret-handling, and testing requirements apply to every target.
+- The historical Phase 1 prohibition on STT, persistence, networking, licensing, analytics, and update frameworks constrains the Mac Phase 1 slice; it is not a blanket prohibition on the explicitly planned Windows W1-W8 implementation.
+
 - Use native Swift, SwiftUI, AppKit, AVFoundation, Core Audio, and other Apple frameworks where they fit.
 - Target Apple Silicon and macOS 14.4 or newer.
 - Use Swift 6 concurrency checks. UI state belongs on `@MainActor`; real-time audio callbacks must not block or hop onto the main actor.

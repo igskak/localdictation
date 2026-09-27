@@ -1,0 +1,62 @@
+<Window x:Class="Witness.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:automation="clr-namespace:System.Windows.Automation;assembly=PresentationCore"
+        Title="Witness"
+        Width="900"
+        Height="620"
+        MinWidth="720"
+        MinHeight="520"
+        Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"
+        Foreground="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
+        FontFamily="{DynamicResource {x:Static SystemFonts.MessageFontFamilyKey}}"
+        FontSize="{DynamicResource {x:Static SystemFonts.MessageFontSizeKey}}">
+    <Grid Margin="24" KeyboardNavigation.TabNavigation="Cycle">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220" />
+            <ColumnDefinition Width="24" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <StackPanel Grid.Column="0">
+            <TextBlock Text="Witness"
+                       FontSize="28"
+                       FontWeight="SemiBold"
+                       Margin="0,0,0,4" />
+            <TextBlock Text="Private dictation on this PC"
+                       Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"
+                       TextWrapping="Wrap"
+                       Margin="0,0,0,24" />
+            <Button Content="General" automation:AutomationProperties.Name="General settings" />
+            <Button Content="Languages" automation:AutomationProperties.Name="Language settings" />
+            <Button Content="Boundary" automation:AutomationProperties.Name="Boundary settings" />
+            <Button Content="Dictionary" automation:AutomationProperties.Name="Dictionary settings" />
+            <Button Content="License" automation:AutomationProperties.Name="License settings" />
+            <Button Content="Diagnostics" automation:AutomationProperties.Name="Diagnostics settings" />
+        </StackPanel>
+
+        <Border Grid.Column="2"
+                BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="28"
+                IsHitTestVisible="True">
+            <StackPanel>
+                <TextBlock Text="Windows implementation shell"
+                           FontSize="24"
+                           FontWeight="SemiBold"
+                           Margin="0,0,0,12" />
+                <TextBlock Text="The W0 shell is intentionally not a beta. Capture, transcription, insertion, review, licensing, and updates are added in the following verified slices."
+                           TextWrapping="Wrap"
+                           MaxWidth="560"
+                           HorizontalAlignment="Left" />
+            </StackPanel>
+        </Border>
+
+        <Border Grid.ColumnSpan="3"
+                BorderBrush="Transparent"
+                BorderThickness="0"
+                IsHitTestVisible="False"
+                automation:AutomationProperties.Name="Decorative overlay" />
+    </Grid>
+</Window>

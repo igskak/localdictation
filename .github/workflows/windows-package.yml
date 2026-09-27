@@ -1,0 +1,99 @@
+name: Windows unsigned internal package
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Internal package version
+        required: true
+        default: "0.1.0"
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+  NUGET_XMLDOC_MODE: skip
+
+jobs:
+  package:
+    name: Unsigned beta package
+    runs-on: windows-2025
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install pinned .NET SDK
+        uses: actions/setup-dotnet@d4c94342e560b34958eacfc5d055d21461ed1c5d # v5.0.0
+        with:
+          dotnet-version: 10.0.401
+          cache: true
+          cache-dependency-path: Windows/**/packages.lock.json
+
+      - name: Restore locked packages and tools
+        run: |
+          dotnet restore Windows/Witness.Windows.sln --locked-mode
+          dotnet restore Windows/src/Witness.App/Witness.App.csproj --locked-mode -p:PublishProfile=Beta -p:PublishReadyToRun=true
+          dotnet tool restore
+
+      - name: Configure and build native CPU adapter
+        run: |
+          cmake -S Windows/native/Witness.Native -B Windows/artifacts/native -G "Visual Studio 17 2022" -A x64 -DWITNESS_ENABLE_VULKAN=OFF -DWITNESS_BUILD_TESTS=OFF
+          cmake --build Windows/artifacts/native --config Release --parallel 2
+
+      - name: Publish self-contained x64 app
+        run: >-
+          dotnet publish Windows/src/Witness.App/Witness.App.csproj
+          --configuration Release
+          --no-restore
+          -p:PublishProfile=Beta
+          -p:Version=${{ inputs.version }}
+          --output Windows/artifacts/publish
+
+      - name: Add native CPU binaries
+        shell: pwsh
+        run: Copy-Item Windows/artifacts/native/bin/Release/*.dll Windows/artifacts/publish -Force
+
+      - name: Enforce artifact privacy boundary
+        shell: pwsh
+        run: Windows/tools/assert-artifact-privacy.ps1 -Path Windows/artifacts/publish
+
+      - name: Build unsigned internal Velopack package
+        run: >-
+          dotnet vpk pack
+          --packId Witness.Windows.Beta
+          --packVersion ${{ inputs.version }}
+          --packDir Windows/artifacts/publish
+          --mainExe Witness.exe
+          --channel beta
+          --runtime win-x64
+          --delta None
+          --outputDir Windows/artifacts/package
+
+      - name: Create SHA-256 inventory
+        shell: pwsh
+        run: |
+          Get-ChildItem Windows/artifacts/package -File |
+            Sort-Object Name |
+            ForEach-Object { "$(($_ | Get-FileHash -Algorithm SHA256).Hash.ToLowerInvariant())  $($_.Name)" } |
+            Set-Content Windows/artifacts/package/SHA256SUMS.txt -Encoding ascii
+
+      - name: Re-check package contents
+        shell: pwsh
+        run: Windows/tools/assert-artifact-privacy.ps1 -Path Windows/artifacts/package
+
+      - name: Upload unsigned internal package
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: witness-windows-unsigned-${{ inputs.version }}-${{ github.sha }}
+          path: Windows/artifacts/package
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: State trust boundary
+        shell: pwsh
+        run: Write-Host "Unsigned internal artifact only. Not approved for external distribution; no Windows code-signing credential was used."
