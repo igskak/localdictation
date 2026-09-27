@@ -1,6 +1,9 @@
 #include "witness_native.h"
 
 #include <array>
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
 #include <cassert>
 #include <cstring>
 
@@ -38,11 +41,13 @@ int main() {
     assert(witness_transcript_segment_end_ms(nullptr, 0) == -1);
 
     witness_audio_capture * capture = reinterpret_cast<witness_audio_capture *>(0x1);
-    assert(witness_audio_capture_create(nullptr, nullptr, nullptr, &capture, error.data(), error.size()) ==
-        WITNESS_STATUS_INVALID_ARGUMENT);
+    const auto invalid_capture = witness_audio_capture_create(
+        nullptr, nullptr, nullptr, &capture, error.data(), error.size());
+    assert(invalid_capture == WITNESS_STATUS_INVALID_ARGUMENT);
     assert(capture == nullptr);
-    assert(witness_audio_capture_create(nullptr, ignore_audio, nullptr, &capture, error.data(), error.size()) ==
-        WITNESS_STATUS_OK);
+    const auto valid_capture = witness_audio_capture_create(
+        nullptr, ignore_audio, nullptr, &capture, error.data(), error.size());
+    assert(valid_capture == WITNESS_STATUS_OK);
     assert(capture != nullptr);
     witness_audio_capture_stop(capture);
     witness_audio_capture_destroy(capture);
