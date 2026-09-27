@@ -25,7 +25,7 @@ cross-targeting on macOS is not reported as Windows validation.
 | --- | --- | --- | --- |
 | W0 | **Complete** | Pinned solution/toolchain/dependencies; Core and WPF shell; successful Windows CI and self-contained artifact; C ABI and real CPU-only RAM PCM-to-whisper smoke with segment timing; signed-manifest/verified-package spike; privacy endpoint inventory; build metadata; baseline hashes | Physical Windows/hardware claims remain intentionally outside W0 |
 | W1 | **Complete** | Recording state machine and cancellation generation; bounded PCM buffer and energy VAD; complete engine language catalog, selection/pin/continuity policy; final-recording language timing guard; Unicode boundary map; conservative cleanup/edit map; all risk signals and release prose bounds; review thresholds/history rules; entitlement/lifetime pure policy; 76 tests passed on macOS and Windows | Windows system lexicon capability remains a W5 platform integration; physical speech accuracy remains W3/W8 |
-| W2 | **In progress** | WPF tray lifecycle, named single-instance lease and non-activating activity badge; hold/toggle hotkeys and startup opt-in; preallocated packet queue and bounded fake-tested capture lifecycle; memory-only event-driven shared-mode WASAPI; PCM16/24/32/Float32 normalization; Media Foundation 44.1/48→16 kHz resampling with drain; opaque endpoint-ID enumeration with unknown built-in metadata kept explicit | Windows CI for endpoint/app-wiring slices, synthetic UI harness and physical hardware QA |
+| W2 | **In progress** | WPF tray lifecycle, named single-instance lease and non-activating activity badge; hold/toggle hotkeys and startup opt-in; preallocated packet queue and bounded fake-tested capture lifecycle; memory-only event-driven shared-mode WASAPI; PCM16/24/32/Float32 normalization; Media Foundation 44.1/48→16 kHz resampling with drain; opaque endpoint-ID enumeration with unknown built-in metadata kept explicit; microphone privacy recovery and local hotkey-to-capture preview | Windows CI for the locally committed session-loss stop policy; physical hardware QA remains W8 |
 | W3 | Not started | Native inference contract exists only as a W0 spike | Model manager, pinned product model/hash, offline reuse, cancellation, word mapping, CPU retry/Vulkan capability, leading-silence language corpus and synthetic DE/EN/RU/UK CI smoke |
 | W4 | Not started | — | UI Automation target/protected checks, modifier wait, clipboard-safe insertion, owned UI harness and race tests |
 | W5 | Not started | W0 shell only; it is not a complete user flow | Review/replay integration, six functional Settings sections, onboarding, glossary, bounded visible history, EN/DE resources, synthetic UI screenshots and full hotkey-to-insert path |
@@ -106,6 +106,10 @@ Result: passed; self-contained win-x64 ReadyToRun output produced on macOS.
   --configuration Release --no-restore
 Result: passed; 86 passed, 0 failed, 0 skipped after the first W2 policy slice.
 
+The current local W2 head builds with 0 warnings and 0 errors and has 87 Core
+tests. Its two desktop-session policy tests require the Windows test host and
+are not reported as passed locally.
+
 /private/tmp/witness-dotnet/dotnet test \
   Windows/tests/Witness.Update.Tests/Witness.Update.Tests.csproj \
   --configuration Release --no-restore
@@ -178,6 +182,19 @@ CI together with its synthetic WAV before artifact assembly.
   [`36343401085`](https://github.com/igskak/localdictation/actions/runs/36343401085),
   together with 8 Windows adapter tests and the existing inference/privacy
   gates. No hosted run opened or evaluated a real microphone.
+- The bounded capture lifecycle and disconnect preservation tests passed in
+  Windows CI run
+  [`36343572624`](https://github.com/igskak/localdictation/actions/runs/36343572624).
+  Endpoint enumeration, microphone privacy recovery and hotkey-to-capture app
+  wiring then passed the complete Windows pipeline in run
+  [`36344227926`](https://github.com/igskak/localdictation/actions/runs/36344227926).
+  Endpoint identity is the opaque value returned by `IMMDevice::GetId`; no
+  unsupported SDK property or friendly-name heuristic is used. The hosted
+  runner is still not evidence of a physical microphone.
+- Commit `19f871e` adds WTS session notifications and stops an active capture
+  on lock, logoff, console disconnect or remote disconnect. It is locally
+  committed and the managed solution builds cleanly, but its Windows CI run is
+  pending because pushing new code to the external remote was not authorized.
 
 ## Known limitations and external gates
 
@@ -195,8 +212,8 @@ CI together with its synthetic WAV before artifact assembly.
 
 ## Next step
 
-Implement W2 in the same isolated branch: lifecycle/tray/single-instance,
-hold/toggle hotkeys with conflict recovery, startup opt-in, WASAPI capture and
-conversion, device selection/fallback, permission/interruption outcomes and an
-owned Windows adapter harness. Keep microphone and ordinary-user behavior
-explicitly pending until physical QA.
+Run the Windows platform tests for the committed desktop-session stop policy,
+then mark W2 complete if that pipeline remains green. Start W3 with the model
+manager and pinned product-model manifest; keep its product model separate from
+the tiny English-only CI adapter fixture. Physical microphone and ordinary-user
+desktop behavior remain explicitly pending until W8 QA.
