@@ -37,7 +37,7 @@ add_library(Witness.Native SHARED
 target_include_directories(Witness.Native PUBLIC include)
 target_link_libraries(Witness.Native PRIVATE whisper)
 if(WIN32)
-  target_link_libraries(Witness.Native PRIVATE mfplat mfuuid ole32)
+  target_link_libraries(Witness.Native PRIVATE mfplat mfuuid ole32 wmcodecdspuuid)
 endif()
 target_compile_definitions(Witness.Native PRIVATE WITNESS_NATIVE_BUILD=1)
 
