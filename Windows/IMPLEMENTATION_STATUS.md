@@ -25,7 +25,7 @@ cross-targeting on macOS is not reported as Windows validation.
 | --- | --- | --- | --- |
 | W0 | **Complete** | Pinned solution/toolchain/dependencies; Core and WPF shell; successful Windows CI and self-contained artifact; C ABI and real CPU-only RAM PCM-to-whisper smoke with segment timing; signed-manifest/verified-package spike; privacy endpoint inventory; build metadata; baseline hashes | Physical Windows/hardware claims remain intentionally outside W0 |
 | W1 | **Complete** | Recording state machine and cancellation generation; bounded PCM buffer and energy VAD; complete engine language catalog, selection/pin/continuity policy; final-recording language timing guard; Unicode boundary map; conservative cleanup/edit map; all risk signals and release prose bounds; review thresholds/history rules; entitlement/lifetime pure policy; 76 tests passed on macOS and Windows | Windows system lexicon capability remains a W5 platform integration; physical speech accuracy remains W3/W8 |
-| W2 | Not started | — | Tray, single instance, hotkeys, startup, WASAPI/resampling, device selection/fallback, permissions/interruption, activity UI and Windows adapter tests |
+| W2 | **In progress** | Pure hold/toggle gesture and audio-device/interruption policies; transactional Win32 hotkey registration with release hook; current-user startup opt-in; named single-instance lease; deterministic adapter tests added | Tray/app wiring, WASAPI capture/resampling, microphone authorization/interruption adapter, activity UI, Windows CI and physical hardware QA |
 | W3 | Not started | Native inference contract exists only as a W0 spike | Model manager, pinned product model/hash, offline reuse, cancellation, word mapping, CPU retry/Vulkan capability, leading-silence language corpus and synthetic DE/EN/RU/UK CI smoke |
 | W4 | Not started | — | UI Automation target/protected checks, modifier wait, clipboard-safe insertion, owned UI harness and race tests |
 | W5 | Not started | W0 shell only; it is not a complete user flow | Review/replay integration, six functional Settings sections, onboarding, glossary, bounded visible history, EN/DE resources, synthetic UI screenshots and full hotkey-to-insert path |
@@ -104,7 +104,7 @@ Result: passed; self-contained win-x64 ReadyToRun output produced on macOS.
 /private/tmp/witness-dotnet/dotnet test \
   Windows/tests/Witness.Core.Tests/Witness.Core.Tests.csproj \
   --configuration Release --no-restore
-Result: passed; 76 passed, 0 failed, 0 skipped.
+Result: passed; 86 passed, 0 failed, 0 skipped after the first W2 policy slice.
 
 /private/tmp/witness-dotnet/dotnet test \
   Windows/tests/Witness.Update.Tests/Witness.Update.Tests.csproj \
@@ -159,6 +159,10 @@ CI together with its synthetic WAV before artifact assembly.
   the intended checks.
 - The manual package job is intentionally unsigned and must not be distributed
   as a production or signed beta build.
+- The first W2 slice cross-builds locally with 0 warnings and 0 errors. Its
+  Windows-only adapter tests cover transactional shortcut conflict recovery,
+  current-user startup ownership and named single-instance behavior; they await
+  the next Windows CI run and are not yet reported as passed.
 
 ## Known limitations and external gates
 
