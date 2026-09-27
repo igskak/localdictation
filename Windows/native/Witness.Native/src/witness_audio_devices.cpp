@@ -6,6 +6,8 @@
 
 #define NOMINMAX
 #include <Windows.h>
+#include <initguid.h>
+#include <propkeydef.h>
 #include <functiondiscoverykeys_devpkey.h>
 #include <mmdeviceapi.h>
 #include <propvarutil.h>
