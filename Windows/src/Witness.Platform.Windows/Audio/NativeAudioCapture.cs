@@ -39,7 +39,7 @@ public sealed class NativeAudioException(NativeAudioStatus status, string messag
     public NativeAudioStatus Status { get; } = status;
 }
 
-public sealed partial class NativeAudioCapture : IDisposable
+public sealed partial class NativeAudioCapture : IAudioPacketSource
 {
     private const int ErrorCapacity = 512;
     private readonly NativeMethods.PacketCallback callback;

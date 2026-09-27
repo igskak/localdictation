@@ -115,3 +115,17 @@ public static partial class NativeAudioProcessing
         internal static partial void BufferDestroy(IntPtr buffer);
     }
 }
+
+public sealed class NativeAudioSampleProcessor : IAudioSampleProcessor
+{
+    public int DecodeToMono(
+        ReadOnlySpan<byte> input,
+        int frameCount,
+        uint channelCount,
+        NativeAudioSampleFormat format,
+        Span<float> output) =>
+        NativeAudioProcessing.DecodeToMono(input, frameCount, channelCount, format, output);
+
+    public float[] ResampleTo16Khz(ReadOnlySpan<float> inputMono, uint inputSampleRate) =>
+        NativeAudioProcessing.ResampleTo16Khz(inputMono, inputSampleRate);
+}
