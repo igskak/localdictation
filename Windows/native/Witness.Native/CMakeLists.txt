@@ -28,12 +28,16 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(whisper_cpp)
 
 add_library(Witness.Native SHARED
+  src/witness_audio_capture.cpp
   src/witness_audio_conversion.cpp
   src/witness_native.cpp
   include/witness_native.h
 )
 target_include_directories(Witness.Native PUBLIC include)
 target_link_libraries(Witness.Native PRIVATE whisper)
+if(WIN32)
+  target_link_libraries(Witness.Native PRIVATE ole32)
+endif()
 target_compile_definitions(Witness.Native PRIVATE WITNESS_NATIVE_BUILD=1)
 
 if(MSVC)

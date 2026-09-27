@@ -16,6 +16,7 @@ size_t bytes_per_sample(witness_audio_sample_format format) noexcept {
         case WITNESS_AUDIO_PCM24_LE:
             return 3;
         case WITNESS_AUDIO_PCM32_LE:
+        case WITNESS_AUDIO_PCM24_IN_32_LE:
         case WITNESS_AUDIO_FLOAT32_LE:
             return 4;
         default:
@@ -39,6 +40,15 @@ float decode_sample(const uint8_t * source, witness_audio_sample_format format) 
             return static_cast<float>(value) / 8388608.0F;
         }
         case WITNESS_AUDIO_PCM32_LE: {
+            const auto bits = static_cast<uint32_t>(source[0]) |
+                (static_cast<uint32_t>(source[1]) << 8U) |
+                (static_cast<uint32_t>(source[2]) << 16U) |
+                (static_cast<uint32_t>(source[3]) << 24U);
+            int32_t value = 0;
+            std::memcpy(&value, &bits, sizeof(value));
+            return static_cast<float>(static_cast<double>(value) / 2147483648.0);
+        }
+        case WITNESS_AUDIO_PCM24_IN_32_LE: {
             const auto bits = static_cast<uint32_t>(source[0]) |
                 (static_cast<uint32_t>(source[1]) << 8U) |
                 (static_cast<uint32_t>(source[2]) << 16U) |

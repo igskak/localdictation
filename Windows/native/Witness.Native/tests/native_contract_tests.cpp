@@ -4,6 +4,10 @@
 #include <cassert>
 #include <cstring>
 
+namespace {
+void ignore_audio(void *, const void *, size_t, size_t, uint32_t) {}
+}
+
 int main() {
     assert(witness_native_abi_version() == 1);
 
@@ -32,5 +36,15 @@ int main() {
     assert(witness_transcript_segment_text(nullptr, 0) == nullptr);
     assert(witness_transcript_segment_start_ms(nullptr, 0) == -1);
     assert(witness_transcript_segment_end_ms(nullptr, 0) == -1);
+
+    witness_audio_capture * capture = reinterpret_cast<witness_audio_capture *>(0x1);
+    assert(witness_audio_capture_create(nullptr, nullptr, nullptr, &capture, error.data(), error.size()) ==
+        WITNESS_STATUS_INVALID_ARGUMENT);
+    assert(capture == nullptr);
+    assert(witness_audio_capture_create(nullptr, ignore_audio, nullptr, &capture, error.data(), error.size()) ==
+        WITNESS_STATUS_OK);
+    assert(capture != nullptr);
+    witness_audio_capture_stop(capture);
+    witness_audio_capture_destroy(capture);
     return 0;
 }
