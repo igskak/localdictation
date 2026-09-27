@@ -153,11 +153,10 @@ extern "C" enum witness_status witness_audio_device_list_create(
             device_com_ptr<IPropertyStore> properties;
             if (FAILED(device->OpenPropertyStore(STGM_READ, properties.put()))) continue;
 
-            const std::string stable_id = read_string_property(properties.get(), PKEY_AudioEndpoint_StableId);
             std::string name = read_string_property(properties.get(), PKEY_Device_FriendlyName);
             if (name.empty()) name = "Microphone";
             list->devices.push_back(device_record{
-                stable_id.empty() ? wide_to_utf8(ordinary_id.c_str()) : stable_id,
+                wide_to_utf8(ordinary_id.c_str()),
                 std::move(name),
                 ordinary_id == default_id,
                 WITNESS_AUDIO_DEVICE_LOCATION_UNKNOWN,
