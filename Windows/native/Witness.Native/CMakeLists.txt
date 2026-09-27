@@ -43,6 +43,7 @@ endif()
 
 set_target_properties(Witness.Native PROPERTIES
   OUTPUT_NAME "Witness.Native"
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
   CXX_VISIBILITY_PRESET hidden
   VISIBILITY_INLINES_HIDDEN YES
 )
@@ -51,6 +52,9 @@ if(WITNESS_BUILD_TESTS)
   enable_testing()
   add_executable(witness_native_contract_tests tests/native_contract_tests.cpp)
   target_link_libraries(witness_native_contract_tests PRIVATE Witness.Native)
+  set_target_properties(witness_native_contract_tests PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+  )
   add_test(NAME witness_native_contract_tests COMMAND witness_native_contract_tests)
   set_tests_properties(witness_native_contract_tests PROPERTIES TIMEOUT 30)
 
@@ -59,4 +63,7 @@ if(WITNESS_BUILD_TESTS)
   # source builds intentionally contain neither model weights nor audio files.
   add_executable(witness_native_inference_smoke tests/native_inference_smoke.cpp)
   target_link_libraries(witness_native_inference_smoke PRIVATE Witness.Native)
+  set_target_properties(witness_native_inference_smoke PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+  )
 endif()
