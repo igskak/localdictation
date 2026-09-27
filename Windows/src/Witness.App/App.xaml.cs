@@ -4,6 +4,8 @@ public partial class App : System.Windows.Application
 {
     private TrayIconService? trayIcon;
     private ActivityWindow? activityWindow;
+    private Witness.Platform.Windows.Hotkeys.GlobalHotkeyService? hotkeyService;
+    private DictationCaptureController? captureController;
     private bool isExplicitExit;
 
     protected override void OnStartup(System.Windows.StartupEventArgs e)
@@ -19,15 +21,19 @@ public partial class App : System.Windows.Application
         };
 
         activityWindow = new ActivityWindow();
+        captureController = new DictationCaptureController(Dispatcher, activityWindow, (MainWindow)MainWindow);
         trayIcon = new TrayIconService();
         trayIcon.OpenRequested += (_, _) => ShowMainWindow();
         trayIcon.ExitRequested += (_, _) => ExitApplication();
+        ConfigureHotkey((MainWindow)MainWindow);
         MainWindow.Show();
     }
 
     protected override void OnExit(System.Windows.ExitEventArgs e)
     {
         trayIcon?.Dispose();
+        hotkeyService?.Dispose();
+        captureController?.Dispose();
         activityWindow?.Close();
         base.OnExit(e);
     }
@@ -46,5 +52,28 @@ public partial class App : System.Windows.Application
         isExplicitExit = true;
         MainWindow?.Close();
         Shutdown();
+    }
+
+    private void ConfigureHotkey(MainWindow window)
+    {
+        try
+        {
+            var gesture = new Witness.Core.Input.HotkeyGestureStateMachine(Witness.Core.Input.HotkeyActivationMode.Hold);
+            hotkeyService = new Witness.Platform.Windows.Hotkeys.GlobalHotkeyService();
+            hotkeyService.Pressed += (_, _) => captureController?.Handle(gesture.Press());
+            hotkeyService.Released += (_, _) => captureController?.Handle(gesture.Release());
+            var chord = new Witness.Core.Input.HotkeyChord(
+                Witness.Core.Input.HotkeyModifiers.Control | Witness.Core.Input.HotkeyModifiers.Shift,
+                0x20);
+            var result = hotkeyService.Change(chord);
+            if (result.Status == Witness.Platform.Windows.Hotkeys.HotkeyRegistrationStatus.Conflict)
+                window.SetStatus("Ctrl+Shift+Space is already used by another app. Shortcut editing will be available in Settings.");
+        }
+        catch (Exception error)
+        {
+            hotkeyService?.Dispose();
+            hotkeyService = null;
+            window.SetStatus($"The global shortcut could not be registered: {error.Message}");
+        }
     }
 }

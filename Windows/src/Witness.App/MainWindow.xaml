@@ -42,14 +42,25 @@
                 Padding="28"
                 IsHitTestVisible="True">
             <StackPanel>
-                <TextBlock Text="Windows implementation shell"
+                <TextBlock Text="Windows implementation preview"
                            FontSize="24"
                            FontWeight="SemiBold"
                            Margin="0,0,0,12" />
-                <TextBlock Text="The W0 shell is intentionally not a beta. Capture, transcription, insertion, review, licensing, and updates are added in the following verified slices."
+                <TextBlock Text="This preview is intentionally not a beta. Microphone capture stays on this PC; transcription, insertion, review, licensing, and production updates are completed in later verified slices."
                            TextWrapping="Wrap"
                            MaxWidth="560"
                            HorizontalAlignment="Left" />
+                <Border Margin="0,24,0,0"
+                        Padding="12"
+                        BorderThickness="1"
+                        BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"
+                        CornerRadius="4">
+                    <TextBlock x:Name="StatusText"
+                               Text="Ready. Hold Ctrl+Shift+Space to test local microphone capture."
+                               TextWrapping="Wrap"
+                               automation:AutomationProperties.LiveSetting="Polite"
+                               automation:AutomationProperties.Name="Witness status" />
+                </Border>
             </StackPanel>
         </Border>
 

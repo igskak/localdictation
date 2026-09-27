@@ -44,4 +44,15 @@ public sealed class HotkeyPolicyTests
         Assert.AreEqual(new HotkeyChord(HotkeyModifiers.Control | HotkeyModifiers.Shift, 65),
             new HotkeyChord(HotkeyModifiers.Control | HotkeyModifiers.Shift, 65).Validated());
     }
+
+    [TestMethod]
+    public void HoldEndsWhenPrimaryKeyOrAnyChordModifierIsReleasedFirst()
+    {
+        var chord = new HotkeyChord(HotkeyModifiers.Control | HotkeyModifiers.Shift, 0x20);
+        Assert.IsTrue(HotkeyReleasePolicy.EndsHold(chord, 0x20));
+        Assert.IsTrue(HotkeyReleasePolicy.EndsHold(chord, 0x10));
+        Assert.IsTrue(HotkeyReleasePolicy.EndsHold(chord, 0x11));
+        Assert.IsFalse(HotkeyReleasePolicy.EndsHold(chord, 0x12));
+        Assert.IsFalse(HotkeyReleasePolicy.EndsHold(chord, 0x41));
+    }
 }

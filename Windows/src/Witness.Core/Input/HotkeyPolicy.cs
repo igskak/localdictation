@@ -35,6 +35,28 @@ public enum HotkeyAction
     EndRecording,
 }
 
+public static class HotkeyReleasePolicy
+{
+    private const uint VirtualKeyShift = 0x10;
+    private const uint VirtualKeyControl = 0x11;
+    private const uint VirtualKeyAlt = 0x12;
+    private const uint VirtualKeyLeftWindows = 0x5B;
+    private const uint VirtualKeyRightWindows = 0x5C;
+
+    public static bool EndsHold(HotkeyChord chord, uint releasedVirtualKey)
+    {
+        if (releasedVirtualKey == chord.VirtualKey) return true;
+        return releasedVirtualKey switch
+        {
+            VirtualKeyShift => (chord.Modifiers & HotkeyModifiers.Shift) != 0,
+            VirtualKeyControl => (chord.Modifiers & HotkeyModifiers.Control) != 0,
+            VirtualKeyAlt => (chord.Modifiers & HotkeyModifiers.Alt) != 0,
+            VirtualKeyLeftWindows or VirtualKeyRightWindows => (chord.Modifiers & HotkeyModifiers.Windows) != 0,
+            _ => false,
+        };
+    }
+}
+
 /// <summary>Pure press/release/repeat policy shared by the Win32 adapter and tests.</summary>
 public sealed class HotkeyGestureStateMachine(HotkeyActivationMode mode)
 {

@@ -81,7 +81,7 @@ public sealed partial class GlobalHotkeyService : IHotkeyNativeRegistration, IDi
             (message.ToInt32() == WmKeyUp || message.ToInt32() == WmSysKeyUp))
         {
             var keyboard = Marshal.PtrToStructure<LowLevelKeyboardInput>(data);
-            if (keyboard.VirtualKey == chord.VirtualKey)
+            if (HotkeyReleasePolicy.EndsHold(chord, keyboard.VirtualKey))
             {
                 pressOutstanding = false;
                 Released?.Invoke(this, EventArgs.Empty);

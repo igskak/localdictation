@@ -8,4 +8,6 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
     }
+
+    internal void SetStatus(string status) => StatusText.Text = status;
 }
