@@ -23,8 +23,8 @@ cross-targeting on macOS is not reported as Windows validation.
 
 | Phase | Status | Completed in this checkout | Remaining gate |
 | --- | --- | --- | --- |
-| W0 | **In progress** | Pinned solution/toolchain/dependencies; Core and WPF shell; Windows CI and manual packaging workflows; C ABI for whisper.cpp; signed-manifest/verified-package spike; privacy endpoint inventory; build metadata; baseline hashes; CI-only synthetic CPU inference smoke with a hash-pinned fixture model | Run Windows CI; compile and exercise native code on Windows; obtain a successful actual RAM-only PCM-to-whisper CPU smoke with text/timing assertions and no Vulkan dependency; retain CI evidence/artifact |
-| W1 | **In progress** | Recording state machine and cancellation generation; bounded PCM buffer and energy VAD; complete engine language catalog, selection/pin/continuity policy; final-recording language timing guard; Unicode boundary map; conservative cleanup/edit map; all risk signals and measured prose bounds; review thresholds/history rules; entitlement/lifetime pure policy | Pass the same Core suite on Windows CI; audit any remaining release fixtures before marking the phase complete |
+| W0 | **Complete** | Pinned solution/toolchain/dependencies; Core and WPF shell; successful Windows CI and self-contained artifact; C ABI and real CPU-only RAM PCM-to-whisper smoke with segment timing; signed-manifest/verified-package spike; privacy endpoint inventory; build metadata; baseline hashes | Physical Windows/hardware claims remain intentionally outside W0 |
+| W1 | **Complete** | Recording state machine and cancellation generation; bounded PCM buffer and energy VAD; complete engine language catalog, selection/pin/continuity policy; final-recording language timing guard; Unicode boundary map; conservative cleanup/edit map; all risk signals and release prose bounds; review thresholds/history rules; entitlement/lifetime pure policy; 76 tests passed on macOS and Windows | Windows system lexicon capability remains a W5 platform integration; physical speech accuracy remains W3/W8 |
 | W2 | Not started | — | Tray, single instance, hotkeys, startup, WASAPI/resampling, device selection/fallback, permissions/interruption, activity UI and Windows adapter tests |
 | W3 | Not started | Native inference contract exists only as a W0 spike | Model manager, pinned product model/hash, offline reuse, cancellation, word mapping, CPU retry/Vulkan capability, leading-silence language corpus and synthetic DE/EN/RU/UK CI smoke |
 | W4 | Not started | — | UI Automation target/protected checks, modifier wait, clipboard-safe insertion, owned UI harness and race tests |
@@ -136,16 +136,27 @@ CI together with its synthetic WAV before artifact assembly.
 ## CI and artifacts
 
 - Windows CI run
-  [`36324966461`](https://github.com/igskak/localdictation/actions/runs/36324966461)
-  executed for source `31a8bfc89e296e254614e45e064c2bdfa3e3cd5d`.
-  Managed restore/build, Core tests, signed-update tests and the Windows
-  platform test step passed. The run then failed during native configure
-  because the pinned `windows-2025` image no longer contained the explicitly
-  requested `Visual Studio 17 2022` generator. The workflows now let CMake
-  choose the compiler installed in the pinned runner image; a successful rerun
-  is still required.
-- There is no validated Windows installer, successful CI build artifact or
-  Windows native inference result yet.
+  [`36325946708`](https://github.com/igskak/localdictation/actions/runs/36325946708)
+  passed for source `6fa28a8b023d37e3768bc98b55c068719ca45087`.
+- Runner boundary: Windows Server 2025 Datacenter, build 26100, x64. Native
+  compilation used the runner-provided Visual Studio 18 Enterprise toolchain,
+  MSVC `14.51.36231`. This is not evidence for a physical Windows 11 machine.
+- Managed solution build, 76 Core tests, 6 signed-update tests, native ABI test,
+  self-contained ReadyToRun publish and privacy filename scan passed. The one
+  platform test remains explicitly skipped until W2 supplies real adapters; it
+  was not counted as verified behavior.
+- The CI-only `tiny.en-q5_1` model loaded with `use_gpu = 0`; the synthetic
+  16 kHz mono in-memory PCM produced a non-empty segment with valid timing.
+  Neither the model nor WAV was included in the uploaded artifact.
+- Uploaded artifact:
+  `witness-windows-w0-shell-6fa28a8b023d37e3768bc98b55c068719ca45087`,
+  artifact ID `10934211219`, 94,800,049 bytes, retention through 2026-10-04.
+  This is a W0 shell build, not an installer or beta.
+- Earlier runs documented and resolved three W0 workflow issues: obsolete
+  explicit VS 2022 generator (`36324966461`), over-broad CTest scope and split
+  DLL output (`36325169813`/`36325463436`), and an over-broad Vulkan filename
+  guard (`36325704496`). Expectations were not weakened; the final run executed
+  the intended checks.
 - The manual package job is intentionally unsigned and must not be distributed
   as a production or signed beta build.
 
@@ -165,7 +176,8 @@ CI together with its synthetic WAV before artifact assembly.
 
 ## Next step
 
-Put only the isolated Windows/root-scope files on a clean branch based on the
-0.6.8 release commit and run `windows-ci.yml`. Fix the workflow/native adapter
-until the actual Windows CPU inference smoke succeeds. W0 cannot be marked
-complete until that run and its artifact evidence exist.
+Implement W2 in the same isolated branch: lifecycle/tray/single-instance,
+hold/toggle hotkeys with conflict recovery, startup opt-in, WASAPI capture and
+conversion, device selection/fallback, permission/interruption outcomes and an
+owned Windows adapter harness. Keep microphone and ordinary-user behavior
+explicitly pending until physical QA.
