@@ -11,6 +11,7 @@
 #include <mfidl.h>
 #include <mftransform.h>
 #include <mmreg.h>
+#include <ks.h>
 #include <ksmedia.h>
 #include <wmcodecdsp.h>
 
