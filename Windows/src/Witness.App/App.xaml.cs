@@ -6,6 +6,7 @@ public partial class App : System.Windows.Application
     private ActivityWindow? activityWindow;
     private Witness.Platform.Windows.Hotkeys.GlobalHotkeyService? hotkeyService;
     private DictationCaptureController? captureController;
+    private Witness.Platform.Windows.Lifecycle.DesktopSessionMonitor? sessionMonitor;
     private bool isExplicitExit;
 
     protected override void OnStartup(System.Windows.StartupEventArgs e)
@@ -19,6 +20,7 @@ public partial class App : System.Windows.Application
             eventArgs.Cancel = true;
             MainWindow.Hide();
         };
+        MainWindow.SourceInitialized += (_, _) => ConfigureSessionMonitor((MainWindow)MainWindow);
 
         activityWindow = new ActivityWindow();
         captureController = new DictationCaptureController(Dispatcher, activityWindow, (MainWindow)MainWindow);
@@ -33,6 +35,7 @@ public partial class App : System.Windows.Application
     {
         trayIcon?.Dispose();
         hotkeyService?.Dispose();
+        sessionMonitor?.Dispose();
         captureController?.Dispose();
         activityWindow?.Close();
         base.OnExit(e);
@@ -74,6 +77,19 @@ public partial class App : System.Windows.Application
             hotkeyService?.Dispose();
             hotkeyService = null;
             window.SetStatus($"The global shortcut could not be registered: {error.Message}");
+        }
+    }
+
+    private void ConfigureSessionMonitor(MainWindow window)
+    {
+        try
+        {
+            sessionMonitor = new Witness.Platform.Windows.Lifecycle.DesktopSessionMonitor(window);
+            sessionMonitor.CaptureShouldStop += (_, _) => captureController?.RequestStop();
+        }
+        catch (Exception error)
+        {
+            window.SetStatus($"Windows session-lock monitoring is unavailable: {error.Message}");
         }
     }
 }

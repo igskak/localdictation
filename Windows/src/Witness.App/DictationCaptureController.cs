@@ -22,6 +22,8 @@ internal sealed class DictationCaptureController(
         _ = action == HotkeyAction.BeginRecording ? BeginAsync() : EndAsync();
     }
 
+    public void RequestStop() => _ = EndAsync();
+
     public void Dispose()
     {
         if (disposed) return;
