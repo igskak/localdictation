@@ -135,10 +135,17 @@ CI together with its synthetic WAV before artifact assembly.
 
 ## CI and artifacts
 
-- Windows workflow definitions exist, but **no Windows Actions run has yet been
-  executed for this implementation**.
-- There is no validated Windows installer, CI artifact, run URL or Windows
-  source revision yet.
+- Windows CI run
+  [`36324966461`](https://github.com/igskak/localdictation/actions/runs/36324966461)
+  executed for source `31a8bfc89e296e254614e45e064c2bdfa3e3cd5d`.
+  Managed restore/build, Core tests, signed-update tests and the Windows
+  platform test step passed. The run then failed during native configure
+  because the pinned `windows-2025` image no longer contained the explicitly
+  requested `Visual Studio 17 2022` generator. The workflows now let CMake
+  choose the compiler installed in the pinned runner image; a successful rerun
+  is still required.
+- There is no validated Windows installer, successful CI build artifact or
+  Windows native inference result yet.
 - The manual package job is intentionally unsigned and must not be distributed
   as a production or signed beta build.
 

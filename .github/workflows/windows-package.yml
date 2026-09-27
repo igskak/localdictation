@@ -42,7 +42,7 @@ jobs:
 
       - name: Configure and build native CPU adapter
         run: |
-          cmake -S Windows/native/Witness.Native -B Windows/artifacts/native -G "Visual Studio 17 2022" -A x64 -DWITNESS_ENABLE_VULKAN=OFF -DWITNESS_BUILD_TESTS=OFF
+          cmake -S Windows/native/Witness.Native -B Windows/artifacts/native -DWITNESS_ENABLE_VULKAN=OFF -DWITNESS_BUILD_TESTS=OFF
           cmake --build Windows/artifacts/native --config Release --parallel 2
 
       - name: Publish self-contained x64 app
