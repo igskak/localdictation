@@ -4,6 +4,7 @@
 #error Witness WASAPI capture requires Windows.
 #endif
 
+#define NOMINMAX
 #include <Windows.h>
 #include <audioclient.h>
 #include <ksmedia.h>
