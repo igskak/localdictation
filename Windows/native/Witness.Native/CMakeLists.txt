@@ -52,6 +52,7 @@ if(WITNESS_BUILD_TESTS)
   add_executable(witness_native_contract_tests tests/native_contract_tests.cpp)
   target_link_libraries(witness_native_contract_tests PRIVATE Witness.Native)
   add_test(NAME witness_native_contract_tests COMMAND witness_native_contract_tests)
+  set_tests_properties(witness_native_contract_tests PROPERTIES TIMEOUT 30)
 
   # Invoked explicitly by CI after it creates a synthetic WAV and verifies the
   # pinned fixture-model hash. It is not registered with CTest because normal

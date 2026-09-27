@@ -80,7 +80,9 @@ jobs:
         run: cmake --build Windows/artifacts/native --config Release --parallel 2
 
       - name: Run native ownership and ABI tests
-        run: ctest --test-dir Windows/artifacts/native -C Release --output-on-failure
+        run: >-
+          ctest --test-dir Windows/artifacts/native -C Release
+          --output-on-failure -R "^witness_native_contract_tests$"
 
       - name: Download and verify CI-only whisper fixture model
         shell: pwsh
