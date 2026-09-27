@@ -1,5 +1,4 @@
 using Microsoft.Win32.SafeHandles;
-using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -15,6 +14,7 @@ public enum NativeAudioSampleFormat : uint
     Pcm24In32LittleEndian = 5,
 }
 
+[StructLayout(LayoutKind.Sequential)]
 public readonly record struct NativeCaptureFormat(
     uint SampleRate,
     uint ChannelCount,
@@ -34,7 +34,7 @@ public enum NativeAudioStatus
     AudioFormatUnsupported = 8,
 }
 
-public sealed class NativeAudioException(NativeAudioStatus status, string message) : Win32Exception(message)
+public sealed class NativeAudioException(NativeAudioStatus status, string message) : Exception(message)
 {
     public NativeAudioStatus Status { get; } = status;
 }
