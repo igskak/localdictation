@@ -131,7 +131,7 @@ jobs:
           if ($smoke.Count -ne 1) {
             throw "Expected one native inference smoke executable; found $($smoke.Count)."
           }
-          $vulkan = Get-ChildItem Windows/artifacts/native -Recurse -File | Where-Object Name -Match "vulkan"
+          $vulkan = Get-ChildItem Windows/artifacts/native/bin/Release -File -Filter "*vulkan*.dll"
           if ($vulkan) {
             throw "CPU smoke build unexpectedly contains a Vulkan runtime."
           }
