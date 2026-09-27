@@ -30,13 +30,14 @@ FetchContent_MakeAvailable(whisper_cpp)
 add_library(Witness.Native SHARED
   src/witness_audio_capture.cpp
   src/witness_audio_conversion.cpp
+  src/witness_audio_resampler.cpp
   src/witness_native.cpp
   include/witness_native.h
 )
 target_include_directories(Witness.Native PUBLIC include)
 target_link_libraries(Witness.Native PRIVATE whisper)
 if(WIN32)
-  target_link_libraries(Witness.Native PRIVATE ole32)
+  target_link_libraries(Witness.Native PRIVATE mfplat mfuuid ole32)
 endif()
 target_compile_definitions(Witness.Native PRIVATE WITNESS_NATIVE_BUILD=1)
 
@@ -70,6 +71,14 @@ if(WITNESS_BUILD_TESTS)
   )
   add_test(NAME witness_native_audio_conversion_tests COMMAND witness_native_audio_conversion_tests)
   set_tests_properties(witness_native_audio_conversion_tests PROPERTIES TIMEOUT 30)
+
+  add_executable(witness_native_audio_resampler_tests tests/native_audio_resampler_tests.cpp)
+  target_link_libraries(witness_native_audio_resampler_tests PRIVATE Witness.Native)
+  set_target_properties(witness_native_audio_resampler_tests PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+  )
+  add_test(NAME witness_native_audio_resampler_tests COMMAND witness_native_audio_resampler_tests)
+  set_tests_properties(witness_native_audio_resampler_tests PROPERTIES TIMEOUT 30)
 
   # Invoked explicitly by CI after it creates a synthetic WAV and verifies the
   # pinned fixture-model hash. It is not registered with CTest because normal

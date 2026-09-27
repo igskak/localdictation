@@ -41,6 +41,7 @@ enum witness_audio_sample_format {
 };
 
 typedef struct witness_audio_capture witness_audio_capture;
+typedef struct witness_audio_buffer witness_audio_buffer;
 
 struct witness_audio_format {
     uint32_t sample_rate;
@@ -96,6 +97,20 @@ WITNESS_NATIVE_API enum witness_status witness_audio_capture_start(
 
 WITNESS_NATIVE_API void witness_audio_capture_stop(witness_audio_capture * capture);
 WITNESS_NATIVE_API void witness_audio_capture_destroy(witness_audio_capture * capture);
+
+// Runs on a worker after capture, never from the WASAPI packet callback. Input
+// and output stay in memory. The caller owns the returned buffer until destroy.
+WITNESS_NATIVE_API enum witness_status witness_audio_resample_to_16khz(
+    const float * input_mono,
+    size_t input_sample_count,
+    uint32_t input_sample_rate,
+    witness_audio_buffer ** result,
+    char * error_utf8,
+    size_t error_capacity);
+
+WITNESS_NATIVE_API const float * witness_audio_buffer_data(const witness_audio_buffer * buffer);
+WITNESS_NATIVE_API size_t witness_audio_buffer_sample_count(const witness_audio_buffer * buffer);
+WITNESS_NATIVE_API void witness_audio_buffer_destroy(witness_audio_buffer * buffer);
 
 WITNESS_NATIVE_API enum witness_status witness_context_create(
     const char * model_path_utf8,
