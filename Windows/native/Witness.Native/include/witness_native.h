@@ -29,7 +29,26 @@ enum witness_status {
     WITNESS_STATUS_INTERNAL_ERROR = 5,
 };
 
+enum witness_audio_sample_format {
+    WITNESS_AUDIO_PCM16_LE = 1,
+    WITNESS_AUDIO_PCM24_LE = 2,
+    WITNESS_AUDIO_PCM32_LE = 3,
+    WITNESS_AUDIO_FLOAT32_LE = 4,
+};
+
 WITNESS_NATIVE_API uint32_t witness_native_abi_version(void);
+
+// Converts complete interleaved frames to mono Float32 without retaining the
+// source. The output capacity and returned frame count are measured in floats.
+WITNESS_NATIVE_API enum witness_status witness_audio_decode_to_mono(
+    const void * input,
+    size_t input_size_bytes,
+    size_t frame_count,
+    uint32_t channel_count,
+    enum witness_audio_sample_format format,
+    float * output,
+    size_t output_capacity_frames,
+    size_t * output_frame_count);
 
 WITNESS_NATIVE_API enum witness_status witness_context_create(
     const char * model_path_utf8,

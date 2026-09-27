@@ -82,7 +82,7 @@ jobs:
       - name: Run native ownership and ABI tests
         run: >-
           ctest --test-dir Windows/artifacts/native -C Release
-          --output-on-failure -R "^witness_native_contract_tests$"
+          --output-on-failure -R "^witness_native_(contract|audio_conversion)_tests$"
 
       - name: Download and verify CI-only whisper fixture model
         shell: pwsh
