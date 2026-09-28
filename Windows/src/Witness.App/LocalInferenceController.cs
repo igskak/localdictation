@@ -11,8 +11,8 @@ internal sealed class LocalInferenceController : IAsyncDisposable
     private readonly Dispatcher dispatcher;
     private readonly MainWindow window;
     private readonly LocalInferencePipeline pipeline;
-    private readonly LanguageProfile previewProfile = new(SpeechLanguage.English);
     private string? verifiedModelPath;
+    private LanguageProfile? selectedProfile;
     private bool disposed;
 
     public LocalInferenceController(Dispatcher dispatcher, MainWindow window)
@@ -29,6 +29,9 @@ internal sealed class LocalInferenceController : IAsyncDisposable
         verifiedModelPath = modelPath;
     }
 
+    public void SetLanguageProfile(LanguageProfile profile) =>
+        selectedProfile = profile ?? throw new ArgumentNullException(nameof(profile));
+
     public async Task<bool> ProcessAsync(AudioCaptureResult capture)
     {
         if (capture.Kind is not (AudioCaptureCompletionKind.Speech or AudioCaptureCompletionKind.InterruptedWithSpeech))
@@ -37,6 +40,13 @@ internal sealed class LocalInferenceController : IAsyncDisposable
         }
 
         var modelPath = verifiedModelPath;
+        var profile = selectedProfile;
+        if (profile is null)
+        {
+            Array.Clear(capture.Pcm16KhzMono);
+            await SetStatusAsync("Choose a speech language profile before dictating. The captured audio was released.").ConfigureAwait(false);
+            return true;
+        }
         if (modelPath is null)
         {
             Array.Clear(capture.Pcm16KhzMono);
@@ -49,7 +59,7 @@ internal sealed class LocalInferenceController : IAsyncDisposable
             var result = await pipeline.ProcessAsync(new LocalInferenceRequest(
                 capture.Pcm16KhzMono,
                 modelPath,
-                previewProfile,
+                profile,
                 PinnedLanguage: null,
                 ThreadCount: Math.Clamp(Environment.ProcessorCount - 1, 1, 8))).ConfigureAwait(false);
             var warning = capture.Kind == AudioCaptureCompletionKind.InterruptedWithSpeech

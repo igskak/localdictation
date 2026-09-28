@@ -59,7 +59,7 @@
                         CornerRadius="4">
                     <StackPanel>
                         <TextBlock x:Name="StatusText"
-                                   Text="Ready. The W3 preview profile is English until language selection is connected in W5. Hold Ctrl+Shift+Space to capture and transcribe locally."
+                                   Text="Choose a speech language profile below before capturing audio."
                                    TextWrapping="Wrap"
                                    automation:AutomationProperties.LiveSetting="Polite"
                                    automation:AutomationProperties.Name="Witness status" />
@@ -70,6 +70,24 @@
                                 Visibility="Collapsed"
                                 Click="OpenMicrophonePrivacySettings"
                                 automation:AutomationProperties.Name="Open Windows microphone privacy settings" />
+                    </StackPanel>
+                </Border>
+                <Border Margin="0,16,0,0"
+                        Padding="12"
+                        BorderThickness="1"
+                        BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"
+                        CornerRadius="4">
+                    <StackPanel>
+                        <TextBlock Text="Speech language profile"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,0,8" />
+                        <TextBlock Text="W3 supports the measured DE/EN/RU/UK automatic profile or any single language known to the engine. Custom multi-language profiles arrive with onboarding in W5."
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,8" />
+                        <ComboBox x:Name="LanguageProfileBox"
+                                  MinHeight="32"
+                                  SelectionChanged="ChangeLanguageProfile"
+                                  automation:AutomationProperties.Name="Speech language profile" />
                     </StackPanel>
                 </Border>
                 <Border x:Name="ModelSetupPanel"

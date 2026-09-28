@@ -28,6 +28,7 @@ public partial class App : System.Windows.Application
         modelSetupController = new ModelSetupController(Dispatcher, (MainWindow)MainWindow);
         inferenceController = new LocalInferenceController(Dispatcher, (MainWindow)MainWindow);
         modelSetupController.ModelReady += inferenceController.SetVerifiedModelPath;
+        ((MainWindow)MainWindow).LanguageProfileChanged += inferenceController.SetLanguageProfile;
         captureController = new DictationCaptureController(
             Dispatcher,
             activityWindow,
@@ -49,6 +50,8 @@ public partial class App : System.Windows.Application
         captureController?.Dispose();
         if (modelSetupController is not null && inferenceController is not null)
             modelSetupController.ModelReady -= inferenceController.SetVerifiedModelPath;
+        if (MainWindow is MainWindow window && inferenceController is not null)
+            window.LanguageProfileChanged -= inferenceController.SetLanguageProfile;
         inferenceController?.DisposeAsync().AsTask().GetAwaiter().GetResult();
         modelSetupController?.DisposeAsync().AsTask().GetAwaiter().GetResult();
         activityWindow?.Close();

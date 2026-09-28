@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Diagnostics;
 using System.Globalization;
+using Witness.Core.Languages;
 using Witness.Core.Models;
 
 namespace Witness.App;
@@ -9,10 +10,12 @@ public partial class MainWindow : Window
 {
     internal event EventHandler? ModelDownloadRequested;
     internal event EventHandler? ModelDownloadCancelRequested;
+    internal event Action<LanguageProfile>? LanguageProfileChanged;
 
     public MainWindow()
     {
         InitializeComponent();
+        LanguageProfileBox.ItemsSource = BuildLanguageProfiles();
     }
 
     internal void SetStatus(string status)
@@ -100,6 +103,38 @@ public partial class MainWindow : Window
     private void CancelModelDownload(object sender, RoutedEventArgs e) =>
         ModelDownloadCancelRequested?.Invoke(this, EventArgs.Empty);
 
+    private void ChangeLanguageProfile(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (LanguageProfileBox.SelectedItem is LanguageProfileOption option)
+        {
+            LanguageProfileChanged?.Invoke(option.Profile);
+            SetStatus($"Speech profile selected: {option.Label}. Hold Ctrl+Shift+Space to dictate locally.");
+        }
+    }
+
+    private static IReadOnlyList<LanguageProfileOption> BuildLanguageProfiles()
+    {
+        var choices = new List<LanguageProfileOption>
+        {
+            new(
+                "Automatic — Deutsch, English, русский, українська (verified)",
+                new LanguageProfile(
+                    SpeechLanguage.German,
+                    SpeechLanguage.English,
+                    SpeechLanguage.Russian,
+                    SpeechLanguage.Ukrainian)),
+        };
+        choices.AddRange(LanguageCatalog.All.Select(entry => new LanguageProfileOption(
+            $"{entry.NativeName} — {entry.EnglishName}",
+            new LanguageProfile(new SpeechLanguage(entry.Code)))));
+        return choices;
+    }
+
     private void OpenMicrophonePrivacySettings(object sender, RoutedEventArgs e) =>
         Process.Start(new ProcessStartInfo("ms-settings:privacy-microphone") { UseShellExecute = true });
+
+    private sealed record LanguageProfileOption(string Label, LanguageProfile Profile)
+    {
+        public override string ToString() => Label;
+    }
 }
