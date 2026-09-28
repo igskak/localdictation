@@ -8,6 +8,7 @@ namespace Witness.App;
 
 internal sealed class LocalInferenceController : IAsyncDisposable
 {
+    private const int EngineSampleRate = 16_000;
     private readonly Dispatcher dispatcher;
     private readonly MainWindow window;
     private readonly LocalInferencePipeline pipeline;
@@ -56,12 +57,16 @@ internal sealed class LocalInferenceController : IAsyncDisposable
 
         try
         {
+            var detectionStartSample = capture.SpeechStartSeconds is double speechStart && speechStart > 0
+                ? Math.Min((int)Math.Floor(speechStart * EngineSampleRate), capture.Pcm16KhzMono.Length - 1)
+                : 0;
             var result = await pipeline.ProcessAsync(new LocalInferenceRequest(
                 capture.Pcm16KhzMono,
                 modelPath,
                 profile,
                 PinnedLanguage: null,
-                ThreadCount: Math.Clamp(Environment.ProcessorCount - 1, 1, 8))).ConfigureAwait(false);
+                ThreadCount: Math.Clamp(Environment.ProcessorCount - 1, 1, 8),
+                DetectionStartSample: detectionStartSample)).ConfigureAwait(false);
             var warning = capture.Kind == AudioCaptureCompletionKind.InterruptedWithSpeech
                 || capture.HadDiscontinuity
                 || capture.BufferOverflowed

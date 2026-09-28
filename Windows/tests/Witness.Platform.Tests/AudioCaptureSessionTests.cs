@@ -55,6 +55,22 @@ public sealed class AudioCaptureSessionTests
         Assert.IsTrue(result.HadDiscontinuity);
     }
 
+    [TestMethod]
+    public async Task SpeechStartIsReportedForCompletedAudio()
+    {
+        using var source = new FakePacketSource();
+        using var session = new AudioCaptureSession(source, new FakeProcessor(), TestConfiguration());
+        session.Start();
+        source.Enqueue(new float[4_800]);
+        source.Enqueue(Enumerable.Repeat(0.1F, 3_000).ToArray());
+
+        var result = await session.StopAsync();
+
+        Assert.AreEqual(AudioCaptureCompletionKind.Speech, result.Kind);
+        Assert.IsNotNull(result.SpeechStartSeconds);
+        Assert.AreEqual(0.1, result.SpeechStartSeconds.Value, 0.001);
+    }
+
     private static VoiceActivityConfiguration TestConfiguration() =>
         new(0.02, 0.02F, 0.012F, 3, 0.1, 1);
 

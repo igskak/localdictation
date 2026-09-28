@@ -21,7 +21,8 @@ public sealed record LocalInferenceRequest(
     string ModelPath,
     LanguageProfile Profile,
     SpeechLanguage? PinnedLanguage,
-    int ThreadCount);
+    int ThreadCount,
+    int DetectionStartSample = 0);
 
 public sealed record LocalInferenceResult(
     LanguageDecisionResult LanguageDecision,
@@ -93,7 +94,7 @@ public sealed class LocalInferencePipeline(
 
             var detector = new CompletedRecordingLanguageDetector(activeSession);
             var decision = await detector.DetectAsync(
-                request.CompletedPcm16KhzMono,
+                request.CompletedPcm16KhzMono.AsMemory(request.DetectionStartSample),
                 effectiveProfile,
                 previous,
                 request.ThreadCount,
@@ -246,6 +247,12 @@ public sealed class LocalInferencePipeline(
         if (request.ThreadCount < 1)
         {
             throw new ArgumentOutOfRangeException(nameof(request), "At least one inference thread is required.");
+        }
+        if (request.DetectionStartSample < 0 || request.DetectionStartSample >= request.CompletedPcm16KhzMono.Length)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(request),
+                "The language-detection boundary must point inside the completed audio.");
         }
     }
 }

@@ -29,6 +29,29 @@ public sealed class LocalInferencePipelineTests
     }
 
     [TestMethod]
+    public async Task DetectionStartsAtVadBoundaryWhileTranscriptionKeepsTheFullPhrase()
+    {
+        var session = new FakeSession
+        {
+            Probabilities = new Dictionary<string, float> { ["en"] = 0.9F, ["de"] = 0.1F },
+        };
+        await using var pipeline = new LocalInferencePipeline(new FakeSessionFactory(session));
+        var audio = new float[] { 0.001F, -0.001F, 0.2F, -0.3F };
+
+        await pipeline.ProcessAsync(new LocalInferenceRequest(
+            audio,
+            ModelPath,
+            new LanguageProfile(SpeechLanguage.German, SpeechLanguage.English),
+            PinnedLanguage: null,
+            ThreadCount: 2,
+            DetectionStartSample: 2));
+
+        CollectionAssert.AreEqual(new float[] { 0.2F, -0.3F }, session.DetectionAudio);
+        CollectionAssert.AreEqual(new float[] { 0.001F, -0.001F, 0.2F, -0.3F }, session.TranscriptionAudio);
+        CollectionAssert.AreEqual(new float[] { 0, 0, 0, 0 }, audio);
+    }
+
+    [TestMethod]
     public async Task PinRestrictsProfileAndSkipsDetection()
     {
         var session = new FakeSession();
@@ -146,6 +169,8 @@ public sealed class LocalInferencePipelineTests
         public TaskCompletionSource FirstDetectionStarted { get; } =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
         public List<TranscriptionRequest> Requests { get; } = [];
+        public float[]? DetectionAudio { get; private set; }
+        public float[]? TranscriptionAudio { get; private set; }
         public int DetectionCalls { get; private set; }
 
         public async Task<IReadOnlyDictionary<string, float>> DetectProbabilitiesAsync(
@@ -154,6 +179,7 @@ public sealed class LocalInferencePipelineTests
             CancellationToken cancellationToken)
         {
             DetectionCalls++;
+            DetectionAudio = completedPcm16KhzMono.ToArray();
             if (BlockFirstDetection && DetectionCalls == 1)
             {
                 FirstDetectionStarted.SetResult();
@@ -173,6 +199,7 @@ public sealed class LocalInferencePipelineTests
                 throw new OperationCanceledException();
             }
             Requests.Add(request);
+            TranscriptionAudio = request.Pcm16KhzMono.ToArray();
             return TranscriptionError is null
                 ? Task.FromResult(new TranscriptionOutput(
                     ReturnedLanguageCode ?? request.LanguageCode!,

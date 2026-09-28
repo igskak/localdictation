@@ -36,7 +36,8 @@ public sealed record AudioCaptureResult(
     bool HadDiscontinuity,
     long DroppedPacketCount,
     bool BufferOverflowed,
-    uint SourceSampleRate);
+    uint SourceSampleRate,
+    double? SpeechStartSeconds = null);
 
 /// <summary>
 /// Drains native packets on a worker, normalizes into a bounded mono buffer,
@@ -102,7 +103,8 @@ public sealed class AudioCaptureSession(
 
         var captured = buffer ?? throw new InvalidOperationException("The capture buffer was not created.");
         var detector = vad ?? throw new InvalidOperationException("The voice activity detector was not created.");
-        var hasSpeech = detector.Observation.SpeechStart is not null;
+        var observation = detector.Observation;
+        var hasSpeech = observation.SpeechStart is not null;
         var normalized = hasSpeech
             ? processor.ResampleTo16Khz(captured.Samples, format.SampleRate)
             : [];
@@ -119,7 +121,8 @@ public sealed class AudioCaptureSession(
             hadDiscontinuity,
             source.Queue.DroppedPacketCount,
             bufferOverflowed,
-            format.SampleRate);
+            format.SampleRate,
+            observation.SpeechStart);
     }
 
     public void Dispose()

@@ -179,11 +179,16 @@ int main(int argc, char ** argv) {
             require_explicit_transcript(context.get(), base, language_case.expected);
             for (const int delay : kLeadingNoiseMilliseconds) {
                 const auto samples = with_leading_noise(base, delay);
+                // AudioCaptureSession reports the VAD speech boundary with the
+                // completed in-memory phrase. Product language detection starts
+                // there; explicit transcription still receives the full phrase.
+                const size_t detection_start =
+                    static_cast<size_t>(delay) * kEngineSampleRate / 1000U;
                 witness_language_scores * scores = nullptr;
                 const auto status = witness_detect_languages(
                     context.get(),
-                    samples.data(),
-                    samples.size(),
+                    samples.data() + detection_start,
+                    samples.size() - detection_start,
                     2,
                     nullptr,
                     &scores,
@@ -197,7 +202,8 @@ int main(int argc, char ** argv) {
                 }
                 const std::string selected = choose_profile_language(scores, language_case.profile);
                 std::cout << language_case.expected << " +" << delay << "ms: selected=" << selected
-                          << " profile_scores=" << format_profile_scores(scores, language_case.profile) << '\n';
+                          << " profile_scores=" << format_profile_scores(scores, language_case.profile)
+                          << " detection_start=" << detection_start << '\n';
                 witness_language_scores_destroy(scores);
                 if (selected != language_case.expected) {
                     std::cerr << "Wrong selected language for the configured mixed profile.\n";
