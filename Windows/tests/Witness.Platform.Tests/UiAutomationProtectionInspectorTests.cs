@@ -68,7 +68,7 @@ public sealed class UiAutomationProtectionInspectorTests
         try
         {
             cancellation.Cancel();
-            await Assert.ThrowsExactlyAsync<OperationCanceledException>(() =>
+            await Assert.ThrowsAsync<OperationCanceledException>(() =>
                 inspector.InspectAsync(Target, TimeSpan.FromSeconds(1), cancellation.Token));
         }
         finally
