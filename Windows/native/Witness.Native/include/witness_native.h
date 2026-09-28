@@ -19,6 +19,7 @@ extern "C" {
 
 typedef struct witness_context witness_context;
 typedef struct witness_transcript witness_transcript;
+typedef struct witness_cancellation witness_cancellation;
 
 enum witness_status {
     WITNESS_STATUS_OK = 0,
@@ -30,6 +31,7 @@ enum witness_status {
     WITNESS_STATUS_AUDIO_ACCESS_DENIED = 6,
     WITNESS_STATUS_AUDIO_DEVICE_UNAVAILABLE = 7,
     WITNESS_STATUS_AUDIO_FORMAT_UNSUPPORTED = 8,
+    WITNESS_STATUS_CANCELLED = 9,
 };
 
 enum witness_audio_sample_format {
@@ -141,6 +143,11 @@ WITNESS_NATIVE_API enum witness_status witness_context_create(
 
 WITNESS_NATIVE_API void witness_context_destroy(witness_context * context);
 
+WITNESS_NATIVE_API enum witness_status witness_cancellation_create(
+    witness_cancellation ** result);
+WITNESS_NATIVE_API void witness_cancellation_cancel(witness_cancellation * cancellation);
+WITNESS_NATIVE_API void witness_cancellation_destroy(witness_cancellation * cancellation);
+
 WITNESS_NATIVE_API enum witness_status witness_transcribe(
     witness_context * context,
     const float * pcm_16khz_mono,
@@ -151,12 +158,45 @@ WITNESS_NATIVE_API enum witness_status witness_transcribe(
     char * error_utf8,
     size_t error_capacity);
 
+WITNESS_NATIVE_API enum witness_status witness_transcribe_cancelable(
+    witness_context * context,
+    const float * pcm_16khz_mono,
+    size_t sample_count,
+    const char * language_utf8,
+    int thread_count,
+    witness_cancellation * cancellation,
+    witness_transcript ** result,
+    char * error_utf8,
+    size_t error_capacity);
+
 WITNESS_NATIVE_API void witness_transcript_destroy(witness_transcript * transcript);
 WITNESS_NATIVE_API int witness_transcript_language_id(const witness_transcript * transcript);
+WITNESS_NATIVE_API const char * witness_transcript_language(const witness_transcript * transcript);
 WITNESS_NATIVE_API size_t witness_transcript_segment_count(const witness_transcript * transcript);
 WITNESS_NATIVE_API const char * witness_transcript_segment_text(const witness_transcript * transcript, size_t index);
 WITNESS_NATIVE_API int64_t witness_transcript_segment_start_ms(const witness_transcript * transcript, size_t index);
 WITNESS_NATIVE_API int64_t witness_transcript_segment_end_ms(const witness_transcript * transcript, size_t index);
+WITNESS_NATIVE_API size_t witness_transcript_segment_token_count(
+    const witness_transcript * transcript,
+    size_t segment_index);
+WITNESS_NATIVE_API const char * witness_transcript_token_text(
+    const witness_transcript * transcript,
+    size_t segment_index,
+    size_t token_index);
+WITNESS_NATIVE_API float witness_transcript_token_probability(
+    const witness_transcript * transcript,
+    size_t segment_index,
+    size_t token_index);
+// Token timestamps are returned only when the selected engine path has been
+// parity-validated. A negative value requires the caller to use segment timing.
+WITNESS_NATIVE_API int64_t witness_transcript_token_start_ms(
+    const witness_transcript * transcript,
+    size_t segment_index,
+    size_t token_index);
+WITNESS_NATIVE_API int64_t witness_transcript_token_end_ms(
+    const witness_transcript * transcript,
+    size_t segment_index,
+    size_t token_index);
 
 #ifdef __cplusplus
 }

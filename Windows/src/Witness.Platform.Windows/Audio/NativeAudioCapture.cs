@@ -32,6 +32,7 @@ public enum NativeAudioStatus
     AudioAccessDenied = 6,
     AudioDeviceUnavailable = 7,
     AudioFormatUnsupported = 8,
+    Cancelled = 9,
 }
 
 public sealed class NativeAudioException(NativeAudioStatus status, string message) : Exception(message)

@@ -3,6 +3,7 @@
 #include <whisper.h>
 
 #include <algorithm>
+#include <atomic>
 #include <cstring>
 #include <exception>
 #include <memory>
@@ -11,9 +12,13 @@
 #include <utility>
 #include <vector>
 
+struct witness_cancellation {
+    std::atomic_bool cancelled{false};
+};
+
 namespace {
 
-constexpr uint32_t kAbiVersion = 1;
+constexpr uint32_t kAbiVersion = 2;
 constexpr size_t kMinimumSamples = 1;
 constexpr size_t kMaximumSamples = 16000ULL * 600ULL;
 
@@ -25,11 +30,22 @@ struct WhisperDeleter {
     }
 };
 
+struct Token {
+    std::string text;
+    float probability;
+};
+
 struct Segment {
     std::string text;
     int64_t start_ms;
     int64_t end_ms;
+    std::vector<Token> tokens;
 };
+
+bool should_abort(void * user_context) noexcept {
+    const auto * cancellation = static_cast<const witness_cancellation *>(user_context);
+    return cancellation != nullptr && cancellation->cancelled.load(std::memory_order_relaxed);
+}
 
 void write_error(char * destination, size_t capacity, const char * message) noexcept {
     if (destination == nullptr || capacity == 0) {
@@ -56,6 +72,7 @@ struct witness_context {
 
 struct witness_transcript {
     int language_id = -1;
+    std::string language;
     std::vector<Segment> segments;
 };
 
@@ -107,12 +124,38 @@ extern "C" void witness_context_destroy(witness_context * context) {
     delete context;
 }
 
-extern "C" enum witness_status witness_transcribe(
+extern "C" enum witness_status witness_cancellation_create(witness_cancellation ** result) {
+    if (result == nullptr) {
+        return WITNESS_STATUS_INVALID_ARGUMENT;
+    }
+    *result = nullptr;
+    try {
+        *result = new witness_cancellation();
+        return WITNESS_STATUS_OK;
+    } catch (const std::bad_alloc &) {
+        return WITNESS_STATUS_OUT_OF_MEMORY;
+    } catch (...) {
+        return WITNESS_STATUS_INTERNAL_ERROR;
+    }
+}
+
+extern "C" void witness_cancellation_cancel(witness_cancellation * cancellation) {
+    if (cancellation != nullptr) {
+        cancellation->cancelled.store(true, std::memory_order_relaxed);
+    }
+}
+
+extern "C" void witness_cancellation_destroy(witness_cancellation * cancellation) {
+    delete cancellation;
+}
+
+extern "C" enum witness_status witness_transcribe_cancelable(
     witness_context * context,
     const float * pcm_16khz_mono,
     size_t sample_count,
     const char * language_utf8,
     int thread_count,
+    witness_cancellation * cancellation,
     witness_transcript ** result,
     char * error_utf8,
     size_t error_capacity) {
@@ -124,6 +167,10 @@ extern "C" enum witness_status witness_transcribe(
         || sample_count < kMinimumSamples || sample_count > kMaximumSamples || thread_count < 1) {
         write_error(error_utf8, error_capacity, "The transcription request is invalid.");
         return WITNESS_STATUS_INVALID_ARGUMENT;
+    }
+    if (should_abort(cancellation)) {
+        write_error(error_utf8, error_capacity, "The transcription was cancelled.");
+        return WITNESS_STATUS_CANCELLED;
     }
     try {
         auto parameters = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
@@ -139,12 +186,18 @@ extern "C" enum witness_status witness_transcribe(
         parameters.token_timestamps = false;
         parameters.language = language_utf8;
         parameters.detect_language = language_utf8 == nullptr || language_utf8[0] == '\0';
+        parameters.abort_callback = cancellation == nullptr ? nullptr : should_abort;
+        parameters.abort_callback_user_data = cancellation;
 
         const int status = whisper_full(
             context->whisper.get(),
             parameters,
             pcm_16khz_mono,
             static_cast<int>(sample_count));
+        if (should_abort(cancellation)) {
+            write_error(error_utf8, error_capacity, "The transcription was cancelled.");
+            return WITNESS_STATUS_CANCELLED;
+        }
         if (status != 0) {
             write_error(error_utf8, error_capacity, "whisper.cpp could not transcribe the in-memory PCM buffer.");
             return WITNESS_STATUS_TRANSCRIPTION_FAILED;
@@ -152,15 +205,38 @@ extern "C" enum witness_status witness_transcribe(
 
         auto transcript = std::make_unique<witness_transcript>();
         transcript->language_id = whisper_full_lang_id(context->whisper.get());
+        const char * language = whisper_lang_str(transcript->language_id);
+        transcript->language = language == nullptr ? std::string{} : std::string{language};
         const int segment_count = whisper_full_n_segments(context->whisper.get());
         transcript->segments.reserve(static_cast<size_t>(std::max(0, segment_count)));
         for (int index = 0; index < segment_count; ++index) {
             const char * text = whisper_full_get_segment_text(context->whisper.get(), index);
-            transcript->segments.push_back(Segment{
+            Segment segment{
                 text == nullptr ? std::string{} : std::string{text},
                 whisper_full_get_segment_t0(context->whisper.get(), index) * 10,
                 whisper_full_get_segment_t1(context->whisper.get(), index) * 10,
-            });
+                {},
+            };
+            const int token_count = whisper_full_n_tokens(context->whisper.get(), index);
+            segment.tokens.reserve(static_cast<size_t>(std::max(0, token_count)));
+            const whisper_token first_special = whisper_token_eot(context->whisper.get());
+            for (int token_index = 0; token_index < token_count; ++token_index) {
+                const whisper_token token_id = whisper_full_get_token_id(
+                    context->whisper.get(), index, token_index);
+                if (token_id >= first_special) {
+                    continue;
+                }
+                const char * token_text = whisper_full_get_token_text(
+                    context->whisper.get(), index, token_index);
+                if (token_text == nullptr || token_text[0] == '\0') {
+                    continue;
+                }
+                segment.tokens.push_back(Token{
+                    std::string{token_text},
+                    whisper_full_get_token_p(context->whisper.get(), index, token_index),
+                });
+            }
+            transcript->segments.push_back(std::move(segment));
         }
 
         *result = transcript.release();
@@ -177,12 +253,37 @@ extern "C" enum witness_status witness_transcribe(
     }
 }
 
+extern "C" enum witness_status witness_transcribe(
+    witness_context * context,
+    const float * pcm_16khz_mono,
+    size_t sample_count,
+    const char * language_utf8,
+    int thread_count,
+    witness_transcript ** result,
+    char * error_utf8,
+    size_t error_capacity) {
+    return witness_transcribe_cancelable(
+        context,
+        pcm_16khz_mono,
+        sample_count,
+        language_utf8,
+        thread_count,
+        nullptr,
+        result,
+        error_utf8,
+        error_capacity);
+}
+
 extern "C" void witness_transcript_destroy(witness_transcript * transcript) {
     delete transcript;
 }
 
 extern "C" int witness_transcript_language_id(const witness_transcript * transcript) {
     return transcript == nullptr ? -1 : transcript->language_id;
+}
+
+extern "C" const char * witness_transcript_language(const witness_transcript * transcript) {
+    return transcript == nullptr ? nullptr : transcript->language.c_str();
 }
 
 extern "C" size_t witness_transcript_segment_count(const witness_transcript * transcript) {
@@ -208,4 +309,49 @@ extern "C" int64_t witness_transcript_segment_end_ms(const witness_transcript * 
         return -1;
     }
     return transcript->segments[index].end_ms;
+}
+
+extern "C" size_t witness_transcript_segment_token_count(
+    const witness_transcript * transcript,
+    size_t segment_index) {
+    if (transcript == nullptr || segment_index >= transcript->segments.size()) {
+        return 0;
+    }
+    return transcript->segments[segment_index].tokens.size();
+}
+
+extern "C" const char * witness_transcript_token_text(
+    const witness_transcript * transcript,
+    size_t segment_index,
+    size_t token_index) {
+    if (transcript == nullptr || segment_index >= transcript->segments.size()
+        || token_index >= transcript->segments[segment_index].tokens.size()) {
+        return nullptr;
+    }
+    return transcript->segments[segment_index].tokens[token_index].text.c_str();
+}
+
+extern "C" float witness_transcript_token_probability(
+    const witness_transcript * transcript,
+    size_t segment_index,
+    size_t token_index) {
+    if (transcript == nullptr || segment_index >= transcript->segments.size()
+        || token_index >= transcript->segments[segment_index].tokens.size()) {
+        return 0.0F;
+    }
+    return transcript->segments[segment_index].tokens[token_index].probability;
+}
+
+extern "C" int64_t witness_transcript_token_start_ms(
+    const witness_transcript *,
+    size_t,
+    size_t) {
+    return -1;
+}
+
+extern "C" int64_t witness_transcript_token_end_ms(
+    const witness_transcript *,
+    size_t,
+    size_t) {
+    return -1;
 }

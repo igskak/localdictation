@@ -12,7 +12,7 @@ void ignore_audio(void *, const void *, size_t, size_t, uint32_t) {}
 }
 
 int main() {
-    assert(witness_native_abi_version() == 1);
+    assert(witness_native_abi_version() == 2);
 
     std::array<char, 128> error{};
     witness_context * context = reinterpret_cast<witness_context *>(0x1);
@@ -39,6 +39,19 @@ int main() {
     assert(witness_transcript_segment_text(nullptr, 0) == nullptr);
     assert(witness_transcript_segment_start_ms(nullptr, 0) == -1);
     assert(witness_transcript_segment_end_ms(nullptr, 0) == -1);
+    assert(witness_transcript_language(nullptr) == nullptr);
+    assert(witness_transcript_segment_token_count(nullptr, 0) == 0);
+    assert(witness_transcript_token_text(nullptr, 0, 0) == nullptr);
+    assert(witness_transcript_token_probability(nullptr, 0, 0) == 0.0F);
+    assert(witness_transcript_token_start_ms(nullptr, 0, 0) == -1);
+    assert(witness_transcript_token_end_ms(nullptr, 0, 0) == -1);
+
+    assert(witness_cancellation_create(nullptr) == WITNESS_STATUS_INVALID_ARGUMENT);
+    witness_cancellation * cancellation = nullptr;
+    assert(witness_cancellation_create(&cancellation) == WITNESS_STATUS_OK);
+    assert(cancellation != nullptr);
+    witness_cancellation_cancel(cancellation);
+    witness_cancellation_destroy(cancellation);
 
     witness_audio_capture * capture = reinterpret_cast<witness_audio_capture *>(0x1);
     const auto invalid_capture = witness_audio_capture_create(

@@ -149,17 +149,30 @@ int main(int argc, char ** argv) {
         }
 
         const size_t count = witness_transcript_segment_count(transcript);
+        const char * language = witness_transcript_language(transcript);
+        const std::string language_code = language == nullptr ? std::string{} : std::string{language};
         bool has_text = false;
         bool has_valid_timing = false;
+        bool has_token = false;
+        bool has_only_segment_timing = true;
         for (size_t index = 0; index < count; ++index) {
             has_text = has_text || contains_non_whitespace(witness_transcript_segment_text(transcript, index));
             const int64_t start = witness_transcript_segment_start_ms(transcript, index);
             const int64_t end = witness_transcript_segment_end_ms(transcript, index);
             has_valid_timing = has_valid_timing || (start >= 0 && end > start);
+            const size_t token_count = witness_transcript_segment_token_count(transcript, index);
+            for (size_t token_index = 0; token_index < token_count; ++token_index) {
+                has_token = has_token || contains_non_whitespace(
+                    witness_transcript_token_text(transcript, index, token_index));
+                has_only_segment_timing = has_only_segment_timing
+                    && witness_transcript_token_start_ms(transcript, index, token_index) == -1
+                    && witness_transcript_token_end_ms(transcript, index, token_index) == -1;
+            }
         }
         witness_transcript_destroy(transcript);
-        if (count == 0 || !has_text || !has_valid_timing) {
-            std::cerr << "Inference produced no non-empty timed segment.\n";
+        if (count == 0 || !has_text || !has_valid_timing || !has_token || !has_only_segment_timing
+            || language_code != "en") {
+            std::cerr << "Inference produced no non-empty timed English transcript with tokens.\n";
             return 5;
         }
 
