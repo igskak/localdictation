@@ -26,7 +26,7 @@ cross-targeting on macOS is not reported as Windows validation.
 | W0 | **Complete** | Pinned solution/toolchain/dependencies; Core and WPF shell; successful Windows CI and self-contained artifact; C ABI and real CPU-only RAM PCM-to-whisper smoke with segment timing; signed-manifest/verified-package spike; privacy endpoint inventory; build metadata; baseline hashes | Physical Windows/hardware claims remain intentionally outside W0 |
 | W1 | **Complete** | Recording state machine and cancellation generation; bounded PCM buffer and energy VAD; complete engine language catalog, selection/pin/continuity policy; final-recording language timing guard; Unicode boundary map; conservative cleanup/edit map; all risk signals and release prose bounds; review thresholds/history rules; entitlement/lifetime pure policy; 76 tests passed on macOS and Windows | Windows system lexicon capability remains a W5 platform integration; physical speech accuracy remains W3/W8 |
 | W2 | **In progress** | WPF tray lifecycle, named single-instance lease and non-activating activity badge; hold/toggle hotkeys and startup opt-in; preallocated packet queue and bounded fake-tested capture lifecycle; memory-only event-driven shared-mode WASAPI; PCM16/24/32/Float32 normalization; Media Foundation 44.1/48→16 kHz resampling with drain; opaque endpoint-ID enumeration with unknown built-in metadata kept explicit; microphone privacy recovery and local hotkey-to-capture preview | Windows CI for the locally committed session-loss stop policy; physical hardware QA remains W8 |
-| W3 | **In progress** | Verified local model manager and disclosed download UX; immutable multilingual product-model candidate; cancellable native transcription/token bridge; grapheme word mapping with honest segment-timing fallback; real backend probe and one controlled CPU retry policy; completed-recording language-score bridge; pinned synthetic DE/EN/RU/UK leading-noise regression harness | Run the new native ABI, product-model, eSpeak extraction, 16 leading-noise decisions and four explicit transcriptions on Windows CI; wire model/session/language decisions into the end-to-end app flow; profile CPU/GPU and decide whether the pinned candidate meets the product bar |
+| W3 | **In progress** | Verified local model manager and disclosed download UX; immutable multilingual product-model candidate; cancellable native transcription/token bridge; grapheme word mapping with honest segment-timing fallback; real backend probe and one controlled CPU retry policy; completed-recording language-score bridge; pinned synthetic DE/EN/RU/UK leading-noise regression harness; app-level verified-model → completed-audio language decision → explicit-language transcription flow with generation cancellation and immediate audio clearing | Run the new native ABI, product-model, eSpeak extraction, 16 leading-noise decisions, four explicit transcriptions and the new app wiring on Windows CI; profile CPU/GPU and decide whether the pinned candidate meets the product bar |
 | W4 | Not started | — | UI Automation target/protected checks, modifier wait, clipboard-safe insertion, owned UI harness and race tests |
 | W5 | Not started | W0 shell only; it is not a complete user flow | Review/replay integration, six functional Settings sections, onboarding, glossary, bounded visible history, EN/DE resources, synthetic UI screenshots and full hotkey-to-insert path |
 | W6 | Not started | Pure entitlement timing/major policy only | LD1 and Service fixture parity, device identity, activation/release-slot adapters, consent/telemetry allowlists, beta test authority and Windows terms/privacy draft |
@@ -106,7 +106,7 @@ Result: passed; self-contained win-x64 ReadyToRun output produced on macOS.
   --configuration Release --no-restore
 Result: passed; 86 passed, 0 failed, 0 skipped after the first W2 policy slice.
 
-The current local Windows head builds with 0 warnings and 0 errors and has 111
+The current local Windows head builds with 0 warnings and 0 errors and has 119
 Core tests. Its desktop-session policy tests and W3 native integrations require
 the Windows test host and are not reported as passed locally.
 
@@ -213,6 +213,16 @@ and is not linked or shipped.
   transcription/word/backend contracts and multilingual regression gate. The
   new native path has not run on Windows CI for the same authorization reason;
   these commits are implementation evidence, not a passing Windows claim.
+- Local commits `29521c1`, `51216a0`, `6807ab6` and `09e4cdb` connect that W3
+  foundation into the app. The coordinator owns only one loaded backend,
+  explicitly disposes a failed GPU session before its single CPU creation, and
+  applies the same controlled switch to completed-recording language detection.
+  The inference pipeline reuses one verified-model session, rejects stale
+  generations, transcribes with the selected language code, and clears the
+  caller-owned PCM array after success, cancellation or failure. The WPF
+  preview requires an explicit profile choice: measured DE/EN/RU/UK automatic
+  detection or any single engine language. This has only been cross-built on
+  macOS; native loading and UI behavior still require Windows CI/QA.
 
 ## Known limitations and external gates
 
@@ -227,6 +237,11 @@ and is not linked or shipped.
 - The WPF shell is a W0 accessibility-aware skeleton, not the finished product
   UI. Windows DPI, high contrast, keyboard navigation and screen reader behavior
   remain CI/physical-QA gates.
+- The W3 profile selector is deliberately narrower than the W5 onboarding and
+  settings requirement: it offers the verified four-language automatic profile
+  or one explicit engine language, but not an arbitrary user-selected mixed
+  set. The pipeline already accepts injected mixed profiles; the full selector
+  and persistence remain W5 work.
 - The current language-score call prepares and encodes the completed recording
   separately from the later explicit-language transcription. Encoder reuse is
   a measured-performance follow-up, not assumed behavior.
@@ -235,7 +250,8 @@ and is not linked or shipped.
 
 With explicit authorization, push the local Windows branch and run the complete
 Windows pipeline. Mark W2 complete only if the desktop-session tests pass, then
-use the W3 result to repair any MSVC/eSpeak/product-model regression issue before
-wiring the model and inference coordinator into the app flow. Physical
-microphone and ordinary-user desktop behavior remain explicitly pending until
-W8 QA.
+use the W3 result to repair any MSVC/eSpeak/product-model or app-wiring issue.
+After the hosted W3 gate is green, profile CPU/GPU on representative Windows 11
+hardware and decide whether the pinned model meets the beta product bar before
+starting W4 insertion. Physical microphone and ordinary-user desktop behavior
+remain explicitly pending until W8 QA.
