@@ -25,8 +25,8 @@ cross-targeting on macOS is not reported as Windows validation.
 | --- | --- | --- | --- |
 | W0 | **Complete** | Pinned solution/toolchain/dependencies; Core and WPF shell; successful Windows CI and self-contained artifact; C ABI and real CPU-only RAM PCM-to-whisper smoke with segment timing; signed-manifest/verified-package spike; privacy endpoint inventory; build metadata; baseline hashes | Physical Windows/hardware claims remain intentionally outside W0 |
 | W1 | **Complete** | Recording state machine and cancellation generation; bounded PCM buffer and energy VAD; complete engine language catalog, selection/pin/continuity policy; final-recording language timing guard; Unicode boundary map; conservative cleanup/edit map; all risk signals and release prose bounds; review thresholds/history rules; entitlement/lifetime pure policy; 76 tests passed on macOS and Windows | Windows system lexicon capability remains a W5 platform integration; physical speech accuracy remains W3/W8 |
-| W2 | **In progress** | WPF tray lifecycle, named single-instance lease and non-activating activity badge; hold/toggle hotkeys and startup opt-in; preallocated packet queue and bounded fake-tested capture lifecycle; memory-only event-driven shared-mode WASAPI; PCM16/24/32/Float32 normalization; Media Foundation 44.1/48→16 kHz resampling with drain; opaque endpoint-ID enumeration with unknown built-in metadata kept explicit; microphone privacy recovery and local hotkey-to-capture preview | Windows CI for the locally committed session-loss stop policy; physical hardware QA remains W8 |
-| W3 | **In progress** | Verified local model manager and disclosed download UX; immutable multilingual product-model candidate; cancellable native transcription/token bridge; grapheme word mapping with honest segment-timing fallback; real backend probe and one controlled CPU retry policy; completed-recording language-score bridge; pinned synthetic DE/EN/RU/UK leading-noise regression harness; test-only native benchmark; app-level verified-model → completed-audio language decision → explicit-language transcription flow with generation cancellation and immediate audio clearing | Run the new native ABI, product-model, eSpeak extraction, 16 leading-noise decisions, four explicit transcriptions, CPU benchmark and the new app wiring on Windows CI; profile CPU/GPU and decide whether the pinned candidate meets the product bar |
+| W2 | **Complete** | WPF tray lifecycle, named single-instance lease and non-activating activity badge; hold/toggle hotkeys and startup opt-in; preallocated packet queue and bounded fake-tested capture lifecycle; memory-only event-driven shared-mode WASAPI; PCM16/24/32/Float32 normalization; Media Foundation 44.1/48→16 kHz resampling with drain; opaque endpoint-ID enumeration with unknown built-in metadata kept explicit; microphone privacy recovery, local hotkey-to-capture preview and verified session-loss stop tests on Windows CI | Physical microphone/device/session QA remains W8 |
+| W3 | **In progress** | Verified local model manager and disclosed download UX; immutable multilingual product-model candidate; cancellable native transcription/token bridge; grapheme word mapping with honest segment-timing fallback; real backend probe and one controlled CPU retry policy; completed-recording language-score bridge with VAD speech boundary; pinned synthetic eSpeak DE/EN/RU plus neural Piper UK leading-noise regression harness; test-only native benchmark; app-level verified-model → completed-audio language decision → explicit-language transcription flow with generation cancellation and immediate audio clearing | Re-run the strict 16 leading-noise decisions and four explicit transcriptions with the representative Ukrainian fixture, then run the CPU benchmark/artifact gates; profile CPU/GPU and decide whether the pinned candidate meets the product bar |
 | W4 | Not started | — | UI Automation target/protected checks, modifier wait, clipboard-safe insertion, owned UI harness and race tests |
 | W5 | Not started | W0 shell only; it is not a complete user flow | Review/replay integration, six functional Settings sections, onboarding, glossary, bounded visible history, EN/DE resources, synthetic UI screenshots and full hotkey-to-insert path |
 | W6 | Not started | Pure entitlement timing/major policy only | LD1 and Service fixture parity, device identity, activation/release-slot adapters, consent/telemetry allowlists, beta test authority and Windows terms/privacy draft |
@@ -150,6 +150,11 @@ The official eSpeak NG 1.52.0 x64 MSI used only to synthesize CI inputs was
 downloaded to `/private/tmp`, measured as 12,765,862 bytes with SHA-256
 `7f673c709ea5dd579d3b5ebb98688cc575328a6ab7438d2bc405b88cedaeafb9`,
 and is not linked or shipped.
+The CI-only Piper `2023.11.14-2` Windows archive and
+`uk_UA-ukrainian_tts-medium` voice/config were also downloaded independently
+to `/private/tmp`. Their measured sizes and SHA-256 values match the pinned
+metadata in `config/language-regression.json`; they are used only to replace an
+unrepresentative Ukrainian eSpeak test voice and are never shipped.
 
 ## CI and artifacts
 
@@ -230,6 +235,15 @@ and is not linked or shipped.
   `44e1f91` additionally serializes generation publication with cancellation,
   makes the WPF profile/model handoff thread-visible, and proves a mismatched
   factory backend is disposed rather than leaked.
+- Runs `36408649331` and `36410763205` verified the managed build/tests, MSVC
+  native build/ABI, real CPU model load and DE/EN/RU synthetic decisions, but
+  the eSpeak Ukrainian voice was classified as English. Commit `a01de94`
+  carries the capture VAD speech boundary into language detection while keeping
+  the full phrase for explicit transcription; 121 Core tests cover the split.
+  Run `36412060837` passed 17 Windows platform tests, including session-loss and
+  VAD-boundary propagation, then reproduced the Ukrainian eSpeak gap on
+  speech-only input. Assertions remain strict; the next run substitutes the
+  pinned neural Piper voice only for the synthetic Ukrainian fixture.
 
 ## Known limitations and external gates
 
@@ -260,9 +274,7 @@ and is not linked or shipped.
 
 ## Next step
 
-With explicit authorization, push the local Windows branch and run the complete
-Windows pipeline. Mark W2 complete only if the desktop-session tests pass, then
-use the W3 result to repair any MSVC/eSpeak/product-model or app-wiring issue.
+Run the complete Windows pipeline with the pinned Piper Ukrainian fixture.
 After the hosted W3 gate is green, profile CPU/GPU on representative Windows 11
 hardware and decide whether the pinned model meets the beta product bar before
 starting W4 insertion. Physical microphone and ordinary-user desktop behavior

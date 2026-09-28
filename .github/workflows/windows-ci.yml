@@ -154,6 +154,9 @@ jobs:
           $modelDirectory = "Windows/artifacts/language-model-cache"
           $model = Join-Path $modelDirectory $fixture.model.artifact
           $installer = Join-Path $root "espeak-ng-$($fixture.speechGenerator.version).msi"
+          $piperArchive = Join-Path $root $fixture.ukrainianSpeechGenerator.artifact
+          $piperModel = Join-Path $root $fixture.ukrainianSpeechGenerator.voice.modelArtifact
+          $piperConfig = Join-Path $root $fixture.ukrainianSpeechGenerator.voice.configArtifact
           New-Item -ItemType Directory -Path $root, $modelDirectory -Force | Out-Null
 
           if (-not (Test-Path $model)) {
@@ -172,6 +175,30 @@ jobs:
           }
           if ((Get-Item $installer).Length -ne $fixture.speechGenerator.sizeBytes) {
             throw "eSpeak NG installer size mismatch."
+          }
+
+          Invoke-WebRequest -Uri $fixture.ukrainianSpeechGenerator.source -OutFile $piperArchive
+          if ((Get-FileHash -Path $piperArchive -Algorithm SHA256).Hash.ToLowerInvariant() -ne $fixture.ukrainianSpeechGenerator.sha256) {
+            throw "Piper archive SHA-256 mismatch."
+          }
+          if ((Get-Item $piperArchive).Length -ne $fixture.ukrainianSpeechGenerator.sizeBytes) {
+            throw "Piper archive size mismatch."
+          }
+
+          Invoke-WebRequest -Uri $fixture.ukrainianSpeechGenerator.voice.modelSource -OutFile $piperModel
+          if ((Get-FileHash -Path $piperModel -Algorithm SHA256).Hash.ToLowerInvariant() -ne $fixture.ukrainianSpeechGenerator.voice.modelSha256) {
+            throw "Piper Ukrainian voice model SHA-256 mismatch."
+          }
+          if ((Get-Item $piperModel).Length -ne $fixture.ukrainianSpeechGenerator.voice.modelSizeBytes) {
+            throw "Piper Ukrainian voice model size mismatch."
+          }
+
+          Invoke-WebRequest -Uri $fixture.ukrainianSpeechGenerator.voice.configSource -OutFile $piperConfig
+          if ((Get-FileHash -Path $piperConfig -Algorithm SHA256).Hash.ToLowerInvariant() -ne $fixture.ukrainianSpeechGenerator.voice.configSha256) {
+            throw "Piper Ukrainian voice config SHA-256 mismatch."
+          }
+          if ((Get-Item $piperConfig).Length -ne $fixture.ukrainianSpeechGenerator.voice.configSizeBytes) {
+            throw "Piper Ukrainian voice config size mismatch."
           }
 
       - name: Generate non-user multilingual speech fixtures
@@ -194,7 +221,7 @@ jobs:
             throw "Expected exactly one eSpeak NG executable and data directory."
           }
           $dataParent = $dataDirectories[0].Parent.FullName
-          foreach ($audio in $fixture.audio) {
+          foreach ($audio in @($fixture.audio | Where-Object generator -eq "espeak")) {
             $voiceListing = @(& $generators[0].FullName "--path=$dataParent" "--voices=$($audio.voice)" 2>&1)
             $voicePattern = "(?m)^\s*\d+\s+$([regex]::Escape($audio.voice))\s+"
             if ($LASTEXITCODE -ne 0 -or ($voiceListing -join "`n") -notmatch $voicePattern) {
@@ -207,6 +234,28 @@ jobs:
             if ($LASTEXITCODE -ne 0 -or -not (Test-Path $wavPath) -or (Get-Item $wavPath).Length -le 44) {
               throw "Synthetic $($audio.language) speech generation failed."
             }
+          }
+
+          $piperArchive = Join-Path $root $fixture.ukrainianSpeechGenerator.artifact
+          $piperRoot = Join-Path $root "piper"
+          Expand-Archive -LiteralPath $piperArchive -DestinationPath $piperRoot -Force
+          $piperExecutables = @(Get-ChildItem $piperRoot -Recurse -File -Filter piper.exe)
+          if ($piperExecutables.Count -ne 1) {
+            throw "Expected exactly one Piper executable."
+          }
+          $ukrainianAudio = @($fixture.audio | Where-Object generator -eq "piper")
+          if ($ukrainianAudio.Count -ne 1 -or $ukrainianAudio[0].language -ne "uk") {
+            throw "Expected exactly one Piper-generated Ukrainian fixture."
+          }
+          $ukrainianText = Join-Path $root "uk.txt"
+          $ukrainianWav = Join-Path $root "uk.wav"
+          $piperModel = Join-Path $root $fixture.ukrainianSpeechGenerator.voice.modelArtifact
+          $piperConfig = Join-Path $root $fixture.ukrainianSpeechGenerator.voice.configArtifact
+          Set-Content -Path $ukrainianText -Value $ukrainianAudio[0].text -Encoding utf8NoBOM -NoNewline
+          Get-Content -Path $ukrainianText -Raw -Encoding utf8 | & $piperExecutables[0].FullName `
+            --model $piperModel --config $piperConfig --output_file $ukrainianWav
+          if ($LASTEXITCODE -ne 0 -or -not (Test-Path $ukrainianWav) -or (Get-Item $ukrainianWav).Length -le 44) {
+            throw "Synthetic Ukrainian Piper speech generation failed."
           }
 
       - name: Run W3 multilingual leading-noise regression
