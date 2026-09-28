@@ -94,4 +94,12 @@ if(WITNESS_BUILD_TESTS)
   set_target_properties(witness_native_inference_smoke PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
   )
+
+  # Invoked explicitly by CI with verified product-model and synthetic eSpeak
+  # inputs. Neither the model nor generated WAV files enter normal artifacts.
+  add_executable(witness_native_language_regression tests/native_language_regression.cpp)
+  target_link_libraries(witness_native_language_regression PRIVATE Witness.Native)
+  set_target_properties(witness_native_language_regression PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+  )
 endif()

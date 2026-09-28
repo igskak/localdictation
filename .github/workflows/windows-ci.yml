@@ -29,7 +29,7 @@ jobs:
   build-test:
     name: Build and test x64
     runs-on: windows-2025
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     steps:
       - name: Check out source
@@ -140,9 +140,89 @@ jobs:
             throw "Native CPU inference smoke failed with exit code $LASTEXITCODE."
           }
 
-      - name: Remove native smoke inputs before artifact assembly
+      - name: Cache pinned public product-model candidate
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: Windows/artifacts/language-model-cache
+          key: witness-whisper-large-v3-turbo-q5_0-394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2
+
+      - name: Download and verify W3 language regression inputs
         shell: pwsh
-        run: Remove-Item Windows/artifacts/native-smoke -Recurse -Force
+        run: |
+          $fixture = Get-Content Windows/config/language-regression.json | ConvertFrom-Json
+          $root = "Windows/artifacts/language-regression"
+          $modelDirectory = "Windows/artifacts/language-model-cache"
+          $model = Join-Path $modelDirectory $fixture.model.artifact
+          $installer = Join-Path $root "espeak-ng-$($fixture.speechGenerator.version).msi"
+          New-Item -ItemType Directory -Path $root, $modelDirectory -Force | Out-Null
+
+          if (-not (Test-Path $model)) {
+            Invoke-WebRequest -Uri $fixture.model.source -OutFile $model
+          }
+          if ((Get-FileHash -Path $model -Algorithm SHA256).Hash.ToLowerInvariant() -ne $fixture.model.sha256) {
+            throw "W3 product-model SHA-256 mismatch."
+          }
+          if ((Get-Item $model).Length -ne $fixture.model.sizeBytes) {
+            throw "W3 product-model size mismatch."
+          }
+
+          Invoke-WebRequest -Uri $fixture.speechGenerator.source -OutFile $installer
+          if ((Get-FileHash -Path $installer -Algorithm SHA256).Hash.ToLowerInvariant() -ne $fixture.speechGenerator.sha256) {
+            throw "eSpeak NG installer SHA-256 mismatch."
+          }
+          if ((Get-Item $installer).Length -ne $fixture.speechGenerator.sizeBytes) {
+            throw "eSpeak NG installer size mismatch."
+          }
+
+      - name: Generate non-user multilingual speech fixtures
+        shell: pwsh
+        run: |
+          $fixture = Get-Content Windows/config/language-regression.json | ConvertFrom-Json
+          $root = (Resolve-Path "Windows/artifacts/language-regression").Path
+          $installer = Join-Path $root "espeak-ng-$($fixture.speechGenerator.version).msi"
+          $extracted = Join-Path $root "espeak"
+          & msiexec.exe /a $installer /qn "TARGETDIR=$extracted"
+          if ($LASTEXITCODE -ne 0) {
+            throw "eSpeak NG administrative extraction failed with exit code $LASTEXITCODE."
+          }
+
+          $generators = @(Get-ChildItem $extracted -Recurse -File -Filter espeak-ng.exe)
+          $dataDirectories = @(Get-ChildItem $extracted -Recurse -Directory -Filter espeak-ng-data)
+          if ($generators.Count -ne 1 -or $dataDirectories.Count -ne 1) {
+            throw "Expected exactly one eSpeak NG executable and data directory."
+          }
+          $dataParent = $dataDirectories[0].Parent.FullName
+          foreach ($audio in $fixture.audio) {
+            $textPath = Join-Path $root "$($audio.language).txt"
+            $wavPath = Join-Path $root "$($audio.language).wav"
+            Set-Content -Path $textPath -Value $audio.text -Encoding utf8NoBOM -NoNewline
+            & $generators[0].FullName "--path=$dataParent" -b 1 -v $audio.voice -s 145 -w $wavPath -f $textPath
+            if ($LASTEXITCODE -ne 0 -or -not (Test-Path $wavPath) -or (Get-Item $wavPath).Length -le 44) {
+              throw "Synthetic $($audio.language) speech generation failed."
+            }
+          }
+
+      - name: Run W3 multilingual leading-noise regression
+        shell: pwsh
+        run: |
+          $fixture = Get-Content Windows/config/language-regression.json | ConvertFrom-Json
+          $root = "Windows/artifacts/language-regression"
+          $model = Join-Path "Windows/artifacts/language-model-cache" $fixture.model.artifact
+          $regression = @(Get-ChildItem Windows/artifacts/native -Recurse -Filter witness_native_language_regression.exe)
+          if ($regression.Count -ne 1) {
+            throw "Expected one native language regression executable; found $($regression.Count)."
+          }
+          & $regression[0].FullName $model (Join-Path $root "de.wav") (Join-Path $root "en.wav") (Join-Path $root "ru.wav") (Join-Path $root "uk.wav")
+          if ($LASTEXITCODE -ne 0) {
+            throw "W3 multilingual language regression failed with exit code $LASTEXITCODE."
+          }
+
+      - name: Remove native smoke inputs before artifact assembly
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item Windows/artifacts/native-smoke -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item Windows/artifacts/language-regression -Recurse -Force -ErrorAction SilentlyContinue
 
       - name: Publish self-contained W0 shell
         working-directory: Windows

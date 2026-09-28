@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "purpose": "CI-only synthetic W3 language and leading-noise regression; inputs are deleted before artifact assembly",
+  "model": {
+    "artifact": "ggml-large-v3-turbo-q5_0.bin",
+    "source": "https://huggingface.co/ggerganov/whisper.cpp/resolve/98aa99a0a9db05ae2342309f5096248665f7cba3/ggml-large-v3-turbo-q5_0.bin",
+    "sizeBytes": 574041195,
+    "sha256": "394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2"
+  },
+  "speechGenerator": {
+    "name": "eSpeak NG",
+    "version": "1.52.0",
+    "source": "https://github.com/espeak-ng/espeak-ng/releases/download/1.52.0/espeak-ng.msi",
+    "sizeBytes": 12765862,
+    "sha256": "7f673c709ea5dd579d3b5ebb98688cc575328a6ab7438d2bc405b88cedaeafb9",
+    "license": "GPL-3.0-or-later",
+    "shipped": false
+  },
+  "profiles": {
+    "de": ["de", "en"],
+    "en": ["ru", "en", "uk"],
+    "ru": ["ru", "en", "uk"],
+    "uk": ["ru", "en", "uk"]
+  },
+  "leadingNoiseMilliseconds": [500, 1000, 1500, 2500],
+  "audio": [
+    {
+      "language": "de",
+      "voice": "de",
+      "text": "Dies ist ein künstlicher Sprachtest für Witness. Heute prüfen wir die zuverlässige Erkennung nach einer kurzen Pause. Alle Audiodaten bleiben während dieser Prüfung lokal im Arbeitsspeicher."
+    },
+    {
+      "language": "en",
+      "voice": "en-us",
+      "text": "This is a synthetic speech test for Witness. Today we verify reliable language recognition after a short pause. All audio data stays local and remains in memory during this test."
+    },
+    {
+      "language": "ru",
+      "voice": "ru",
+      "text": "Это искусственный речевой тест для Witness. Сегодня мы проверяем надёжное распознавание языка после короткой паузы. Все аудиоданные во время этой проверки остаются локально в памяти."
+    },
+    {
+      "language": "uk",
+      "voice": "uk",
+      "text": "Це штучний мовний тест для Witness. Сьогодні ми перевіряємо надійне розпізнавання мови після короткої паузи. Усі аудіодані під час цієї перевірки залишаються локально в пам’яті."
+    }
+  ]
+}
