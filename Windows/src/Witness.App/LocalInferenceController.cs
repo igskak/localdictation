@@ -26,11 +26,11 @@ internal sealed class LocalInferenceController : IAsyncDisposable
     public void SetVerifiedModelPath(string modelPath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(modelPath);
-        verifiedModelPath = modelPath;
+        Volatile.Write(ref verifiedModelPath, modelPath);
     }
 
     public void SetLanguageProfile(LanguageProfile profile) =>
-        selectedProfile = profile ?? throw new ArgumentNullException(nameof(profile));
+        Volatile.Write(ref selectedProfile, profile ?? throw new ArgumentNullException(nameof(profile)));
 
     public async Task<bool> ProcessAsync(AudioCaptureResult capture)
     {
@@ -39,8 +39,8 @@ internal sealed class LocalInferenceController : IAsyncDisposable
             return false;
         }
 
-        var modelPath = verifiedModelPath;
-        var profile = selectedProfile;
+        var modelPath = Volatile.Read(ref verifiedModelPath);
+        var profile = Volatile.Read(ref selectedProfile);
         if (profile is null)
         {
             Array.Clear(capture.Pcm16KhzMono);

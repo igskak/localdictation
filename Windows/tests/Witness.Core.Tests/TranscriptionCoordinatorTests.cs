@@ -113,6 +113,19 @@ public sealed class TranscriptionCoordinatorTests
         Assert.AreEqual(0, factory.CpuCreations);
     }
 
+    [TestMethod]
+    public async Task FactoryKindMismatchIsDisposedAndRejected()
+    {
+        var factory = new FakeFactory { ReturnCpuForGpu = true };
+
+        var error = await Assert.ThrowsExactlyAsync<InvalidOperationException>(() =>
+            TranscriptionCoordinator.CreateAsync(factory, preferAccelerated: true));
+
+        StringAssert.Contains(error.Message, "when Vulkan was requested");
+        Assert.AreEqual(1, factory.Cpu!.DisposeCalls);
+        Assert.AreEqual(0, factory.CpuCreations);
+    }
+
     private static TranscriptionBackendException Failure(
         TranscriptionBackendFailureKind kind,
         bool canRetry = true) => new(
@@ -134,6 +147,7 @@ public sealed class TranscriptionCoordinatorTests
         public FakeBackend? Gpu { get; }
         public FakeBackend? Cpu { get; }
         public Exception? GpuCreationError { get; init; }
+        public bool ReturnCpuForGpu { get; init; }
         public int GpuCreations { get; private set; }
         public int CpuCreations { get; private set; }
         public bool CpuCreatedAfterGpuDisposed { get; private set; }
@@ -147,7 +161,7 @@ public sealed class TranscriptionCoordinatorTests
             {
                 GpuCreations++;
                 return GpuCreationError is null
-                    ? Task.FromResult<ITranscriptionBackend>(Gpu!)
+                    ? Task.FromResult<ITranscriptionBackend>(ReturnCpuForGpu ? Cpu! : Gpu!)
                     : Task.FromException<ITranscriptionBackend>(GpuCreationError);
             }
 

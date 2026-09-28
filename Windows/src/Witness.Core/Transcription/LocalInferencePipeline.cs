@@ -61,12 +61,13 @@ public sealed class LocalInferencePipeline(
         CancellationToken cancellationToken = default)
     {
         Validate(request);
-        var generation = generations.Supersede();
+        long generation;
         CancellationTokenSource operationCancellation;
         lock (stateGate)
         {
             ObjectDisposedException.ThrowIf(disposed, this);
             activeCancellation?.Cancel();
+            generation = generations.Supersede();
             activeCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             operationCancellation = activeCancellation;
         }

@@ -104,7 +104,9 @@ public sealed class TranscriptionCoordinator : ILocalTranscriptionSession
                 var accelerated = await factory
                     .CreateAsync(TranscriptionBackendKind.Vulkan, cancellationToken)
                     .ConfigureAwait(false);
-                ValidateKind(accelerated, TranscriptionBackendKind.Vulkan);
+                await ValidateKindOrDisposeAsync(
+                    accelerated,
+                    TranscriptionBackendKind.Vulkan).ConfigureAwait(false);
                 return new TranscriptionCoordinator(factory, accelerated, cpuCreationAttempted: false);
             }
             catch (TranscriptionBackendException error) when (error.CanRetryOnCpu)
@@ -118,7 +120,7 @@ public sealed class TranscriptionCoordinator : ILocalTranscriptionSession
         var cpu = await factory
             .CreateAsync(TranscriptionBackendKind.Cpu, cancellationToken)
             .ConfigureAwait(false);
-        ValidateKind(cpu, TranscriptionBackendKind.Cpu);
+        await ValidateKindOrDisposeAsync(cpu, TranscriptionBackendKind.Cpu).ConfigureAwait(false);
         return new TranscriptionCoordinator(factory, cpu, cpuCreationAttempted: true);
     }
 
@@ -257,6 +259,24 @@ public sealed class TranscriptionCoordinator : ILocalTranscriptionSession
         if (backend.Kind != expected)
         {
             throw new InvalidOperationException($"The backend factory returned {backend.Kind} when {expected} was requested.");
+        }
+    }
+
+    private static async Task ValidateKindOrDisposeAsync(
+        ITranscriptionBackend backend,
+        TranscriptionBackendKind expected)
+    {
+        try
+        {
+            ValidateKind(backend, expected);
+        }
+        catch
+        {
+            if (backend is not null)
+            {
+                await backend.DisposeAsync().ConfigureAwait(false);
+            }
+            throw;
         }
     }
 }
