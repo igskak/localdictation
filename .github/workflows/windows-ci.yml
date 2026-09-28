@@ -195,6 +195,11 @@ jobs:
           }
           $dataParent = $dataDirectories[0].Parent.FullName
           foreach ($audio in $fixture.audio) {
+            $voiceListing = @(& $generators[0].FullName "--path=$dataParent" "--voices=$($audio.voice)" 2>&1)
+            $voicePattern = "(?m)^\s*\d+\s+$([regex]::Escape($audio.voice))\s+"
+            if ($LASTEXITCODE -ne 0 -or ($voiceListing -join "`n") -notmatch $voicePattern) {
+              throw "Pinned eSpeak NG does not expose the requested $($audio.voice) voice."
+            }
             $textPath = Join-Path $root "$($audio.language).txt"
             $wavPath = Join-Path $root "$($audio.language).wav"
             Set-Content -Path $textPath -Value $audio.text -Encoding utf8NoBOM -NoNewline

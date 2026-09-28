@@ -8,6 +8,7 @@
 #include <iostream>
 #include <limits>
 #include <memory>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -92,6 +93,19 @@ std::string choose_profile_language(
     return selected;
 }
 
+std::string format_profile_scores(
+    const witness_language_scores * scores,
+    const std::vector<const char *> & profile) {
+    std::ostringstream output;
+    for (size_t index = 0; index < profile.size(); ++index) {
+        if (index != 0) {
+            output << ',';
+        }
+        output << profile[index] << '=' << score_for(scores, profile[index]);
+    }
+    return output.str();
+}
+
 bool contains_non_whitespace(const char * text) {
     if (text == nullptr) {
         return false;
@@ -151,11 +165,13 @@ int main(int argc, char ** argv) {
             native_context,
             witness_context_destroy);
 
+        // Ukrainian runs first because it is the closest-language stress case
+        // and should fail quickly rather than after the other 12 decisions.
         const std::array<LanguageCase, 4> cases{{
+            {"uk", argv[5], {"ru", "en", "uk"}},
             {"de", argv[2], {"de", "en"}},
             {"en", argv[3], {"ru", "en", "uk"}},
             {"ru", argv[4], {"ru", "en", "uk"}},
-            {"uk", argv[5], {"ru", "en", "uk"}},
         }};
 
         for (const auto & language_case : cases) {
@@ -181,7 +197,7 @@ int main(int argc, char ** argv) {
                 }
                 const std::string selected = choose_profile_language(scores, language_case.profile);
                 std::cout << language_case.expected << " +" << delay << "ms: selected=" << selected
-                          << " expected_score=" << score_for(scores, language_case.expected) << '\n';
+                          << " profile_scores=" << format_profile_scores(scores, language_case.profile) << '\n';
                 witness_language_scores_destroy(scores);
                 if (selected != language_case.expected) {
                     std::cerr << "Wrong selected language for the configured mixed profile.\n";
