@@ -7,6 +7,7 @@ public partial class App : System.Windows.Application
     private Witness.Platform.Windows.Hotkeys.GlobalHotkeyService? hotkeyService;
     private DictationCaptureController? captureController;
     private Witness.Platform.Windows.Lifecycle.DesktopSessionMonitor? sessionMonitor;
+    private ModelSetupController? modelSetupController;
     private bool isExplicitExit;
 
     protected override void OnStartup(System.Windows.StartupEventArgs e)
@@ -23,12 +24,14 @@ public partial class App : System.Windows.Application
         MainWindow.SourceInitialized += (_, _) => ConfigureSessionMonitor((MainWindow)MainWindow);
 
         activityWindow = new ActivityWindow();
+        modelSetupController = new ModelSetupController(Dispatcher, (MainWindow)MainWindow);
         captureController = new DictationCaptureController(Dispatcher, activityWindow, (MainWindow)MainWindow);
         trayIcon = new TrayIconService();
         trayIcon.OpenRequested += (_, _) => ShowMainWindow();
         trayIcon.ExitRequested += (_, _) => ExitApplication();
         ConfigureHotkey((MainWindow)MainWindow);
         MainWindow.Show();
+        _ = modelSetupController.InspectAsync();
     }
 
     protected override void OnExit(System.Windows.ExitEventArgs e)
@@ -37,6 +40,7 @@ public partial class App : System.Windows.Application
         hotkeyService?.Dispose();
         sessionMonitor?.Dispose();
         captureController?.Dispose();
+        modelSetupController?.DisposeAsync().AsTask().GetAwaiter().GetResult();
         activityWindow?.Close();
         base.OnExit(e);
     }

@@ -41,6 +41,8 @@
                 CornerRadius="8"
                 Padding="28"
                 IsHitTestVisible="True">
+            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled">
             <StackPanel>
                 <TextBlock Text="Windows implementation preview"
                            FontSize="24"
@@ -70,7 +72,48 @@
                                 automation:AutomationProperties.Name="Open Windows microphone privacy settings" />
                     </StackPanel>
                 </Border>
+                <Border x:Name="ModelSetupPanel"
+                        Margin="0,16,0,0"
+                        Padding="12"
+                        BorderThickness="1"
+                        BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"
+                        CornerRadius="4"
+                        Visibility="Collapsed">
+                    <StackPanel>
+                        <TextBlock Text="Speech model"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,0,8" />
+                        <TextBlock x:Name="ModelStatusText"
+                                   TextWrapping="Wrap"
+                                   automation:AutomationProperties.LiveSetting="Polite"
+                                   automation:AutomationProperties.Name="Speech model status" />
+                        <ProgressBar x:Name="ModelProgress"
+                                     Height="12"
+                                     Margin="0,12,0,0"
+                                     Minimum="0"
+                                     Maximum="1"
+                                     Visibility="Collapsed"
+                                     automation:AutomationProperties.Name="Speech model download progress" />
+                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                            <Button x:Name="ModelDownloadButton"
+                                    Content="Download speech model"
+                                    MinHeight="32"
+                                    Padding="12,4"
+                                    Click="DownloadModel"
+                                    automation:AutomationProperties.Name="Download the speech model" />
+                            <Button x:Name="ModelCancelButton"
+                                    Content="Cancel"
+                                    MinHeight="32"
+                                    Padding="12,4"
+                                    Margin="8,0,0,0"
+                                    Visibility="Collapsed"
+                                    Click="CancelModelDownload"
+                                    automation:AutomationProperties.Name="Cancel speech model download" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
             </StackPanel>
+            </ScrollViewer>
         </Border>
 
         <Border Grid.ColumnSpan="3"
