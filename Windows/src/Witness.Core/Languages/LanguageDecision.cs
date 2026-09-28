@@ -105,7 +105,8 @@ public static class LanguageDecision
     public static IReadOnlyList<RankedLanguage> Rank(LanguageProfile profile, IReadOnlyDictionary<string, float> probabilities) =>
         profile.Languages
             .Select((language, position) => (language, position, found: probabilities.TryGetValue(language.Code, out var probability), probability))
-            .Where(item => item.found)
+            .Where(item => item.found && float.IsFinite(item.probability))
+            .Select(item => (item.language, item.position, probability: Math.Clamp(item.probability, 0, 1)))
             .OrderByDescending(item => item.probability)
             .ThenBy(item => item.position)
             .Select(item => new RankedLanguage(item.language, item.probability))

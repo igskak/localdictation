@@ -12,7 +12,7 @@ void ignore_audio(void *, const void *, size_t, size_t, uint32_t) {}
 }
 
 int main() {
-    assert(witness_native_abi_version() == 2);
+    assert(witness_native_abi_version() == 3);
     assert((witness_backend_capabilities() & WITNESS_BACKEND_CPU) != 0);
     assert(witness_context_uses_gpu(nullptr) == 0);
 
@@ -47,6 +47,23 @@ int main() {
     assert(witness_transcript_token_probability(nullptr, 0, 0) == 0.0F);
     assert(witness_transcript_token_start_ms(nullptr, 0, 0) == -1);
     assert(witness_transcript_token_end_ms(nullptr, 0, 0) == -1);
+
+    witness_language_scores * scores = reinterpret_cast<witness_language_scores *>(0x1);
+    const auto invalid_detection = witness_detect_languages(
+        nullptr,
+        pcm.data(),
+        pcm.size(),
+        1,
+        nullptr,
+        &scores,
+        error.data(),
+        error.size());
+    assert(invalid_detection == WITNESS_STATUS_INVALID_ARGUMENT);
+    assert(scores == nullptr);
+    assert(witness_language_scores_count(nullptr) == 0);
+    assert(witness_language_score_code(nullptr, 0) == nullptr);
+    assert(witness_language_score_probability(nullptr, 0) == 0.0F);
+    witness_language_scores_destroy(nullptr);
 
     assert(witness_cancellation_create(nullptr) == WITNESS_STATUS_INVALID_ARGUMENT);
     witness_cancellation * cancellation = nullptr;

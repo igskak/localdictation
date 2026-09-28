@@ -20,6 +20,7 @@ extern "C" {
 typedef struct witness_context witness_context;
 typedef struct witness_transcript witness_transcript;
 typedef struct witness_cancellation witness_cancellation;
+typedef struct witness_language_scores witness_language_scores;
 
 enum witness_status {
     WITNESS_STATUS_OK = 0,
@@ -33,6 +34,7 @@ enum witness_status {
     WITNESS_STATUS_AUDIO_FORMAT_UNSUPPORTED = 8,
     WITNESS_STATUS_CANCELLED = 9,
     WITNESS_STATUS_BACKEND_UNAVAILABLE = 10,
+    WITNESS_STATUS_LANGUAGE_DETECTION_FAILED = 11,
 };
 
 enum witness_backend_capability {
@@ -157,6 +159,27 @@ WITNESS_NATIVE_API enum witness_status witness_cancellation_create(
     witness_cancellation ** result);
 WITNESS_NATIVE_API void witness_cancellation_cancel(witness_cancellation * cancellation);
 WITNESS_NATIVE_API void witness_cancellation_destroy(witness_cancellation * cancellation);
+
+// Detects language only after capture has completed. The complete in-memory
+// recording is converted to mel input; no prefix is persisted or uploaded.
+WITNESS_NATIVE_API enum witness_status witness_detect_languages(
+    witness_context * context,
+    const float * pcm_16khz_mono,
+    size_t sample_count,
+    int thread_count,
+    witness_cancellation * cancellation,
+    witness_language_scores ** result,
+    char * error_utf8,
+    size_t error_capacity);
+
+WITNESS_NATIVE_API void witness_language_scores_destroy(witness_language_scores * scores);
+WITNESS_NATIVE_API size_t witness_language_scores_count(const witness_language_scores * scores);
+WITNESS_NATIVE_API const char * witness_language_score_code(
+    const witness_language_scores * scores,
+    size_t index);
+WITNESS_NATIVE_API float witness_language_score_probability(
+    const witness_language_scores * scores,
+    size_t index);
 
 WITNESS_NATIVE_API enum witness_status witness_transcribe(
     witness_context * context,

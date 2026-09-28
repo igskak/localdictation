@@ -2,6 +2,7 @@ using Microsoft.Win32.SafeHandles;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using Witness.Core.Languages;
 using Witness.Core.Transcription;
 
 namespace Witness.Platform.Windows.Transcription;
@@ -16,6 +17,7 @@ public enum NativeTranscriptionStatus
     InternalError = 5,
     Cancelled = 9,
     BackendUnavailable = 10,
+    LanguageDetectionFailed = 11,
 }
 
 public sealed class NativeTranscriptionException(
@@ -34,9 +36,9 @@ public enum NativeBackendCapabilities : uint
     VulkanCompiled = 8,
 }
 
-public sealed partial class NativeWhisperSession : ITranscriptionBackend
+public sealed partial class NativeWhisperSession : ITranscriptionBackend, ILanguageProbabilityProvider
 {
-    private const uint RequiredAbiVersion = 2;
+    private const uint RequiredAbiVersion = 3;
     private const int ErrorCapacity = 512;
     private const int MaximumSamples = 16_000 * 600;
     private readonly SafeWhisperContextHandle context;
@@ -91,6 +93,36 @@ public sealed partial class NativeWhisperSession : ITranscriptionBackend
             request.LanguageCode,
             request.ThreadCount,
             cancellationToken);
+
+    public async Task<IReadOnlyDictionary<string, float>> DetectProbabilitiesAsync(
+        ReadOnlyMemory<float> completedPcm16KhzMono,
+        int threadCount,
+        CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(disposed, this);
+        if (completedPcm16KhzMono.IsEmpty || completedPcm16KhzMono.Length > MaximumSamples)
+        {
+            throw new ArgumentOutOfRangeException(nameof(completedPcm16KhzMono));
+        }
+        if (threadCount < 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(threadCount));
+        }
+
+        await operationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+            return await Task.Run(
+                    () => DetectProbabilitiesCore(completedPcm16KhzMono, threadCount, cancellationToken),
+                    CancellationToken.None)
+                .ConfigureAwait(false);
+        }
+        finally
+        {
+            operationGate.Release();
+        }
+    }
 
     public async Task<TranscriptionOutput> TranscribeAsync(
         ReadOnlyMemory<float> pcm16KhzMono,
@@ -229,6 +261,64 @@ public sealed partial class NativeWhisperSession : ITranscriptionBackend
         }
     }
 
+    private unsafe IReadOnlyDictionary<string, float> DetectProbabilitiesCore(
+        ReadOnlyMemory<float> pcm,
+        int threadCount,
+        CancellationToken cancellationToken)
+    {
+        var cancellationStatus = NativeMethods.CancellationCreate(out var nativeCancellation);
+        using var cancellation = new SafeCancellationHandle(nativeCancellation);
+        if (cancellationStatus != NativeTranscriptionStatus.Ok)
+        {
+            ThrowNative(cancellationStatus, []);
+        }
+        using var registration = cancellationToken.Register(
+            static state => ((SafeCancellationHandle)state!).Cancel(),
+            cancellation);
+        var error = new byte[ErrorCapacity];
+        fixed (float* samples = pcm.Span)
+        {
+            var status = NativeMethods.DetectLanguages(
+                context,
+                samples,
+                (nuint)pcm.Length,
+                threadCount,
+                cancellation,
+                out var nativeScores,
+                error,
+                (nuint)error.Length);
+            using var scores = new SafeLanguageScoresHandle(nativeScores);
+            if (status == NativeTranscriptionStatus.Cancelled)
+            {
+                throw new OperationCanceledException(cancellationToken);
+            }
+            if (status != NativeTranscriptionStatus.Ok)
+            {
+                ThrowNative(status, error);
+            }
+
+            var count = CheckedCount(NativeMethods.LanguageScoresCount(scores));
+            var probabilities = new Dictionary<string, float>(count, StringComparer.Ordinal);
+            for (var index = 0; index < count; index++)
+            {
+                var nativeIndex = (nuint)index;
+                var code = Marshal.PtrToStringUTF8(NativeMethods.LanguageScoreCode(scores, nativeIndex));
+                var probability = NativeMethods.LanguageScoreProbability(scores, nativeIndex);
+                if (!string.IsNullOrWhiteSpace(code) && float.IsFinite(probability))
+                {
+                    probabilities[code] = Math.Clamp(probability, 0, 1);
+                }
+            }
+            if (probabilities.Count == 0)
+            {
+                throw new NativeTranscriptionException(
+                    NativeTranscriptionStatus.LanguageDetectionFailed,
+                    "The speech engine returned no valid language scores.");
+            }
+            return probabilities;
+        }
+    }
+
     private TranscriptionOutput ReadTranscript(SafeTranscriptHandle transcript)
     {
         var language = Marshal.PtrToStringUTF8(NativeMethods.TranscriptLanguage(transcript)) ?? string.Empty;
@@ -320,6 +410,16 @@ public sealed partial class NativeWhisperSession : ITranscriptionBackend
         }
     }
 
+    private sealed class SafeLanguageScoresHandle : SafeHandleZeroOrMinusOneIsInvalid
+    {
+        internal SafeLanguageScoresHandle(IntPtr value) : base(ownsHandle: true) => SetHandle(value);
+        protected override bool ReleaseHandle()
+        {
+            NativeMethods.LanguageScoresDestroy(handle);
+            return true;
+        }
+    }
+
     private sealed class SafeCancellationHandle : SafeHandleZeroOrMinusOneIsInvalid
     {
         internal SafeCancellationHandle(IntPtr value) : base(ownsHandle: true) => SetHandle(value);
@@ -371,6 +471,34 @@ public sealed partial class NativeWhisperSession : ITranscriptionBackend
         [LibraryImport("Witness.Native", EntryPoint = "witness_cancellation_destroy")]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
         internal static partial void CancellationDestroy(IntPtr cancellation);
+
+        [LibraryImport("Witness.Native", EntryPoint = "witness_detect_languages")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+        internal static unsafe partial NativeTranscriptionStatus DetectLanguages(
+            SafeWhisperContextHandle context,
+            float* pcm16KhzMono,
+            nuint sampleCount,
+            int threadCount,
+            SafeCancellationHandle cancellation,
+            out IntPtr result,
+            byte[] error,
+            nuint errorCapacity);
+
+        [LibraryImport("Witness.Native", EntryPoint = "witness_language_scores_destroy")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+        internal static partial void LanguageScoresDestroy(IntPtr scores);
+
+        [LibraryImport("Witness.Native", EntryPoint = "witness_language_scores_count")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+        internal static partial nuint LanguageScoresCount(SafeLanguageScoresHandle scores);
+
+        [LibraryImport("Witness.Native", EntryPoint = "witness_language_score_code")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+        internal static partial IntPtr LanguageScoreCode(SafeLanguageScoresHandle scores, nuint index);
+
+        [LibraryImport("Witness.Native", EntryPoint = "witness_language_score_probability")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+        internal static partial float LanguageScoreProbability(SafeLanguageScoresHandle scores, nuint index);
 
         [LibraryImport("Witness.Native", EntryPoint = "witness_transcribe_cancelable", StringMarshalling = StringMarshalling.Utf8)]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]

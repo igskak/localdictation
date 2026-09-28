@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cmath>
 #include <cstring>
 #include <exception>
 #include <memory>
@@ -18,7 +19,7 @@ struct witness_cancellation {
 
 namespace {
 
-constexpr uint32_t kAbiVersion = 2;
+constexpr uint32_t kAbiVersion = 3;
 constexpr size_t kMinimumSamples = 1;
 constexpr size_t kMaximumSamples = 16000ULL * 600ULL;
 
@@ -69,6 +70,11 @@ struct Segment {
     std::vector<Token> tokens;
 };
 
+struct LanguageScore {
+    std::string code;
+    float probability;
+};
+
 bool should_abort(void * user_context) noexcept {
     const auto * cancellation = static_cast<const witness_cancellation *>(user_context);
     return cancellation != nullptr && cancellation->cancelled.load(std::memory_order_relaxed);
@@ -102,6 +108,10 @@ struct witness_transcript {
     int language_id = -1;
     std::string language;
     std::vector<Segment> segments;
+};
+
+struct witness_language_scores {
+    std::vector<LanguageScore> values;
 };
 
 extern "C" uint32_t witness_native_abi_version(void) {
@@ -189,6 +199,127 @@ extern "C" void witness_cancellation_cancel(witness_cancellation * cancellation)
 
 extern "C" void witness_cancellation_destroy(witness_cancellation * cancellation) {
     delete cancellation;
+}
+
+extern "C" enum witness_status witness_detect_languages(
+    witness_context * context,
+    const float * pcm_16khz_mono,
+    size_t sample_count,
+    int thread_count,
+    witness_cancellation * cancellation,
+    witness_language_scores ** result,
+    char * error_utf8,
+    size_t error_capacity) {
+    clear_error(error_utf8, error_capacity);
+    if (result != nullptr) {
+        *result = nullptr;
+    }
+    if (result == nullptr || context == nullptr || context->whisper == nullptr || pcm_16khz_mono == nullptr
+        || sample_count < kMinimumSamples || sample_count > kMaximumSamples || thread_count < 1) {
+        write_error(error_utf8, error_capacity, "The language detection request is invalid.");
+        return WITNESS_STATUS_INVALID_ARGUMENT;
+    }
+    if (whisper_is_multilingual(context->whisper.get()) == 0) {
+        write_error(error_utf8, error_capacity, "The selected speech model does not support language detection.");
+        return WITNESS_STATUS_LANGUAGE_DETECTION_FAILED;
+    }
+    if (should_abort(cancellation)) {
+        write_error(error_utf8, error_capacity, "Language detection was cancelled.");
+        return WITNESS_STATUS_CANCELLED;
+    }
+
+    try {
+        // The complete finished recording is supplied here. whisper.cpp builds
+        // the mel input from that buffer before evaluating its normal language
+        // window at offset zero, so leading-silence behavior can be measured.
+        if (whisper_pcm_to_mel(
+                context->whisper.get(),
+                pcm_16khz_mono,
+                static_cast<int>(sample_count),
+                thread_count) != 0) {
+            write_error(error_utf8, error_capacity, "whisper.cpp could not prepare audio for language detection.");
+            return WITNESS_STATUS_LANGUAGE_DETECTION_FAILED;
+        }
+        if (should_abort(cancellation)) {
+            write_error(error_utf8, error_capacity, "Language detection was cancelled.");
+            return WITNESS_STATUS_CANCELLED;
+        }
+
+        const int maximum_language_id = whisper_lang_max_id();
+        if (maximum_language_id < 0) {
+            write_error(error_utf8, error_capacity, "whisper.cpp reported no detectable languages.");
+            return WITNESS_STATUS_LANGUAGE_DETECTION_FAILED;
+        }
+        std::vector<float> probabilities(static_cast<size_t>(maximum_language_id) + 1U, 0.0F);
+        if (whisper_lang_auto_detect(
+                context->whisper.get(),
+                0,
+                thread_count,
+                probabilities.data()) < 0) {
+            write_error(error_utf8, error_capacity, "whisper.cpp could not detect the recording language.");
+            return WITNESS_STATUS_LANGUAGE_DETECTION_FAILED;
+        }
+        if (should_abort(cancellation)) {
+            write_error(error_utf8, error_capacity, "Language detection was cancelled.");
+            return WITNESS_STATUS_CANCELLED;
+        }
+
+        auto scores = std::make_unique<witness_language_scores>();
+        scores->values.reserve(probabilities.size());
+        for (int language_id = 0; language_id <= maximum_language_id; ++language_id) {
+            const char * code = whisper_lang_str(language_id);
+            const float probability = probabilities[static_cast<size_t>(language_id)];
+            if (code == nullptr || code[0] == '\0' || !std::isfinite(probability)) {
+                continue;
+            }
+            scores->values.push_back(LanguageScore{
+                std::string{code},
+                std::clamp(probability, 0.0F, 1.0F),
+            });
+        }
+        if (scores->values.empty()) {
+            write_error(error_utf8, error_capacity, "whisper.cpp returned no valid language scores.");
+            return WITNESS_STATUS_LANGUAGE_DETECTION_FAILED;
+        }
+
+        *result = scores.release();
+        return WITNESS_STATUS_OK;
+    } catch (const std::bad_alloc &) {
+        write_error(error_utf8, error_capacity, "Not enough memory to detect the recording language.");
+        return WITNESS_STATUS_OUT_OF_MEMORY;
+    } catch (const std::exception & error) {
+        write_error(error_utf8, error_capacity, error.what());
+        return WITNESS_STATUS_INTERNAL_ERROR;
+    } catch (...) {
+        write_error(error_utf8, error_capacity, "Unknown native error while detecting the recording language.");
+        return WITNESS_STATUS_INTERNAL_ERROR;
+    }
+}
+
+extern "C" void witness_language_scores_destroy(witness_language_scores * scores) {
+    delete scores;
+}
+
+extern "C" size_t witness_language_scores_count(const witness_language_scores * scores) {
+    return scores == nullptr ? 0 : scores->values.size();
+}
+
+extern "C" const char * witness_language_score_code(
+    const witness_language_scores * scores,
+    size_t index) {
+    if (scores == nullptr || index >= scores->values.size()) {
+        return nullptr;
+    }
+    return scores->values[index].code.c_str();
+}
+
+extern "C" float witness_language_score_probability(
+    const witness_language_scores * scores,
+    size_t index) {
+    if (scores == nullptr || index >= scores->values.size()) {
+        return 0.0F;
+    }
+    return scores->values[index].probability;
 }
 
 extern "C" enum witness_status witness_transcribe_cancelable(
