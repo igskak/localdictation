@@ -77,7 +77,22 @@ public sealed partial class NativeWhisperSession : ITranscriptionBackend, ILangu
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        var session = await Task.Run(() => LoadCore(modelPath, useGpu)).ConfigureAwait(false);
+        NativeWhisperSession session;
+        try
+        {
+            session = await Task.Run(() => LoadCore(modelPath, useGpu)).ConfigureAwait(false);
+        }
+        catch (NativeTranscriptionException error) when (useGpu && CanRetryGpuFailureOnCpu(error.Status))
+        {
+            throw new TranscriptionBackendException(
+                TranscriptionBackendKind.Vulkan,
+                error.Status == NativeTranscriptionStatus.BackendUnavailable
+                    ? TranscriptionBackendFailureKind.Unavailable
+                    : TranscriptionBackendFailureKind.Initialization,
+                canRetryOnCpu: true,
+                "The accelerated speech backend could not be initialized.",
+                error);
+        }
         if (cancellationToken.IsCancellationRequested)
         {
             await session.DisposeAsync().ConfigureAwait(false);
@@ -113,10 +128,24 @@ public sealed partial class NativeWhisperSession : ITranscriptionBackend, ILangu
         try
         {
             ObjectDisposedException.ThrowIf(disposed, this);
-            return await Task.Run(
-                    () => DetectProbabilitiesCore(completedPcm16KhzMono, threadCount, cancellationToken),
-                    CancellationToken.None)
-                .ConfigureAwait(false);
+            try
+            {
+                return await Task.Run(
+                        () => DetectProbabilitiesCore(completedPcm16KhzMono, threadCount, cancellationToken),
+                        CancellationToken.None)
+                    .ConfigureAwait(false);
+            }
+            catch (NativeTranscriptionException error) when (
+                Kind == TranscriptionBackendKind.Vulkan
+                && CanRetryGpuFailureOnCpu(error.Status))
+            {
+                throw new TranscriptionBackendException(
+                    Kind,
+                    TranscriptionBackendFailureKind.Execution,
+                    canRetryOnCpu: true,
+                    "The accelerated speech backend failed during language detection.",
+                    error);
+            }
         }
         finally
         {
@@ -153,9 +182,7 @@ public sealed partial class NativeWhisperSession : ITranscriptionBackend, ILangu
             }
             catch (NativeTranscriptionException error) when (
                 Kind == TranscriptionBackendKind.Vulkan
-                && error.Status is NativeTranscriptionStatus.TranscriptionFailed
-                    or NativeTranscriptionStatus.InternalError
-                    or NativeTranscriptionStatus.BackendUnavailable)
+                && CanRetryGpuFailureOnCpu(error.Status))
             {
                 throw new TranscriptionBackendException(
                     Kind,
@@ -217,8 +244,22 @@ public sealed partial class NativeWhisperSession : ITranscriptionBackend, ILangu
             context.Dispose();
             ThrowNative(status, error);
         }
+        if (useGpu && NativeMethods.ContextUsesGpu(context) == 0)
+        {
+            context.Dispose();
+            throw new NativeTranscriptionException(
+                NativeTranscriptionStatus.BackendUnavailable,
+                "The native speech engine did not activate the requested GPU backend.");
+        }
         return new NativeWhisperSession(context, useGpu);
     }
+
+    private static bool CanRetryGpuFailureOnCpu(NativeTranscriptionStatus status) => status is
+        NativeTranscriptionStatus.ModelLoadFailed
+        or NativeTranscriptionStatus.TranscriptionFailed
+        or NativeTranscriptionStatus.InternalError
+        or NativeTranscriptionStatus.BackendUnavailable
+        or NativeTranscriptionStatus.LanguageDetectionFailed;
 
     private unsafe TranscriptionOutput TranscribeCore(
         ReadOnlyMemory<float> pcm,
@@ -459,6 +500,10 @@ public sealed partial class NativeWhisperSession : ITranscriptionBackend, ILangu
         [LibraryImport("Witness.Native", EntryPoint = "witness_context_destroy")]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
         internal static partial void ContextDestroy(IntPtr context);
+
+        [LibraryImport("Witness.Native", EntryPoint = "witness_context_uses_gpu")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+        internal static partial int ContextUsesGpu(SafeWhisperContextHandle context);
 
         [LibraryImport("Witness.Native", EntryPoint = "witness_cancellation_create")]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]

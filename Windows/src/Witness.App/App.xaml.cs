@@ -8,6 +8,7 @@ public partial class App : System.Windows.Application
     private DictationCaptureController? captureController;
     private Witness.Platform.Windows.Lifecycle.DesktopSessionMonitor? sessionMonitor;
     private ModelSetupController? modelSetupController;
+    private LocalInferenceController? inferenceController;
     private bool isExplicitExit;
 
     protected override void OnStartup(System.Windows.StartupEventArgs e)
@@ -25,7 +26,13 @@ public partial class App : System.Windows.Application
 
         activityWindow = new ActivityWindow();
         modelSetupController = new ModelSetupController(Dispatcher, (MainWindow)MainWindow);
-        captureController = new DictationCaptureController(Dispatcher, activityWindow, (MainWindow)MainWindow);
+        inferenceController = new LocalInferenceController(Dispatcher, (MainWindow)MainWindow);
+        modelSetupController.ModelReady += inferenceController.SetVerifiedModelPath;
+        captureController = new DictationCaptureController(
+            Dispatcher,
+            activityWindow,
+            (MainWindow)MainWindow,
+            inferenceController.ProcessAsync);
         trayIcon = new TrayIconService();
         trayIcon.OpenRequested += (_, _) => ShowMainWindow();
         trayIcon.ExitRequested += (_, _) => ExitApplication();
@@ -40,6 +47,9 @@ public partial class App : System.Windows.Application
         hotkeyService?.Dispose();
         sessionMonitor?.Dispose();
         captureController?.Dispose();
+        if (modelSetupController is not null && inferenceController is not null)
+            modelSetupController.ModelReady -= inferenceController.SetVerifiedModelPath;
+        inferenceController?.DisposeAsync().AsTask().GetAwaiter().GetResult();
         modelSetupController?.DisposeAsync().AsTask().GetAwaiter().GetResult();
         activityWindow?.Close();
         base.OnExit(e);

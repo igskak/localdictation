@@ -7,14 +7,13 @@ namespace Witness.App;
 internal sealed class DictationCaptureController(
     Dispatcher dispatcher,
     ActivityWindow activityWindow,
-    MainWindow mainWindow) : IDisposable
+    MainWindow mainWindow,
+    Func<AudioCaptureResult, Task<bool>>? completedCaptureProcessor = null) : IDisposable
 {
     private readonly SemaphoreSlim operationGate = new(1, 1);
     private AudioCaptureSession? session;
     private bool disposed;
     private int statusGeneration;
-
-    public event EventHandler<AudioCaptureResult>? CaptureCompleted;
 
     public void Handle(HotkeyAction action)
     {
@@ -94,8 +93,23 @@ internal sealed class DictationCaptureController(
             try
             {
                 var result = await active.StopAsync().ConfigureAwait(false);
-                await dispatcher.InvokeAsync(() => CaptureCompleted?.Invoke(this, result));
-                await PresentResultAsync(result).ConfigureAwait(false);
+                try
+                {
+                    var handled = completedCaptureProcessor is not null
+                        && await completedCaptureProcessor(result).ConfigureAwait(false);
+                    if (!handled)
+                    {
+                        await PresentResultAsync(result).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        _ = HideActivityAfterDelayAsync();
+                    }
+                }
+                finally
+                {
+                    Array.Clear(result.Pcm16KhzMono);
+                }
             }
             finally
             {

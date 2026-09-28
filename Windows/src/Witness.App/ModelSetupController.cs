@@ -13,6 +13,10 @@ internal sealed class ModelSetupController : IAsyncDisposable
     private readonly ModelManager manager;
     private bool disposed;
 
+    public event Action<string>? ModelReady;
+
+    public string? ReadyModelPath { get; private set; }
+
     public ModelSetupController(Dispatcher dispatcher, MainWindow window)
     {
         this.dispatcher = dispatcher;
@@ -68,7 +72,10 @@ internal sealed class ModelSetupController : IAsyncDisposable
             switch (result.Status)
             {
                 case ModelPreparationStatus.Ready:
+                    ReadyModelPath = result.ModelPath
+                        ?? throw new InvalidOperationException("A ready model result must include its verified path.");
                     window.ShowModelReady();
+                    ModelReady?.Invoke(ReadyModelPath);
                     break;
                 case ModelPreparationStatus.DisclosureRequired:
                     window.ShowModelDisclosure(ProductModel.Default.SizeBytes);
