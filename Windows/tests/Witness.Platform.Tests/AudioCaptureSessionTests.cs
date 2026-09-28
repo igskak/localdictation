@@ -61,7 +61,8 @@ public sealed class AudioCaptureSessionTests
         using var source = new FakePacketSource();
         using var session = new AudioCaptureSession(source, new FakeProcessor(), TestConfiguration());
         session.Start();
-        source.Enqueue(new float[4_800]);
+        source.Enqueue(new float[2_400]);
+        source.Enqueue(new float[2_400]);
         source.Enqueue(Enumerable.Repeat(0.1F, 3_000).ToArray());
 
         var result = await session.StopAsync();
