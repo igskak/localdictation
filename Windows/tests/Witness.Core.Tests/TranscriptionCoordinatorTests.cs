@@ -1,4 +1,5 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Witness.Core.Languages;
 using Witness.Core.Transcription;
 
 namespace Witness.Core.Tests;
@@ -7,135 +8,196 @@ namespace Witness.Core.Tests;
 public sealed class TranscriptionCoordinatorTests
 {
     [TestMethod]
-    public async Task AcceleratedSuccessDoesNotRunCpu()
+    public async Task AcceleratedSuccessNeverCreatesCpu()
     {
-        var cpu = new FakeBackend(TranscriptionBackendKind.Cpu, Output(TranscriptionBackendKind.Cpu));
-        var gpu = new FakeBackend(TranscriptionBackendKind.Vulkan, Output(TranscriptionBackendKind.Vulkan));
-        await using var coordinator = new TranscriptionCoordinator(cpu, gpu);
+        var factory = new FakeFactory();
+        await using var coordinator = await TranscriptionCoordinator.CreateAsync(factory, preferAccelerated: true);
 
         var result = await coordinator.TranscribeAsync(Request(), () => true);
 
         Assert.AreEqual(TranscriptionBackendKind.Vulkan, result.Backend);
-        Assert.AreEqual(1, gpu.Calls);
-        Assert.AreEqual(0, cpu.Calls);
+        Assert.AreEqual(1, factory.GpuCreations);
+        Assert.AreEqual(0, factory.CpuCreations);
     }
 
     [TestMethod]
-    public async Task RetryableGpuFailureGetsExactlyOneCpuAttempt()
+    public async Task RetryableGpuLoadFailureCreatesCpuExactlyOnce()
     {
-        var cpu = new FakeBackend(TranscriptionBackendKind.Cpu, Output(TranscriptionBackendKind.Cpu));
-        var gpu = new FakeBackend(
-            TranscriptionBackendKind.Vulkan,
-            new TranscriptionBackendException(
-                TranscriptionBackendKind.Vulkan,
-                TranscriptionBackendFailureKind.Execution,
-                canRetryOnCpu: true,
-                "GPU execution failed."));
-        await using var coordinator = new TranscriptionCoordinator(cpu, gpu);
+        var factory = new FakeFactory
+        {
+            GpuCreationError = Failure(TranscriptionBackendFailureKind.Initialization),
+        };
+        await using var coordinator = await TranscriptionCoordinator.CreateAsync(factory, preferAccelerated: true);
 
         var result = await coordinator.TranscribeAsync(Request(), () => true);
 
         Assert.AreEqual(TranscriptionBackendKind.Cpu, result.Backend);
-        Assert.AreEqual(1, gpu.Calls);
-        Assert.AreEqual(1, cpu.Calls);
+        Assert.AreEqual(1, factory.GpuCreations);
+        Assert.AreEqual(1, factory.CpuCreations);
+        Assert.AreEqual(1, factory.Cpu!.TranscriptionCalls);
     }
 
     [TestMethod]
-    public async Task StaleOperationDoesNotRetryOnCpu()
+    public async Task RetryableGpuExecutionFailureDisposesGpuBeforeSingleCpuRetry()
     {
-        var cpu = new FakeBackend(TranscriptionBackendKind.Cpu, Output(TranscriptionBackendKind.Cpu));
-        var gpu = RetryableGpuFailure();
-        await using var coordinator = new TranscriptionCoordinator(cpu, gpu);
+        var factory = new FakeFactory();
+        factory.Gpu!.TranscriptionError = Failure(TranscriptionBackendFailureKind.Execution);
+        await using var coordinator = await TranscriptionCoordinator.CreateAsync(factory, preferAccelerated: true);
 
-        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
-            await coordinator.TranscribeAsync(Request(), () => false));
+        var result = await coordinator.TranscribeAsync(Request(), () => true);
 
-        Assert.AreEqual(1, gpu.Calls);
-        Assert.AreEqual(0, cpu.Calls);
+        Assert.AreEqual(TranscriptionBackendKind.Cpu, result.Backend);
+        Assert.AreEqual(1, factory.Gpu.TranscriptionCalls);
+        Assert.AreEqual(1, factory.Gpu.DisposeCalls);
+        Assert.AreEqual(1, factory.CpuCreations);
+        Assert.AreEqual(1, factory.Cpu!.TranscriptionCalls);
+        Assert.IsTrue(factory.CpuCreatedAfterGpuDisposed);
+    }
+
+    [TestMethod]
+    public async Task RetryableGpuLanguageFailureUsesSameControlledCpuSwitch()
+    {
+        var factory = new FakeFactory();
+        factory.Gpu!.DetectionError = Failure(TranscriptionBackendFailureKind.Execution);
+        factory.Cpu!.Probabilities = new Dictionary<string, float> { ["uk"] = 0.8F };
+        await using var coordinator = await TranscriptionCoordinator.CreateAsync(factory, preferAccelerated: true);
+
+        var probabilities = await coordinator.DetectProbabilitiesAsync(new float[] { 0.1F }, 2, default);
+
+        Assert.AreEqual(0.8F, probabilities["uk"]);
+        Assert.AreEqual(1, factory.Gpu.DetectionCalls);
+        Assert.AreEqual(1, factory.CpuCreations);
+        Assert.AreEqual(1, factory.Cpu.DetectionCalls);
+    }
+
+    [TestMethod]
+    public async Task StaleOperationDoesNotCreateCpu()
+    {
+        var factory = new FakeFactory();
+        factory.Gpu!.TranscriptionError = Failure(TranscriptionBackendFailureKind.Execution);
+        await using var coordinator = await TranscriptionCoordinator.CreateAsync(factory, preferAccelerated: true);
+
+        await Assert.ThrowsExactlyAsync<OperationCanceledException>(() =>
+            coordinator.TranscribeAsync(Request(), () => false));
+
+        Assert.AreEqual(0, factory.CpuCreations);
+        Assert.AreEqual(0, factory.Gpu.DisposeCalls);
     }
 
     [TestMethod]
     public async Task NonRetryableFailureIsNotHiddenByCpu()
     {
-        var cpu = new FakeBackend(TranscriptionBackendKind.Cpu, Output(TranscriptionBackendKind.Cpu));
-        var failure = new TranscriptionBackendException(
-            TranscriptionBackendKind.Vulkan,
-            TranscriptionBackendFailureKind.ResourceExhausted,
-            canRetryOnCpu: false,
-            "Not enough memory.");
-        var gpu = new FakeBackend(TranscriptionBackendKind.Vulkan, failure);
-        await using var coordinator = new TranscriptionCoordinator(cpu, gpu);
+        var factory = new FakeFactory();
+        var failure = Failure(TranscriptionBackendFailureKind.ResourceExhausted, canRetry: false);
+        factory.Gpu!.TranscriptionError = failure;
+        await using var coordinator = await TranscriptionCoordinator.CreateAsync(factory, preferAccelerated: true);
 
-        var thrown = await Assert.ThrowsAsync<TranscriptionBackendException>(async () =>
-            await coordinator.TranscribeAsync(Request(), () => true));
+        var thrown = await Assert.ThrowsExactlyAsync<TranscriptionBackendException>(() =>
+            coordinator.TranscribeAsync(Request(), () => true));
 
         Assert.AreSame(failure, thrown);
-        Assert.AreEqual(0, cpu.Calls);
+        Assert.AreEqual(0, factory.CpuCreations);
     }
 
     [TestMethod]
-    public async Task CancellationDoesNotStartCpuRetry()
+    public async Task CancellationBeforeLoadCreatesNoBackend()
     {
-        var cpu = new FakeBackend(TranscriptionBackendKind.Cpu, Output(TranscriptionBackendKind.Cpu));
-        var gpu = RetryableGpuFailure();
-        await using var coordinator = new TranscriptionCoordinator(cpu, gpu);
+        var factory = new FakeFactory();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
-        await Assert.ThrowsAsync<OperationCanceledException>(async () =>
-            await coordinator.TranscribeAsync(Request(), () => true, cancellation.Token));
+        await Assert.ThrowsExactlyAsync<OperationCanceledException>(() =>
+            TranscriptionCoordinator.CreateAsync(factory, preferAccelerated: true, cancellation.Token));
 
-        Assert.AreEqual(0, gpu.Calls);
-        Assert.AreEqual(0, cpu.Calls);
+        Assert.AreEqual(0, factory.GpuCreations);
+        Assert.AreEqual(0, factory.CpuCreations);
     }
 
-    private static FakeBackend RetryableGpuFailure() => new(
-        TranscriptionBackendKind.Vulkan,
-        new TranscriptionBackendException(
+    private static TranscriptionBackendException Failure(
+        TranscriptionBackendFailureKind kind,
+        bool canRetry = true) => new(
             TranscriptionBackendKind.Vulkan,
-            TranscriptionBackendFailureKind.Execution,
-            canRetryOnCpu: true,
-            "GPU execution failed."));
+            kind,
+            canRetry,
+            "Synthetic accelerated backend failure.");
 
     private static TranscriptionRequest Request() => new(new float[] { 0.1F }, "en", 1);
 
-    private static TranscriptionOutput Output(TranscriptionBackendKind backend) => new(
-        "en",
-        new MappedTranscript(" test", [], TranscriptionTimingGranularity.Segment),
-        backend);
-
-    private sealed class FakeBackend : ITranscriptionBackend
+    private sealed class FakeFactory : ITranscriptionBackendFactory
     {
-        private readonly TranscriptionOutput? output;
-        private readonly Exception? error;
-
-        public FakeBackend(TranscriptionBackendKind kind, TranscriptionOutput output)
+        public FakeFactory()
         {
-            Kind = kind;
-            this.output = output;
+            Gpu = new FakeBackend(TranscriptionBackendKind.Vulkan);
+            Cpu = new FakeBackend(TranscriptionBackendKind.Cpu);
         }
 
-        public FakeBackend(TranscriptionBackendKind kind, Exception error)
-        {
-            Kind = kind;
-            this.error = error;
-        }
+        public FakeBackend? Gpu { get; }
+        public FakeBackend? Cpu { get; }
+        public Exception? GpuCreationError { get; init; }
+        public int GpuCreations { get; private set; }
+        public int CpuCreations { get; private set; }
+        public bool CpuCreatedAfterGpuDisposed { get; private set; }
 
-        public TranscriptionBackendKind Kind { get; }
-        public int Calls { get; private set; }
+        public Task<ITranscriptionBackend> CreateAsync(
+            TranscriptionBackendKind kind,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (kind == TranscriptionBackendKind.Vulkan)
+            {
+                GpuCreations++;
+                return GpuCreationError is null
+                    ? Task.FromResult<ITranscriptionBackend>(Gpu!)
+                    : Task.FromException<ITranscriptionBackend>(GpuCreationError);
+            }
+
+            CpuCreations++;
+            CpuCreatedAfterGpuDisposed = Gpu!.DisposeCalls == 1;
+            return Task.FromResult<ITranscriptionBackend>(Cpu!);
+        }
+    }
+
+    private sealed class FakeBackend(TranscriptionBackendKind kind) : ITranscriptionBackend, ILanguageProbabilityProvider
+    {
+        public TranscriptionBackendKind Kind { get; } = kind;
+        public Exception? TranscriptionError { get; set; }
+        public Exception? DetectionError { get; set; }
+        public IReadOnlyDictionary<string, float> Probabilities { get; set; } =
+            new Dictionary<string, float> { ["en"] = 1F };
+        public int TranscriptionCalls { get; private set; }
+        public int DetectionCalls { get; private set; }
+        public int DisposeCalls { get; private set; }
 
         public Task<TranscriptionOutput> TranscribeAsync(
             TranscriptionRequest request,
             CancellationToken cancellationToken)
         {
-            Calls++;
-            if (error is not null)
-            {
-                return Task.FromException<TranscriptionOutput>(error);
-            }
-            return Task.FromResult(output!);
+            cancellationToken.ThrowIfCancellationRequested();
+            TranscriptionCalls++;
+            return TranscriptionError is null
+                ? Task.FromResult(new TranscriptionOutput(
+                    request.LanguageCode ?? "en",
+                    new MappedTranscript(" test", [], TranscriptionTimingGranularity.Segment),
+                    Kind))
+                : Task.FromException<TranscriptionOutput>(TranscriptionError);
         }
 
-        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+        public Task<IReadOnlyDictionary<string, float>> DetectProbabilitiesAsync(
+            ReadOnlyMemory<float> completedPcm16KhzMono,
+            int threadCount,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            DetectionCalls++;
+            return DetectionError is null
+                ? Task.FromResult(Probabilities)
+                : Task.FromException<IReadOnlyDictionary<string, float>>(DetectionError);
+        }
+
+        public ValueTask DisposeAsync()
+        {
+            DisposeCalls++;
+            return ValueTask.CompletedTask;
+        }
     }
 }

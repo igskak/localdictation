@@ -1,3 +1,5 @@
+using Witness.Core.Languages;
+
 namespace Witness.Core.Transcription;
 
 public enum TranscriptionBackendKind
@@ -33,6 +35,23 @@ public interface ITranscriptionBackend : IAsyncDisposable
         CancellationToken cancellationToken);
 }
 
+public interface ITranscriptionBackendFactory
+{
+    Task<ITranscriptionBackend> CreateAsync(
+        TranscriptionBackendKind kind,
+        CancellationToken cancellationToken);
+}
+
+public interface ILocalTranscriptionSession : ILanguageProbabilityProvider, IAsyncDisposable
+{
+    TranscriptionBackendKind Backend { get; }
+
+    Task<TranscriptionOutput> TranscribeAsync(
+        TranscriptionRequest request,
+        Func<bool> isCurrentOperation,
+        CancellationToken cancellationToken = default);
+}
+
 public sealed class TranscriptionBackendException(
     TranscriptionBackendKind backend,
     TranscriptionBackendFailureKind failureKind,
@@ -45,10 +64,64 @@ public sealed class TranscriptionBackendException(
     public bool CanRetryOnCpu { get; } = canRetryOnCpu;
 }
 
-public sealed class TranscriptionCoordinator(
-    ITranscriptionBackend cpu,
-    ITranscriptionBackend? accelerated = null) : IAsyncDisposable
+/// <summary>
+/// Owns exactly one loaded speech backend. An accelerated initialization or
+/// execution failure can replace it with one CPU backend, once, while the
+/// caller's operation is still current.
+/// </summary>
+public sealed class TranscriptionCoordinator : ILocalTranscriptionSession
 {
+    private readonly ITranscriptionBackendFactory factory;
+    private readonly SemaphoreSlim operationGate = new(1, 1);
+    private ITranscriptionBackend backend;
+    private bool cpuCreationAttempted;
+    private bool disposed;
+
+    private TranscriptionCoordinator(
+        ITranscriptionBackendFactory factory,
+        ITranscriptionBackend backend,
+        bool cpuCreationAttempted)
+    {
+        this.factory = factory;
+        this.backend = backend;
+        this.cpuCreationAttempted = cpuCreationAttempted;
+    }
+
+    public TranscriptionBackendKind Backend => backend.Kind;
+
+    public static async Task<TranscriptionCoordinator> CreateAsync(
+        ITranscriptionBackendFactory factory,
+        bool preferAccelerated,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(factory);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (preferAccelerated)
+        {
+            try
+            {
+                var accelerated = await factory
+                    .CreateAsync(TranscriptionBackendKind.Vulkan, cancellationToken)
+                    .ConfigureAwait(false);
+                ValidateKind(accelerated, TranscriptionBackendKind.Vulkan);
+                return new TranscriptionCoordinator(factory, accelerated, cpuCreationAttempted: false);
+            }
+            catch (TranscriptionBackendException error) when (error.CanRetryOnCpu)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                // The failed factory call must not retain a native session.
+                // Exactly one explicit CPU creation follows below.
+            }
+        }
+
+        var cpu = await factory
+            .CreateAsync(TranscriptionBackendKind.Cpu, cancellationToken)
+            .ConfigureAwait(false);
+        ValidateKind(cpu, TranscriptionBackendKind.Cpu);
+        return new TranscriptionCoordinator(factory, cpu, cpuCreationAttempted: true);
+    }
+
     public async Task<TranscriptionOutput> TranscribeAsync(
         TranscriptionRequest request,
         Func<bool> isCurrentOperation,
@@ -56,48 +129,134 @@ public sealed class TranscriptionCoordinator(
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(isCurrentOperation);
-        cancellationToken.ThrowIfCancellationRequested();
-        if (cpu.Kind != TranscriptionBackendKind.Cpu)
+        await operationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            throw new ArgumentException("The fallback backend must be CPU.", nameof(cpu));
-        }
-        if (accelerated is not null && accelerated.Kind == TranscriptionBackendKind.Cpu)
-        {
-            throw new ArgumentException("The accelerated backend must not be CPU.", nameof(accelerated));
-        }
-
-        if (accelerated is not null)
-        {
+            ThrowIfUnavailable(isCurrentOperation, cancellationToken);
             try
             {
-                return await accelerated.TranscribeAsync(request, cancellationToken).ConfigureAwait(false);
+                return await backend.TranscribeAsync(request, cancellationToken).ConfigureAwait(false);
             }
-            catch (TranscriptionBackendException error) when (error.CanRetryOnCpu)
+            catch (TranscriptionBackendException error) when (CanSwitchToCpu(error))
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (!isCurrentOperation())
-                {
-                    throw new OperationCanceledException("The transcription operation is no longer current.");
-                }
-                // Exactly one controlled retry. CPU failures propagate and are
-                // never turned into a false successful empty transcript.
+                await SwitchToCpuAsync(isCurrentOperation, cancellationToken).ConfigureAwait(false);
+                return await backend.TranscribeAsync(request, cancellationToken).ConfigureAwait(false);
             }
         }
-
-        cancellationToken.ThrowIfCancellationRequested();
-        if (!isCurrentOperation())
+        finally
         {
-            throw new OperationCanceledException("The transcription operation is no longer current.");
+            operationGate.Release();
         }
-        return await cpu.TranscribeAsync(request, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyDictionary<string, float>> DetectProbabilitiesAsync(
+        ReadOnlyMemory<float> completedPcm16KhzMono,
+        int threadCount,
+        CancellationToken cancellationToken)
+    {
+        await operationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            ThrowIfDisposed();
+            try
+            {
+                return await ProbabilityProvider().DetectProbabilitiesAsync(
+                    completedPcm16KhzMono,
+                    threadCount,
+                    cancellationToken).ConfigureAwait(false);
+            }
+            catch (TranscriptionBackendException error) when (CanSwitchToCpu(error))
+            {
+                await SwitchToCpuAsync(static () => true, cancellationToken).ConfigureAwait(false);
+                return await ProbabilityProvider().DetectProbabilitiesAsync(
+                    completedPcm16KhzMono,
+                    threadCount,
+                    cancellationToken).ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            operationGate.Release();
+        }
     }
 
     public async ValueTask DisposeAsync()
     {
-        if (accelerated is not null && !ReferenceEquals(accelerated, cpu))
+        if (disposed)
         {
-            await accelerated.DisposeAsync().ConfigureAwait(false);
+            return;
         }
-        await cpu.DisposeAsync().ConfigureAwait(false);
+
+        await operationGate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            if (disposed)
+            {
+                return;
+            }
+            disposed = true;
+            await backend.DisposeAsync().ConfigureAwait(false);
+        }
+        finally
+        {
+            operationGate.Release();
+            operationGate.Dispose();
+        }
+    }
+
+    private bool CanSwitchToCpu(TranscriptionBackendException error) =>
+        backend.Kind != TranscriptionBackendKind.Cpu
+        && !cpuCreationAttempted
+        && error.CanRetryOnCpu;
+
+    private async Task SwitchToCpuAsync(
+        Func<bool> isCurrentOperation,
+        CancellationToken cancellationToken)
+    {
+        ThrowIfUnavailable(isCurrentOperation, cancellationToken);
+        cpuCreationAttempted = true;
+        var failedBackend = backend;
+        await failedBackend.DisposeAsync().ConfigureAwait(false);
+        ThrowIfUnavailable(isCurrentOperation, cancellationToken);
+
+        var cpu = await factory
+            .CreateAsync(TranscriptionBackendKind.Cpu, cancellationToken)
+            .ConfigureAwait(false);
+        try
+        {
+            ValidateKind(cpu, TranscriptionBackendKind.Cpu);
+            ThrowIfUnavailable(isCurrentOperation, cancellationToken);
+            backend = cpu;
+        }
+        catch
+        {
+            await cpu.DisposeAsync().ConfigureAwait(false);
+            throw;
+        }
+    }
+
+    private ILanguageProbabilityProvider ProbabilityProvider() =>
+        backend as ILanguageProbabilityProvider
+        ?? throw new InvalidOperationException("The active transcription backend does not support language detection.");
+
+    private void ThrowIfUnavailable(Func<bool> isCurrentOperation, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfDisposed();
+        if (!isCurrentOperation())
+        {
+            throw new OperationCanceledException("The transcription operation is no longer current.");
+        }
+    }
+
+    private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(disposed, this);
+
+    private static void ValidateKind(ITranscriptionBackend backend, TranscriptionBackendKind expected)
+    {
+        ArgumentNullException.ThrowIfNull(backend);
+        if (backend.Kind != expected)
+        {
+            throw new InvalidOperationException($"The backend factory returned {backend.Kind} when {expected} was requested.");
+        }
     }
 }
