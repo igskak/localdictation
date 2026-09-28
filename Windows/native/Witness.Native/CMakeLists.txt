@@ -102,4 +102,12 @@ if(WITNESS_BUILD_TESTS)
   set_target_properties(witness_native_language_regression PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
   )
+
+  # Test-only timing harness for synthetic fixtures. It uses the product C ABI,
+  # prints no transcript, and is never copied into the application artifact.
+  add_executable(witness_native_benchmark tests/native_benchmark.cpp)
+  target_link_libraries(witness_native_benchmark PRIVATE Witness.Native)
+  set_target_properties(witness_native_benchmark PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+  )
 endif()

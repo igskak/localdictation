@@ -217,6 +217,21 @@ jobs:
             throw "W3 multilingual language regression failed with exit code $LASTEXITCODE."
           }
 
+      - name: Run W3 synthetic CPU benchmark harness
+        shell: pwsh
+        run: |
+          $fixture = Get-Content Windows/config/language-regression.json | ConvertFrom-Json
+          $root = "Windows/artifacts/language-regression"
+          $model = Join-Path "Windows/artifacts/language-model-cache" $fixture.model.artifact
+          $benchmark = @(Get-ChildItem Windows/artifacts/native -Recurse -Filter witness_native_benchmark.exe)
+          if ($benchmark.Count -ne 1) {
+            throw "Expected one native benchmark executable; found $($benchmark.Count)."
+          }
+          & $benchmark[0].FullName $model (Join-Path $root "en.wav") en cpu 1
+          if ($LASTEXITCODE -ne 0) {
+            throw "W3 synthetic CPU benchmark failed with exit code $LASTEXITCODE."
+          }
+
       - name: Remove native smoke inputs before artifact assembly
         if: always()
         shell: pwsh
