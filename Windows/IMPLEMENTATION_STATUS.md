@@ -26,7 +26,7 @@ cross-targeting on macOS is not reported as Windows validation.
 | W0 | **Complete** | Pinned solution/toolchain/dependencies; Core and WPF shell; successful Windows CI and self-contained artifact; C ABI and real CPU-only RAM PCM-to-whisper smoke with segment timing; signed-manifest/verified-package spike; privacy endpoint inventory; build metadata; baseline hashes | Physical Windows/hardware claims remain intentionally outside W0 |
 | W1 | **Complete** | Recording state machine and cancellation generation; bounded PCM buffer and energy VAD; complete engine language catalog, selection/pin/continuity policy; final-recording language timing guard; Unicode boundary map; conservative cleanup/edit map; all risk signals and release prose bounds; review thresholds/history rules; entitlement/lifetime pure policy; 76 tests passed on macOS and Windows | Windows system lexicon capability remains a W5 platform integration; physical speech accuracy remains W3/W8 |
 | W2 | **In progress** | WPF tray lifecycle, named single-instance lease and non-activating activity badge; hold/toggle hotkeys and startup opt-in; preallocated packet queue and bounded fake-tested capture lifecycle; memory-only event-driven shared-mode WASAPI; PCM16/24/32/Float32 normalization; Media Foundation 44.1/48→16 kHz resampling with drain; opaque endpoint-ID enumeration with unknown built-in metadata kept explicit; microphone privacy recovery and local hotkey-to-capture preview | Windows CI for the locally committed session-loss stop policy; physical hardware QA remains W8 |
-| W3 | **In progress** | Verified local model manager and disclosed download UX; immutable multilingual product-model candidate; cancellable native transcription/token bridge; grapheme word mapping with honest segment-timing fallback; real backend probe and one controlled CPU retry policy; completed-recording language-score bridge; pinned synthetic DE/EN/RU/UK leading-noise regression harness; app-level verified-model → completed-audio language decision → explicit-language transcription flow with generation cancellation and immediate audio clearing | Run the new native ABI, product-model, eSpeak extraction, 16 leading-noise decisions, four explicit transcriptions and the new app wiring on Windows CI; profile CPU/GPU and decide whether the pinned candidate meets the product bar |
+| W3 | **In progress** | Verified local model manager and disclosed download UX; immutable multilingual product-model candidate; cancellable native transcription/token bridge; grapheme word mapping with honest segment-timing fallback; real backend probe and one controlled CPU retry policy; completed-recording language-score bridge; pinned synthetic DE/EN/RU/UK leading-noise regression harness; test-only native benchmark; app-level verified-model → completed-audio language decision → explicit-language transcription flow with generation cancellation and immediate audio clearing | Run the new native ABI, product-model, eSpeak extraction, 16 leading-noise decisions, four explicit transcriptions, CPU benchmark and the new app wiring on Windows CI; profile CPU/GPU and decide whether the pinned candidate meets the product bar |
 | W4 | Not started | — | UI Automation target/protected checks, modifier wait, clipboard-safe insertion, owned UI harness and race tests |
 | W5 | Not started | W0 shell only; it is not a complete user flow | Review/replay integration, six functional Settings sections, onboarding, glossary, bounded visible history, EN/DE resources, synthetic UI screenshots and full hotkey-to-insert path |
 | W6 | Not started | Pure entitlement timing/major policy only | LD1 and Service fixture parity, device identity, activation/release-slot adapters, consent/telemetry allowlists, beta test authority and Windows terms/privacy draft |
@@ -106,7 +106,7 @@ Result: passed; self-contained win-x64 ReadyToRun output produced on macOS.
   --configuration Release --no-restore
 Result: passed; 86 passed, 0 failed, 0 skipped after the first W2 policy slice.
 
-The current local Windows head builds with 0 warnings and 0 errors and has 119
+The current local Windows head builds with 0 warnings and 0 errors and has 120
 Core tests. Its desktop-session policy tests and W3 native integrations require
 the Windows test host and are not reported as passed locally.
 
@@ -223,6 +223,13 @@ and is not linked or shipped.
   preview requires an explicit profile choice: measured DE/EN/RU/UK automatic
   detection or any single engine language. This has only been cross-built on
   macOS; native loading and UI behavior still require Windows CI/QA.
+- Local commit `a117846` adds a test-only benchmark over the same native C ABI.
+  It measures verified-model load, completed-recording language detection and
+  explicit-language transcription on generated synthetic audio without logging
+  transcript text or copying the executable into the product artifact. Commit
+  `44e1f91` additionally serializes generation publication with cancellation,
+  makes the WPF profile/model handoff thread-visible, and proves a mismatched
+  factory backend is disposed rather than leaked.
 
 ## Known limitations and external gates
 
@@ -243,8 +250,13 @@ and is not linked or shipped.
   set. The pipeline already accepts injected mixed profiles; the full selector
   and persistence remain W5 work.
 - The current language-score call prepares and encodes the completed recording
-  separately from the later explicit-language transcription. Encoder reuse is
-  a measured-performance follow-up, not assumed behavior.
+  separately from the later explicit-language transcription. The pinned
+  whisper.cpp `whisper_full` API owns PCM → mel → encoder → decoder and exposes
+  no supported way to pass the earlier language-detection encoding into that
+  high-level call. Witness therefore does not claim encoder reuse or reach into
+  whisper.cpp internals; the synthetic benchmark measures the honest two-pass
+  cost. A different supported adapter contract would require same-engine output
+  parity tests before replacing this path, and no cache may survive a phrase.
 
 ## Next step
 
