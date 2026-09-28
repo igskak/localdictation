@@ -13,6 +13,8 @@ void ignore_audio(void *, const void *, size_t, size_t, uint32_t) {}
 
 int main() {
     assert(witness_native_abi_version() == 2);
+    assert((witness_backend_capabilities() & WITNESS_BACKEND_CPU) != 0);
+    assert(witness_context_uses_gpu(nullptr) == 0);
 
     std::array<char, 128> error{};
     witness_context * context = reinterpret_cast<witness_context *>(0x1);

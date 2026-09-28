@@ -22,6 +22,33 @@ constexpr uint32_t kAbiVersion = 2;
 constexpr size_t kMinimumSamples = 1;
 constexpr size_t kMaximumSamples = 16000ULL * 600ULL;
 
+uint32_t probe_backend_capabilities() noexcept {
+    uint32_t capabilities = WITNESS_BACKEND_CPU;
+#if WITNESS_NATIVE_HAS_VULKAN
+    capabilities |= WITNESS_BACKEND_VULKAN_COMPILED;
+#endif
+    try {
+        for (size_t index = 0; index < ggml_backend_dev_count(); ++index) {
+            ggml_backend_dev_t device = ggml_backend_dev_get(index);
+            const auto type = ggml_backend_dev_type(device);
+            if (type != GGML_BACKEND_DEVICE_TYPE_GPU && type != GGML_BACKEND_DEVICE_TYPE_IGPU) {
+                continue;
+            }
+            capabilities |= WITNESS_BACKEND_GPU_DEVICE;
+            ggml_backend_t backend = ggml_backend_dev_init(device, nullptr);
+            if (backend != nullptr) {
+                capabilities |= WITNESS_BACKEND_GPU_INITIALIZED;
+                ggml_backend_free(backend);
+                break;
+            }
+        }
+    } catch (...) {
+        // A driver/backend probe is optional. CPU remains available and the
+        // caller must not interpret a device name as successful initialization.
+    }
+    return capabilities;
+}
+
 struct WhisperDeleter {
     void operator()(whisper_context * value) const noexcept {
         if (value != nullptr) {
@@ -68,6 +95,7 @@ void clear_error(char * destination, size_t capacity) noexcept {
 
 struct witness_context {
     std::unique_ptr<whisper_context, WhisperDeleter> whisper;
+    bool uses_gpu = false;
 };
 
 struct witness_transcript {
@@ -78,6 +106,10 @@ struct witness_transcript {
 
 extern "C" uint32_t witness_native_abi_version(void) {
     return kAbiVersion;
+}
+
+extern "C" uint32_t witness_backend_capabilities(void) {
+    return probe_backend_capabilities();
 }
 
 extern "C" enum witness_status witness_context_create(
@@ -94,6 +126,11 @@ extern "C" enum witness_status witness_context_create(
         write_error(error_utf8, error_capacity, "A model path and result pointer are required.");
         return WITNESS_STATUS_INVALID_ARGUMENT;
     }
+    if (use_gpu != 0
+        && (probe_backend_capabilities() & WITNESS_BACKEND_GPU_INITIALIZED) == 0) {
+        write_error(error_utf8, error_capacity, "No compatible GPU backend could be initialized.");
+        return WITNESS_STATUS_BACKEND_UNAVAILABLE;
+    }
     try {
         auto parameters = whisper_context_default_params();
         parameters.use_gpu = use_gpu != 0;
@@ -106,6 +143,7 @@ extern "C" enum witness_status witness_context_create(
 
         auto owned = std::make_unique<witness_context>();
         owned->whisper = std::move(native);
+        owned->uses_gpu = use_gpu != 0;
         *result = owned.release();
         return WITNESS_STATUS_OK;
     } catch (const std::bad_alloc &) {
@@ -122,6 +160,10 @@ extern "C" enum witness_status witness_context_create(
 
 extern "C" void witness_context_destroy(witness_context * context) {
     delete context;
+}
+
+extern "C" int witness_context_uses_gpu(const witness_context * context) {
+    return context != nullptr && context->uses_gpu ? 1 : 0;
 }
 
 extern "C" enum witness_status witness_cancellation_create(witness_cancellation ** result) {

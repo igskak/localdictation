@@ -32,6 +32,14 @@ enum witness_status {
     WITNESS_STATUS_AUDIO_DEVICE_UNAVAILABLE = 7,
     WITNESS_STATUS_AUDIO_FORMAT_UNSUPPORTED = 8,
     WITNESS_STATUS_CANCELLED = 9,
+    WITNESS_STATUS_BACKEND_UNAVAILABLE = 10,
+};
+
+enum witness_backend_capability {
+    WITNESS_BACKEND_CPU = 1,
+    WITNESS_BACKEND_GPU_DEVICE = 2,
+    WITNESS_BACKEND_GPU_INITIALIZED = 4,
+    WITNESS_BACKEND_VULKAN_COMPILED = 8,
 };
 
 enum witness_audio_sample_format {
@@ -74,6 +82,7 @@ typedef void (*witness_audio_packet_callback)(
     uint32_t flags);
 
 WITNESS_NATIVE_API uint32_t witness_native_abi_version(void);
+WITNESS_NATIVE_API uint32_t witness_backend_capabilities(void);
 
 // Converts complete interleaved frames to mono Float32 without retaining the
 // source. The output capacity and returned frame count are measured in floats.
@@ -142,6 +151,7 @@ WITNESS_NATIVE_API enum witness_status witness_context_create(
     size_t error_capacity);
 
 WITNESS_NATIVE_API void witness_context_destroy(witness_context * context);
+WITNESS_NATIVE_API int witness_context_uses_gpu(const witness_context * context);
 
 WITNESS_NATIVE_API enum witness_status witness_cancellation_create(
     witness_cancellation ** result);

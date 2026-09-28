@@ -15,6 +15,7 @@ public enum NativeTranscriptionStatus
     OutOfMemory = 4,
     InternalError = 5,
     Cancelled = 9,
+    BackendUnavailable = 10,
 }
 
 public sealed class NativeTranscriptionException(
@@ -24,12 +25,16 @@ public sealed class NativeTranscriptionException(
     public NativeTranscriptionStatus Status { get; } = status;
 }
 
-public sealed record NativeTranscriptionOutput(
-    string LanguageCode,
-    MappedTranscript Transcript,
-    bool UsedGpu);
+[Flags]
+public enum NativeBackendCapabilities : uint
+{
+    Cpu = 1,
+    GpuDevice = 2,
+    GpuInitialized = 4,
+    VulkanCompiled = 8,
+}
 
-public sealed partial class NativeWhisperSession : IAsyncDisposable
+public sealed partial class NativeWhisperSession : ITranscriptionBackend
 {
     private const uint RequiredAbiVersion = 2;
     private const int ErrorCapacity = 512;
@@ -43,6 +48,19 @@ public sealed partial class NativeWhisperSession : IAsyncDisposable
     {
         this.context = context;
         this.useGpu = useGpu;
+    }
+
+    public TranscriptionBackendKind Kind => useGpu
+        ? TranscriptionBackendKind.Vulkan
+        : TranscriptionBackendKind.Cpu;
+
+    public static NativeBackendCapabilities ProbeBackendCapabilities()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            throw new PlatformNotSupportedException();
+        }
+        return (NativeBackendCapabilities)NativeMethods.BackendCapabilities();
     }
 
     public static async Task<NativeWhisperSession> LoadAsync(
@@ -66,7 +84,15 @@ public sealed partial class NativeWhisperSession : IAsyncDisposable
         return session;
     }
 
-    public async Task<NativeTranscriptionOutput> TranscribeAsync(
+    public Task<TranscriptionOutput> TranscribeAsync(
+        TranscriptionRequest request,
+        CancellationToken cancellationToken) => TranscribeAsync(
+            request.Pcm16KhzMono,
+            request.LanguageCode,
+            request.ThreadCount,
+            cancellationToken);
+
+    public async Task<TranscriptionOutput> TranscribeAsync(
         ReadOnlyMemory<float> pcm16KhzMono,
         string? languageCode,
         int threadCount,
@@ -86,10 +112,26 @@ public sealed partial class NativeWhisperSession : IAsyncDisposable
         try
         {
             ObjectDisposedException.ThrowIf(disposed, this);
-            return await Task.Run(
-                    () => TranscribeCore(pcm16KhzMono, languageCode, threadCount, cancellationToken),
-                    CancellationToken.None)
-                .ConfigureAwait(false);
+            try
+            {
+                return await Task.Run(
+                        () => TranscribeCore(pcm16KhzMono, languageCode, threadCount, cancellationToken),
+                        CancellationToken.None)
+                    .ConfigureAwait(false);
+            }
+            catch (NativeTranscriptionException error) when (
+                Kind == TranscriptionBackendKind.Vulkan
+                && error.Status is NativeTranscriptionStatus.TranscriptionFailed
+                    or NativeTranscriptionStatus.InternalError
+                    or NativeTranscriptionStatus.BackendUnavailable)
+            {
+                throw new TranscriptionBackendException(
+                    Kind,
+                    TranscriptionBackendFailureKind.Execution,
+                    canRetryOnCpu: true,
+                    "The accelerated speech backend failed.",
+                    error);
+            }
         }
         finally
         {
@@ -146,7 +188,7 @@ public sealed partial class NativeWhisperSession : IAsyncDisposable
         return new NativeWhisperSession(context, useGpu);
     }
 
-    private unsafe NativeTranscriptionOutput TranscribeCore(
+    private unsafe TranscriptionOutput TranscribeCore(
         ReadOnlyMemory<float> pcm,
         string? languageCode,
         int threadCount,
@@ -187,7 +229,7 @@ public sealed partial class NativeWhisperSession : IAsyncDisposable
         }
     }
 
-    private NativeTranscriptionOutput ReadTranscript(SafeTranscriptHandle transcript)
+    private TranscriptionOutput ReadTranscript(SafeTranscriptHandle transcript)
     {
         var language = Marshal.PtrToStringUTF8(NativeMethods.TranscriptLanguage(transcript)) ?? string.Empty;
         var segmentCount = CheckedCount(NativeMethods.SegmentCount(transcript));
@@ -235,10 +277,10 @@ public sealed partial class NativeWhisperSession : IAsyncDisposable
                 tokens));
         }
 
-        return new NativeTranscriptionOutput(
+        return new TranscriptionOutput(
             language,
             TranscriptionWordMapper.Map(segments),
-            useGpu);
+            Kind);
     }
 
     private static int CheckedCount(nuint value) => value > int.MaxValue
@@ -300,6 +342,10 @@ public sealed partial class NativeWhisperSession : IAsyncDisposable
         [LibraryImport("Witness.Native", EntryPoint = "witness_native_abi_version")]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
         internal static partial uint AbiVersion();
+
+        [LibraryImport("Witness.Native", EntryPoint = "witness_backend_capabilities")]
+        [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
+        internal static partial uint BackendCapabilities();
 
         [LibraryImport("Witness.Native", EntryPoint = "witness_context_create", StringMarshalling = StringMarshalling.Utf8)]
         [UnmanagedCallConv(CallConvs = [typeof(CallConvCdecl)])]
