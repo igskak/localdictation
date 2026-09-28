@@ -181,9 +181,11 @@ jobs:
           $root = (Resolve-Path "Windows/artifacts/language-regression").Path
           $installer = Join-Path $root "espeak-ng-$($fixture.speechGenerator.version).msi"
           $extracted = Join-Path $root "espeak"
-          & msiexec.exe /a $installer /qn "TARGETDIR=$extracted"
-          if ($LASTEXITCODE -ne 0) {
-            throw "eSpeak NG administrative extraction failed with exit code $LASTEXITCODE."
+          $extraction = Start-Process msiexec.exe `
+            -ArgumentList @("/a", $installer, "/qn", "TARGETDIR=$extracted") `
+            -Wait -PassThru -NoNewWindow
+          if ($extraction.ExitCode -ne 0) {
+            throw "eSpeak NG administrative extraction failed with exit code $($extraction.ExitCode)."
           }
 
           $generators = @(Get-ChildItem $extracted -Recurse -File -Filter espeak-ng.exe)
