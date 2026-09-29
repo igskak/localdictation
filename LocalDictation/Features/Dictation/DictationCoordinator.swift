@@ -1819,7 +1819,11 @@ extension DictationCoordinator {
         return DictationCoordinator(
             permissionService: AVCaptureMicrophonePermissionService(),
             hotkeyService: CarbonHotkeyService(),
-            captureService: AVAudioEngineCaptureService(),
+            // Input-only AUHAL bound to an explicit device. `AVAudioEngine`
+            // records through an aggregate clocked by the default *output*
+            // device, so headphones connecting rebuilt the input path and
+            // stopped the engine mid-sentence.
+            captureService: HALInputCaptureService(),
             // Development default rather than a final decision: WhisperKit is
             // the only admitted candidate that returns per-token confidence,
             // which Phase 3 requires. `AppleSpeechTranscriptionService` stays in

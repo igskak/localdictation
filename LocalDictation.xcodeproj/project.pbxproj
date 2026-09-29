@@ -60,6 +60,8 @@
 		FE11B08466C8F75BFFE31931 /* BoundedPCMBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC3225BF194CF5E5590BF1D2 /* BoundedPCMBuffer.swift */; };
 		D502A1301AE1566F9F9EB2D8 /* PCMCaptureSink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74D9006BDE5043751A8F9A71 /* PCMCaptureSink.swift */; };
 		A3043B657BF6B4571A4FF297 /* SystemAudioInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFB77510B295EE931F424815 /* SystemAudioInput.swift */; };
+		161AEA2D240C4459BEAB8E69 /* HALInputCaptureService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 473D82A71CEB4980B8E51735 /* HALInputCaptureService.swift */; };
+		534D585221B544859C09469E /* AudioHardware.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01418E4B8547868DA28B8F /* AudioHardware.swift */; };
 		AD2AA1C60B08E03D34D8527D /* WAVEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FAED8ECCACC0E1A5333BE40 /* WAVEncoder.swift */; };
 		4B798B4E97AF4A293818E71B /* CleanupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27DF10798AECF9DB089EB913 /* CleanupService.swift */; };
 		9506325497705DE359C70CE8 /* ConservativeCleanupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 663B6E706FBC4E180BA9FB33 /* ConservativeCleanupService.swift */; };
@@ -125,6 +127,7 @@
 		7079653106E703087BDD7F7F /* BoundedPCMBufferTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C64D3C5A6BF8CCA2A02B5ED /* BoundedPCMBufferTests.swift */; };
 		DA485ED8CF282C4408931D97 /* CaptureInterruptionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93CF5E4D633AE25175C43744 /* CaptureInterruptionTests.swift */; };
 		35ACFD2E3FD3DF60844C2AB9 /* CapturePrivacyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 300C15129730DCED75EEEA82 /* CapturePrivacyTests.swift */; };
+		CFF7CA70C27B42A5AE77FBFE /* HALInputCaptureServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70A462ED941A4E7BAB466DD4 /* HALInputCaptureServiceTests.swift */; };
 		F80B22561CC37104531BE018 /* ConservativeCleanupServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38793040A6A15D8445E31FFC /* ConservativeCleanupServiceTests.swift */; };
 		D70D4C591EC0FD2C71402AF4 /* DictationActivityPanelControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22B7D117292B18EADD0B42E2 /* DictationActivityPanelControllerTests.swift */; };
 		084777161A8AA8A63D4776E6 /* DictationCoordinatorInsertionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22B77BE96A921E9FA0E5C061 /* DictationCoordinatorInsertionTests.swift */; };
@@ -256,6 +259,8 @@
 		FC3225BF194CF5E5590BF1D2 /* BoundedPCMBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoundedPCMBuffer.swift; sourceTree = "<group>"; };
 		74D9006BDE5043751A8F9A71 /* PCMCaptureSink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PCMCaptureSink.swift; sourceTree = "<group>"; };
 		DFB77510B295EE931F424815 /* SystemAudioInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemAudioInput.swift; sourceTree = "<group>"; };
+		473D82A71CEB4980B8E51735 /* HALInputCaptureService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HALInputCaptureService.swift; sourceTree = "<group>"; };
+		AA01418E4B8547868DA28B8F /* AudioHardware.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioHardware.swift; sourceTree = "<group>"; };
 		0FAED8ECCACC0E1A5333BE40 /* WAVEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WAVEncoder.swift; sourceTree = "<group>"; };
 		27DF10798AECF9DB089EB913 /* CleanupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupService.swift; sourceTree = "<group>"; };
 		663B6E706FBC4E180BA9FB33 /* ConservativeCleanupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConservativeCleanupService.swift; sourceTree = "<group>"; };
@@ -326,6 +331,7 @@
 		6C64D3C5A6BF8CCA2A02B5ED /* BoundedPCMBufferTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoundedPCMBufferTests.swift; sourceTree = "<group>"; };
 		93CF5E4D633AE25175C43744 /* CaptureInterruptionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureInterruptionTests.swift; sourceTree = "<group>"; };
 		300C15129730DCED75EEEA82 /* CapturePrivacyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapturePrivacyTests.swift; sourceTree = "<group>"; };
+		70A462ED941A4E7BAB466DD4 /* HALInputCaptureServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HALInputCaptureServiceTests.swift; sourceTree = "<group>"; };
 		38793040A6A15D8445E31FFC /* ConservativeCleanupServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConservativeCleanupServiceTests.swift; sourceTree = "<group>"; };
 		22B7D117292B18EADD0B42E2 /* DictationActivityPanelControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationActivityPanelControllerTests.swift; sourceTree = "<group>"; };
 		22B77BE96A921E9FA0E5C061 /* DictationCoordinatorInsertionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationCoordinatorInsertionTests.swift; sourceTree = "<group>"; };
@@ -563,6 +569,8 @@
 				FC3225BF194CF5E5590BF1D2 /* BoundedPCMBuffer.swift */,
 				74D9006BDE5043751A8F9A71 /* PCMCaptureSink.swift */,
 				DFB77510B295EE931F424815 /* SystemAudioInput.swift */,
+				473D82A71CEB4980B8E51735 /* HALInputCaptureService.swift */,
+				AA01418E4B8547868DA28B8F /* AudioHardware.swift */,
 				0FAED8ECCACC0E1A5333BE40 /* WAVEncoder.swift */,
 			);
 			path = Audio;
@@ -794,6 +802,7 @@
 				6C64D3C5A6BF8CCA2A02B5ED /* BoundedPCMBufferTests.swift */,
 				93CF5E4D633AE25175C43744 /* CaptureInterruptionTests.swift */,
 				300C15129730DCED75EEEA82 /* CapturePrivacyTests.swift */,
+				70A462ED941A4E7BAB466DD4 /* HALInputCaptureServiceTests.swift */,
 				38793040A6A15D8445E31FFC /* ConservativeCleanupServiceTests.swift */,
 				22B7D117292B18EADD0B42E2 /* DictationActivityPanelControllerTests.swift */,
 				22B77BE96A921E9FA0E5C061 /* DictationCoordinatorInsertionTests.swift */,
@@ -1039,6 +1048,8 @@
 				FE11B08466C8F75BFFE31931 /* BoundedPCMBuffer.swift in Sources */,
 				D502A1301AE1566F9F9EB2D8 /* PCMCaptureSink.swift in Sources */,
 				A3043B657BF6B4571A4FF297 /* SystemAudioInput.swift in Sources */,
+				161AEA2D240C4459BEAB8E69 /* HALInputCaptureService.swift in Sources */,
+				534D585221B544859C09469E /* AudioHardware.swift in Sources */,
 				AD2AA1C60B08E03D34D8527D /* WAVEncoder.swift in Sources */,
 				4B798B4E97AF4A293818E71B /* CleanupService.swift in Sources */,
 				9506325497705DE359C70CE8 /* ConservativeCleanupService.swift in Sources */,
@@ -1111,6 +1122,7 @@
 				7079653106E703087BDD7F7F /* BoundedPCMBufferTests.swift in Sources */,
 				DA485ED8CF282C4408931D97 /* CaptureInterruptionTests.swift in Sources */,
 				35ACFD2E3FD3DF60844C2AB9 /* CapturePrivacyTests.swift in Sources */,
+				CFF7CA70C27B42A5AE77FBFE /* HALInputCaptureServiceTests.swift in Sources */,
 				F80B22561CC37104531BE018 /* ConservativeCleanupServiceTests.swift in Sources */,
 				D70D4C591EC0FD2C71402AF4 /* DictationActivityPanelControllerTests.swift in Sources */,
 				084777161A8AA8A63D4776E6 /* DictationCoordinatorInsertionTests.swift in Sources */,

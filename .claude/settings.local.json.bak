@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(stripe payment_links list --limit 100 --live)"
+    ]
+  }
+}
