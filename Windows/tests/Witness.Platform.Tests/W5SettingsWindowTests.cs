@@ -64,6 +64,9 @@ public sealed class W5SettingsWindowTests
                     new GlossaryEntry("Witness", SpeechLanguage.English),
                 ],
                 "2 synthetic session terms");
+                window.Measure(new Size(760, 560));
+                window.Arrange(new Rect(new Size(760, 560)));
+                window.UpdateLayout();
                 var navigation = FindVisualChildren<RadioButton>(window)
                     .Where(button => button.Tag is string)
                     .ToArray();
