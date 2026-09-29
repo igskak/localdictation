@@ -778,7 +778,17 @@ final class DictationCoordinator: ObservableObject {
         pendingEndReason = nil
 
         if let utterance {
-            let summary = UtteranceSummary(utterance)
+            // Asked here rather than from the live detector, because a
+            // recording made while another app held voice processing arrives
+            // about 30 dB below normal and would answer "no speech" to a
+            // sentence that was said and transcribed.
+            let summary = UtteranceSummary(
+                utterance,
+                heardSpeech: NormalizedVoiceActivity.heardSpeech(
+                    in: utterance,
+                    configuration: configuration.voiceActivity
+                )
+            )
             diagnostics.lastUtterance = summary
             diagnostics.snapshot = CaptureSnapshot(
                 frameCount: utterance.frameCount,
@@ -847,7 +857,7 @@ final class DictationCoordinator: ObservableObject {
     private func silence(for transcript: Transcript) -> SilentResult {
         let summary = diagnostics.lastUtterance
         let duration = summary?.duration ?? transcript.audioDuration
-        guard summary?.speechStart != nil else {
+        guard summary?.heardSpeech == true else {
             return .nothingHeard(
                 duration: duration,
                 peakLevel: summary?.peakLevel ?? 0,

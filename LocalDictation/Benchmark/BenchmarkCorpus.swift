@@ -61,7 +61,14 @@ struct BenchmarkCorpus: Sendable, Codable, Equatable {
 
     /// Decodes one sample into the same normalized form the live capture path
     /// produces, so an engine sees benchmark audio and dictated audio alike.
-    func utterance(for sample: BenchmarkSample, in directory: URL) throws -> CapturedUtterance {
+    /// `attenuationDecibels` scales the decoded samples down before they reach
+    /// the engine, so the corpus can be replayed at the level a raw microphone
+    /// array delivers during someone else's call — about 30 dB below normal.
+    func utterance(
+        for sample: BenchmarkSample,
+        in directory: URL,
+        attenuationDecibels: Double = 0
+    ) throws -> CapturedUtterance {
         let url = directory.appendingPathComponent(sample.audio)
         guard FileManager.default.fileExists(atPath: url.path) else {
             throw BenchmarkCorpusError.audioMissing(url.path)
@@ -76,11 +83,19 @@ struct BenchmarkCorpus: Sendable, Codable, Equatable {
             throw BenchmarkCorpusError.unreadableAudio(error.localizedDescription)
         }
 
+        let scaled: [Float]
+        if attenuationDecibels > 0 {
+            let gain = Float(pow(10, -attenuationDecibels / 20))
+            scaled = samples.map { $0 * gain }
+        } else {
+            scaled = samples
+        }
+
         var peak: Float = 0
-        for value in samples { peak = max(peak, abs(value)) }
+        for value in scaled { peak = max(peak, abs(value)) }
 
         return CapturedUtterance(
-            samples: samples,
+            samples: scaled,
             sampleRate: AudioTargetFormat.sampleRate,
             peakLevel: peak,
             droppedFrameCount: 0,

@@ -252,6 +252,44 @@ the normal corpus, for all four verified languages. Decision rule:
 Either way, do not lower the global VAD threshold: it would make every
 normal-mic dictation noisier.
 
+### Measured 2026-09-29
+
+WhisperKit large-v3 turbo over the `tts-smoke` corpus, 24 samples, six per
+verified language, each scored twice: at the corpus level and 30 dB below it.
+Full table in `Benchmark/report-quiet-whisperkit.md`.
+
+| Language | Samples | WER normal | WER quiet | Δ WER | Δ CER |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| English | 6 | 21.4% | 19.0% | -2.4 pp | +0.0 pp |
+| German | 6 | 7.3% | 7.3% | +0.0 pp | +0.0 pp |
+| Russian | 6 | 15.2% | 15.2% | +0.0 pp | +0.0 pp |
+| Ukrainian | 6 | 18.2% | 21.2% | +3.0 pp | +2.0 pp |
+| **Overall** | 24 | **15.4%** | **15.4%** | **+0.0 pp** | +0.5 pp |
+
+German and Russian are identical to the digit. English and Ukrainian move in
+opposite directions by about one word each, which on six samples per language is
+sampling noise, not a result: nothing here separates a difference smaller than
+roughly 5 pp. What the table does support is the decision it was run for —
+there is no measurable loss at 30 dB.
+
+Two limits worth stating. The corpus is synthesized speech, so attenuation
+models the *level* of a raw microphone array and not its character: the real
+channel has its own noise floor and no Apple processing. And six samples per
+language is a small sample.
+
+So: recognition is left alone. What changed is only the silence notice, in
+`NormalizedVoiceActivity`. It recomputes voice activity once, off the real-time
+path, on a copy of the finished utterance with its peak normalized to -1 dBFS,
+and the notice uses that answer instead of the live detector's.
+
+It refuses to answer when the gain needed exceeds +40 dB, and the caller then
+keeps the live answer. That guard is the point rather than a detail: the raw
+array was measured at -50 to -63 dBFS RMS while speaking and -65 to -85 dBFS
+while silent, so normalizing without a cap would lift a muted microphone's noise
+floor past the speech threshold and tell someone their words were not recognized
+when their microphone was off. Past the cap the loudest moment is still the
+noise floor, and the conservative answer stands.
+
 ### Slice 5: docs and hardware verification
 
 - `docs/REFINEMENTS.md`, section "A changed microphone no longer takes the

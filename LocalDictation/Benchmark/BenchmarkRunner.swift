@@ -150,7 +150,8 @@ enum BenchmarkRunner {
         directory: URL,
         machine: String = BenchmarkRunner.machineDescription(),
         confidenceThreshold: Double = 0.5,
-        normalizer: TextNormalizer = .default
+        normalizer: TextNormalizer = .default,
+        attenuationDecibels: Double = 0
     ) async -> BenchmarkReport {
         var results: [BenchmarkSampleResult] = []
         var failures: [String] = []
@@ -185,7 +186,7 @@ enum BenchmarkRunner {
             }
 
             do {
-                let utterance = try corpus.utterance(for: sample, in: directory)
+                let utterance = try corpus.utterance(for: sample, in: directory, attenuationDecibels: attenuationDecibels)
                 let transcript = try await engine.transcribe(utterance, profile: profile)
                 results.append(
                     score(

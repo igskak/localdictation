@@ -180,8 +180,12 @@ final class FakeAudioCaptureService: AudioCaptureService, @unchecked Sendable {
             return snapshotValue
         }
 
+        // The samples have to match the level the snapshot claims. The silence
+        // notice now looks at them — a fixture that says "never reached speech
+        // level" while handing back audio at 0.1 would be answered from the
+        // audio, and the test would pass or fail for the wrong reason.
         return CapturedUtterance(
-            samples: [Float](repeating: 0.1, count: min(snapshot.frameCount, 16_000)),
+            samples: [Float](repeating: snapshot.peakLevel, count: min(snapshot.frameCount, 16_000)),
             sampleRate: AudioTargetFormat.sampleRate,
             peakLevel: snapshot.peakLevel,
             droppedFrameCount: snapshot.droppedFrameCount,
