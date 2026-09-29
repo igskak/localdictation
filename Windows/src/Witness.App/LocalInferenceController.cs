@@ -1,7 +1,9 @@
 using System.Windows.Threading;
+using Witness.Core.History;
 using Witness.Core.Input;
 using Witness.Core.Languages;
 using Witness.Core.Recording;
+using Witness.Core.Review;
 using Witness.Core.Transcription;
 using Witness.Platform.Windows.Audio;
 using Witness.Platform.Windows.Insertion;
@@ -18,8 +20,13 @@ internal sealed class LocalInferenceController : IAsyncDisposable
     private readonly TextInsertionCoordinator insertion;
     private readonly HotkeyModifiers hotkeyModifiers;
     private readonly OperationGeneration insertionGenerations = new();
+    private readonly DictationPostProcessor postProcessor = new();
+    private readonly RecentDictationHistory history = new();
+    private readonly ReviewAudioLease reviewAudio = new();
+    private readonly object resultGate = new();
     private string? verifiedModelPath;
     private LanguageProfile? selectedProfile;
+    private ProcessedDictation? latestResult;
     private bool disposed;
 
     public LocalInferenceController(
@@ -45,10 +52,40 @@ internal sealed class LocalInferenceController : IAsyncDisposable
     public void SetLanguageProfile(LanguageProfile profile) =>
         Volatile.Write(ref selectedProfile, profile ?? throw new ArgumentNullException(nameof(profile)));
 
+    internal IReadOnlyList<RecentDictation> RecentDictations
+    {
+        get
+        {
+            lock (resultGate)
+            {
+                return history.Items.ToArray();
+            }
+        }
+    }
+
+    internal ProcessedDictation? LatestResult
+    {
+        get
+        {
+            lock (resultGate)
+            {
+                return latestResult;
+            }
+        }
+    }
+
+    internal bool HasRetainedReviewAudio => reviewAudio.HasAudio;
+
     public long BeginOperation()
     {
-        pipeline.CancelActive();
-        return insertionGenerations.Supersede();
+        lock (resultGate)
+        {
+            pipeline.CancelActive();
+            var generation = insertionGenerations.Supersede();
+            reviewAudio.Release();
+            latestResult = null;
+            return generation;
+        }
     }
 
     public async Task<bool> ProcessAsync(
@@ -76,6 +113,7 @@ internal sealed class LocalInferenceController : IAsyncDisposable
             return true;
         }
 
+        var completedAudioHandled = false;
         try
         {
             if (!insertionGenerations.IsCurrent(generation)) return true;
@@ -88,7 +126,8 @@ internal sealed class LocalInferenceController : IAsyncDisposable
                 profile,
                 PinnedLanguage: null,
                 ThreadCount: Math.Clamp(Environment.ProcessorCount - 1, 1, 8),
-                DetectionStartSample: detectionStartSample)).ConfigureAwait(false);
+                DetectionStartSample: detectionStartSample,
+                ClearCompletedAudioOnExit: false)).ConfigureAwait(false);
             if (!insertionGenerations.IsCurrent(generation)) return true;
             var warning = capture.Kind == AudioCaptureCompletionKind.InterruptedWithSpeech
                 || capture.HadDiscontinuity
@@ -96,20 +135,61 @@ internal sealed class LocalInferenceController : IAsyncDisposable
                 || capture.DroppedPacketCount > 0
                 ? " A capture interruption or gap was preserved as an explicit warning."
                 : string.Empty;
-            var transcript = result.Transcription.Transcript.Text;
-            if (string.IsNullOrWhiteSpace(transcript))
+            var processed = postProcessor.Process(
+                result.Transcription.Transcript,
+                result.LanguageDecision.Language,
+                profile);
+            if (string.IsNullOrWhiteSpace(processed.TextForInsertion))
             {
-                await SetStatusAsync($"The local engine completed in {DisplayLanguage(result.LanguageDecision.Language)}, but returned no text; Witness did not substitute a polished result.{warning}").ConfigureAwait(false);
+                lock (resultGate)
+                {
+                    if (!insertionGenerations.IsCurrent(generation))
+                    {
+                        return true;
+                    }
+                    reviewAudio.Replace(capture.Pcm16KhzMono, EngineSampleRate, processed);
+                    latestResult = null;
+                    completedAudioHandled = true;
+                }
+                await SetStatusAsync($"The local engine completed in {DisplayLanguage(result.LanguageDecision.Language)}, but returned no text; Witness did not substitute a polished result.{warning}", generation).ConfigureAwait(false);
                 return true;
             }
 
             var insertionResult = await insertion.InsertAsync(
-                transcript,
+                processed.TextForInsertion,
                 capturedTarget,
                 hotkeyModifiers,
                 () => insertionGenerations.IsCurrent(generation)).ConfigureAwait(false);
-            var status = InsertionStatus(insertionResult, result, warning);
-            await SetStatusAsync(status).ConfigureAwait(false);
+            if (insertionResult.Kind == TextInsertionOutcomeKind.Cancelled)
+            {
+                return true;
+            }
+
+            lock (resultGate)
+            {
+                if (!insertionGenerations.IsCurrent(generation))
+                {
+                    return true;
+                }
+                var protectedRefusal = insertionResult.Kind == TextInsertionOutcomeKind.RefusedProtectedField;
+                history.Add(
+                    processed.TextForInsertion,
+                    DateTimeOffset.UtcNow,
+                    insertionRefusedForProtectedField: protectedRefusal);
+                if (protectedRefusal)
+                {
+                    Array.Clear(capture.Pcm16KhzMono);
+                    latestResult = null;
+                }
+                else
+                {
+                    reviewAudio.Replace(capture.Pcm16KhzMono, EngineSampleRate, processed);
+                    latestResult = processed;
+                }
+                completedAudioHandled = true;
+            }
+            var status = InsertionStatus(insertionResult, result, processed, warning);
+            await SetStatusAsync(status, generation).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -117,7 +197,14 @@ internal sealed class LocalInferenceController : IAsyncDisposable
         }
         catch (Exception error)
         {
-            await SetStatusAsync($"Local transcription failed without producing an insertion: {SafeError(error)}").ConfigureAwait(false);
+            await SetStatusAsync($"Local transcription failed without producing an insertion: {SafeError(error)}", generation).ConfigureAwait(false);
+        }
+        finally
+        {
+            if (!completedAudioHandled)
+            {
+                Array.Clear(capture.Pcm16KhzMono);
+            }
         }
         return true;
     }
@@ -129,8 +216,14 @@ internal sealed class LocalInferenceController : IAsyncDisposable
             return;
         }
         disposed = true;
-        insertionGenerations.Supersede();
-        pipeline.CancelActive();
+        lock (resultGate)
+        {
+            insertionGenerations.Supersede();
+            pipeline.CancelActive();
+            reviewAudio.Dispose();
+            latestResult = null;
+            history.Clear();
+        }
         pipeline.ProgressChanged -= OnProgressChanged;
         await pipeline.DisposeAsync().ConfigureAwait(false);
     }
@@ -157,6 +250,15 @@ internal sealed class LocalInferenceController : IAsyncDisposable
     private async Task SetStatusAsync(string status) =>
         await dispatcher.InvokeAsync(() => window.SetStatus(status));
 
+    private async Task SetStatusAsync(string status, long generation) =>
+        await dispatcher.InvokeAsync(() =>
+        {
+            if (insertionGenerations.IsCurrent(generation))
+            {
+                window.SetStatus(status);
+            }
+        });
+
     private static string DisplayLanguage(SpeechLanguage language) =>
         LanguageCatalog.ByCode.TryGetValue(language.Code, out var entry)
             ? entry.EnglishName
@@ -171,6 +273,7 @@ internal sealed class LocalInferenceController : IAsyncDisposable
     private static string InsertionStatus(
         TextInsertionOutcome outcome,
         LocalInferenceResult inference,
+        ProcessedDictation processed,
         string warning)
     {
         var localEngine = $"Transcribed locally in {DisplayLanguage(inference.LanguageDecision.Language)} using {DisplayBackend(inference.Transcription.Backend)}.";
@@ -187,7 +290,12 @@ internal sealed class LocalInferenceController : IAsyncDisposable
             TextInsertionOutcomeKind.Cancelled => " A newer dictation superseded this result before insertion.",
             _ => " The target could not be verified safely; Witness retained the text without inserting or copying it.",
         };
-        return string.Concat(localEngine, insertionStatus, warning);
+        var reviewStatus = processed.Review.DeservesAttention
+            ? processed.Review.Flagged.Count == 1
+                ? " One fragment is worth checking."
+                : $" {processed.Review.Flagged.Count} fragments are worth checking."
+            : string.Empty;
+        return string.Concat(localEngine, insertionStatus, reviewStatus, warning);
     }
 
     private static string SafeError(Exception error) => error switch
