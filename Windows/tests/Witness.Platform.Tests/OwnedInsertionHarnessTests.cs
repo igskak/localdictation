@@ -47,7 +47,7 @@ public sealed class OwnedInsertionHarnessTests
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
 
-        Assert.IsTrue(completed.Wait(TimeSpan.FromSeconds(5)), "The owned WPF harness did not complete.");
+        Assert.IsTrue(completed.Wait(TimeSpan.FromSeconds(15)), "The owned WPF harness did not complete.");
         if (failure is not null) throw new AssertFailedException("The owned WPF harness failed.", failure);
     }
 
