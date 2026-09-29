@@ -38,12 +38,20 @@ public interface IClipboardNativeApi
     bool Close();
 }
 
+public interface IProtectedClipboard
+{
+    ProtectedClipboardWriteResult TryWrite(string text);
+    ClipboardSnapshotRestoreResult TryRestore(
+        ClipboardTextSnapshot snapshot,
+        uint expectedSequenceNumber);
+}
+
 /// <summary>
 /// Writes clipboard text only after all Windows history, cloud and monitor
 /// exclusions are present. Clipboard contents are never logged or persisted.
 /// Call this service from its owning STA/UI thread.
 /// </summary>
-public sealed class ProtectedClipboardService
+public sealed class ProtectedClipboardService : IProtectedClipboard
 {
     public const uint UnicodeTextFormat = 13;
     public const string ExcludeMonitorFormatName = "ExcludeClipboardContentFromMonitorProcessing";

@@ -35,12 +35,20 @@ public interface IUiAutomationProtectionProbe
     UiAutomationFieldObservation Inspect(InsertionTarget target);
 }
 
+public interface IInsertionFieldInspector : IDisposable
+{
+    Task<UiAutomationFieldObservation> ObserveAsync(
+        InsertionTarget target,
+        TimeSpan timeout,
+        CancellationToken cancellationToken = default);
+}
+
 /// <summary>
 /// Serializes UI Automation calls on one background STA. Third-party providers
 /// can block indefinitely; a bounded queue and per-call timeout keep that from
 /// consuming more threads or turning an unknown field into an allowed target.
 /// </summary>
-public sealed class UiAutomationProtectionInspector : IDisposable
+public sealed class UiAutomationProtectionInspector : IInsertionFieldInspector
 {
     private readonly BlockingCollection<ProbeRequest> requests = new(
         new ConcurrentQueue<ProbeRequest>(),

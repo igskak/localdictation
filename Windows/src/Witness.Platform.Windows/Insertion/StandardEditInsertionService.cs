@@ -25,13 +25,19 @@ public interface IStandardEditNativeApi
     bool TryReplaceSelection(StandardEditControl control, string text);
 }
 
+public interface IDirectTextInserter
+{
+    bool SupportsVerifiedSelectionReplacement(InsertionTarget target);
+    DirectTextInsertionResult TryInsert(InsertionTarget target, string text);
+}
+
 /// <summary>
 /// Uses selection replacement only for the well-known Win32 Edit control. It
 /// never calls UIA ValuePattern.SetValue, which would overwrite the whole field.
 /// Any result after the write attempt is terminal so an uncertain write cannot
 /// be followed by a duplicate clipboard paste.
 /// </summary>
-public sealed class StandardEditInsertionService
+public sealed class StandardEditInsertionService : IDirectTextInserter
 {
     private readonly IStandardEditNativeApi native;
 

@@ -17,6 +17,14 @@ public interface IInsertionDelay
     Task DelayAsync(TimeSpan delay, CancellationToken cancellationToken);
 }
 
+public interface IPasteInput
+{
+    Task<bool> WaitForHotkeyModifiersAsync(
+        HotkeyModifiers modifiers,
+        CancellationToken cancellationToken = default);
+    bool TryPasteOnce();
+}
+
 public sealed class SystemInsertionDelay : IInsertionDelay
 {
     public Task DelayAsync(TimeSpan delay, CancellationToken cancellationToken) =>
@@ -28,7 +36,7 @@ public sealed class SystemInsertionDelay : IInsertionDelay
 /// Ctrl+V chord. A partial or blocked SendInput call is reported as failure and
 /// is never retried automatically.
 /// </summary>
-public sealed class PasteInputService
+public sealed class PasteInputService : IPasteInput
 {
     private const ushort VirtualKeyControl = 0x11;
     private const ushort VirtualKeyV = 0x56;

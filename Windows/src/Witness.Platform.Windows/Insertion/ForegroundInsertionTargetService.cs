@@ -17,12 +17,17 @@ public interface IForegroundTargetNativeApi
     uint GetWindowProcessId(nint window);
 }
 
+public interface IInsertionTargetObserver
+{
+    ForegroundTargetObservation Observe();
+}
+
 /// <summary>
 /// Observes but never activates or restores another application's window.
 /// A target identity includes both its process and root HWND so same-process
 /// tab/window changes cannot silently redirect dictated text.
 /// </summary>
-public sealed class ForegroundInsertionTargetService
+public sealed class ForegroundInsertionTargetService : IInsertionTargetObserver
 {
     private readonly IForegroundTargetNativeApi native;
 
