@@ -137,6 +137,15 @@
           "MSTest.Analyzers": "4.4.1"
         }
       },
+      "Witness": {
+        "type": "Project",
+        "dependencies": {
+          "Velopack": "[1.2.158, )",
+          "Witness.Core": "[0.1.0, )",
+          "Witness.Platform.Windows": "[0.1.0, )",
+          "Witness.Update": "[0.1.0, )"
+        }
+      },
       "witness.core": {
         "type": "Project"
       },
