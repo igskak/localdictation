@@ -77,12 +77,23 @@ with "Recording stopped" and a Try again button — thirty seconds of speech, go
 
 > A trial that runs out mid-utterance **never takes the sentence with it.**
 
-A device change is the same situation with a different cause. The recording now
-ends where the device went away, but it ends the way a released key ends it:
-finished, transcribed, delivered, and the reason said afterwards rather than
-instead. The notice carries both halves, because "recording stopped" alone reads
-as "your dictation was lost" and sends the user to redictate text that is already
-in their document.
+A device change is the same situation with a different cause. The first fix made
+the recording end the way a released key ends it: finished, transcribed,
+delivered, and the reason said afterwards rather than instead.
+
+It no longer ends at all. A route change — the default input changing, a device
+being unplugged, a microphone changing its channel count because another app
+started voice processing — rebinds capture to the right device inside the same
+utterance. The buffer and the voice activity detector belong to the sentence;
+only the audio unit belongs to the device. The user sees nothing, and the only
+trace is a rebind count in the diagnostics. `docs/INPUT_ROUTE_RESILIENCE.md` has
+the measurements this came from.
+
+What still ends a recording is an input that cannot be resolved at all, and only
+after two seconds of trying, because a microphone that vanished usually comes
+back within a moment. Then the old rule applies unchanged: the notice carries
+both halves, because "recording stopped" alone reads as "your dictation was lost"
+and sends the user to redictate text that is already in their document.
 
 It also outranks the empty-result notice. A device unplugged mid-sentence
 explains an empty result; "nothing was heard" would send someone to check a

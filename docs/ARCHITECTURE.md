@@ -7,7 +7,8 @@ Global hotkey
   -> entitlement (ungated window, trial, or license — refused before the
      microphone opens, never after the words are spoken)
   -> microphone permission
-  -> audio capture (memory only)
+  -> audio capture (memory only, rebinding across route changes without
+     ending the utterance)
   -> voice activity detection
   -> local STT with token metadata and timestamps
   -> language-aware risk engine
@@ -26,7 +27,9 @@ Global hotkey
 
 - `HotkeyService`: registers and unregisters global shortcuts and emits press/release events.
 - `MicrophonePermissionService`: owns the macOS authorization state and the route to System Settings.
-- `AudioCaptureService`: produces bounded, mono PCM frames without disk persistence.
+- `AudioCaptureService`: produces bounded, mono PCM frames without disk persistence. The live implementation opens the resolved device directly with an input-only AUHAL unit, never through an aggregate, and takes device channel 0 through an explicit channel map so a microphone reporting a raw array is still recorded from the channel that carries speech.
+- `AudioHardware`: the Core Audio questions capture asks — which device, what shape is it now, is it still there — and the property listeners it registers. Behind a protocol so the route policy is testable without a microphone or a permission dialog.
+- `InputRoutePolicy`: a pure function from a route event, the user's input selection, and a hardware snapshot to keep, rebind, or interrupt. A recording is an utterance that owns the buffer and the voice activity detector for its whole length, plus an input segment that owns one audio unit bound to one device in one format; a route change replaces the segment and the sentence continues across it.
 - `VoiceActivityDetector`: classifies speech boundaries and exposes deterministic configuration.
 - `TranscriptionService`: returns text plus token-level timing and confidence metadata.
 - `RiskEngine`: combines model confidence, language switching, entities, numbers, glossary matches, malformed words, and cleanup edits.

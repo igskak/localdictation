@@ -112,8 +112,20 @@ the development Mac, and every measurement quoted here has a timestamp.
 - **A device that changes mid-sentence.** Not on this list when it was written,
   and the worst of the lot: `AVAudioEngineConfigurationChange` — AirPods
   connecting, a dock being plugged in — dropped the recording and discarded the
-  captured audio into a `.failed` state. The recording now ends where the device
-  went away and is still finished, transcribed, and delivered.
+  captured audio into a `.failed` state. It then ended the recording where the
+  device went away, still finished, transcribed, and delivered. It no longer
+  ends the recording at all: capture rebinds to the right device inside the same
+  utterance and the sentence continues.
+- **A call running in another application.** Opening a Google Meet page in
+  Safari starts Apple voice processing, and while it runs the built-in
+  microphone reports three raw array channels to every other client instead of
+  one. Our converter turned that into exact zeros, so a dictation during a call
+  recorded silence and was reported as "nothing heard"; recording through an
+  aggregate clocked by the speakers meant the change stopped the engine as well.
+  Capture now opens the microphone directly and takes channel 0 explicitly, and
+  a channel count changing is one of the route changes it rebinds through.
+  `docs/INPUT_ROUTE_RESILIENCE.md` has the measurements and the hardware
+  checklist.
 
 ### Open
 
