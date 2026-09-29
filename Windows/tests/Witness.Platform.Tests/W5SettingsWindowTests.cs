@@ -106,7 +106,8 @@ public sealed class W5SettingsWindowTests
         thread.Start();
 
         Assert.IsTrue(completed.Wait(TimeSpan.FromSeconds(20)), "The W5 settings UI harness did not complete.");
-        if (failure is not null) throw new AssertFailedException("The W5 settings UI harness failed.", failure);
+        if (failure is not null)
+            throw new AssertFailedException($"The W5 settings UI harness failed: {failure}", failure);
     }
 
     private static RenderTargetBitmap Render(Window window, Size size, double dpi)
