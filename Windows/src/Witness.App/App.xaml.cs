@@ -13,6 +13,7 @@ public partial class App : System.Windows.Application
     private ModelSetupController? modelSetupController;
     private LocalInferenceController? inferenceController;
     private Witness.Platform.Windows.Insertion.UiAutomationProtectionInspector? insertionInspector;
+    private Witness.Platform.Windows.Insertion.ProtectedClipboardService? protectedClipboard;
     private bool isExplicitExit;
 
     protected override void OnStartup(System.Windows.StartupEventArgs e)
@@ -31,11 +32,12 @@ public partial class App : System.Windows.Application
         var windowHandle = new System.Windows.Interop.WindowInteropHelper(MainWindow).EnsureHandle();
         var insertionTargets = new Witness.Platform.Windows.Insertion.ForegroundInsertionTargetService();
         insertionInspector = new Witness.Platform.Windows.Insertion.UiAutomationProtectionInspector();
+        protectedClipboard = new Witness.Platform.Windows.Insertion.ProtectedClipboardService(windowHandle);
         var insertionCoordinator = new Witness.Platform.Windows.Insertion.TextInsertionCoordinator(
             insertionTargets,
             insertionInspector,
             new Witness.Platform.Windows.Insertion.StandardEditInsertionService(),
-            new Witness.Platform.Windows.Insertion.ProtectedClipboardService(windowHandle),
+            protectedClipboard,
             new Witness.Platform.Windows.Insertion.PasteInputService(),
             new Witness.Platform.Windows.Insertion.SystemInsertionDelay());
         inferenceController = new LocalInferenceController(
@@ -44,6 +46,7 @@ public partial class App : System.Windows.Application
             insertionCoordinator,
             dictationHotkey.Modifiers);
         ((MainWindow)MainWindow).ReviewDismissed += DismissReview;
+        ((MainWindow)MainWindow).ProtectedCopyRequested += CopyProtectedText;
         modelSetupController.ModelReady += inferenceController.SetVerifiedModelPath;
         ((MainWindow)MainWindow).LanguageProfileChanged += inferenceController.SetLanguageProfile;
         captureController = new DictationCaptureController(
@@ -74,6 +77,7 @@ public partial class App : System.Windows.Application
         {
             window.LanguageProfileChanged -= inferenceController.SetLanguageProfile;
             window.ReviewDismissed -= DismissReview;
+            window.ProtectedCopyRequested -= CopyProtectedText;
         }
         inferenceController?.DisposeAsync().AsTask().GetAwaiter().GetResult();
         insertionInspector?.Dispose();
@@ -93,6 +97,18 @@ public partial class App : System.Windows.Application
 
     private void DismissReview(object? sender, EventArgs eventArgs) =>
         inferenceController?.DismissReview();
+
+    private void CopyProtectedText(string text)
+    {
+        if (MainWindow is not MainWindow window || protectedClipboard is null)
+        {
+            return;
+        }
+        var write = protectedClipboard.TryWrite(text);
+        window.SetStatus(write.Succeeded
+            ? "Copied with Windows clipboard history, Cloud Clipboard, and monitor processing disabled."
+            : "Witness could not verify a protected clipboard write; no unprotected fallback was attempted.");
+    }
 
     private void ExitApplication()
     {

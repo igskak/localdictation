@@ -11,6 +11,11 @@
         Foreground="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"
         FontFamily="{DynamicResource {x:Static SystemFonts.MessageFontFamilyKey}}"
         FontSize="{DynamicResource {x:Static SystemFonts.MessageFontSizeKey}}">
+    <Window.CommandBindings>
+        <CommandBinding Command="Copy"
+                        CanExecute="CanCopyProtectedText"
+                        Executed="CopyProtectedText" />
+    </Window.CommandBindings>
     <Grid Margin="24" KeyboardNavigation.TabNavigation="Cycle">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="220" />
@@ -134,6 +139,10 @@
                                     Content="Show raw transcript"
                                     Click="ToggleRawTranscript"
                                     automation:AutomationProperties.Name="Toggle raw and cleaned dictation text" />
+                            <Button Content="Copy displayed text"
+                                    Margin="8,0,0,8"
+                                    Click="CopyDisplayedReviewText"
+                                    automation:AutomationProperties.Name="Copy displayed dictation text with clipboard privacy protection" />
                             <Button Content="Close review"
                                     Margin="8,0,0,8"
                                     Click="CloseLatestReview"

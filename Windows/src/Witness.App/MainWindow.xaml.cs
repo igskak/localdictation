@@ -1,10 +1,12 @@
 using System.Windows;
+using System.Windows.Input;
 using System.Diagnostics;
 using System.Globalization;
 using Witness.Core.History;
 using Witness.Core.Languages;
 using Witness.Core.Models;
 using Witness.Core.Review;
+using WpfTextBox = System.Windows.Controls.TextBox;
 
 namespace Witness.App;
 
@@ -13,6 +15,7 @@ public partial class MainWindow : Window
     internal event EventHandler? ModelDownloadRequested;
     internal event EventHandler? ModelDownloadCancelRequested;
     internal event EventHandler? ReviewDismissed;
+    internal event Action<string>? ProtectedCopyRequested;
     internal event Action<LanguageProfile>? LanguageProfileChanged;
     private ProcessedDictation? displayedResult;
     private bool displaysRawTranscript;
@@ -184,6 +187,31 @@ public partial class MainWindow : Window
         }
         displaysRawTranscript = !displaysRawTranscript;
         ShowReviewContents();
+    }
+
+    private void CopyDisplayedReviewText(object sender, RoutedEventArgs e)
+    {
+        if (!string.IsNullOrEmpty(ReviewTranscriptText.Text))
+        {
+            ProtectedCopyRequested?.Invoke(ReviewTranscriptText.Text);
+        }
+    }
+
+    private void CanCopyProtectedText(object sender, CanExecuteRoutedEventArgs e)
+    {
+        e.CanExecute = Keyboard.FocusedElement is WpfTextBox textBox
+            && !string.IsNullOrEmpty(textBox.SelectedText);
+        e.Handled = true;
+    }
+
+    private void CopyProtectedText(object sender, ExecutedRoutedEventArgs e)
+    {
+        if (Keyboard.FocusedElement is WpfTextBox textBox
+            && !string.IsNullOrEmpty(textBox.SelectedText))
+        {
+            ProtectedCopyRequested?.Invoke(textBox.SelectedText);
+        }
+        e.Handled = true;
     }
 
     private void ShowReviewContents()
