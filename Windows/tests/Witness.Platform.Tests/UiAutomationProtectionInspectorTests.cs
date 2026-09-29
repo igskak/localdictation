@@ -13,9 +13,9 @@ public sealed class UiAutomationProtectionInspectorTests
     public async Task KnownProbeResultsArePreserved()
     {
         using var ordinary = new UiAutomationProtectionInspector(
-            new FixedProbe(InsertionProtectionState.Ordinary));
+            new FixedProbe(new(InsertionProtectionState.Ordinary)));
         using var protectedField = new UiAutomationProtectionInspector(
-            new FixedProbe(InsertionProtectionState.Protected));
+            new FixedProbe(new(InsertionProtectionState.Protected)));
 
         Assert.AreEqual(
             InsertionProtectionState.Ordinary,
@@ -23,6 +23,30 @@ public sealed class UiAutomationProtectionInspectorTests
         Assert.AreEqual(
             InsertionProtectionState.Protected,
             await protectedField.InspectAsync(Target, TimeSpan.FromSeconds(1)));
+    }
+
+    [TestMethod]
+    public async Task FieldObservationVerifiesOnlyExactSelectionReplacement()
+    {
+        var before = new UiAutomationFieldObservation(
+            InsertionProtectionState.Ordinary,
+            "draft old",
+            SelectionStart: 6,
+            SelectionLength: 3);
+        using var inspector = new UiAutomationProtectionInspector(new FixedProbe(before));
+
+        var observed = await inspector.ObserveAsync(Target, TimeSpan.FromSeconds(1));
+
+        Assert.AreEqual("draft new words", observed.ExpectedAfterPaste("new words"));
+        Assert.IsTrue(observed.VerifiesPaste(
+            new UiAutomationFieldObservation(InsertionProtectionState.Ordinary, "draft new words"),
+            "new words"));
+        Assert.IsFalse(observed.VerifiesPaste(
+            new UiAutomationFieldObservation(InsertionProtectionState.Ordinary, "different"),
+            "new words"));
+        Assert.IsFalse(observed.VerifiesPaste(
+            new UiAutomationFieldObservation(InsertionProtectionState.Protected, "draft new words"),
+            "new words"));
     }
 
     [TestMethod]
@@ -77,14 +101,14 @@ public sealed class UiAutomationProtectionInspectorTests
         }
     }
 
-    private sealed class FixedProbe(InsertionProtectionState result) : IUiAutomationProtectionProbe
+    private sealed class FixedProbe(UiAutomationFieldObservation result) : IUiAutomationProtectionProbe
     {
-        public InsertionProtectionState Inspect(InsertionTarget target) => result;
+        public UiAutomationFieldObservation Inspect(InsertionTarget target) => result;
     }
 
     private sealed class ThrowingProbe : IUiAutomationProtectionProbe
     {
-        public InsertionProtectionState Inspect(InsertionTarget target) =>
+        public UiAutomationFieldObservation Inspect(InsertionTarget target) =>
             throw new InvalidOperationException("synthetic provider failure");
     }
 
@@ -94,12 +118,12 @@ public sealed class UiAutomationProtectionInspectorTests
         public int Calls => Volatile.Read(ref calls);
         public ManualResetEventSlim Entered { get; } = new(false);
 
-        public InsertionProtectionState Inspect(InsertionTarget target)
+        public UiAutomationFieldObservation Inspect(InsertionTarget target)
         {
             Interlocked.Increment(ref calls);
             Entered.Set();
             release.Wait();
-            return InsertionProtectionState.Ordinary;
+            return new(InsertionProtectionState.Ordinary);
         }
     }
 }
