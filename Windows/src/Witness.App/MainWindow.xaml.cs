@@ -16,6 +16,7 @@ public partial class MainWindow : Window
     internal event EventHandler? ModelDownloadCancelRequested;
     internal event EventHandler? ReviewDismissed;
     internal event Action<string>? ProtectedCopyRequested;
+    internal event Action<RiskSpan>? ReviewReplayRequested;
     internal event Action<LanguageProfile>? LanguageProfileChanged;
     private ProcessedDictation? displayedResult;
     private bool displaysRawTranscript;
@@ -197,6 +198,14 @@ public partial class MainWindow : Window
         }
     }
 
+    private void ReplayReviewFragment(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: RiskSpan span })
+        {
+            ReviewReplayRequested?.Invoke(span);
+        }
+    }
+
     private void CanCopyProtectedText(object sender, CanExecuteRoutedEventArgs e)
     {
         e.CanExecute = Keyboard.FocusedElement is WpfTextBox textBox
@@ -269,7 +278,7 @@ public partial class MainWindow : Window
         public override string ToString() => Label;
     }
 
-    private sealed record ReviewDisplayItem(string DisplayText)
+    private sealed record ReviewDisplayItem(string DisplayText, bool CanReplay, RiskSpan Span)
     {
         public static ReviewDisplayItem From(RiskSpan span)
         {
@@ -288,7 +297,10 @@ public partial class MainWindow : Window
             var attention = span.Weight >= ReviewPolicy.Default.AttentionThreshold
                 ? "check"
                 : "note";
-            return new ReviewDisplayItem($"{label} ({attention}): {span.Text}");
+            return new ReviewDisplayItem(
+                $"{label} ({attention}): {span.Text}",
+                span.IsPlayable && span.Weight >= ReviewPolicy.Default.AttentionThreshold,
+                span);
         }
     }
 }

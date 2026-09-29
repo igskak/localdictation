@@ -128,9 +128,20 @@
                         <ItemsControl x:Name="ReviewReasonsList" Margin="0,10,0,0">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <TextBlock Text="{Binding DisplayText}"
-                                               TextWrapping="Wrap"
-                                               Margin="0,0,0,4" />
+                                    <DockPanel LastChildFill="True" Margin="0,0,0,4">
+                                        <Button Content="Replay"
+                                                DockPanel.Dock="Right"
+                                                MinHeight="32"
+                                                Padding="10,3"
+                                                Margin="8,0,0,0"
+                                                IsEnabled="{Binding CanReplay}"
+                                                Tag="{Binding Span}"
+                                                Click="ReplayReviewFragment"
+                                                automation:AutomationProperties.Name="Replay this review fragment from memory" />
+                                        <TextBlock Text="{Binding DisplayText}"
+                                                   TextWrapping="Wrap"
+                                                   VerticalAlignment="Center" />
+                                    </DockPanel>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>

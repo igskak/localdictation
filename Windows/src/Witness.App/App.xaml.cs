@@ -44,9 +44,11 @@ public partial class App : System.Windows.Application
             Dispatcher,
             (MainWindow)MainWindow,
             insertionCoordinator,
-            dictationHotkey.Modifiers);
+            dictationHotkey.Modifiers,
+            new Witness.Platform.Windows.Review.WaveAudioFragmentPlayer());
         ((MainWindow)MainWindow).ReviewDismissed += DismissReview;
         ((MainWindow)MainWindow).ProtectedCopyRequested += CopyProtectedText;
+        ((MainWindow)MainWindow).ReviewReplayRequested += ReplayReviewFragment;
         modelSetupController.ModelReady += inferenceController.SetVerifiedModelPath;
         ((MainWindow)MainWindow).LanguageProfileChanged += inferenceController.SetLanguageProfile;
         captureController = new DictationCaptureController(
@@ -78,6 +80,7 @@ public partial class App : System.Windows.Application
             window.LanguageProfileChanged -= inferenceController.SetLanguageProfile;
             window.ReviewDismissed -= DismissReview;
             window.ProtectedCopyRequested -= CopyProtectedText;
+            window.ReviewReplayRequested -= ReplayReviewFragment;
         }
         inferenceController?.DisposeAsync().AsTask().GetAwaiter().GetResult();
         insertionInspector?.Dispose();
@@ -108,6 +111,18 @@ public partial class App : System.Windows.Application
         window.SetStatus(write.Succeeded
             ? "Copied with Windows clipboard history, Cloud Clipboard, and monitor processing disabled."
             : "Witness could not verify a protected clipboard write; no unprotected fallback was attempted.");
+    }
+
+    private void ReplayReviewFragment(Witness.Core.Review.RiskSpan span)
+    {
+        if (MainWindow is not MainWindow window || inferenceController is null)
+        {
+            return;
+        }
+        if (!inferenceController.Replay(span))
+        {
+            window.SetStatus("The in-memory review fragment is no longer available for replay.");
+        }
     }
 
     private void ExitApplication()

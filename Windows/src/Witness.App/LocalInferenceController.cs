@@ -25,6 +25,7 @@ internal sealed class LocalInferenceController : IAsyncDisposable
             lexicon: new Witness.Platform.Windows.Review.WindowsSpellCheckingLexicon()));
     private readonly RecentDictationHistory history = new();
     private readonly ReviewAudioLease reviewAudio = new();
+    private readonly Witness.Platform.Windows.Review.IAudioFragmentPlayer fragmentPlayer;
     private readonly object resultGate = new();
     private string? verifiedModelPath;
     private LanguageProfile? selectedProfile;
@@ -35,12 +36,14 @@ internal sealed class LocalInferenceController : IAsyncDisposable
         Dispatcher dispatcher,
         MainWindow window,
         TextInsertionCoordinator insertion,
-        HotkeyModifiers hotkeyModifiers)
+        HotkeyModifiers hotkeyModifiers,
+        Witness.Platform.Windows.Review.IAudioFragmentPlayer fragmentPlayer)
     {
         this.dispatcher = dispatcher;
         this.window = window;
         this.insertion = insertion;
         this.hotkeyModifiers = hotkeyModifiers;
+        this.fragmentPlayer = fragmentPlayer;
         pipeline = new LocalInferencePipeline(new NativeTranscriptionSessionFactory());
         pipeline.ProgressChanged += OnProgressChanged;
     }
@@ -82,7 +85,31 @@ internal sealed class LocalInferenceController : IAsyncDisposable
     {
         lock (resultGate)
         {
+            fragmentPlayer.Stop();
             reviewAudio.Release();
+        }
+    }
+
+    internal bool Replay(RiskSpan span)
+    {
+        ArgumentNullException.ThrowIfNull(span);
+        float[] fragment;
+        lock (resultGate)
+        {
+            if (latestResult is null
+                || !latestResult.Review.Flagged.Contains(span)
+                || !reviewAudio.TryCopyFlaggedFragment(span, out fragment))
+            {
+                return false;
+            }
+        }
+        try
+        {
+            return fragmentPlayer.TryPlay(fragment, EngineSampleRate);
+        }
+        finally
+        {
+            Array.Clear(fragment);
         }
     }
 
@@ -92,6 +119,7 @@ internal sealed class LocalInferenceController : IAsyncDisposable
         {
             pipeline.CancelActive();
             var generation = insertionGenerations.Supersede();
+            fragmentPlayer.Stop();
             reviewAudio.Release();
             latestResult = null;
             dispatcher.BeginInvoke(window.BeginDictation);
@@ -247,6 +275,7 @@ internal sealed class LocalInferenceController : IAsyncDisposable
             insertionGenerations.Supersede();
             pipeline.CancelActive();
             reviewAudio.Dispose();
+            fragmentPlayer.Dispose();
             latestResult = null;
             history.Clear();
         }
