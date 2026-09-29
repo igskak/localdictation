@@ -48,7 +48,7 @@
                            FontSize="24"
                            FontWeight="SemiBold"
                            Margin="0,0,0,12" />
-                <TextBlock Text="This preview is intentionally not a beta. Microphone capture and speech recognition stay on this PC. Text insertion, review, licensing, and production updates remain disabled until later verified slices."
+                <TextBlock Text="This preview is intentionally not a beta. Microphone capture, speech recognition, and verified text insertion stay on this PC. Review, licensing, and production updates remain disabled until later verified slices."
                            TextWrapping="Wrap"
                            MaxWidth="560"
                            HorizontalAlignment="Left" />

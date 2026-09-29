@@ -181,7 +181,7 @@ internal sealed class LocalInferenceController : IAsyncDisposable
             TextInsertionOutcomeKind.InsertedByPaste => " Inserted once; the protected dictation clipboard was left unchanged because safe restoration was unavailable.",
             TextInsertionOutcomeKind.CopiedForRecovery => " The target changed or could not accept input, so the text remains on the protected clipboard for manual recovery.",
             TextInsertionOutcomeKind.RefusedProtectedField => " The focused field is protected; Witness did not insert or copy the text.",
-            TextInsertionOutcomeKind.ClipboardProtectionFailed => " Windows clipboard privacy formats were unavailable; Witness retained the text and did not copy it.",
+            TextInsertionOutcomeKind.ClipboardProtectionFailed => " Witness could not verify a protected clipboard write; no unprotected fallback was attempted.",
             TextInsertionOutcomeKind.UnverifiedDirectWrite => " The direct write could not be verified, so Witness did not attempt a second insertion.",
             TextInsertionOutcomeKind.UnverifiedPaste => " One paste was sent but could not be verified; the protected dictation clipboard was left for recovery and no retry was attempted.",
             TextInsertionOutcomeKind.Cancelled => " A newer dictation superseded this result before insertion.",

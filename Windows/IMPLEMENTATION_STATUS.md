@@ -1,6 +1,6 @@
 # Witness for Windows — implementation status
 
-Last updated: 2026-09-28
+Last updated: 2026-09-29
 
 This file is the source of truth for the Windows port. A phase is complete only
 after its required Windows CI and artifact checks have run successfully. Local
@@ -27,7 +27,7 @@ cross-targeting on macOS is not reported as Windows validation.
 | W1 | **Complete** | Recording state machine and cancellation generation; bounded PCM buffer and energy VAD; complete engine language catalog, selection/pin/continuity policy; final-recording language timing guard; Unicode boundary map; conservative cleanup/edit map; all risk signals and release prose bounds; review thresholds/history rules; entitlement/lifetime pure policy; 76 tests passed on macOS and Windows | Windows system lexicon capability remains a W5 platform integration; physical speech accuracy remains W3/W8 |
 | W2 | **Complete** | WPF tray lifecycle, named single-instance lease and non-activating activity badge; hold/toggle hotkeys and startup opt-in; preallocated packet queue and bounded fake-tested capture lifecycle; memory-only event-driven shared-mode WASAPI; PCM16/24/32/Float32 normalization; Media Foundation 44.1/48→16 kHz resampling with drain; opaque endpoint-ID enumeration with unknown built-in metadata kept explicit; microphone privacy recovery, local hotkey-to-capture preview and verified session-loss stop tests on Windows CI | Physical microphone/device/session QA remains W8 |
 | W3 | **Complete** | Verified local model manager and disclosed download UX; immutable multilingual product-model candidate; cancellable native transcription/token bridge; grapheme word mapping with honest segment-timing fallback; real backend probe and one controlled CPU retry policy; completed-recording language-score bridge with VAD speech boundary; pinned synthetic eSpeak DE/EN/RU plus neural Piper UK leading-noise regression; test-only native benchmark; app-level verified-model → completed-audio language decision → explicit-language transcription flow with generation cancellation and immediate audio clearing; successful real-model CPU Windows CI | Physical GPU/laptop performance and real-speech accuracy remain W8 QA; hosted CPU timings are recorded below rather than generalized |
-| W4 | Not started | — | UI Automation target/protected checks, modifier wait, clipboard-safe insertion, owned UI harness and race tests |
+| W4 | **Complete** | PID + root-HWND capture at hotkey start; active-session/default-desktop and changed-target guards; bounded single-STA UIA protection/value/selection inspection; verified standard `Edit` selection replacement; one-shot modifier-gated paste; fail-closed protected clipboard formats and sequence-safe restore; generation/target/protection race coordinator; app-level hotkey → local transcript → insertion wiring; test-only accessible normal/password/delayed-paste harness | Real Word, Chrome and VS Code compatibility remains explicitly pending physical W8 QA; no universal-application claim is made |
 | W5 | Not started | W0 shell only; it is not a complete user flow | Review/replay integration, six functional Settings sections, onboarding, glossary, bounded visible history, EN/DE resources, synthetic UI screenshots and full hotkey-to-insert path |
 | W6 | Not started | Pure entitlement timing/major policy only | LD1 and Service fixture parity, device identity, activation/release-slot adapters, consent/telemetry allowlists, beta test authority and Windows terms/privacy draft |
 | W7 | Not started | Manifest/package verification spike and unsigned internal packaging workflow only | Manual updater state machine/UX, signed metadata production path, A-to-B install/update preservation test, uninstall/reinstall policy, signing gate |
@@ -80,6 +80,36 @@ cross-targeting on macOS is not reported as Windows validation.
 - Three-day local use, ten-day activated trial, annual/lifetime entitlements,
   clock rollback resistance and lifetime major-version coverage.
 
+### W4 safe insertion boundary
+
+- A recording captures the destination process ID and root top-level HWND before
+  the activity overlay is shown. The coordinator rechecks generation, connected
+  session, input desktop, foreground root HWND and UIA protected state before
+  every automatic content side effect; it never calls `SetForegroundWindow`.
+- UI Automation runs on one bounded background STA with a one-item queue and a
+  per-observation timeout. Provider failure, timeout, queue pressure, mismatched
+  process/window or unavailable properties fail closed as unknown. Password
+  fields are refused before clipboard or input work.
+- Direct insertion is limited to the known Win32 `Edit` control and uses exact
+  selection replacement plus a full-value readback. It never calls generic
+  `ValuePattern.SetValue`; an unverified direct write is terminal and cannot be
+  followed by a duplicate paste.
+- Every Witness clipboard text write sets
+  `ExcludeClipboardContentFromMonitorProcessing`,
+  `CanIncludeInClipboardHistory=0` and `CanUploadToCloudClipboard=0` before the
+  Unicode text. A protection-format or text-write failure clears partial data
+  and fails closed instead of exposing an ordinary clipboard fallback.
+- The paste path waits a bounded time for only the configured hotkey modifiers,
+  writes the protected clipboard only after the final target check and emits one
+  `Ctrl+V` sequence with no Enter and no retry. Restore requires exact UIA
+  value/selection verification and an unchanged clipboard sequence; otherwise
+  the protected dictation text remains available for recovery.
+- The test-only owned WPF harness provides keyboard-ordered, automation-labelled
+  normal, password and deliberately delayed-paste fields. Fake adapters cover
+  locked/unknown/protected targets, target changes, partial input, clipboard
+  failures, external clipboard changes and superseded generations without using
+  real user content.
+
 ## Commands run locally
 
 The .NET SDK was installed only under `/private/tmp/witness-dotnet` for this
@@ -106,8 +136,8 @@ Result: passed; self-contained win-x64 ReadyToRun output produced on macOS.
   --configuration Release --no-restore
 Result: passed; 86 passed, 0 failed, 0 skipped after the first W2 policy slice.
 
-The current local Windows head builds with 0 warnings and 0 errors and has 120
-Core tests. Its desktop-session policy tests and W3 native integrations require
+The current local Windows head builds with 0 warnings and 0 errors and has 133
+Core tests. Its desktop-session policy tests, W4 platform/harness tests and W3 native integrations require
 the Windows test host and are not reported as passed locally.
 
 Strict local Clang syntax checks pass for the native implementation, public C11
@@ -260,6 +290,15 @@ unrepresentative Ukrainian eSpeak test voice and are never shipped.
   or GPU claim. Artifact `witness-windows-w0-shell-46c570b88b42371c51b7a15884cedf8b77b6cb02`,
   ID `10966829332`, is 95,056,561 bytes and remains an internal shell build,
   not an installer or distributable beta.
+- Windows CI run
+  [`36534376223`](https://github.com/igskak/localdictation/actions/runs/36534376223)
+  passed for W4 source `9e58b9ace521a67feb1b2fb0580e19afd8d57363`:
+  133 Core tests, 6 update tests and 54 Windows platform tests passed together
+  with the managed build, MSVC native adapter/ABI, real-model language and
+  transcription regressions, CPU benchmark, self-contained publish, artifact
+  privacy scan and upload. The platform tests include the owned normal,
+  password and delayed-paste WPF harness; they do not substitute for physical
+  ordinary-user Word, Chrome or VS Code QA.
 
 ## Known limitations and external gates
 
@@ -290,7 +329,8 @@ unrepresentative Ukrainian eSpeak test voice and are never shipped.
 
 ## Next step
 
-Implement W4 safe insertion: target/protected checks, modifier wait, direct UI
-Automation first, clipboard privacy formats/restore fallback, generation races
-and an owned synthetic UI harness. Physical microphone, GPU/performance and
-ordinary-user desktop behavior remain explicitly pending until W8 QA.
+Implement W5 review, bounded in-memory history and the complete user path:
+cleanup/risk integration, Windows lexicon capability reporting, six functional
+Settings sections, onboarding, glossary, EN/DE resources and synthetic UI
+screenshots. Physical microphone, GPU/performance and ordinary-user Word,
+Chrome and VS Code insertion behavior remain explicitly pending until W8 QA.
