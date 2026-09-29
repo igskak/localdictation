@@ -95,7 +95,12 @@ public sealed class W5SettingsWindowTests
                 var onboarding = (Grid)window.FindName("OnboardingPanel");
                 onboarding.Visibility = Visibility.Visible;
                 SaveEvidenceIfRequested(Render(window, new Size(760, 560), 144), "w5-onboarding-synthetic.png");
-                Assert.IsTrue(FindVisualChildren<ScrollViewer>(window).Any());
+                var generalScroll = (ScrollViewer)window.FindName("GeneralPanel");
+                var onboardingLanguages = (ListBox)window.FindName("OnboardingLanguagesList");
+                Assert.AreEqual(ScrollBarVisibility.Auto, generalScroll.VerticalScrollBarVisibility);
+                Assert.AreEqual(
+                    ScrollBarVisibility.Auto,
+                    ScrollViewer.GetVerticalScrollBarVisibility(onboardingLanguages));
                 window.Close();
             }
             catch (Exception error)
@@ -160,13 +165,4 @@ public sealed class W5SettingsWindowTests
         .Order(StringComparer.Ordinal)
         .ToArray();
 
-    private static IEnumerable<T> FindVisualChildren<T>(DependencyObject parent) where T : DependencyObject
-    {
-        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(parent); index++)
-        {
-            var child = VisualTreeHelper.GetChild(parent, index);
-            if (child is T match) yield return match;
-            foreach (var descendant in FindVisualChildren<T>(child)) yield return descendant;
-        }
-    }
 }
