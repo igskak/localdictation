@@ -67,9 +67,15 @@ public sealed class W5SettingsWindowTests
                 window.Measure(new Size(760, 560));
                 window.Arrange(new Rect(new Size(760, 560)));
                 window.UpdateLayout();
-                var navigation = FindVisualChildren<RadioButton>(window)
-                    .Where(button => button.Tag is string)
-                    .ToArray();
+                RadioButton[] navigation =
+                [
+                    (RadioButton)window.FindName("GeneralNavigation"),
+                    (RadioButton)window.FindName("LanguagesNavigation"),
+                    (RadioButton)window.FindName("BoundaryNavigation"),
+                    (RadioButton)window.FindName("DictionaryNavigation"),
+                    (RadioButton)window.FindName("LicenseNavigation"),
+                    (RadioButton)window.FindName("DiagnosticsNavigation"),
+                ];
                 Assert.HasCount(6, navigation);
                 Assert.IsTrue(navigation.All(button => button.Focusable && button.MinHeight >= 44));
 

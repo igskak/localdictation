@@ -26,17 +26,17 @@
             <StackPanel Grid.Column="0">
                 <TextBlock Text="{DynamicResource AppTitle}" FontSize="28" FontWeight="SemiBold" Margin="0,0,0,4" />
                 <TextBlock Text="{DynamicResource AppSubtitle}" Style="{StaticResource MutedText}" Margin="0,0,0,24" />
-                <RadioButton Content="{DynamicResource GeneralTitle}" Tag="General" IsChecked="True" Checked="NavigateSettings"
+                <RadioButton x:Name="GeneralNavigation" Content="{DynamicResource GeneralTitle}" Tag="General" IsChecked="True" Checked="NavigateSettings"
                              Style="{StaticResource NavigationButton}" automation:AutomationProperties.Name="{DynamicResource GeneralTitle}" />
-                <RadioButton Content="{DynamicResource LanguagesTitle}" Tag="Languages" Checked="NavigateSettings"
+                <RadioButton x:Name="LanguagesNavigation" Content="{DynamicResource LanguagesTitle}" Tag="Languages" Checked="NavigateSettings"
                              Style="{StaticResource NavigationButton}" automation:AutomationProperties.Name="{DynamicResource LanguagesTitle}" />
-                <RadioButton Content="{DynamicResource BoundaryTitle}" Tag="Boundary" Checked="NavigateSettings"
+                <RadioButton x:Name="BoundaryNavigation" Content="{DynamicResource BoundaryTitle}" Tag="Boundary" Checked="NavigateSettings"
                              Style="{StaticResource NavigationButton}" automation:AutomationProperties.Name="{DynamicResource BoundaryTitle}" />
-                <RadioButton Content="{DynamicResource DictionaryTitle}" Tag="Dictionary" Checked="NavigateSettings"
+                <RadioButton x:Name="DictionaryNavigation" Content="{DynamicResource DictionaryTitle}" Tag="Dictionary" Checked="NavigateSettings"
                              Style="{StaticResource NavigationButton}" automation:AutomationProperties.Name="{DynamicResource DictionaryTitle}" />
-                <RadioButton Content="{DynamicResource LicenseTitle}" Tag="License" Checked="NavigateSettings"
+                <RadioButton x:Name="LicenseNavigation" Content="{DynamicResource LicenseTitle}" Tag="License" Checked="NavigateSettings"
                              Style="{StaticResource NavigationButton}" automation:AutomationProperties.Name="{DynamicResource LicenseTitle}" />
-                <RadioButton Content="{DynamicResource DiagnosticsTitle}" Tag="Diagnostics" Checked="NavigateSettings"
+                <RadioButton x:Name="DiagnosticsNavigation" Content="{DynamicResource DiagnosticsTitle}" Tag="Diagnostics" Checked="NavigateSettings"
                              Style="{StaticResource NavigationButton}" automation:AutomationProperties.Name="{DynamicResource DiagnosticsTitle}" />
             </StackPanel>
 
