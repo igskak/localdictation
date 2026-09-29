@@ -142,6 +142,15 @@ public sealed class TextInsertionCoordinator(
         if (!sameTarget || capturedTarget is null)
         {
             if (!isCurrentGeneration()) return Cancelled();
+            var clipboardField = await ObserveStillSafeAsync(
+                inspectedTarget,
+                isCurrentGeneration,
+                cancellationToken).ConfigureAwait(false);
+            if (clipboardField is null)
+                return isCurrentGeneration() ? Retained(InsertionPlanReason.TargetChanged) : Cancelled();
+            var clipboardProtectionOutcome = ProtectionOutcome(clipboardField.Protection);
+            if (clipboardProtectionOutcome is not null) return clipboardProtectionOutcome;
+            if (!isCurrentGeneration()) return Cancelled();
             var clipboardOnlyWrite = clipboard.TryWrite(text);
             if (!clipboardOnlyWrite.Succeeded)
                 return new(TextInsertionOutcomeKind.ClipboardProtectionFailed, InsertionPlanReason.ClipboardProtectionUnavailable);

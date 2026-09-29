@@ -62,6 +62,28 @@ public sealed class TextInsertionCoordinatorTests
     }
 
     [TestMethod]
+    public async Task ChangedTargetProtectionRaceFailsClosedBeforeClipboardWrite()
+    {
+        var changed = new InsertionTarget(42, 11);
+        var fixture = new Fixture(
+            Ordinary,
+            new UiAutomationFieldObservation(InsertionProtectionState.Protected))
+        {
+            Targets = { Observation = new(true, changed) },
+        };
+
+        var result = await fixture.Coordinator.InsertAsync(
+            "dictation",
+            Captured,
+            HotkeyModifiers.Control,
+            () => true);
+
+        Assert.AreEqual(TextInsertionOutcomeKind.RefusedProtectedField, result.Kind);
+        Assert.AreEqual(0, fixture.Clipboard.WriteCalls);
+        Assert.AreEqual(0, fixture.Paste.PasteCalls);
+    }
+
+    [TestMethod]
     public async Task VerifiedDirectWriteNeverTouchesClipboard()
     {
         var fixture = new Fixture(Ordinary);
