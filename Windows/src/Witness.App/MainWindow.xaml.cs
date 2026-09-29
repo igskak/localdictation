@@ -1,8 +1,10 @@
 using System.Windows;
 using System.Diagnostics;
 using System.Globalization;
+using Witness.Core.History;
 using Witness.Core.Languages;
 using Witness.Core.Models;
+using Witness.Core.Review;
 
 namespace Witness.App;
 
@@ -10,7 +12,10 @@ public partial class MainWindow : Window
 {
     internal event EventHandler? ModelDownloadRequested;
     internal event EventHandler? ModelDownloadCancelRequested;
+    internal event EventHandler? ReviewDismissed;
     internal event Action<LanguageProfile>? LanguageProfileChanged;
+    private ProcessedDictation? displayedResult;
+    private bool displaysRawTranscript;
 
     public MainWindow()
     {
@@ -22,6 +27,42 @@ public partial class MainWindow : Window
     {
         StatusText.Text = status;
         PrivacySettingsButton.Visibility = Visibility.Collapsed;
+    }
+
+    internal void BeginDictation()
+    {
+        displayedResult = null;
+        displaysRawTranscript = false;
+        AttentionPanel.Visibility = Visibility.Collapsed;
+        ReviewPanel.Visibility = Visibility.Collapsed;
+        ReviewReasonsList.ItemsSource = null;
+    }
+
+    internal void ShowDictationResult(
+        ProcessedDictation result,
+        IReadOnlyList<RecentDictation> recentDictations)
+    {
+        displayedResult = result ?? throw new ArgumentNullException(nameof(result));
+        displaysRawTranscript = false;
+        UpdateHistory(recentDictations);
+        ReviewPanel.Visibility = Visibility.Collapsed;
+        if (result.Review.DeservesAttention)
+        {
+            AttentionText.Text = result.Review.Flagged.Count == 1
+                ? "One fragment is worth checking. The text was already delivered."
+                : $"{result.Review.Flagged.Count} fragments are worth checking. The text was already delivered.";
+            AttentionPanel.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            AttentionPanel.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    internal void ClearDictationResult(IReadOnlyList<RecentDictation> recentDictations)
+    {
+        BeginDictation();
+        UpdateHistory(recentDictations);
     }
 
     internal void ShowMicrophoneAccessDenied()
@@ -112,6 +153,68 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OpenLatestReview(object sender, RoutedEventArgs e)
+    {
+        if (displayedResult is null)
+        {
+            return;
+        }
+        AttentionPanel.Visibility = Visibility.Collapsed;
+        ReviewPanel.Visibility = Visibility.Visible;
+        ShowReviewContents();
+    }
+
+    private void DismissLatestAttention(object sender, RoutedEventArgs e)
+    {
+        AttentionPanel.Visibility = Visibility.Collapsed;
+        ReviewDismissed?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void CloseLatestReview(object sender, RoutedEventArgs e)
+    {
+        ReviewPanel.Visibility = Visibility.Collapsed;
+        ReviewDismissed?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void ToggleRawTranscript(object sender, RoutedEventArgs e)
+    {
+        if (displayedResult is null)
+        {
+            return;
+        }
+        displaysRawTranscript = !displaysRawTranscript;
+        ShowReviewContents();
+    }
+
+    private void ShowReviewContents()
+    {
+        if (displayedResult is null)
+        {
+            return;
+        }
+        ReviewModeText.Text = displaysRawTranscript
+            ? "Raw transcript, exactly as recognized"
+            : "Conservatively cleaned text already delivered";
+        ReviewTranscriptText.Text = displaysRawTranscript
+            ? displayedResult.RawText
+            : displayedResult.TextForInsertion;
+        ToggleRawButton.Content = displaysRawTranscript
+            ? "Show cleaned text"
+            : "Show raw transcript";
+        ReviewReasonsList.ItemsSource = displayedResult.Review.Highlighted
+            .Select(ReviewDisplayItem.From)
+            .ToArray();
+    }
+
+    private void UpdateHistory(IReadOnlyList<RecentDictation> recentDictations)
+    {
+        ArgumentNullException.ThrowIfNull(recentDictations);
+        RecentDictationsList.ItemsSource = recentDictations;
+        HistoryExpander.Visibility = recentDictations.Count == 0
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+    }
+
     private static IReadOnlyList<LanguageProfileOption> BuildLanguageProfiles()
     {
         var choices = new List<LanguageProfileOption>
@@ -136,5 +239,28 @@ public partial class MainWindow : Window
     private sealed record LanguageProfileOption(string Label, LanguageProfile Profile)
     {
         public override string ToString() => Label;
+    }
+
+    private sealed record ReviewDisplayItem(string DisplayText)
+    {
+        public static ReviewDisplayItem From(RiskSpan span)
+        {
+            var label = span.Reason switch
+            {
+                RiskReasonKind.Number => "Number",
+                RiskReasonKind.Date => "Date",
+                RiskReasonKind.Amount => "Amount",
+                RiskReasonKind.NamedEntity => "Name or entity",
+                RiskReasonKind.Glossary => "Dictionary near-match",
+                RiskReasonKind.MalformedWord => "Unusual word shape",
+                RiskReasonKind.LanguageSwitch => "Language switch",
+                RiskReasonKind.CleanupEdit => "Cleanup change",
+                _ => "Recognition detail",
+            };
+            var attention = span.Weight >= ReviewPolicy.Default.AttentionThreshold
+                ? "check"
+                : "note";
+            return new ReviewDisplayItem($"{label} ({attention}): {span.Text}");
+        }
     }
 }

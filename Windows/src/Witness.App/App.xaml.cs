@@ -43,6 +43,7 @@ public partial class App : System.Windows.Application
             (MainWindow)MainWindow,
             insertionCoordinator,
             dictationHotkey.Modifiers);
+        ((MainWindow)MainWindow).ReviewDismissed += DismissReview;
         modelSetupController.ModelReady += inferenceController.SetVerifiedModelPath;
         ((MainWindow)MainWindow).LanguageProfileChanged += inferenceController.SetLanguageProfile;
         captureController = new DictationCaptureController(
@@ -70,7 +71,10 @@ public partial class App : System.Windows.Application
         if (modelSetupController is not null && inferenceController is not null)
             modelSetupController.ModelReady -= inferenceController.SetVerifiedModelPath;
         if (MainWindow is MainWindow window && inferenceController is not null)
+        {
             window.LanguageProfileChanged -= inferenceController.SetLanguageProfile;
+            window.ReviewDismissed -= DismissReview;
+        }
         inferenceController?.DisposeAsync().AsTask().GetAwaiter().GetResult();
         insertionInspector?.Dispose();
         modelSetupController?.DisposeAsync().AsTask().GetAwaiter().GetResult();
@@ -86,6 +90,9 @@ public partial class App : System.Windows.Application
             MainWindow.WindowState = System.Windows.WindowState.Normal;
         MainWindow.Activate();
     }
+
+    private void DismissReview(object? sender, EventArgs eventArgs) =>
+        inferenceController?.DismissReview();
 
     private void ExitApplication()
     {

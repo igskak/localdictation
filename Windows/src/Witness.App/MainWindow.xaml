@@ -73,6 +73,105 @@
                     </StackPanel>
                 </Border>
                 <Border Margin="0,16,0,0"
+                        x:Name="AttentionPanel"
+                        Padding="12"
+                        BorderThickness="1"
+                        BorderBrush="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"
+                        CornerRadius="4"
+                        Visibility="Collapsed"
+                        automation:AutomationProperties.Name="Dictation review attention">
+                    <StackPanel>
+                        <TextBlock x:Name="AttentionText"
+                                   FontWeight="SemiBold"
+                                   TextWrapping="Wrap"
+                                   automation:AutomationProperties.LiveSetting="Polite" />
+                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                            <Button Content="Review"
+                                    Click="OpenLatestReview"
+                                    automation:AutomationProperties.Name="Review the latest dictation" />
+                            <Button Content="Not now"
+                                    Margin="8,0,0,8"
+                                    Click="DismissLatestAttention"
+                                    automation:AutomationProperties.Name="Dismiss dictation review attention" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+                <Border Margin="0,16,0,0"
+                        x:Name="ReviewPanel"
+                        Padding="12"
+                        BorderThickness="1"
+                        BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"
+                        CornerRadius="4"
+                        Visibility="Collapsed"
+                        automation:AutomationProperties.Name="Latest dictation review">
+                    <StackPanel>
+                        <TextBlock Text="Latest dictation review"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,0,8" />
+                        <TextBlock x:Name="ReviewModeText"
+                                   Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"
+                                   Margin="0,0,0,4" />
+                        <TextBox x:Name="ReviewTranscriptText"
+                                 IsReadOnly="True"
+                                 IsReadOnlyCaretVisible="True"
+                                 AcceptsReturn="True"
+                                 TextWrapping="Wrap"
+                                 VerticalScrollBarVisibility="Auto"
+                                 MaxHeight="132"
+                                 Padding="8"
+                                 automation:AutomationProperties.Name="Latest dictation text" />
+                        <ItemsControl x:Name="ReviewReasonsList" Margin="0,10,0,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding DisplayText}"
+                                               TextWrapping="Wrap"
+                                               Margin="0,0,0,4" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <Button x:Name="ToggleRawButton"
+                                    Content="Show raw transcript"
+                                    Click="ToggleRawTranscript"
+                                    automation:AutomationProperties.Name="Toggle raw and cleaned dictation text" />
+                            <Button Content="Close review"
+                                    Margin="8,0,0,8"
+                                    Click="CloseLatestReview"
+                                    automation:AutomationProperties.Name="Close latest dictation review" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+                <Expander x:Name="HistoryExpander"
+                          Header="Recent dictations — this session only"
+                          Margin="0,16,0,0"
+                          Visibility="Collapsed"
+                          automation:AutomationProperties.Name="Recent dictations from this session">
+                    <Border Padding="12"
+                            BorderThickness="1"
+                            BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"
+                            CornerRadius="4">
+                        <ScrollViewer MaxHeight="180"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      KeyboardNavigation.TabNavigation="Local">
+                            <ItemsControl x:Name="RecentDictationsList">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding Text}"
+                                                 IsReadOnly="True"
+                                                 IsReadOnlyCaretVisible="True"
+                                                 TextWrapping="Wrap"
+                                                 BorderThickness="0"
+                                                 Background="Transparent"
+                                                 Margin="0,0,0,8"
+                                                 automation:AutomationProperties.Name="Recent dictation text" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Border>
+                </Expander>
+                <Border Margin="0,16,0,0"
                         Padding="12"
                         BorderThickness="1"
                         BorderBrush="{DynamicResource {x:Static SystemColors.ActiveBorderBrushKey}}"

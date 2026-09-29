@@ -78,6 +78,14 @@ internal sealed class LocalInferenceController : IAsyncDisposable
 
     internal bool HasRetainedReviewAudio => reviewAudio.HasAudio;
 
+    internal void DismissReview()
+    {
+        lock (resultGate)
+        {
+            reviewAudio.Release();
+        }
+    }
+
     public long BeginOperation()
     {
         lock (resultGate)
@@ -86,6 +94,7 @@ internal sealed class LocalInferenceController : IAsyncDisposable
             var generation = insertionGenerations.Supersede();
             reviewAudio.Release();
             latestResult = null;
+            dispatcher.BeginInvoke(window.BeginDictation);
             return generation;
         }
     }
@@ -143,6 +152,7 @@ internal sealed class LocalInferenceController : IAsyncDisposable
                 profile);
             if (string.IsNullOrWhiteSpace(processed.TextForInsertion))
             {
+                IReadOnlyList<RecentDictation> recent;
                 lock (resultGate)
                 {
                     if (!insertionGenerations.IsCurrent(generation))
@@ -152,7 +162,9 @@ internal sealed class LocalInferenceController : IAsyncDisposable
                     reviewAudio.Replace(capture.Pcm16KhzMono, EngineSampleRate, processed);
                     latestResult = null;
                     completedAudioHandled = true;
+                    recent = history.Items.ToArray();
                 }
+                await PublishClearedResultAsync(recent, generation).ConfigureAwait(false);
                 await SetStatusAsync($"The local engine completed in {DisplayLanguage(result.LanguageDecision.Language)}, but returned no text; Witness did not substitute a polished result.{warning}", generation).ConfigureAwait(false);
                 return true;
             }
@@ -167,6 +179,8 @@ internal sealed class LocalInferenceController : IAsyncDisposable
                 return true;
             }
 
+            IReadOnlyList<RecentDictation> recentDictations;
+            var showResult = true;
             lock (resultGate)
             {
                 if (!insertionGenerations.IsCurrent(generation))
@@ -182,6 +196,7 @@ internal sealed class LocalInferenceController : IAsyncDisposable
                 {
                     Array.Clear(capture.Pcm16KhzMono);
                     latestResult = null;
+                    showResult = false;
                 }
                 else
                 {
@@ -189,6 +204,15 @@ internal sealed class LocalInferenceController : IAsyncDisposable
                     latestResult = processed;
                 }
                 completedAudioHandled = true;
+                recentDictations = history.Items.ToArray();
+            }
+            if (showResult)
+            {
+                await PublishResultAsync(processed, recentDictations, generation).ConfigureAwait(false);
+            }
+            else
+            {
+                await PublishClearedResultAsync(recentDictations, generation).ConfigureAwait(false);
             }
             var status = InsertionStatus(insertionResult, result, processed, warning);
             await SetStatusAsync(status, generation).ConfigureAwait(false);
@@ -258,6 +282,29 @@ internal sealed class LocalInferenceController : IAsyncDisposable
             if (insertionGenerations.IsCurrent(generation))
             {
                 window.SetStatus(status);
+            }
+        });
+
+    private async Task PublishResultAsync(
+        ProcessedDictation result,
+        IReadOnlyList<RecentDictation> recentDictations,
+        long generation) =>
+        await dispatcher.InvokeAsync(() =>
+        {
+            if (insertionGenerations.IsCurrent(generation))
+            {
+                window.ShowDictationResult(result, recentDictations);
+            }
+        });
+
+    private async Task PublishClearedResultAsync(
+        IReadOnlyList<RecentDictation> recentDictations,
+        long generation) =>
+        await dispatcher.InvokeAsync(() =>
+        {
+            if (insertionGenerations.IsCurrent(generation))
+            {
+                window.ClearDictationResult(recentDictations);
             }
         });
 
