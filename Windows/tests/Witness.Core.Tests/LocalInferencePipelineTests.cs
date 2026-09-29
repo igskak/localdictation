@@ -121,6 +121,25 @@ public sealed class LocalInferencePipelineTests
     }
 
     [TestMethod]
+    public async Task ExplicitCallerOwnershipKeepsCompletedAudioForPostProcessing()
+    {
+        var session = new FakeSession();
+        await using var pipeline = new LocalInferencePipeline(new FakeSessionFactory(session));
+        var audio = new float[] { 0.4F, 0.5F };
+
+        await pipeline.ProcessAsync(new LocalInferenceRequest(
+            audio,
+            ModelPath,
+            new LanguageProfile(SpeechLanguage.English),
+            PinnedLanguage: null,
+            ThreadCount: 2,
+            ClearCompletedAudioOnExit: false));
+
+        CollectionAssert.AreEqual(new float[] { 0.4F, 0.5F }, audio);
+        Array.Clear(audio);
+    }
+
+    [TestMethod]
     public async Task EngineLanguageMismatchIsReportedInsteadOfPolishedAway()
     {
         var session = new FakeSession { ReturnedLanguageCode = "de" };

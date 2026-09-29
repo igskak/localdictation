@@ -22,7 +22,8 @@ public sealed record LocalInferenceRequest(
     LanguageProfile Profile,
     SpeechLanguage? PinnedLanguage,
     int ThreadCount,
-    int DetectionStartSample = 0);
+    int DetectionStartSample = 0,
+    bool ClearCompletedAudioOnExit = true);
 
 public sealed record LocalInferenceResult(
     LanguageDecisionResult LanguageDecision,
@@ -128,7 +129,10 @@ public sealed class LocalInferencePipeline(
         }
         finally
         {
-            Array.Clear(request.CompletedPcm16KhzMono);
+            if (request.ClearCompletedAudioOnExit)
+            {
+                Array.Clear(request.CompletedPcm16KhzMono);
+            }
             if (entered)
             {
                 operationGate.Release();
