@@ -1,6 +1,7 @@
 using System.Windows.Threading;
 using Witness.Core.Input;
 using Witness.Platform.Windows.Audio;
+using Witness.Platform.Windows.Insertion;
 
 namespace Witness.App;
 
@@ -8,17 +9,31 @@ internal sealed class DictationCaptureController(
     Dispatcher dispatcher,
     ActivityWindow activityWindow,
     MainWindow mainWindow,
-    Func<AudioCaptureResult, Task<bool>>? completedCaptureProcessor = null) : IDisposable
+    IInsertionTargetObserver? insertionTargets = null,
+    Func<long>? beginOperation = null,
+    Func<AudioCaptureResult, InsertionTarget?, long, Task<bool>>? completedCaptureProcessor = null) : IDisposable
 {
     private readonly SemaphoreSlim operationGate = new(1, 1);
     private AudioCaptureSession? session;
+    private InsertionTarget? capturedTarget;
+    private long operationGeneration;
     private bool disposed;
     private int statusGeneration;
 
     public void Handle(HotkeyAction action)
     {
         if (disposed || action == HotkeyAction.None) return;
-        _ = action == HotkeyAction.BeginRecording ? BeginAsync() : EndAsync();
+        if (action == HotkeyAction.BeginRecording)
+        {
+            var generation = beginOperation?.Invoke() ?? 0;
+            var observation = insertionTargets?.Observe();
+            var target = observation?.DesktopAvailable == true ? observation.Target : null;
+            _ = BeginAsync(generation, target);
+        }
+        else
+        {
+            _ = EndAsync();
+        }
     }
 
     public void RequestStop() => _ = EndAsync();
@@ -32,6 +47,7 @@ internal sealed class DictationCaptureController(
         {
             session?.Dispose();
             session = null;
+            capturedTarget = null;
         }
         finally
         {
@@ -40,12 +56,14 @@ internal sealed class DictationCaptureController(
         }
     }
 
-    private async Task BeginAsync()
+    private async Task BeginAsync(long generation, InsertionTarget? target)
     {
         await operationGate.WaitAsync().ConfigureAwait(false);
         try
         {
             if (disposed || session is not null) return;
+            operationGeneration = generation;
+            capturedTarget = target;
             await ShowAsync(ActivityVisualState.Processing, "Opening the selected microphone…").ConfigureAwait(false);
             var candidate = new AudioCaptureSession(
                 new NativeAudioCapture(endpointId: null),
@@ -67,10 +85,12 @@ internal sealed class DictationCaptureController(
         }
         catch (NativeAudioException error)
         {
+            capturedTarget = null;
             await ShowCaptureErrorAsync(error).ConfigureAwait(false);
         }
         catch (Exception error)
         {
+            capturedTarget = null;
             await ShowAsync(ActivityVisualState.Error, "No audio left this PC.").ConfigureAwait(false);
             await SetMainStatusAsync($"Microphone capture failed locally: {error.Message}").ConfigureAwait(false);
         }
@@ -88,6 +108,9 @@ internal sealed class DictationCaptureController(
             var active = session;
             if (disposed || active is null) return;
             session = null;
+            var target = capturedTarget;
+            var generation = operationGeneration;
+            capturedTarget = null;
             active.AutomaticStopRequested -= AutomaticStopRequested;
             await ShowAsync(ActivityVisualState.Processing, "Finishing the in-memory phrase…").ConfigureAwait(false);
             try
@@ -96,7 +119,7 @@ internal sealed class DictationCaptureController(
                 try
                 {
                     var handled = completedCaptureProcessor is not null
-                        && await completedCaptureProcessor(result).ConfigureAwait(false);
+                        && await completedCaptureProcessor(result, target, generation).ConfigureAwait(false);
                     if (!handled)
                     {
                         await PresentResultAsync(result).ConfigureAwait(false);

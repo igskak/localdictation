@@ -2,6 +2,9 @@ namespace Witness.App;
 
 public partial class App : System.Windows.Application
 {
+    private readonly Witness.Core.Input.HotkeyChord dictationHotkey = new(
+        Witness.Core.Input.HotkeyModifiers.Control | Witness.Core.Input.HotkeyModifiers.Shift,
+        0x20);
     private TrayIconService? trayIcon;
     private ActivityWindow? activityWindow;
     private Witness.Platform.Windows.Hotkeys.GlobalHotkeyService? hotkeyService;
@@ -9,6 +12,7 @@ public partial class App : System.Windows.Application
     private Witness.Platform.Windows.Lifecycle.DesktopSessionMonitor? sessionMonitor;
     private ModelSetupController? modelSetupController;
     private LocalInferenceController? inferenceController;
+    private Witness.Platform.Windows.Insertion.UiAutomationProtectionInspector? insertionInspector;
     private bool isExplicitExit;
 
     protected override void OnStartup(System.Windows.StartupEventArgs e)
@@ -22,22 +26,37 @@ public partial class App : System.Windows.Application
             eventArgs.Cancel = true;
             MainWindow.Hide();
         };
-        MainWindow.SourceInitialized += (_, _) => ConfigureSessionMonitor((MainWindow)MainWindow);
-
         activityWindow = new ActivityWindow();
         modelSetupController = new ModelSetupController(Dispatcher, (MainWindow)MainWindow);
-        inferenceController = new LocalInferenceController(Dispatcher, (MainWindow)MainWindow);
+        var windowHandle = new System.Windows.Interop.WindowInteropHelper(MainWindow).EnsureHandle();
+        var insertionTargets = new Witness.Platform.Windows.Insertion.ForegroundInsertionTargetService();
+        insertionInspector = new Witness.Platform.Windows.Insertion.UiAutomationProtectionInspector();
+        var insertionCoordinator = new Witness.Platform.Windows.Insertion.TextInsertionCoordinator(
+            insertionTargets,
+            insertionInspector,
+            new Witness.Platform.Windows.Insertion.StandardEditInsertionService(),
+            new Witness.Platform.Windows.Insertion.ProtectedClipboardService(windowHandle),
+            new Witness.Platform.Windows.Insertion.PasteInputService(),
+            new Witness.Platform.Windows.Insertion.SystemInsertionDelay());
+        inferenceController = new LocalInferenceController(
+            Dispatcher,
+            (MainWindow)MainWindow,
+            insertionCoordinator,
+            dictationHotkey.Modifiers);
         modelSetupController.ModelReady += inferenceController.SetVerifiedModelPath;
         ((MainWindow)MainWindow).LanguageProfileChanged += inferenceController.SetLanguageProfile;
         captureController = new DictationCaptureController(
             Dispatcher,
             activityWindow,
             (MainWindow)MainWindow,
+            insertionTargets,
+            inferenceController.BeginOperation,
             inferenceController.ProcessAsync);
         trayIcon = new TrayIconService();
         trayIcon.OpenRequested += (_, _) => ShowMainWindow();
         trayIcon.ExitRequested += (_, _) => ExitApplication();
         ConfigureHotkey((MainWindow)MainWindow);
+        ConfigureSessionMonitor((MainWindow)MainWindow);
         MainWindow.Show();
         _ = modelSetupController.InspectAsync();
     }
@@ -53,6 +72,7 @@ public partial class App : System.Windows.Application
         if (MainWindow is MainWindow window && inferenceController is not null)
             window.LanguageProfileChanged -= inferenceController.SetLanguageProfile;
         inferenceController?.DisposeAsync().AsTask().GetAwaiter().GetResult();
+        insertionInspector?.Dispose();
         modelSetupController?.DisposeAsync().AsTask().GetAwaiter().GetResult();
         activityWindow?.Close();
         base.OnExit(e);
@@ -82,10 +102,7 @@ public partial class App : System.Windows.Application
             hotkeyService = new Witness.Platform.Windows.Hotkeys.GlobalHotkeyService();
             hotkeyService.Pressed += (_, _) => captureController?.Handle(gesture.Press());
             hotkeyService.Released += (_, _) => captureController?.Handle(gesture.Release());
-            var chord = new Witness.Core.Input.HotkeyChord(
-                Witness.Core.Input.HotkeyModifiers.Control | Witness.Core.Input.HotkeyModifiers.Shift,
-                0x20);
-            var result = hotkeyService.Change(chord);
+            var result = hotkeyService.Change(dictationHotkey);
             if (result.Status == Witness.Platform.Windows.Hotkeys.HotkeyRegistrationStatus.Conflict)
                 window.SetStatus("Ctrl+Shift+Space is already used by another app. Shortcut editing will be available in Settings.");
         }
