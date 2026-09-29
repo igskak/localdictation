@@ -12,15 +12,17 @@ public sealed record UserPreferences(
     bool OnboardingCompleted,
     IReadOnlyList<string> LanguageCodes,
     HotkeyActivationMode ActivationMode,
-    AudioInputSelection AudioInput)
+    AudioInputSelection AudioInput,
+    bool ProductEventSharingEnabled = true)
 {
-    public const int CurrentSchemaVersion = 1;
+    public const int CurrentSchemaVersion = 2;
 
     public static UserPreferences Default { get; } = new(
         OnboardingCompleted: false,
         LanguageCodes: [SpeechLanguage.German.Code, SpeechLanguage.English.Code],
         ActivationMode: HotkeyActivationMode.Hold,
-        AudioInput: AudioInputSelection.SystemDefault);
+        AudioInput: AudioInputSelection.SystemDefault,
+        ProductEventSharingEnabled: true);
 
     public UserPreferences Normalized()
     {

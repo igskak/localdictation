@@ -14,7 +14,10 @@
         "contentHash": "KPD9SloJFclrsjnhABu7dzWrcyYkwPbvx5l1gRSPAX/0n+OBtSiVCKtGFv4n+ecWUHU0tCG9LSSwoZZx673zBQ=="
       },
       "witness.core": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "NSec.Cryptography": "[26.4.0, )"
+        }
       },
       "witness.platform.windows": {
         "type": "Project",

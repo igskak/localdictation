@@ -84,7 +84,7 @@ public sealed class JsonUserPreferencesStore : IUserPreferencesStore
         try
         {
             var document = JsonSerializer.Deserialize<PreferencesDocument>(fileSystem.ReadAllText(path), JsonOptions);
-            if (document is null || document.SchemaVersion != UserPreferences.CurrentSchemaVersion)
+            if (document is null || document.SchemaVersion is < 1 or > UserPreferences.CurrentSchemaVersion)
                 return new SettingsLoadResult(UserPreferences.Default, RecoveredFromInvalidData: true);
             var preferences = new UserPreferences(
                 document.OnboardingCompleted,
@@ -94,7 +94,10 @@ public sealed class JsonUserPreferencesStore : IUserPreferencesStore
                     ? AudioInputSelection.Specific(document.AudioInputDeviceId ?? string.Empty)
                     : document.AudioInputKind == AudioInputSelectionKind.BuiltIn
                         ? AudioInputSelection.BuiltIn
-                        : AudioInputSelection.SystemDefault);
+                        : AudioInputSelection.SystemDefault,
+                document.SchemaVersion >= 2
+                    ? document.ProductEventSharingEnabled ?? true
+                    : true);
             return new SettingsLoadResult(preferences.Normalized(), RecoveredFromInvalidData: false);
         }
         catch (Exception error) when (error is JsonException or IOException or UnauthorizedAccessException or ArgumentException)
@@ -115,7 +118,8 @@ public sealed class JsonUserPreferencesStore : IUserPreferencesStore
             normalized.AudioInput.Kind,
             normalized.AudioInput.Kind == AudioInputSelectionKind.Specific
                 ? normalized.AudioInput.DeviceId
-                : null);
+                : null,
+            normalized.ProductEventSharingEnabled);
         var temporaryPath = string.Concat(path, ".tmp");
         try
         {
@@ -134,5 +138,6 @@ public sealed class JsonUserPreferencesStore : IUserPreferencesStore
         string[]? LanguageCodes,
         HotkeyActivationMode ActivationMode,
         AudioInputSelectionKind AudioInputKind,
-        string? AudioInputDeviceId);
+        string? AudioInputDeviceId,
+        bool? ProductEventSharingEnabled);
 }

@@ -3,4 +3,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Witness.Core</RootNamespace>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="NSec.Cryptography" />
+  </ItemGroup>
 </Project>

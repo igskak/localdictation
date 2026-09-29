@@ -28,8 +28,8 @@ cross-targeting on macOS is not reported as Windows validation.
 | W2 | **Complete** | WPF tray lifecycle, named single-instance lease and non-activating activity badge; hold/toggle hotkeys and startup opt-in; preallocated packet queue and bounded fake-tested capture lifecycle; memory-only event-driven shared-mode WASAPI; PCM16/24/32/Float32 normalization; Media Foundation 44.1/48→16 kHz resampling with drain; opaque endpoint-ID enumeration with unknown built-in metadata kept explicit; microphone privacy recovery, local hotkey-to-capture preview and verified session-loss stop tests on Windows CI | Physical microphone/device/session QA remains W8 |
 | W3 | **Complete** | Verified local model manager and disclosed download UX; immutable multilingual product-model candidate; cancellable native transcription/token bridge; grapheme word mapping with honest segment-timing fallback; real backend probe and one controlled CPU retry policy; completed-recording language-score bridge with VAD speech boundary; pinned synthetic eSpeak DE/EN/RU plus neural Piper UK leading-noise regression; test-only native benchmark; app-level verified-model → completed-audio language decision → explicit-language transcription flow with generation cancellation and immediate audio clearing; successful real-model CPU Windows CI | Physical GPU/laptop performance and real-speech accuracy remain W8 QA; hosted CPU timings are recorded below rather than generalized |
 | W4 | **Complete** | PID + root-HWND capture at hotkey start; active-session/default-desktop and changed-target guards; bounded single-STA UIA protection/value/selection inspection; verified standard `Edit` selection replacement; one-shot modifier-gated paste; fail-closed protected clipboard formats and sequence-safe restore; generation/target/protection race coordinator; app-level hotkey → local transcript → insertion wiring; test-only accessible normal/password/delayed-paste harness | Real Word, Chrome and VS Code compatibility remains explicitly pending physical W8 QA; no universal-application claim is made |
-| W5 | **In progress** | Cleanup/risk/review and RAM replay are connected to insertion; latest-ten RAM history excludes protected refusals; review audio has a bounded flagged-only lifetime; Windows dictionaries fail open per language capability; two-step onboarding, six navigable Settings sections, ordered language persistence, session-only glossary, audio-input selection, voice-boundary controls and key-parity EN/DE resources now cross-build cleanly | Run the 63 platform tests and synthetic WPF render harness in Windows CI; retain screenshots only from synthetic states; complete Windows DPI/high-contrast/keyboard evidence before marking W5 complete |
-| W6 | Not started | Pure entitlement timing/major policy only | LD1 and Service fixture parity, device identity, activation/release-slot adapters, consent/telemetry allowlists, beta test authority and Windows terms/privacy draft |
+| W5 | **In progress** | Cleanup/risk/review and RAM replay are connected to insertion; latest-ten RAM history excludes protected refusals; review audio has a bounded flagged-only lifetime; Windows dictionaries fail open per language capability; two-step onboarding, six navigable Settings sections, ordered language persistence, session-only glossary, audio-input selection, voice-boundary controls and key-parity EN/DE resources passed 63 Windows platform tests plus the privacy-scanned synthetic render harness | Complete physical Windows DPI/high-contrast/keyboard and screen-reader evidence before marking W5 complete |
+| W6 | **In progress** | Pure entitlement timing/major policy; offline LD1 verifier; committed Service fixture parity for trial/annual/lifetime; atomic five-field local entitlement record; restart-safe entitlement session and invalid-token removal; Windows-scoped SMBIOS identity with placeholder refusal; production-compatible activation/release adapter behind an injected transport; verified-key acceptance and local/remote release outcome orchestration; three-event telemetry allowlist, persisted opt-out and local-only beta default | Isolated beta authority/configuration, License UI wiring and Windows terms/privacy draft |
 | W7 | Not started | Manifest/package verification spike and unsigned internal packaging workflow only | Manual updater state machine/UX, signed metadata production path, A-to-B install/update preservation test, uninstall/reinstall policy, signing gate |
 | W8 | Not started | — | Installable closed-beta kit, checksum, notices with full license texts, release notes, known issues, tester guide/checklist/bug template, regression/soak/privacy evidence |
 
@@ -119,6 +119,47 @@ cross-targeting on macOS is not reported as Windows validation.
   verifies the exact filenames, runs the artifact privacy scan and uploads the
   evidence separately with seven-day retention.
 
+### W6 offline licensing foundation
+
+- LD1 tokens are verified locally with the pinned NSec Ed25519 implementation.
+  The signature covers the exact decoded payload bytes and is checked before
+  JSON, device, email, kind or dates are trusted. The authority is injected;
+  this slice does not embed a Windows production or beta authority.
+- The committed `Service/fixtures/parity.json` trial, annual and lifetime keys
+  pass through the shipping Windows verifier. Edited payloads, another device,
+  malformed tokens and an unconfigured authority fail closed. No activation
+  endpoint or network transport participates in verification.
+- The local entitlement record has exactly five allowlisted fields: install
+  time, unlinkable install ID, first successful dictation time, furthest seen
+  time and the signed token. It is atomically replaced under local app data;
+  transcripts, glossary, history, audio, application names and diagnostics have
+  no serialization path through its fixed document.
+- The entitlement session persists the first successful result, resists clock
+  rollback through the existing policy, accepts a key only after verification,
+  restores it after restart, discards a stored token that no longer verifies
+  and does not claim acceptance when persistence fails.
+- Windows identity is derived from the SMBIOS system UUID returned by the local
+  firmware API, normalized, namespaced with a Windows-only product salt, hashed
+  with SHA-256 and truncated to 128 bits / 32 lowercase hex. The raw UUID is not
+  saved or returned by the product adapter. Missing, zero and all-`ff` UUIDs
+  produce an actionable unavailable result instead of a shared or random ID.
+- The activation adapter is inert without a compiled HTTPS endpoint and an
+  explicit user call. Activation sends exactly `device` and `email`; release
+  sends exactly `device` and the already-issued signed key. The concrete client
+  disables cookies and automatic redirects, identifies itself only as
+  `Witness`, bounds replies to 8 KiB, accepts only an LD1-shaped success and
+  keeps device-limit, rejection and temporary-network outcomes distinct.
+- Activation never stores a reply until the offline verifier accepts it.
+  Device release uses the signed key as proof before deleting it locally; a
+  network failure still honors the local removal and returns a distinct warning
+  that the remote two-computer slot may remain occupied.
+- Product telemetry has no free-form event API: only `trial_started`,
+  `activation_requested` and `paywall_shown` can be constructed, with the four
+  fixed paywall qualifiers. The fixed wire envelope contains event, optional
+  qualifier, app version, coarse `windows-10.0` family and a random install ID.
+  Consent is persisted, shown in onboarding and Settings, and read at send time;
+  the beta default service performs no network or disk I/O for events.
+
 ### W4 safe insertion boundary
 
 - A recording captures the destination process ID and root top-level HWND before
@@ -194,6 +235,9 @@ Result: passed; 6 passed, 0 failed, 0 skipped.
   Windows/tests/Witness.Core.Tests/Witness.Core.Tests.csproj \
   --configuration Release --no-restore --disable-build-servers -m:1
 Result after the W5 settings/session-glossary slice: passed; 148 passed, 0 failed, 0 skipped.
+
+Result after the first W6 offline-license/persistence/identity/network-policy slice: passed; 183 passed,
+0 failed, 0 skipped. The managed solution builds with 0 warnings and 0 errors.
 
 /private/tmp/witness-dotnet/dotnet build Windows/Witness.Windows.sln \
   --configuration Release --no-restore --disable-build-servers -m:1
@@ -349,6 +393,15 @@ unrepresentative Ukrainian eSpeak test voice and are never shipped.
   privacy scan and upload. The platform tests include the owned normal,
   password and delayed-paste WPF harness; they do not substitute for physical
   ordinary-user Word, Chrome or VS Code QA.
+- Windows CI run
+  [`36583406009`](https://github.com/igskak/localdictation/actions/runs/36583406009)
+  passed for W5 source `b35cd55ceb90899988bddcc9640278125e4dc2a0`:
+  148 Core tests, 6 update tests and 63 Windows platform tests passed with the
+  complete native/model/publish/privacy pipeline. The owned WPF harness rendered
+  the settings, dictionary and onboarding states from hard-coded synthetic data;
+  the exact three PNG filenames passed the artifact privacy scan and were kept
+  separately for seven days. This is hosted-runner layout evidence, not physical
+  Windows 11 DPI, high-contrast, keyboard or screen-reader QA.
 
 ## Known limitations and external gates
 
@@ -360,10 +413,9 @@ unrepresentative Ukrainian eSpeak test voice and are never shipped.
   deliberately unconfigured. Mac release/update URLs have not been changed.
 - Full third-party license texts still need to be assembled into the external
   beta notices. The current notice file is an engineering inventory.
-- The W5 WPF surface cross-builds and has a synthetic render harness, but that
-  harness has not yet executed on Windows. Windows DPI, high contrast, keyboard
-  traversal and screen-reader behavior therefore remain CI/physical-QA gates;
-  source structure alone is not reported as verified UX.
+- The W5 synthetic render harness and focusable navigation checks pass on the
+  hosted Windows runner. Physical Windows 11 DPI, high contrast, full keyboard
+  traversal and screen-reader behavior remain explicit QA gates.
 - The current language-score call prepares and encodes the completed recording
   separately from the later explicit-language transcription. The pinned
   whisper.cpp `whisper_full` API owns PCM → mel → encoder → decoder and exposes
@@ -375,8 +427,9 @@ unrepresentative Ukrainian eSpeak test voice and are never shipped.
 
 ## Next step
 
-Run the new W5 settings/persistence/render harness with the complete Windows CI
-suite, capture only synthetic key states if the runner exposes a usable desktop,
-and fix any DPI/high-contrast/keyboard findings before closing W5. Physical
-microphone, GPU/performance and ordinary-user Word, Chrome and VS Code insertion
-behavior remain explicitly pending until W8 QA.
+Run the first W6 offline-license/persistence/identity/network-policy slice in
+Windows CI, then wire the local-only beta authority/configuration,
+License UI and Windows-specific terms/privacy draft. The beta authority and transport remain isolated and
+local-only until their explicit configuration exists. Physical W5
+accessibility, microphone, GPU/performance and ordinary-user Word, Chrome and
+VS Code behavior remain pending for external W8 QA.

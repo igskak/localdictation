@@ -163,6 +163,11 @@
                                     <StackPanel>
                                         <TextBlock Text="{DynamicResource PrivacySection}" Style="{StaticResource SectionHeading}" />
                                         <TextBlock Text="{DynamicResource PrivacyDetail}" Style="{StaticResource MutedText}" />
+                                        <CheckBox x:Name="ProductEventSharingCheckBox"
+                                                  Content="{DynamicResource ProductEventsConsent}"
+                                                  Margin="0,12,0,0" Padding="0,8"
+                                                  Click="ChangeProductEventSharing" />
+                                        <TextBlock Text="{DynamicResource ProductEventsDetail}" Style="{StaticResource MutedText}" />
                                     </StackPanel>
                                 </Border>
 
@@ -349,6 +354,11 @@
                             <StackPanel>
                                 <TextBlock Text="{DynamicResource ReadyPrivacy}" TextWrapping="Wrap" Margin="0,0,0,12" />
                                 <TextBlock Text="{DynamicResource ReadyModel}" TextWrapping="Wrap" />
+                                <CheckBox x:Name="OnboardingProductEventSharingCheckBox"
+                                          Content="{DynamicResource ProductEventsConsent}"
+                                          Margin="0,12,0,0" Padding="0,8"
+                                          Click="ChangeProductEventSharing" />
+                                <TextBlock Text="{DynamicResource ProductEventsDetail}" Style="{StaticResource MutedText}" />
                             </StackPanel>
                         </Border>
                         <DockPanel LastChildFill="False">

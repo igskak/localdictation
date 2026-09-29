@@ -46,6 +46,8 @@
     <sys:String x:Key="RefreshInputs">Mikrofone aktualisieren</sys:String>
     <sys:String x:Key="PrivacySection">Datenschutz</sys:String>
     <sys:String x:Key="PrivacyDetail">Audio bleibt im Arbeitsspeicher. Diktierter Text, Verlauf, Wortschatz und Anwendungsinhalte verlassen diesen PC nie.</sys:String>
+    <sys:String x:Key="ProductEventsConsent">Drei inhaltsfreie Produktereignisse teilen</sys:String>
+    <sys:String x:Key="ProductEventsDetail">Testphase gestartet, Aktivierung angefordert und Bezahlhinweis angezeigt — mit App-Version, Windows 10.0 und zufälliger Installations-ID. Keine Diktate, Geräte-ID oder E-Mail-Adresse. Jederzeit änderbar.</sys:String>
     <sys:String x:Key="ModelSection">Sprachmodell</sys:String>
     <sys:String x:Key="DownloadModel">Sprachmodell herunterladen</sys:String>
     <sys:String x:Key="RetryModel">Modelldownload erneut versuchen</sys:String>

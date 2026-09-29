@@ -19,7 +19,8 @@ public sealed class JsonUserPreferencesStoreTests
             true,
             ["uk", "en"],
             HotkeyActivationMode.Toggle,
-            AudioInputSelection.Specific("synthetic-endpoint")));
+            AudioInputSelection.Specific("synthetic-endpoint"),
+            ProductEventSharingEnabled: false));
 
         var loaded = store.Load();
 
@@ -27,6 +28,7 @@ public sealed class JsonUserPreferencesStoreTests
         CollectionAssert.AreEqual(new[] { "uk", "en" }, loaded.Preferences.LanguageCodes.ToArray());
         Assert.AreEqual(HotkeyActivationMode.Toggle, loaded.Preferences.ActivationMode);
         Assert.AreEqual("synthetic-endpoint", loaded.Preferences.AudioInput.DeviceId);
+        Assert.IsFalse(loaded.Preferences.ProductEventSharingEnabled);
         var json = files.Files[@"C:\Witness\settings.json"];
         StringAssert.Contains(json, "\"schemaVersion\"");
         using var parsed = JsonDocument.Parse(json);
@@ -39,11 +41,34 @@ public sealed class JsonUserPreferencesStoreTests
                 "activationMode",
                 "audioInputKind",
                 "audioInputDeviceId",
+                "productEventSharingEnabled",
             },
             parsed.RootElement.EnumerateObject().Select(property => property.Name).ToArray());
         Assert.DoesNotContain("transcript", json, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("glossary", json, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("history", json, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [TestMethod]
+    public void VersionOneSettingsMigrateWithTheDisclosedDefaultConsent()
+    {
+        var files = new MemoryFileSystem();
+        files.Files[@"C:\Witness\settings.json"] = """
+            {
+              "schemaVersion": 1,
+              "onboardingCompleted": true,
+              "languageCodes": ["de", "en"],
+              "activationMode": "Hold",
+              "audioInputKind": "SystemDefault",
+              "audioInputDeviceId": null
+            }
+            """;
+
+        var result = new JsonUserPreferencesStore(@"C:\Witness\settings.json", files).Load();
+
+        Assert.IsFalse(result.RecoveredFromInvalidData);
+        Assert.IsTrue(result.Preferences.ProductEventSharingEnabled);
+        CollectionAssert.AreEqual(new[] { "de", "en" }, result.Preferences.LanguageCodes.ToArray());
     }
 
     [TestMethod]

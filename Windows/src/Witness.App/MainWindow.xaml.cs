@@ -28,6 +28,7 @@ public partial class MainWindow : Window
     internal event Action<HotkeyActivationMode>? ActivationModeChanged;
     internal event Action<bool>? LaunchAtStartupChanged;
     internal event Action<AudioInputSelection>? AudioInputChanged;
+    internal event Action<bool>? ProductEventSharingChanged;
     internal event Action<VoiceActivityConfiguration>? VoiceActivityConfigurationChanged;
     internal event Action<string, SpeechLanguage>? GlossaryTermAddRequested;
     internal event Action<GlossaryEntry>? GlossaryTermRemoveRequested;
@@ -74,6 +75,8 @@ public partial class MainWindow : Window
                 .First(option => option.Mode == normalized.ActivationMode);
             LaunchAtStartupCheckBox.IsChecked = launchAtStartup;
             audioInputSelection = normalized.AudioInput;
+            ProductEventSharingCheckBox.IsChecked = normalized.ProductEventSharingEnabled;
+            OnboardingProductEventSharingCheckBox.IsChecked = normalized.ProductEventSharingEnabled;
             ShowOnboarding(!normalized.OnboardingCompleted);
         }
         finally
@@ -403,6 +406,23 @@ public partial class MainWindow : Window
         if (updatingControls || AudioInputBox.SelectedItem is not AudioInputOption option) return;
         audioInputSelection = option.Selection;
         AudioInputChanged?.Invoke(option.Selection);
+    }
+
+    private void ChangeProductEventSharing(object sender, RoutedEventArgs e)
+    {
+        if (updatingControls || sender is not WpfCheckBox source) return;
+        var enabled = source.IsChecked == true;
+        updatingControls = true;
+        try
+        {
+            ProductEventSharingCheckBox.IsChecked = enabled;
+            OnboardingProductEventSharingCheckBox.IsChecked = enabled;
+        }
+        finally
+        {
+            updatingControls = false;
+        }
+        ProductEventSharingChanged?.Invoke(enabled);
     }
 
     private void SetVoiceConfiguration(VoiceActivityConfiguration configuration)

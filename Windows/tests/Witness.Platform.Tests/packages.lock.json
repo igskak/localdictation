@@ -147,7 +147,10 @@
         }
       },
       "witness.core": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "NSec.Cryptography": "[26.4.0, )"
+        }
       },
       "witness.platform.windows": {
         "type": "Project",

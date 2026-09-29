@@ -126,6 +126,7 @@ public partial class App : System.Windows.Application
         window.ActivationModeChanged += ChangeActivationMode;
         window.LaunchAtStartupChanged += ChangeLaunchAtStartup;
         window.AudioInputChanged += ChangeAudioInput;
+        window.ProductEventSharingChanged += ChangeProductEventSharing;
         window.VoiceActivityConfigurationChanged += ChangeVoiceConfiguration;
         window.GlossaryTermAddRequested += AddGlossaryTerm;
         window.GlossaryTermRemoveRequested += RemoveGlossaryTerm;
@@ -142,6 +143,7 @@ public partial class App : System.Windows.Application
         window.ActivationModeChanged -= ChangeActivationMode;
         window.LaunchAtStartupChanged -= ChangeLaunchAtStartup;
         window.AudioInputChanged -= ChangeAudioInput;
+        window.ProductEventSharingChanged -= ChangeProductEventSharing;
         window.VoiceActivityConfigurationChanged -= ChangeVoiceConfiguration;
         window.GlossaryTermAddRequested -= AddGlossaryTerm;
         window.GlossaryTermRemoveRequested -= RemoveGlossaryTerm;
@@ -251,6 +253,12 @@ public partial class App : System.Windows.Application
             RefreshAudioInputs(window, selection);
             RefreshDiagnostics(window);
         }
+    }
+
+    private void ChangeProductEventSharing(bool enabled)
+    {
+        preferences = preferences with { ProductEventSharingEnabled = enabled };
+        SavePreferences();
     }
 
     private void ChangeVoiceConfiguration(VoiceActivityConfiguration configuration) =>

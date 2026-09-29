@@ -37,6 +37,12 @@ public sealed record UsageRecord(
     DateTimeOffset FurthestSeenAt,
     string? LicenseToken)
 {
+    public static UsageRecord New(DateTimeOffset now, string installId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(installId);
+        return new UsageRecord(now, installId, null, now, null);
+    }
+
     public UsageRecord Observe(DateTimeOffset now) => now > FurthestSeenAt ? this with { FurthestSeenAt = now } : this;
     public DateTimeOffset EffectiveNow(DateTimeOffset now) => now > FurthestSeenAt ? now : FurthestSeenAt;
 }

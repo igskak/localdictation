@@ -9,4 +9,9 @@
     <PackageReference Include="MSTest" />
     <ProjectReference Include="..\..\src\Witness.Core\Witness.Core.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\..\..\Service\fixtures\parity.json" Link="Fixtures\activation-service-parity.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 </Project>

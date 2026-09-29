@@ -46,6 +46,8 @@
     <sys:String x:Key="RefreshInputs">Refresh microphones</sys:String>
     <sys:String x:Key="PrivacySection">Privacy</sys:String>
     <sys:String x:Key="PrivacyDetail">Audio remains in memory. Dictated text, history, vocabulary and application contents never leave this PC.</sys:String>
+    <sys:String x:Key="ProductEventsConsent">Share three non-content product events</sys:String>
+    <sys:String x:Key="ProductEventsDetail">Trial started, activation requested and paywall shown — with app version, Windows 10.0 and a random install ID. No dictated content, device ID or email. You can change this anytime.</sys:String>
     <sys:String x:Key="ModelSection">Speech model</sys:String>
     <sys:String x:Key="DownloadModel">Download speech model</sys:String>
     <sys:String x:Key="RetryModel">Retry model download</sys:String>
