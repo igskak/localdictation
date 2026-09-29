@@ -19,6 +19,17 @@ final class HALInputCaptureServiceTests: XCTestCase {
         func inputChannelCount(of device: AudioDeviceID) -> Int? { channelCounts[device] }
         func nominalSampleRate(of device: AudioDeviceID) -> Double? { sampleRates[device] }
         func isAlive(_ device: AudioDeviceID) -> Bool { !dead.contains(device) }
+
+        // No device is ever opened in these tests, so nothing is observed.
+        func addListener(
+            object: AudioObjectID,
+            selector: AudioObjectPropertySelector,
+            scope: AudioObjectPropertyScope,
+            queue: DispatchQueue,
+            handler: @escaping @Sendable () -> Void
+        ) -> AudioPropertyListenerToken? { nil }
+
+        func removeListener(_ token: AudioPropertyListenerToken) {}
     }
 
     private func device(

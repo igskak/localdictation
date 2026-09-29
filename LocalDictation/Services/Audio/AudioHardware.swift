@@ -19,6 +19,42 @@ protocol AudioHardware: Sendable {
     func nominalSampleRate(of device: AudioDeviceID) -> Double?
     /// False once the device has gone away under us.
     func isAlive(_ device: AudioDeviceID) -> Bool
+
+    /// Observes one property of one Core Audio object. `handler` runs on
+    /// `queue`, never on Core Audio's own listener thread, so it is free to do
+    /// work. Returns `nil` when the listener could not be registered.
+    func addListener(
+        object: AudioObjectID,
+        selector: AudioObjectPropertySelector,
+        scope: AudioObjectPropertyScope,
+        queue: DispatchQueue,
+        handler: @escaping @Sendable () -> Void
+    ) -> AudioPropertyListenerToken?
+
+    func removeListener(_ token: AudioPropertyListenerToken)
+}
+
+/// Keeps a registered Core Audio property listener removable.
+///
+/// `AudioObjectRemovePropertyListenerBlock` matches on the block itself, so the
+/// block has to outlive the registration.
+final class AudioPropertyListenerToken: @unchecked Sendable {
+    let object: AudioObjectID
+    let address: AudioObjectPropertyAddress
+    let queue: DispatchQueue
+    let block: AudioObjectPropertyListenerBlock
+
+    init(
+        object: AudioObjectID,
+        address: AudioObjectPropertyAddress,
+        queue: DispatchQueue,
+        block: @escaping AudioObjectPropertyListenerBlock
+    ) {
+        self.object = object
+        self.address = address
+        self.queue = queue
+        self.block = block
+    }
 }
 
 /// The live implementation, reading the real Core Audio object graph.
@@ -41,5 +77,27 @@ struct SystemAudioHardware: AudioHardware {
 
     func isAlive(_ device: AudioDeviceID) -> Bool {
         SystemAudioInput.isAlive(device)
+    }
+
+    func addListener(
+        object: AudioObjectID,
+        selector: AudioObjectPropertySelector,
+        scope: AudioObjectPropertyScope,
+        queue: DispatchQueue,
+        handler: @escaping @Sendable () -> Void
+    ) -> AudioPropertyListenerToken? {
+        var address = AudioObjectPropertyAddress(
+            mSelector: selector,
+            mScope: scope,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        let block: AudioObjectPropertyListenerBlock = { _, _ in handler() }
+        guard AudioObjectAddPropertyListenerBlock(object, &address, queue, block) == noErr else { return nil }
+        return AudioPropertyListenerToken(object: object, address: address, queue: queue, block: block)
+    }
+
+    func removeListener(_ token: AudioPropertyListenerToken) {
+        var address = token.address
+        AudioObjectRemovePropertyListenerBlock(token.object, &address, token.queue, token.block)
     }
 }

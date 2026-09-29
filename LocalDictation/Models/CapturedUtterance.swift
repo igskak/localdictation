@@ -19,6 +19,10 @@ struct CapturedUtterance: Sendable, Equatable {
     let droppedFrameCount: Int
     let voiceActivity: VoiceActivityObservation
     let endReason: UtteranceEndReason
+    /// How many times capture moved to another input segment while this was
+    /// being said. Non-zero means the route changed and the sentence survived
+    /// it; the user was told nothing, so the diagnostics are where it shows.
+    var rebindCount: Int = 0
 
     var frameCount: Int { samples.count }
     var duration: TimeInterval { sampleRate > 0 ? Double(samples.count) / sampleRate : 0 }
@@ -35,6 +39,7 @@ struct UtteranceSummary: Sendable, Equatable {
     let speechStart: TimeInterval?
     let trailingSilence: TimeInterval
     let endReason: UtteranceEndReason
+    let rebindCount: Int
 
     init(_ utterance: CapturedUtterance) {
         duration = utterance.duration
@@ -45,5 +50,6 @@ struct UtteranceSummary: Sendable, Equatable {
         speechStart = utterance.voiceActivity.speechStart
         trailingSilence = utterance.voiceActivity.trailingSilence
         endReason = utterance.endReason
+        rebindCount = utterance.rebindCount
     }
 }

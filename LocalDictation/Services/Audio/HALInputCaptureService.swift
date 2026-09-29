@@ -3,81 +3,121 @@ import AudioToolbox
 import CoreAudio
 import Foundation
 
-/// Capture that opens the chosen microphone directly, input only.
+/// Capture that opens the chosen microphone directly, input only, and follows it
+/// when the route changes.
 ///
 /// `AVAudioEngine` records through a private `CADefaultDeviceAggregate` whose IO
-/// work loop is the default *output* device, so connecting headphones rebuilds
-/// the input path and stops the engine mid-sentence. An input-only AUHAL unit
-/// bound to an explicit device has no such coupling: output devices come and go
-/// without capture noticing.
+/// work loop is the default *output* device, so connecting headphones rebuilt the
+/// input path and stopped the engine mid-sentence. An input-only AUHAL unit bound
+/// to an explicit device has no such coupling.
+///
+/// The recording is split in two. The **utterance** owns the sink and the voice
+/// activity detector and lasts for the whole recording. An **input segment** owns
+/// one audio unit bound to one device in one format, and is replaced whenever the
+/// route changes: the old segment is drained into the same sink, so the sentence
+/// continues across the change and the user sees nothing.
 ///
 /// The client format is always mono at the device rate, with an explicit channel
 /// map taking device channel 0. That is what makes a microphone reporting a raw
 /// 3-channel array during someone else's call record normally.
 ///
-/// `@unchecked Sendable` for the same reason as the engine service: the audio
-/// unit and its buffers are not `Sendable`, and the contract is that one capture
-/// session owns them, with start and stop serialized by a lock.
+/// Segment lifecycle runs entirely on one private serial queue, shared with the
+/// route monitor. `@unchecked Sendable` because the audio unit and its buffers
+/// are not `Sendable`; the contract is that only that queue touches them.
 final class HALInputCaptureService: AudioCaptureService, @unchecked Sendable {
-    /// One binding to one device. The utterance outlives it; slice 3 replaces a
-    /// segment mid-recording when the route changes.
+    /// One binding to one device.
     fileprivate final class InputSegment {
         let unit: AudioUnit
         let deviceID: AudioDeviceID
         let deviceName: String
-        let hardwareSampleRate: Double
-        let hardwareChannelCount: Int
+        let binding: InputBinding
         let converter: AudioFormatConverter
         let sink: PCMCaptureSink
         /// Rendered into by the audio callback and handed to the converter. Sized
         /// once from the unit's maximum slice, so the callback never allocates.
         let renderBuffer: AVAudioPCMBuffer
+        /// Written by the audio callback, read by the watchdog. An aligned 64-bit
+        /// store, and a heartbeat rather than a value anything computes with, so
+        /// it needs no lock on the real-time thread.
+        var lastCallbackUptime: TimeInterval
         /// Set by the audio callback when `AudioUnitRender` or conversion fails.
-        /// Read off the audio thread; the callback itself only writes it.
         var failure: OSStatus = noErr
 
         init(
             unit: AudioUnit,
             deviceID: AudioDeviceID,
             deviceName: String,
-            hardwareSampleRate: Double,
-            hardwareChannelCount: Int,
+            binding: InputBinding,
             converter: AudioFormatConverter,
             sink: PCMCaptureSink,
-            renderBuffer: AVAudioPCMBuffer
+            renderBuffer: AVAudioPCMBuffer,
+            startedAt: TimeInterval
         ) {
             self.unit = unit
             self.deviceID = deviceID
             self.deviceName = deviceName
-            self.hardwareSampleRate = hardwareSampleRate
-            self.hardwareChannelCount = hardwareChannelCount
+            self.binding = binding
             self.converter = converter
             self.sink = sink
             self.renderBuffer = renderBuffer
+            self.lastCallbackUptime = startedAt
         }
     }
 
-    private struct Session {
-        let segment: InputSegment
+    /// One recording. Lives on the service's queue.
+    private final class Session {
+        var segment: InputSegment?
+        /// The last binding that was live. Kept on the session rather than read
+        /// from the segment, because a rebind that failed leaves no segment and
+        /// the next decision still needs to know where we were.
+        var binding: InputBinding
         let sink: PCMCaptureSink
+        let selection: AudioInputSelection
         let format: CaptureFormatDescription
-        let inputSelection: AudioInputSelection
+        let onInterruption: @Sendable (AudioCaptureError) -> Void
+        var budget = RebindBudget()
+        var rebindCount = 0
+        var isFinished = false
+
+        init(
+            segment: InputSegment,
+            sink: PCMCaptureSink,
+            selection: AudioInputSelection,
+            format: CaptureFormatDescription,
+            onInterruption: @escaping @Sendable (AudioCaptureError) -> Void
+        ) {
+            self.segment = segment
+            self.binding = segment.binding
+            self.sink = sink
+            self.selection = selection
+            self.format = format
+            self.onInterruption = onInterruption
+        }
     }
 
     private let hardware: any AudioHardware
-    private let lock = UnfairLock()
+    private let queue: DispatchQueue
+    private let monitor: InputRouteMonitor
+    /// How long to wait before looking again when nothing is resolvable yet.
+    private let retryDelay: TimeInterval
+
+    /// Touched only on `queue`.
     private var session: Session?
-    private var interruptionHandler: (@Sendable (AudioCaptureError) -> Void)?
 
-    init(hardware: any AudioHardware = SystemAudioHardware()) {
+    /// Read from the main actor by `snapshot`, so it may not go through `queue`.
+    private let stateLock = UnfairLock()
+    private var liveSink: PCMCaptureSink?
+
+    init(
+        hardware: any AudioHardware = SystemAudioHardware(),
+        quietPeriod: TimeInterval = 0.15,
+        retryDelay: TimeInterval = 0.15
+    ) {
+        let queue = DispatchQueue(label: "com.witnessmac.Witness.capture-route", qos: .userInitiated)
         self.hardware = hardware
-    }
-
-    deinit {
-        if let segment = session?.segment {
-            AudioOutputUnitStop(segment.unit)
-            Self.dispose(segment)
-        }
+        self.queue = queue
+        self.retryDelay = retryDelay
+        self.monitor = InputRouteMonitor(hardware: hardware, queue: queue, quietPeriod: quietPeriod)
     }
 
     // MARK: - AudioCaptureService
@@ -86,10 +126,40 @@ final class HALInputCaptureService: AudioCaptureService, @unchecked Sendable {
         configuration: AudioCaptureConfiguration,
         onInterruption: @escaping @Sendable (AudioCaptureError) -> Void
     ) async throws -> CaptureFormatDescription {
-        if lock.withLock({ session != nil }) {
+        if stateLock.withLock({ liveSink != nil }) {
             _ = await stop(reason: .interrupted)
         }
+        return try await withCheckedThrowingContinuation { continuation in
+            queue.async { [self] in
+                do {
+                    continuation.resume(returning: try openSession(configuration, onInterruption))
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
 
+    func snapshot() -> CaptureSnapshot {
+        guard let sink = stateLock.withLock({ liveSink }) else { return CaptureSnapshot() }
+        return sink.snapshot()
+    }
+
+    func stop(reason: UtteranceEndReason) async -> CapturedUtterance? {
+        monitor.stop()
+        return await withCheckedContinuation { continuation in
+            queue.async { [self] in
+                continuation.resume(returning: closeSession(reason: reason))
+            }
+        }
+    }
+
+    // MARK: - Session lifecycle, on `queue`
+
+    private func openSession(
+        _ configuration: AudioCaptureConfiguration,
+        _ onInterruption: @escaping @Sendable (AudioCaptureError) -> Void
+    ) throws -> CaptureFormatDescription {
         guard let resolution = SystemAudioInput.resolve(
             configuration.inputSelection,
             among: hardware.availableInputDevices(),
@@ -109,37 +179,43 @@ final class HALInputCaptureService: AudioCaptureService, @unchecked Sendable {
         )
 
         let segment = try makeSegment(device: resolution.device, sink: sink)
+        let status = AudioOutputUnitStart(segment.unit)
+        guard status == noErr else {
+            Self.dispose(segment)
+            throw AudioCaptureError.engineStartFailed("Core Audio status \(status)")
+        }
+
         let format = CaptureFormatDescription(
             inputDeviceName: segment.deviceName,
-            inputSampleRate: segment.hardwareSampleRate,
-            inputChannelCount: segment.hardwareChannelCount,
+            inputSampleRate: segment.binding.sampleRate,
+            inputChannelCount: segment.binding.channelCount,
             outputSampleRate: AudioTargetFormat.sampleRate,
             outputChannelCount: AudioTargetFormat.channelCount,
             bufferCapacityFrames: sink.capacityFrames
         )
+        let session = Session(
+            segment: segment,
+            sink: sink,
+            selection: configuration.inputSelection,
+            format: format,
+            onInterruption: onInterruption
+        )
+        self.session = session
+        stateLock.withLock { liveSink = sink }
 
-        lock.withLock {
-            session = Session(
-                segment: segment,
-                sink: sink,
-                format: format,
-                inputSelection: configuration.inputSelection
-            )
-            interruptionHandler = onInterruption
-        }
-
-        let status = AudioOutputUnitStart(segment.unit)
-        guard status == noErr else {
-            Self.dispose(segment)
-            lock.withLock {
-                session = nil
-                interruptionHandler = nil
-            }
-            throw AudioCaptureError.engineStartFailed("Core Audio status \(status)")
-        }
+        monitor.start(
+            device: segment.deviceID,
+            // Read on the monitor's queue, which is this service's queue, so
+            // reaching the live segment through `self` is safe and always sees
+            // the current one rather than the segment start began with.
+            lastCallbackUptime: { [weak self] in
+                self?.session?.segment?.lastCallbackUptime ?? ProcessInfo.processInfo.systemUptime
+            },
+            onEvent: { [weak self] event in self?.handle(event) }
+        )
 
         Log.audio.info(
-            "Capture started: \(segment.deviceName, privacy: .public), device \(Int(segment.hardwareSampleRate)) Hz \(segment.hardwareChannelCount) ch, client 16000 Hz mono from channel 0, capacity \(sink.capacityFrames) frames"
+            "Capture started: \(segment.deviceName, privacy: .public), device \(Int(segment.binding.sampleRate)) Hz \(segment.binding.channelCount) ch, client 16000 Hz mono from channel 0, capacity \(sink.capacityFrames) frames"
         )
         if resolution.usedFallback {
             Log.audio.notice("Preferred microphone unavailable; capture uses another local input")
@@ -147,38 +223,142 @@ final class HALInputCaptureService: AudioCaptureService, @unchecked Sendable {
         return format
     }
 
-    func snapshot() -> CaptureSnapshot {
-        guard let sink = lock.withLock({ session?.sink }) else { return CaptureSnapshot() }
-        return sink.snapshot()
-    }
+    private func closeSession(reason: UtteranceEndReason) -> CapturedUtterance? {
+        guard let current = session else { return nil }
+        session = nil
+        stateLock.withLock { liveSink = nil }
+        current.isFinished = true
 
-    func stop(reason: UtteranceEndReason) async -> CapturedUtterance? {
-        guard let current = lock.withLock({ () -> Session? in
-            let running = session
-            session = nil
-            interruptionHandler = nil
-            return running
-        }) else { return nil }
-
-        let segment = current.segment
-        AudioOutputUnitStop(segment.unit)
-
-        // The callback has stopped, so draining the resampler here is race-free
-        // and keeps the trailing milliseconds still inside the converter.
-        if let tail = try? segment.converter.drain(), !tail.isEmpty {
-            current.sink.ingest(tail)
-        }
-        Self.dispose(segment)
-
-        if segment.failure != noErr {
-            Log.audio.notice("Input callback reported Core Audio status \(segment.failure) during this utterance")
+        if let segment = current.segment {
+            AudioOutputUnitStop(segment.unit)
+            // The callback has stopped, so draining the resampler here is
+            // race-free and keeps the trailing milliseconds still inside it.
+            drain(segment, into: current.sink)
+            Self.dispose(segment)
+            current.segment = nil
+            if segment.failure != noErr {
+                Log.audio.notice("Input callback reported Core Audio status \(segment.failure) during this utterance")
+            }
         }
 
-        let utterance = current.sink.finish(reason: reason)
+        let utterance = current.sink.finish(reason: reason, rebindCount: current.rebindCount)
         Log.audio.info(
-            "Capture finished: \(String(format: "%.2f", utterance.duration)) s, \(utterance.frameCount) frames, dropped \(utterance.droppedFrameCount), reason \(reason.rawValue, privacy: .public)"
+            "Capture finished: \(String(format: "%.2f", utterance.duration)) s, \(utterance.frameCount) frames, dropped \(utterance.droppedFrameCount), rebinds \(current.rebindCount), reason \(reason.rawValue, privacy: .public)"
         )
         return utterance
+    }
+
+    // MARK: - Route changes, on `queue`
+
+    private func handle(_ event: InputRouteEvent) {
+        guard let session, !session.isFinished else { return }
+        let binding = session.binding
+
+        let action = InputRoutePolicy.action(
+            for: event,
+            selection: session.selection,
+            binding: binding,
+            snapshot: makeSnapshot(binding: binding)
+        )
+
+        switch action {
+        case .keep:
+            // Unless a previous attempt left nothing running. Keeping a
+            // recording with no microphone open would record silence for the
+            // rest of the sentence and say nothing about it.
+            if session.segment == nil {
+                rebind(session, to: binding.deviceID, because: event)
+            }
+            return
+        case let .rebind(device):
+            rebind(session, to: device, because: event)
+        case let .interrupt(error):
+            // A microphone that vanished often comes back within a moment: an
+            // aggregate being rebuilt, a dock waking up. Ending the sentence is
+            // the last resort, not the first answer.
+            if error == .noInputDevice,
+               session.budget.toleratesMissingInput(at: ProcessInfo.processInfo.systemUptime) {
+                retry(event, on: session)
+                return
+            }
+            finish(session, with: error)
+        }
+    }
+
+    private func retry(_ event: InputRouteEvent, on session: Session) {
+        queue.asyncAfter(deadline: .now() + retryDelay) { [weak self, weak session] in
+            guard let self, let session, !session.isFinished, self.session === session else { return }
+            self.handle(event)
+        }
+    }
+
+    private func rebind(_ session: Session, to device: AudioDeviceID, because event: InputRouteEvent) {
+        let now = ProcessInfo.processInfo.systemUptime
+        guard session.budget.allowsAttempt(at: now) else {
+            finish(session, with: .engineStartFailed("the microphone could not be reopened"))
+            return
+        }
+
+        guard let replacement = hardware.availableInputDevices().first(where: { $0.id == device }) else {
+            retry(event, on: session)
+            return
+        }
+
+        let from = session.segment?.deviceName
+        let startedAt = ProcessInfo.processInfo.systemUptime
+        if let old = session.segment {
+            AudioOutputUnitStop(old.unit)
+            drain(old, into: session.sink)
+            Self.dispose(old)
+            session.segment = nil
+        }
+
+        do {
+            let segment = try makeSegment(device: replacement, sink: session.sink)
+            let status = AudioOutputUnitStart(segment.unit)
+            guard status == noErr else {
+                Self.dispose(segment)
+                throw AudioCaptureError.engineStartFailed("Core Audio status \(status)")
+            }
+            session.segment = segment
+            session.binding = segment.binding
+            session.rebindCount += 1
+            session.budget.recordSuccess()
+            monitor.rebound(to: segment.deviceID)
+
+            let gap = (ProcessInfo.processInfo.systemUptime - startedAt) * 1000
+            Log.audio.notice(
+                "Input rebound (\(String(describing: event), privacy: .public)): \(from ?? "none", privacy: .public) -> \(segment.deviceName, privacy: .public), \(Int(segment.binding.sampleRate)) Hz \(segment.binding.channelCount) ch, gap \(String(format: "%.0f", gap)) ms"
+            )
+        } catch {
+            // No segment is running now. The retry re-reads the hardware, so a
+            // device that is mid-reconfiguration gets another chance.
+            retry(event, on: session)
+        }
+    }
+
+    private func finish(_ session: Session, with error: AudioCaptureError) {
+        guard !session.isFinished else { return }
+        session.isFinished = true
+        monitor.stop()
+        Log.audio.notice("Capture interrupted: \(error.message, privacy: .public)")
+        session.onInterruption(error)
+    }
+
+    private func makeSnapshot(binding: InputBinding) -> InputRouteSnapshot {
+        InputRouteSnapshot(
+            devices: hardware.availableInputDevices(),
+            defaultInputID: hardware.defaultInputDeviceID(),
+            boundIsAlive: hardware.isAlive(binding.deviceID),
+            boundSampleRate: hardware.nominalSampleRate(of: binding.deviceID),
+            boundChannelCount: hardware.inputChannelCount(of: binding.deviceID)
+        )
+    }
+
+    private func drain(_ segment: InputSegment, into sink: PCMCaptureSink) {
+        if let tail = try? segment.converter.drain(), !tail.isEmpty {
+            sink.ingest(tail)
+        }
     }
 
     // MARK: - Building a segment
@@ -201,7 +381,6 @@ final class HALInputCaptureService: AudioCaptureService, @unchecked Sendable {
             throw AudioCaptureError.engineStartFailed("the audio unit could not be instantiated")
         }
 
-        // Anything after this point that throws must not leak the unit.
         do {
             return try configure(unit: unit, device: device, sink: sink)
         } catch {
@@ -319,11 +498,15 @@ final class HALInputCaptureService: AudioCaptureService, @unchecked Sendable {
             unit: unit,
             deviceID: device.id,
             deviceName: device.name,
-            hardwareSampleRate: hardwareSampleRate,
-            hardwareChannelCount: Int(hardwareFormat.mChannelsPerFrame),
+            binding: InputBinding(
+                deviceID: device.id,
+                sampleRate: hardwareSampleRate,
+                channelCount: Int(hardwareFormat.mChannelsPerFrame)
+            ),
             converter: converter,
             sink: sink,
-            renderBuffer: renderBuffer
+            renderBuffer: renderBuffer,
+            startedAt: ProcessInfo.processInfo.systemUptime
         )
 
         var callback = AURenderCallbackStruct(
@@ -367,6 +550,7 @@ final class HALInputCaptureService: AudioCaptureService, @unchecked Sendable {
         timestamp: UnsafePointer<AudioTimeStamp>,
         frameCount: UInt32
     ) -> OSStatus {
+        segment.lastCallbackUptime = ProcessInfo.processInfo.systemUptime
         guard frameCount > 0 else { return noErr }
         let buffer = segment.renderBuffer
         guard frameCount <= buffer.frameCapacity else {

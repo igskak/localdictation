@@ -42,7 +42,7 @@ final class PCMCaptureSink: @unchecked Sendable {
     }
 
     /// Copies the utterance out of the ring of preallocated storage.
-    func finish(reason: UtteranceEndReason) -> CapturedUtterance {
+    func finish(reason: UtteranceEndReason, rebindCount: Int = 0) -> CapturedUtterance {
         lock.withLock {
             CapturedUtterance(
                 samples: buffer.makeSamples(),
@@ -50,7 +50,8 @@ final class PCMCaptureSink: @unchecked Sendable {
                 peakLevel: buffer.peakLevel,
                 droppedFrameCount: buffer.droppedFrameCount,
                 voiceActivity: detector.observation,
-                endReason: reason
+                endReason: reason,
+                rebindCount: rebindCount
             )
         }
     }
