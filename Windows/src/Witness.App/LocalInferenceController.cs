@@ -20,7 +20,9 @@ internal sealed class LocalInferenceController : IAsyncDisposable
     private readonly TextInsertionCoordinator insertion;
     private readonly HotkeyModifiers hotkeyModifiers;
     private readonly OperationGeneration insertionGenerations = new();
-    private readonly DictationPostProcessor postProcessor = new();
+    private readonly DictationPostProcessor postProcessor = new(
+        riskEngine: RiskEngine.Standard(
+            lexicon: new Witness.Platform.Windows.Review.WindowsSpellCheckingLexicon()));
     private readonly RecentDictationHistory history = new();
     private readonly ReviewAudioLease reviewAudio = new();
     private readonly object resultGate = new();
