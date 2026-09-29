@@ -20,10 +20,10 @@ internal sealed class LocalInferenceController : IAsyncDisposable
     private readonly TextInsertionCoordinator insertion;
     private readonly HotkeyModifiers hotkeyModifiers;
     private readonly OperationGeneration insertionGenerations = new();
-    private readonly DictationPostProcessor postProcessor = new(
-        riskEngine: RiskEngine.Standard(
-            lexicon: new Witness.Platform.Windows.Review.WindowsSpellCheckingLexicon()));
+    private readonly Witness.Platform.Windows.Review.WindowsSpellCheckingLexicon lexicon = new();
+    private readonly DictationPostProcessor postProcessor;
     private readonly RecentDictationHistory history = new();
+    private readonly SessionGlossary sessionGlossary = new();
     private readonly ReviewAudioLease reviewAudio = new();
     private readonly Witness.Platform.Windows.Review.IAudioFragmentPlayer fragmentPlayer;
     private readonly object resultGate = new();
@@ -31,6 +31,8 @@ internal sealed class LocalInferenceController : IAsyncDisposable
     private LanguageProfile? selectedProfile;
     private ProcessedDictation? latestResult;
     private bool disposed;
+
+    internal event EventHandler? PrivacyStateChanged;
 
     public LocalInferenceController(
         Dispatcher dispatcher,
@@ -44,6 +46,7 @@ internal sealed class LocalInferenceController : IAsyncDisposable
         this.insertion = insertion;
         this.hotkeyModifiers = hotkeyModifiers;
         this.fragmentPlayer = fragmentPlayer;
+        postProcessor = new DictationPostProcessor(riskEngine: RiskEngine.Standard(lexicon: lexicon));
         pipeline = new LocalInferencePipeline(new NativeTranscriptionSessionFactory());
         pipeline.ProgressChanged += OnProgressChanged;
     }
@@ -81,6 +84,50 @@ internal sealed class LocalInferenceController : IAsyncDisposable
 
     internal bool HasRetainedReviewAudio => reviewAudio.HasAudio;
 
+    internal IReadOnlyList<GlossaryEntry> GlossaryEntries
+    {
+        get
+        {
+            lock (resultGate)
+            {
+                return sessionGlossary.Entries;
+            }
+        }
+    }
+
+    internal IReadOnlyList<string> LexiconCapabilities => LanguageCatalog.All
+        .Where(entry => entry.Code is "de" or "en" or "ru" or "uk")
+        .Select(entry =>
+        {
+            var language = new SpeechLanguage(entry.Code);
+            return $"{entry.Code}: {window.ResourceText(lexicon.Supports(language) ? "LexiconAvailable" : "LexiconDisabled")}";
+        })
+        .ToArray();
+
+    internal SessionGlossaryAddResult AddGlossaryTerm(string term, SpeechLanguage language)
+    {
+        var profile = Volatile.Read(ref selectedProfile);
+        if (profile is null) return SessionGlossaryAddResult.LanguageNotSelected;
+        SessionGlossaryAddResult result;
+        lock (resultGate)
+        {
+            result = sessionGlossary.Add(term, language, profile);
+        }
+        if (result == SessionGlossaryAddResult.Added) PrivacyStateChanged?.Invoke(this, EventArgs.Empty);
+        return result;
+    }
+
+    internal bool RemoveGlossaryTerm(GlossaryEntry entry)
+    {
+        bool removed;
+        lock (resultGate)
+        {
+            removed = sessionGlossary.Remove(entry.Term, entry.Language);
+        }
+        if (removed) PrivacyStateChanged?.Invoke(this, EventArgs.Empty);
+        return removed;
+    }
+
     internal void DismissReview()
     {
         lock (resultGate)
@@ -88,6 +135,7 @@ internal sealed class LocalInferenceController : IAsyncDisposable
             fragmentPlayer.Stop();
             reviewAudio.Release();
         }
+        PrivacyStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
     internal bool Replay(RiskSpan span)
@@ -123,6 +171,7 @@ internal sealed class LocalInferenceController : IAsyncDisposable
             reviewAudio.Release();
             latestResult = null;
             dispatcher.BeginInvoke(window.BeginDictation);
+            PrivacyStateChanged?.Invoke(this, EventArgs.Empty);
             return generation;
         }
     }
@@ -142,13 +191,13 @@ internal sealed class LocalInferenceController : IAsyncDisposable
         if (profile is null)
         {
             Array.Clear(capture.Pcm16KhzMono);
-            await SetStatusAsync("Choose a speech language profile before dictating. The captured audio was released.").ConfigureAwait(false);
+            await SetStatusResourceAsync("ChooseLanguageProfile").ConfigureAwait(false);
             return true;
         }
         if (modelPath is null)
         {
             Array.Clear(capture.Pcm16KhzMono);
-            await SetStatusAsync("Speech was captured, but the verified local model is not ready. Download or verify it above, then try again. The audio was released.").ConfigureAwait(false);
+            await SetStatusResourceAsync("VerifiedModelNotReady").ConfigureAwait(false);
             return true;
         }
 
@@ -172,12 +221,18 @@ internal sealed class LocalInferenceController : IAsyncDisposable
                 || capture.HadDiscontinuity
                 || capture.BufferOverflowed
                 || capture.DroppedPacketCount > 0
-                ? " A capture interruption or gap was preserved as an explicit warning."
+                ? await ResourceTextAsync("CaptureWarning").ConfigureAwait(false)
                 : string.Empty;
+            IReadOnlyList<GlossaryEntry> glossary;
+            lock (resultGate)
+            {
+                glossary = sessionGlossary.Entries;
+            }
             var processed = postProcessor.Process(
                 result.Transcription.Transcript,
                 result.LanguageDecision.Language,
-                profile);
+                profile,
+                glossary);
             if (string.IsNullOrWhiteSpace(processed.TextForInsertion))
             {
                 IReadOnlyList<RecentDictation> recent;
@@ -193,7 +248,12 @@ internal sealed class LocalInferenceController : IAsyncDisposable
                     recent = history.Items.ToArray();
                 }
                 await PublishClearedResultAsync(recent, generation).ConfigureAwait(false);
-                await SetStatusAsync($"The local engine completed in {DisplayLanguage(result.LanguageDecision.Language)}, but returned no text; Witness did not substitute a polished result.{warning}", generation).ConfigureAwait(false);
+                PrivacyStateChanged?.Invoke(this, EventArgs.Empty);
+                await SetStatusResourceAsync(
+                    generation,
+                    "EmptyTranscript",
+                    DisplayLanguage(result.LanguageDecision.Language),
+                    warning).ConfigureAwait(false);
                 return true;
             }
 
@@ -242,8 +302,8 @@ internal sealed class LocalInferenceController : IAsyncDisposable
             {
                 await PublishClearedResultAsync(recentDictations, generation).ConfigureAwait(false);
             }
-            var status = InsertionStatus(insertionResult, result, processed, warning);
-            await SetStatusAsync(status, generation).ConfigureAwait(false);
+            await SetInsertionStatusAsync(insertionResult, result, processed, warning, generation).ConfigureAwait(false);
+            PrivacyStateChanged?.Invoke(this, EventArgs.Empty);
         }
         catch (OperationCanceledException)
         {
@@ -251,7 +311,7 @@ internal sealed class LocalInferenceController : IAsyncDisposable
         }
         catch (Exception error)
         {
-            await SetStatusAsync($"Local transcription failed without producing an insertion: {SafeError(error)}", generation).ConfigureAwait(false);
+            await SetTranscriptionErrorStatusAsync(error, generation).ConfigureAwait(false);
         }
         finally
         {
@@ -278,6 +338,7 @@ internal sealed class LocalInferenceController : IAsyncDisposable
             fragmentPlayer.Dispose();
             latestResult = null;
             history.Clear();
+            sessionGlossary.Clear();
         }
         pipeline.ProgressChanged -= OnProgressChanged;
         await pipeline.DisposeAsync().ConfigureAwait(false);
@@ -289,29 +350,51 @@ internal sealed class LocalInferenceController : IAsyncDisposable
         {
             return;
         }
-        var status = progress.Stage switch
+        (string Key, object[] Arguments)? status = progress.Stage switch
         {
-            LocalInferenceStage.LoadingModel => "Loading the verified speech model locally…",
-            LocalInferenceStage.DetectingLanguage => "Choosing a language from the selected profile after recording completed…",
-            LocalInferenceStage.Transcribing => $"Transcribing locally in {DisplayLanguage(progress.Language!.Value)}…",
+            LocalInferenceStage.LoadingModel => ("ProgressLoadingModel", Array.Empty<object>()),
+            LocalInferenceStage.DetectingLanguage => ("ProgressDetectingLanguage", Array.Empty<object>()),
+            LocalInferenceStage.Transcribing => ("ProgressTranscribing", new object[] { DisplayLanguage(progress.Language!.Value) }),
             _ => null,
         };
         if (status is not null)
         {
-            dispatcher.BeginInvoke(() => window.SetStatus(status));
+            dispatcher.BeginInvoke(() => window.SetStatus(window.ResourceFormat(status.Value.Key, status.Value.Arguments)));
         }
     }
 
-    private async Task SetStatusAsync(string status) =>
-        await dispatcher.InvokeAsync(() => window.SetStatus(status));
+    private async Task<string> ResourceTextAsync(string key) =>
+        await dispatcher.InvokeAsync(() => window.ResourceText(key));
 
-    private async Task SetStatusAsync(string status, long generation) =>
+    private async Task SetStatusResourceAsync(string key, params object[] arguments) =>
+        await dispatcher.InvokeAsync(() => window.SetStatus(window.ResourceFormat(key, arguments)));
+
+    private async Task SetStatusResourceAsync(long generation, string key, params object[] arguments) =>
         await dispatcher.InvokeAsync(() =>
         {
             if (insertionGenerations.IsCurrent(generation))
             {
-                window.SetStatus(status);
+                window.SetStatus(window.ResourceFormat(key, arguments));
             }
+        });
+
+    private async Task SetInsertionStatusAsync(
+        TextInsertionOutcome outcome,
+        LocalInferenceResult inference,
+        ProcessedDictation processed,
+        string warning,
+        long generation) =>
+        await dispatcher.InvokeAsync(() =>
+        {
+            if (insertionGenerations.IsCurrent(generation))
+                window.SetStatus(InsertionStatus(outcome, inference, processed, warning));
+        });
+
+    private async Task SetTranscriptionErrorStatusAsync(Exception error, long generation) =>
+        await dispatcher.InvokeAsync(() =>
+        {
+            if (insertionGenerations.IsCurrent(generation))
+                window.SetStatus(window.ResourceFormat("TranscriptionFailed", SafeError(error)));
         });
 
     private async Task PublishResultAsync(
@@ -339,53 +422,56 @@ internal sealed class LocalInferenceController : IAsyncDisposable
 
     private static string DisplayLanguage(SpeechLanguage language) =>
         LanguageCatalog.ByCode.TryGetValue(language.Code, out var entry)
-            ? entry.EnglishName
+            ? entry.NativeName
             : language.Code;
 
-    private static string DisplayBackend(TranscriptionBackendKind backend) => backend switch
+    private string DisplayBackend(TranscriptionBackendKind backend) => backend switch
     {
-        TranscriptionBackendKind.Vulkan => "the accelerated backend",
-        _ => "the CPU backend",
+        TranscriptionBackendKind.Vulkan => window.ResourceText("BackendAccelerated"),
+        _ => window.ResourceText("BackendCpu"),
     };
 
-    private static string InsertionStatus(
+    private string InsertionStatus(
         TextInsertionOutcome outcome,
         LocalInferenceResult inference,
         ProcessedDictation processed,
         string warning)
     {
-        var localEngine = $"Transcribed locally in {DisplayLanguage(inference.LanguageDecision.Language)} using {DisplayBackend(inference.Transcription.Backend)}.";
+        var localEngine = window.ResourceFormat(
+            "TranscribedLocally",
+            DisplayLanguage(inference.LanguageDecision.Language),
+            DisplayBackend(inference.Transcription.Backend));
         var insertionStatus = outcome.Kind switch
         {
-            TextInsertionOutcomeKind.InsertedDirect => " Inserted into the verified text field without using the clipboard.",
-            TextInsertionOutcomeKind.InsertedByPaste when outcome.ClipboardRestored => " Inserted once and restored the previous clipboard after exact verification.",
-            TextInsertionOutcomeKind.InsertedByPaste => " Inserted once; the protected dictation clipboard was left unchanged because safe restoration was unavailable.",
-            TextInsertionOutcomeKind.CopiedForRecovery => " The target changed or could not accept input, so the text remains on the protected clipboard for manual recovery.",
-            TextInsertionOutcomeKind.RefusedProtectedField => " The focused field is protected; Witness did not insert or copy the text.",
-            TextInsertionOutcomeKind.ClipboardProtectionFailed => " Witness could not verify a protected clipboard write; no unprotected fallback was attempted.",
-            TextInsertionOutcomeKind.UnverifiedDirectWrite => " The direct write could not be verified, so Witness did not attempt a second insertion.",
-            TextInsertionOutcomeKind.UnverifiedPaste => " One paste was sent but could not be verified; the protected dictation clipboard was left for recovery and no retry was attempted.",
-            TextInsertionOutcomeKind.Cancelled => " A newer dictation superseded this result before insertion.",
-            _ => " The target could not be verified safely; Witness retained the text without inserting or copying it.",
+            TextInsertionOutcomeKind.InsertedDirect => window.ResourceText("InsertionDirect"),
+            TextInsertionOutcomeKind.InsertedByPaste when outcome.ClipboardRestored => window.ResourceText("InsertionPasteRestored"),
+            TextInsertionOutcomeKind.InsertedByPaste => window.ResourceText("InsertionPasteRetained"),
+            TextInsertionOutcomeKind.CopiedForRecovery => window.ResourceText("InsertionCopiedRecovery"),
+            TextInsertionOutcomeKind.RefusedProtectedField => window.ResourceText("InsertionProtectedRefusal"),
+            TextInsertionOutcomeKind.ClipboardProtectionFailed => window.ResourceText("InsertionClipboardFailed"),
+            TextInsertionOutcomeKind.UnverifiedDirectWrite => window.ResourceText("InsertionUnverifiedDirect"),
+            TextInsertionOutcomeKind.UnverifiedPaste => window.ResourceText("InsertionUnverifiedPaste"),
+            TextInsertionOutcomeKind.Cancelled => window.ResourceText("InsertionCancelled"),
+            _ => window.ResourceText("InsertionUnsafeTarget"),
         };
         var reviewStatus = processed.Review.DeservesAttention
             ? processed.Review.Flagged.Count == 1
-                ? " One fragment is worth checking."
-                : $" {processed.Review.Flagged.Count} fragments are worth checking."
+                ? window.ResourceText("ReviewAttentionOneStatus")
+                : window.ResourceFormat("ReviewAttentionManyStatus", processed.Review.Flagged.Count)
             : string.Empty;
         return string.Concat(localEngine, insertionStatus, reviewStatus, warning);
     }
 
-    private static string SafeError(Exception error) => error switch
+    private string SafeError(Exception error) => error switch
     {
         TranscriptionBackendException backendError => backendError.FailureKind switch
         {
-            TranscriptionBackendFailureKind.ResourceExhausted => "not enough local memory was available.",
-            TranscriptionBackendFailureKind.Unavailable => "the selected local speech backend was unavailable.",
-            _ => "the local speech engine could not complete the phrase.",
+            TranscriptionBackendFailureKind.ResourceExhausted => window.ResourceText("TranscriptionMemoryError"),
+            TranscriptionBackendFailureKind.Unavailable => window.ResourceText("TranscriptionBackendUnavailable"),
+            _ => window.ResourceText("TranscriptionEngineError"),
         },
         NativeTranscriptionException nativeError when nativeError.Status == NativeTranscriptionStatus.OutOfMemory =>
-            "not enough local memory was available.",
-        _ => "the local speech engine could not complete the phrase.",
+            window.ResourceText("TranscriptionMemoryError"),
+        _ => window.ResourceText("TranscriptionEngineError"),
     };
 }

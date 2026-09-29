@@ -28,7 +28,7 @@ cross-targeting on macOS is not reported as Windows validation.
 | W2 | **Complete** | WPF tray lifecycle, named single-instance lease and non-activating activity badge; hold/toggle hotkeys and startup opt-in; preallocated packet queue and bounded fake-tested capture lifecycle; memory-only event-driven shared-mode WASAPI; PCM16/24/32/Float32 normalization; Media Foundation 44.1/48→16 kHz resampling with drain; opaque endpoint-ID enumeration with unknown built-in metadata kept explicit; microphone privacy recovery, local hotkey-to-capture preview and verified session-loss stop tests on Windows CI | Physical microphone/device/session QA remains W8 |
 | W3 | **Complete** | Verified local model manager and disclosed download UX; immutable multilingual product-model candidate; cancellable native transcription/token bridge; grapheme word mapping with honest segment-timing fallback; real backend probe and one controlled CPU retry policy; completed-recording language-score bridge with VAD speech boundary; pinned synthetic eSpeak DE/EN/RU plus neural Piper UK leading-noise regression; test-only native benchmark; app-level verified-model → completed-audio language decision → explicit-language transcription flow with generation cancellation and immediate audio clearing; successful real-model CPU Windows CI | Physical GPU/laptop performance and real-speech accuracy remain W8 QA; hosted CPU timings are recorded below rather than generalized |
 | W4 | **Complete** | PID + root-HWND capture at hotkey start; active-session/default-desktop and changed-target guards; bounded single-STA UIA protection/value/selection inspection; verified standard `Edit` selection replacement; one-shot modifier-gated paste; fail-closed protected clipboard formats and sequence-safe restore; generation/target/protection race coordinator; app-level hotkey → local transcript → insertion wiring; test-only accessible normal/password/delayed-paste harness | Real Word, Chrome and VS Code compatibility remains explicitly pending physical W8 QA; no universal-application claim is made |
-| W5 | Not started | W0 shell only; it is not a complete user flow | Review/replay integration, six functional Settings sections, onboarding, glossary, bounded visible history, EN/DE resources, synthetic UI screenshots and full hotkey-to-insert path |
+| W5 | **In progress** | Cleanup/risk/review and RAM replay are connected to insertion; latest-ten RAM history excludes protected refusals; review audio has a bounded flagged-only lifetime; Windows dictionaries fail open per language capability; two-step onboarding, six navigable Settings sections, ordered language persistence, session-only glossary, audio-input selection, voice-boundary controls and key-parity EN/DE resources now cross-build cleanly | Run the 63 platform tests and synthetic WPF render harness in Windows CI; retain screenshots only from synthetic states; complete Windows DPI/high-contrast/keyboard evidence before marking W5 complete |
 | W6 | Not started | Pure entitlement timing/major policy only | LD1 and Service fixture parity, device identity, activation/release-slot adapters, consent/telemetry allowlists, beta test authority and Windows terms/privacy draft |
 | W7 | Not started | Manifest/package verification spike and unsigned internal packaging workflow only | Manual updater state machine/UX, signed metadata production path, A-to-B install/update preservation test, uninstall/reinstall policy, signing gate |
 | W8 | Not started | — | Installable closed-beta kit, checksum, notices with full license texts, release notes, known issues, tester guide/checklist/bug template, regression/soak/privacy evidence |
@@ -79,6 +79,45 @@ cross-targeting on macOS is not reported as Windows validation.
   at most 25% of ordinary samples earning attention).
 - Three-day local use, ten-day activated trial, annual/lifetime entitlements,
   clock rollback resistance and lifetime major-version coverage.
+
+### W5 complete-user-path slice
+
+- The first-run surface asks for an ordered non-empty subset of all 100 engine
+  languages, explains the local hotkey/model/privacy path, and records
+  completion only after the final action. The same selection editor remains
+  available under Languages; ordering is preserved because the first language
+  is the deterministic fallback for ambiguous or evidence-free phrases.
+- The six Settings destinations are keyboard-reachable and functional for the
+  current phase: General controls hold/toggle, current-user startup, microphone
+  choice and model setup; Languages edits the engine profile; Boundary stages
+  in-memory VAD tuning for the next capture; Dictionary owns session-only
+  vocabulary; License accurately exposes the W6 gate without a fake activation;
+  Diagnostics reports technical counts/capabilities without content.
+- W5 persists only a versioned allowlist of non-content choices under local app
+  data: onboarding completion, language codes, activation mode and audio-input
+  selection. Atomic replacement and invalid-document fallback are injected and
+  tested. Vocabulary is intentionally absent from the document and is cleared
+  with the process.
+- Audio input enumeration presents the Windows default and every active opaque
+  endpoint. A missing selected endpoint resolves through the existing pure
+  fallback policy and is reported; capture opens the resolved endpoint only at
+  the next recording. Witness never changes the Windows system default.
+- Session glossary additions are trimmed, language-scoped, duplicate-checked,
+  bounded to 500 entries / 80 graphemes and passed into the same postprocessor
+  that produces glossary near-miss review evidence. It has no persistence or
+  networking surface.
+- English and German resource dictionaries expose the same key and format-item
+  sets, including runtime capture, transcription, insertion, review, error and
+  accessibility messages rather than only static page labels. WPF uses
+  system colors/fonts, visible field labels, 44-pixel navigation/control
+  heights, explicit automation names, bounded scroll regions and a decorative
+  overlay with hit testing disabled. The Windows-only harness checks resource
+  parity, all six focusable destinations, compact/large layout rendering and
+  the onboarding state without using user content. In CI only, an explicit
+  environment opt-in writes exactly three allowlisted PNGs — settings,
+  dictionary and onboarding — from hard-coded synthetic state; the workflow
+  verifies the exact filenames, runs the artifact privacy scan and uploads the
+  evidence separately with seven-day retention.
 
 ### W4 safe insertion boundary
 
@@ -136,8 +175,8 @@ Result: passed; self-contained win-x64 ReadyToRun output produced on macOS.
   --configuration Release --no-restore
 Result: passed; 86 passed, 0 failed, 0 skipped after the first W2 policy slice.
 
-The current local Windows head builds with 0 warnings and 0 errors and has 133
-Core tests. Its desktop-session policy tests, W4 platform/harness tests and W3 native integrations require
+The current local Windows head builds with 0 warnings and 0 errors and has 148
+Core tests. Its desktop-session policy tests, W4/W5 platform/harness tests and W3 native integrations require
 the Windows test host and are not reported as passed locally.
 
 Strict local Clang syntax checks pass for the native implementation, public C11
@@ -150,6 +189,17 @@ gates.
   Windows/tests/Witness.Update.Tests/Witness.Update.Tests.csproj \
   --configuration Release --no-restore
 Result: passed; 6 passed, 0 failed, 0 skipped.
+
+/private/tmp/witness-dotnet/dotnet test \
+  Windows/tests/Witness.Core.Tests/Witness.Core.Tests.csproj \
+  --configuration Release --no-restore --disable-build-servers -m:1
+Result after the W5 settings/session-glossary slice: passed; 148 passed, 0 failed, 0 skipped.
+
+/private/tmp/witness-dotnet/dotnet build Windows/Witness.Windows.sln \
+  --configuration Release --no-restore --disable-build-servers -m:1
+Result after the W5 UI/settings slice: passed; 0 warnings, 0 errors. The three
+new Windows-only platform tests compile but are not reported as executed on the
+macOS host.
 
 ruby -e 'require "yaml"; ARGV.each { |f| YAML.load_file(f) }' \
   .github/workflows/windows-ci.yml .github/workflows/windows-package.yml
@@ -310,14 +360,10 @@ unrepresentative Ukrainian eSpeak test voice and are never shipped.
   deliberately unconfigured. Mac release/update URLs have not been changed.
 - Full third-party license texts still need to be assembled into the external
   beta notices. The current notice file is an engineering inventory.
-- The WPF shell is a W0 accessibility-aware skeleton, not the finished product
-  UI. Windows DPI, high contrast, keyboard navigation and screen reader behavior
-  remain CI/physical-QA gates.
-- The W3 profile selector is deliberately narrower than the W5 onboarding and
-  settings requirement: it offers the verified four-language automatic profile
-  or one explicit engine language, but not an arbitrary user-selected mixed
-  set. The pipeline already accepts injected mixed profiles; the full selector
-  and persistence remain W5 work.
+- The W5 WPF surface cross-builds and has a synthetic render harness, but that
+  harness has not yet executed on Windows. Windows DPI, high contrast, keyboard
+  traversal and screen-reader behavior therefore remain CI/physical-QA gates;
+  source structure alone is not reported as verified UX.
 - The current language-score call prepares and encodes the completed recording
   separately from the later explicit-language transcription. The pinned
   whisper.cpp `whisper_full` API owns PCM → mel → encoder → decoder and exposes
@@ -329,8 +375,8 @@ unrepresentative Ukrainian eSpeak test voice and are never shipped.
 
 ## Next step
 
-Implement W5 review, bounded in-memory history and the complete user path:
-cleanup/risk integration, Windows lexicon capability reporting, six functional
-Settings sections, onboarding, glossary, EN/DE resources and synthetic UI
-screenshots. Physical microphone, GPU/performance and ordinary-user Word,
-Chrome and VS Code insertion behavior remain explicitly pending until W8 QA.
+Run the new W5 settings/persistence/render harness with the complete Windows CI
+suite, capture only synthetic key states if the runner exposes a usable desktop,
+and fix any DPI/high-contrast/keyboard findings before closing W5. Physical
+microphone, GPU/performance and ordinary-user Word, Chrome and VS Code insertion
+behavior remain explicitly pending until W8 QA.

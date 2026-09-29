@@ -1,0 +1,477 @@
+{
+  "retrieved_at": "2026-09-13",
+  "source": "Semrush connector",
+  "total_report_executions_including_global": 22,
+  "regional_keywords_requested": 102,
+  "note": "21 complete raw reports here: 12 regional keyword batches, 6 limited SERP reports (3 returned no data), 3 domain snapshots. One global speech-to-text report is recorded separately as a transcribed extract. Regional reports used latest; they do not expose observation month.",
+  "reports": [
+    {
+      "report": "phrase_these",
+      "params": {
+        "database": "au",
+        "phrase": "voice to text;voice typing;dictation software;speech to text software;voice typing software;dictation app;voice dictation;speech recognition software;voice to text mac",
+        "export_columns": [
+          "keyword",
+          "volume",
+          "cpc",
+          "competitive_density",
+          "intent"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Keyword;Search Volume;CPC;Competition;Intent\nvoice to text;2400;1.39;0.57;1\nvoice typing;390;0.89;0.19;1\ndictation software;170;2.17;0.73;0\nspeech to text software;210;1.82;0.37;0\nvoice typing software;20;2.24;0.76;\ndictation app;210;1.86;0.65;1\nvoice dictation;50;1.34;0.37;1\nspeech recognition software;110;1.42;0.09;1,0\nvoice to text mac;20;2.57;0.26;\n"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "report": "phrase_these",
+      "params": {
+        "database": "ph",
+        "phrase": "voice to text;voice typing;dictation software;speech to text software;voice typing software;dictation app;voice dictation;english voice typing;voice to text mac",
+        "export_columns": [
+          "keyword",
+          "volume",
+          "cpc",
+          "competitive_density",
+          "intent"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Keyword;Search Volume;CPC;Competition;Intent\nvoice to text;3600;0.1;0.47;1\nvoice typing;1300;0.08;0.18;1\ndictation software;30;0.2;0.13;1\nspeech to text software;110;0.38;0.04;1\nvoice typing software;20;0;0.33;\ndictation app;30;0.2;0.38;1\nvoice dictation;30;0.21;0.16;\nenglish voice typing;10;0;0;\n"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "report": "phrase_these",
+      "params": {
+        "database": "id",
+        "phrase": "voice to text;voice typing;dictation software;speech to text software;voice typing software;suara ke teks;ubah suara menjadi teks;mengetik dengan suara;dikte suara",
+        "export_columns": [
+          "keyword",
+          "volume",
+          "cpc",
+          "competitive_density",
+          "intent"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Keyword;Search Volume;CPC;Competition;Intent\nvoice to text;9900;0.17;0.46;0\nvoice typing;1000;0.15;0.43;1\ndictation software;30;0;0.33;\nspeech to text software;90;0.19;0.33;1\nvoice typing software;20;0;0.2;\nsuara ke teks;1900;0.18;0.42;0\nubah suara menjadi teks;320;0.2;0.48;0\nmengetik dengan suara;1000;0.04;0.27;1\n"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "report": "phrase_these",
+      "params": {
+        "database": "mx",
+        "phrase": "voz a texto;dictado por voz;dictar texto;dictado de voz;reconocimiento de voz;software de dictado;programa para dictar por voz;dictado por voz mac;voice to text",
+        "export_columns": [
+          "keyword",
+          "volume",
+          "cpc",
+          "competitive_density",
+          "intent"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Keyword;Search Volume;CPC;Competition;Intent\nvoz a texto;1600;0.19;0.3;1\ndictado por voz;1600;0.15;0.22;1\ndictar texto;390;0.24;0.19;1\ndictado de voz;720;0.12;0.26;1\nreconocimiento de voz;390;0.28;0.08;1\nsoftware de dictado;10;0;0.24;\nprograma para dictar por voz;30;0.19;0.56;1\ndictado por voz mac;20;0;0.33;\nvoice to text;320;0.56;0.6;0\n"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "report": "phrase_these",
+      "params": {
+        "database": "jp",
+        "phrase": "音声入力;音声認識;音声入力ソフト;音声入力 mac;mac 音声入力;音声入力 アプリ;音声入力 オフライン;音声 テキスト変換;voice to text",
+        "export_columns": [
+          "keyword",
+          "volume",
+          "cpc",
+          "competitive_density",
+          "intent"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Keyword;Search Volume;CPC;Competition;Intent\n音声入力;9900;1.06;0.12;1\n音声認識;2900;0.61;0.13;1\n音声入力ソフト;260;1.62;0.41;1\n音声入力 mac;480;4.16;0.16;1\nmac 音声入力;1300;0;0;1\n音声入力 アプリ;720;0.84;0.27;1\n音声入力 オフライン;20;0;0.06;\n音声 テキスト変換;170;0.96;0.39;1\nvoice to text;320;0.59;0.41;1\n"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "report": "phrase_these",
+      "params": {
+        "database": "kr",
+        "phrase": "음성 입력;음성인식;음성 텍스트 변환;음성을 텍스트로;음성인식 프로그램;맥 음성 입력;음성 받아쓰기;voice to text",
+        "export_columns": [
+          "keyword",
+          "volume",
+          "cpc",
+          "competitive_density",
+          "intent"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Keyword;Search Volume;CPC;Competition;Intent\n음성 입력;210;0.22;0.14;1\n음성 텍스트 변환;3600;0.41;0.59;0\n음성 받아쓰기;90;0.36;0.33;1\nvoice to text;320;0.43;0.54;0\n"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "report": "phrase_these",
+      "params": {
+        "database": "za",
+        "phrase": "voice to text;voice typing;dictation software;speech to text software;voice typing software;dictation app;voice dictation;speech recognition software;voice to text mac",
+        "export_columns": [
+          "keyword",
+          "volume",
+          "cpc",
+          "competitive_density",
+          "intent"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Keyword;Search Volume;CPC;Competition;Intent\nvoice to text;880;0.35;0.52;0\nvoice typing;320;0.27;0.31;1\ndictation software;30;0.79;0.91;\nspeech to text software;20;0.79;0.65;\nvoice typing software;20;0;0.29;\ndictation app;30;0.7;0.56;\nvoice dictation;30;0.73;0.35;\nspeech recognition software;20;1.19;0.9;\nvoice to text mac;20;0;0.33;\n"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "report": "phrase_these",
+      "params": {
+        "database": "vn",
+        "phrase": "chuyển giọng nói thành văn bản;nhập liệu bằng giọng nói;gõ văn bản bằng giọng nói;phần mềm chuyển giọng nói thành văn bản;voice to text;voice typing;dictation software",
+        "export_columns": [
+          "keyword",
+          "volume",
+          "cpc",
+          "competitive_density",
+          "intent"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Keyword;Search Volume;CPC;Competition;Intent\nchuyển giọng nói thành văn bản;4400;0.14;0.52;1,0\nnhập liệu bằng giọng nói;90;0.06;0.2;1\ngõ văn bản bằng giọng nói;30;0.07;0.3;1\nphần mềm chuyển giọng nói thành văn bản;260;0.16;0.67;1\nvoice to text;1900;0.17;0.58;0\nvoice typing;210;0.09;0.38;0\ndictation software;30;0;0.33;1\n"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "report": "phrase_these",
+      "params": {
+        "database": "tr",
+        "phrase": "sesli yazma;sesi yazıya çevirme;konuşmayı yazıya çevirme;ses tanıma;dikte programı;sesli yazma programı;mac dikte;voice to text",
+        "export_columns": [
+          "keyword",
+          "volume",
+          "cpc",
+          "competitive_density",
+          "intent"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Keyword;Search Volume;CPC;Competition;Intent\nsesli yazma;1000;0.04;0.18;1\nsesi yazıya çevirme;2900;0.34;0.63;1\nkonuşmayı yazıya çevirme;390;0.28;0.64;1\nses tanıma;210;0.16;0.04;1\ndikte programı;70;0.21;0.53;0\nsesli yazma programı;20;0.1;0.66;\nmac dikte;0;0;0;\nvoice to text;1300;0.78;0.62;1\n"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "report": "phrase_these",
+      "params": {
+        "database": "tw",
+        "phrase": "語音輸入;語音轉文字;語音辨識;語音輸入軟體;mac 語音輸入;語音輸入 mac;離線語音輸入;voice to text",
+        "export_columns": [
+          "keyword",
+          "volume",
+          "cpc",
+          "competitive_density",
+          "intent"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Keyword;Search Volume;CPC;Competition;Intent\nvoice to text;210;0.75;0.51;0\n"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "report": "phrase_these",
+      "params": {
+        "database": "ch",
+        "phrase": "sprache zu text;diktieren;spracherkennung;diktiersoftware;voice to text;dictée vocale;reconnaissance vocale;voix en texte;dettatura vocale",
+        "export_columns": [
+          "keyword",
+          "volume",
+          "cpc",
+          "competitive_density",
+          "intent"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Keyword;Search Volume;CPC;Competition;Intent\nsprache zu text;20;0.94;0.54;\ndiktieren;170;1.04;0.22;1\nspracherkennung;210;0.79;0.35;1\ndiktiersoftware;20;1.96;1;\nvoice to text;260;0.89;0.63;0\ndictée vocale;20;0;0.24;\nreconnaissance vocale;30;0.75;0.3;\ndettatura vocale;30;0;0.01;\n"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "report": "phrase_these",
+      "params": {
+        "database": "at",
+        "phrase": "sprache zu text;diktieren;spracherkennung;diktiersoftware;voice to text;spracheingabe;diktierprogramm;diktieren mac",
+        "export_columns": [
+          "keyword",
+          "volume",
+          "cpc",
+          "competitive_density",
+          "intent"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Keyword;Search Volume;CPC;Competition;Intent\nsprache zu text;110;0.58;0.55;1\ndiktieren;260;0.92;0.21;1\nspracherkennung;260;0.59;0.38;1\ndiktiersoftware;20;1.47;1;\nvoice to text;170;1.01;0.61;0\nspracheingabe;110;0.07;0.04;1\ndiktierprogramm;20;1.29;1;\ndiktieren mac;20;0;0.05;\n"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "report": "phrase_organic",
+      "params": {
+        "database": "ph",
+        "phrase": "voice typing",
+        "display_limit": 5,
+        "export_columns": [
+          "position",
+          "domain",
+          "url"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Position;Domain;Url\n1;www.speechtexter.com;https://www.speechtexter.com/\n2;support.google.com;https://support.google.com/docs/answer/4492226?hl=en\n3;speechnotes.co;https://speechnotes.co/\n4;docs.google.com;https://docs.google.com/document/d/17U6uq6NHKdiIlFP9nRnK3RJY8PGdIw--WEPF_U6LhFo/edit\n5;dictation.io;https://dictation.io/speech\n"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "report": "phrase_organic",
+      "params": {
+        "database": "id",
+        "phrase": "mengetik dengan suara",
+        "display_limit": 5,
+        "export_columns": [
+          "position",
+          "domain",
+          "url"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Position;Domain;Url\n1;translate.google.com;https://translate.google.com/translate?u=https://www.speechtexter.com/&hl=id&sl=en&tl=id&client=srp\n2;support.google.com;https://support.google.com/gboard/answer/2781851?hl=ID&co=GENIE.Platform%3DAndroid\n3;www.textfromtospeech.com;https://www.textfromtospeech.com/id/voice-to-text/\n4;support.microsoft.com;https://support.microsoft.com/id-id/accessibility/windows/use-voice-typing-to-talk-instead-of-type-on-your-pc\n5;translate.google.com;https://translate.google.com/translate?u=https://speechnotes.co/&hl=id&sl=en&tl=id&client=srp\n"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "report": "phrase_organic",
+      "params": {
+        "database": "jp",
+        "phrase": "音声入力",
+        "display_limit": 5,
+        "export_columns": [
+          "position",
+          "domain",
+          "url"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "get phrase_organic: ERROR 50 :: NOTHING FOUND\nNo data found for this request. Verify your parameters are correct. If parameters are valid, try a different date range or target.\nnot found"
+          }
+        ],
+        "structuredContent": {
+          "error_code": "INVALID_ARGUMENT"
+        },
+        "isError": true
+      }
+    },
+    {
+      "report": "phrase_adwords",
+      "params": {
+        "database": "ph",
+        "phrase": "speech to text",
+        "display_limit": 5
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "get phrase_adwords: ERROR 50 :: NOTHING FOUND\nNo data found for this request. Verify your parameters are correct. If parameters are valid, try a different date range or target.\nnot found"
+          }
+        ],
+        "structuredContent": {
+          "error_code": "INVALID_ARGUMENT"
+        },
+        "isError": true
+      }
+    },
+    {
+      "report": "phrase_adwords",
+      "params": {
+        "database": "id",
+        "phrase": "voice to text",
+        "display_limit": 5
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Domain;Visible Url\nquickwerx.com;https://www.quickwerx.com › audio-to-text › transcription\nsmartnoter.ai;https://www.smartnoter.ai › audio-to › text\npdfleader.com;https://www.pdfleader.com\nturboscribe.ai;https://www.turboscribe.ai\nsmartnoter.ai;https://www.smartnoter.ai › audio-to › text\n"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "report": "phrase_adwords",
+      "params": {
+        "database": "au",
+        "phrase": "dictation software",
+        "display_limit": 5
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "get phrase_adwords: ERROR 50 :: NOTHING FOUND\nNo data found for this request. Verify your parameters are correct. If parameters are valid, try a different date range or target.\nnot found"
+          }
+        ],
+        "structuredContent": {
+          "error_code": "INVALID_ARGUMENT"
+        },
+        "isError": true
+      }
+    },
+    {
+      "report": "domain_rank",
+      "params": {
+        "database": "ph",
+        "target": "wisprflow.ai",
+        "export_columns": [
+          "domain",
+          "paid_keywords",
+          "paid_traffic",
+          "paid_traffic_cost"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Domain;Adwords Keywords;Adwords Traffic;Adwords Cost\nwisprflow.ai;0;0;0\n"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "report": "domain_rank",
+      "params": {
+        "database": "id",
+        "target": "wisprflow.ai",
+        "export_columns": [
+          "domain",
+          "paid_keywords",
+          "paid_traffic",
+          "paid_traffic_cost"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Domain;Adwords Keywords;Adwords Traffic;Adwords Cost\nwisprflow.ai;0;0;0\n"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "report": "domain_rank",
+      "params": {
+        "database": "au",
+        "target": "wisprflow.ai",
+        "export_columns": [
+          "domain",
+          "paid_keywords",
+          "paid_traffic",
+          "paid_traffic_cost"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Domain;Adwords Keywords;Adwords Traffic;Adwords Cost\nwisprflow.ai;47;549;813\n"
+          }
+        ],
+        "isError": false
+      }
+    }
+  ]
+}

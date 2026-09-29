@@ -354,60 +354,37 @@ struct RecentDictationsView: View {
     }
 
     private var listHeight: CGFloat {
-        // A ScrollView has no useful intrinsic height in a MenuBarExtra window.
-        // A maximum alone therefore collapses to almost zero when it appears.
-        // Give each visible row enough room for two text lines and its copy
-        // button, then cap the viewport so a long history scrolls.
         min(CGFloat(items.count) * 54, 240)
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Button {
-                isExpanded.toggle()
-            } label: {
-                HStack(spacing: 8) {
-                    Label("Recent dictations", systemImage: "clock.arrow.circlepath")
-                        .font(.caption.weight(.semibold))
-                    Spacer()
-                    Text(items.count, format: .number)
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                }
-                .frame(minHeight: 32)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityValue(isExpanded ? L10n.string("Expanded") : L10n.string("Collapsed"))
+        DisclosureGroup(isExpanded: $isExpanded) {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 8) {
+                    ForEach(items) { item in
+                        HStack(alignment: .top, spacing: 8) {
+                            Text(item.text)
+                                .font(.caption)
+                                .lineLimit(2)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .help(item.text)
 
-            if isExpanded {
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 8) {
-                        ForEach(items) { item in
-                            HStack(alignment: .top, spacing: 8) {
-                                Text(item.text)
-                                    .font(.caption)
-                                    .lineLimit(2)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .help(item.text)
-
-                                Button(L10n.string(copiedID == item.id ? "Copied" : "Copy")) {
-                                    let pasteboard = NSPasteboard.general
-                                    pasteboard.clearContents()
-                                    pasteboard.setString(item.text, forType: .string)
-                                    copiedID = item.id
-                                }
-                                .buttonStyle(WitnessSecondaryButtonStyle())
+                            Button(L10n.string(copiedID == item.id ? "Copied" : "Copy")) {
+                                let pasteboard = NSPasteboard.general
+                                pasteboard.clearContents()
+                                pasteboard.setString(item.text, forType: .string)
+                                copiedID = item.id
                             }
-                            if item.id != items.last?.id { Divider() }
+                            .buttonStyle(WitnessSecondaryButtonStyle())
                         }
+                        if item.id != items.last?.id { Divider() }
                     }
                 }
-                .frame(height: listHeight)
             }
+            .frame(height: listHeight)
+        } label: {
+            Label("Recent dictations", systemImage: "clock.arrow.circlepath")
+                .font(.caption.weight(.semibold))
         }
         .witnessCard(.neutral, padding: 12)
     }

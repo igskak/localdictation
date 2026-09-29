@@ -13,4 +13,18 @@ Status: W3 source of truth. Activation, events, updates and checkout remain loca
 
 General diagnostics, transcripts, clipboard snapshots, vocabulary, application contents, risk fragments, raw device UUIDs, and audio stay local. Product audio is memory-only. CI uploads only build/package outputs and technical summaries made from synthetic scenarios; it must never upload recordings, transcriptions, clipboard contents, real vocabulary, crash dumps, or content-derived traces.
 
+## W5 local state allowlist
+
+`%LOCALAPPDATA%\Witness\settings.json` is the only W5 settings file. Its fixed,
+versioned shape contains exactly: onboarding completion, ordered selected
+language codes, hold/toggle activation mode, audio-input selection kind and an
+optional opaque Windows endpoint ID. The file is replaced atomically. It does
+not serialize transcripts, recent history, glossary terms, clipboard state,
+risk evidence, audio, application identity or diagnostics.
+
+The session glossary and latest ten eligible results are RAM-only and are
+cleared on process exit. Protected-field refusals never enter history. Review
+audio exists only for a flagged, playable review and is released when review
+closes or a newer phrase starts.
+
 Windows certificate-chain and SmartScreen checks can create operating-system network traffic independently of Witness. That behavior must be described separately once the code-signing provider is selected.

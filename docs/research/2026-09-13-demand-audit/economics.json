@@ -1,0 +1,54 @@
+{
+  "currency": "INR",
+  "fx": {
+    "source": "ECB",
+    "date": "2026-09-11",
+    "EUR_INR": 110.7675,
+    "EUR_USD": 1.1592,
+    "USD_INR": 95.55512422360248
+  },
+  "assumptions": {
+    "tax_divisor": 1.18,
+    "refund_fraction": 0.05,
+    "fee_fraction": 0.08,
+    "fee_fixed": 35,
+    "support_mac": 1100,
+    "support_windows": 1500,
+    "target_cac": 800,
+    "narrow_cpc_inr": 27,
+    "broad_cpc_inr": 8
+  },
+  "prices": [
+    {
+      "price": 1999,
+      "mac_contribution": 314.444406779661,
+      "windows_contribution": -85.555593220339
+    },
+    {
+      "price": 2999,
+      "mac_contribution": 1039.5291525423727,
+      "windows_contribution": 639.5291525423727
+    },
+    {
+      "price": 3999,
+      "mac_contribution": 1764.6138983050846,
+      "windows_contribution": 1364.6138983050846
+    },
+    {
+      "price": 4999,
+      "mac_contribution": 2489.698644067797,
+      "windows_contribution": 2089.698644067797
+    },
+    {
+      "price": 5999,
+      "mac_contribution": 3214.783389830509,
+      "windows_contribution": 2814.783389830509
+    }
+  ],
+  "port_scenario": {
+    "development_eur": 12000,
+    "amortization_months": 12,
+    "incremental_fixed_monthly_eur": 200,
+    "required_incremental_buyers_per_month": 104
+  }
+}

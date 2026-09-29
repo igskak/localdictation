@@ -4,6 +4,7 @@ DerivedData/
 *.xcuserstate
 xcuserdata/
 LocalDictation.xcodeproj/project.xcworkspace/xcuserdata/
+.claude/settings.local.json*
 
 # Local signing and release artifacts
 *.dmg

@@ -1,4 +1,5 @@
 using System.Windows.Threading;
+using Witness.Core.Audio;
 using Witness.Core.Input;
 using Witness.Platform.Windows.Audio;
 using Witness.Platform.Windows.Insertion;
@@ -14,11 +15,19 @@ internal sealed class DictationCaptureController(
     Func<AudioCaptureResult, InsertionTarget?, long, Task<bool>>? completedCaptureProcessor = null) : IDisposable
 {
     private readonly SemaphoreSlim operationGate = new(1, 1);
+    private AudioInputSelection audioInputSelection = AudioInputSelection.SystemDefault;
+    private VoiceActivityConfiguration voiceConfiguration = VoiceActivityConfiguration.Default;
     private AudioCaptureSession? session;
     private InsertionTarget? capturedTarget;
     private long operationGeneration;
     private bool disposed;
     private int statusGeneration;
+
+    internal void SetAudioInputSelection(AudioInputSelection selection) =>
+        Volatile.Write(ref audioInputSelection, selection ?? throw new ArgumentNullException(nameof(selection)));
+
+    internal void SetVoiceActivityConfiguration(VoiceActivityConfiguration configuration) =>
+        Volatile.Write(ref voiceConfiguration, (configuration ?? throw new ArgumentNullException(nameof(configuration))).Validated());
 
     public void Handle(HotkeyAction action)
     {
@@ -64,17 +73,36 @@ internal sealed class DictationCaptureController(
             if (disposed || session is not null) return;
             operationGeneration = generation;
             capturedTarget = target;
-            await ShowAsync(ActivityVisualState.Processing, "Opening the selected microphone…").ConfigureAwait(false);
+            await ShowResourceAsync(ActivityVisualState.Processing, "OpeningMicrophone").ConfigureAwait(false);
+            var selection = Volatile.Read(ref audioInputSelection);
+            var configuration = Volatile.Read(ref voiceConfiguration);
+            string? endpointId = null;
+            AudioInputResolution? resolution = null;
+            if (selection.Kind != AudioInputSelectionKind.SystemDefault)
+            {
+                resolution = AudioInputSelectionPolicy.Resolve(selection, NativeAudioDeviceEnumerator.GetActiveInputs());
+                if (resolution.Device is null)
+                {
+                    throw new NativeAudioException(
+                        NativeAudioStatus.AudioDeviceUnavailable,
+                        "No active Windows microphone is available.");
+                }
+                endpointId = resolution.Device.Id;
+            }
             var candidate = new AudioCaptureSession(
-                new NativeAudioCapture(endpointId: null),
-                new NativeAudioSampleProcessor());
+                new NativeAudioCapture(endpointId),
+                new NativeAudioSampleProcessor(),
+                configuration);
             candidate.AutomaticStopRequested += AutomaticStopRequested;
             try
             {
                 await Task.Run(candidate.Start).ConfigureAwait(false);
                 session = candidate;
                 await ShowAsync(ActivityVisualState.Listening).ConfigureAwait(false);
-                await SetMainStatusAsync("Listening locally. Release any shortcut key to stop.").ConfigureAwait(false);
+                var fallback = resolution?.UsedFallback == true
+                    ? await ResourceTextAsync("MicrophoneFallback").ConfigureAwait(false)
+                    : string.Empty;
+                await SetMainStatusResourceAsync("ListeningLocal", fallback).ConfigureAwait(false);
             }
             catch
             {
@@ -91,8 +119,8 @@ internal sealed class DictationCaptureController(
         catch (Exception error)
         {
             capturedTarget = null;
-            await ShowAsync(ActivityVisualState.Error, "No audio left this PC.").ConfigureAwait(false);
-            await SetMainStatusAsync($"Microphone capture failed locally: {error.Message}").ConfigureAwait(false);
+            await ShowResourceAsync(ActivityVisualState.Error, "NoAudioLeftPc").ConfigureAwait(false);
+            await SetMainStatusResourceAsync("MicrophoneCaptureFailed", error.Message).ConfigureAwait(false);
         }
         finally
         {
@@ -112,7 +140,7 @@ internal sealed class DictationCaptureController(
             var generation = operationGeneration;
             capturedTarget = null;
             active.AutomaticStopRequested -= AutomaticStopRequested;
-            await ShowAsync(ActivityVisualState.Processing, "Finishing the in-memory phrase…").ConfigureAwait(false);
+            await ShowResourceAsync(ActivityVisualState.Processing, "FinishingPhrase").ConfigureAwait(false);
             try
             {
                 var result = await active.StopAsync().ConfigureAwait(false);
@@ -145,8 +173,8 @@ internal sealed class DictationCaptureController(
         }
         catch (Exception error)
         {
-            await ShowAsync(ActivityVisualState.Error, "The phrase was not persisted.").ConfigureAwait(false);
-            await SetMainStatusAsync($"Audio processing failed locally: {error.Message}").ConfigureAwait(false);
+            await ShowResourceAsync(ActivityVisualState.Error, "PhraseNotPersisted").ConfigureAwait(false);
+            await SetMainStatusResourceAsync("AudioProcessingFailed", error.Message).ConfigureAwait(false);
         }
         finally
         {
@@ -165,20 +193,20 @@ internal sealed class DictationCaptureController(
                 await ShowAsync(result.Kind == AudioCaptureCompletionKind.NoSpeech
                     ? ActivityVisualState.NoSpeech
                     : ActivityVisualState.Interrupted).ConfigureAwait(false);
-                await SetMainStatusAsync(result.Kind == AudioCaptureCompletionKind.NoSpeech
-                    ? "No speech was detected. No audio was saved."
-                    : "The microphone was interrupted before speech was detected. No audio was saved.").ConfigureAwait(false);
+                await SetMainStatusResourceAsync(result.Kind == AudioCaptureCompletionKind.NoSpeech
+                    ? "NoSpeechSaved"
+                    : "InterruptedBeforeSpeech").ConfigureAwait(false);
                 break;
             case AudioCaptureCompletionKind.InterruptedWithSpeech:
-                await ShowAsync(ActivityVisualState.Interrupted, "Captured speech remains in memory for the next local stage.").ConfigureAwait(false);
-                await SetMainStatusAsync("The microphone was interrupted. Captured speech stayed in memory; transcription is not connected in this preview.").ConfigureAwait(false);
+                await ShowResourceAsync(ActivityVisualState.Interrupted, "InterruptedSpeechMemory").ConfigureAwait(false);
+                await SetMainStatusResourceAsync("InterruptedPreview").ConfigureAwait(false);
                 break;
             default:
                 var warning = result.HadDiscontinuity || result.BufferOverflowed || result.DroppedPacketCount > 0
-                    ? " A capture gap was detected and is reported explicitly."
+                    ? await ResourceTextAsync("CaptureGapWarning").ConfigureAwait(false)
                     : string.Empty;
-                await ShowAsync(ActivityVisualState.Processing, "Capture complete; transcription is not connected in this preview.").ConfigureAwait(false);
-                await SetMainStatusAsync($"Speech was captured and normalized locally, then released after this preview step.{warning}").ConfigureAwait(false);
+                await ShowResourceAsync(ActivityVisualState.Processing, "CapturePreviewComplete").ConfigureAwait(false);
+                await SetMainStatusResourceAsync("CaptureReleased", warning).ConfigureAwait(false);
                 break;
         }
         _ = HideActivityAfterDelayAsync();
@@ -186,18 +214,23 @@ internal sealed class DictationCaptureController(
 
     private async Task ShowCaptureErrorAsync(NativeAudioException error)
     {
-        var message = error.Status switch
+        var resourceKey = error.Status switch
         {
-            NativeAudioStatus.AudioAccessDenied => "Microphone access is off. Enable microphone access for desktop apps in Windows Settings.",
-            NativeAudioStatus.AudioDeviceUnavailable => "No available microphone could be opened. Check the selected Windows input device.",
-            NativeAudioStatus.AudioFormatUnsupported => "The microphone uses an unsupported audio format.",
-            _ => error.Message,
+            NativeAudioStatus.AudioAccessDenied => "MicrophoneAccessError",
+            NativeAudioStatus.AudioDeviceUnavailable => "MicrophoneUnavailableError",
+            NativeAudioStatus.AudioFormatUnsupported => "MicrophoneFormatError",
+            _ => null,
         };
-        await ShowAsync(ActivityVisualState.Error, message).ConfigureAwait(false);
+        if (resourceKey is null)
+            await ShowAsync(ActivityVisualState.Error, error.Message).ConfigureAwait(false);
+        else
+            await ShowResourceAsync(ActivityVisualState.Error, resourceKey).ConfigureAwait(false);
         if (error.Status == NativeAudioStatus.AudioAccessDenied)
             await dispatcher.InvokeAsync(mainWindow.ShowMicrophoneAccessDenied);
+        else if (resourceKey is not null)
+            await SetMainStatusResourceAsync(resourceKey).ConfigureAwait(false);
         else
-            await SetMainStatusAsync(message).ConfigureAwait(false);
+            await SetMainStatusAsync(error.Message).ConfigureAwait(false);
         _ = HideActivityAfterDelayAsync();
     }
 
@@ -214,6 +247,19 @@ internal sealed class DictationCaptureController(
         Interlocked.Increment(ref statusGeneration);
         await dispatcher.InvokeAsync(() => activityWindow.ShowState(state, detail));
     }
+
+    private async Task ShowResourceAsync(ActivityVisualState state, string key, params object[] arguments)
+    {
+        Interlocked.Increment(ref statusGeneration);
+        await dispatcher.InvokeAsync(() =>
+            activityWindow.ShowState(state, mainWindow.ResourceFormat(key, arguments)));
+    }
+
+    private async Task<string> ResourceTextAsync(string key) =>
+        await dispatcher.InvokeAsync(() => mainWindow.ResourceText(key));
+
+    private async Task SetMainStatusResourceAsync(string key, params object[] arguments) =>
+        await dispatcher.InvokeAsync(() => mainWindow.SetStatus(mainWindow.ResourceFormat(key, arguments)));
 
     private async Task SetMainStatusAsync(string status) =>
         await dispatcher.InvokeAsync(() => mainWindow.SetStatus(status));

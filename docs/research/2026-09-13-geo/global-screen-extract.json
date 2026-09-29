@@ -1,0 +1,317 @@
+{
+  "report": "phrase_all",
+  "params": {
+    "phrase": "speech to text"
+  },
+  "retrieved_at": "2026-09-13",
+  "data_month": "202608",
+  "provenance": "Selected rows manually transcribed from the single live report returned in this session; not the complete global response. No repeat request was made.",
+  "rows": [
+    {
+      "database": "ae",
+      "keyword": "speech to text",
+      "volume": 1000,
+      "cpc_usd": 0.47
+    },
+    {
+      "database": "ar",
+      "keyword": "speech to text",
+      "volume": 1000,
+      "cpc_usd": 0.22
+    },
+    {
+      "database": "at",
+      "keyword": "speech to text",
+      "volume": 880,
+      "cpc_usd": 0.9
+    },
+    {
+      "database": "au",
+      "keyword": "speech to text",
+      "volume": 4400,
+      "cpc_usd": 0
+    },
+    {
+      "database": "bd",
+      "keyword": "speech to text",
+      "volume": 1600,
+      "cpc_usd": 0.11
+    },
+    {
+      "database": "be",
+      "keyword": "speech to text",
+      "volume": 1900,
+      "cpc_usd": 0.53
+    },
+    {
+      "database": "br",
+      "keyword": "speech to text",
+      "volume": 4400,
+      "cpc_usd": 0.57
+    },
+    {
+      "database": "ca",
+      "keyword": "speech to text",
+      "volume": 5400,
+      "cpc_usd": 1.15
+    },
+    {
+      "database": "ch",
+      "keyword": "speech to text",
+      "volume": 880,
+      "cpc_usd": 0.86
+    },
+    {
+      "database": "cl",
+      "keyword": "speech to text",
+      "volume": 480,
+      "cpc_usd": 0.32
+    },
+    {
+      "database": "co",
+      "keyword": "speech to text",
+      "volume": 1000,
+      "cpc_usd": 0.34
+    },
+    {
+      "database": "cz",
+      "keyword": "speech to text",
+      "volume": 880,
+      "cpc_usd": 0.38
+    },
+    {
+      "database": "de",
+      "keyword": "speech to text",
+      "volume": 4400,
+      "cpc_usd": 0.85
+    },
+    {
+      "database": "dk",
+      "keyword": "speech to text",
+      "volume": 480,
+      "cpc_usd": 0.58
+    },
+    {
+      "database": "eg",
+      "keyword": "speech to text",
+      "volume": 1300,
+      "cpc_usd": 0.3
+    },
+    {
+      "database": "es",
+      "keyword": "speech to text",
+      "volume": 2900,
+      "cpc_usd": 0.65
+    },
+    {
+      "database": "fi",
+      "keyword": "speech to text",
+      "volume": 590,
+      "cpc_usd": 0.79
+    },
+    {
+      "database": "fr",
+      "keyword": "speech to text",
+      "volume": 4400,
+      "cpc_usd": 1.13
+    },
+    {
+      "database": "gr",
+      "keyword": "speech to text",
+      "volume": 1000,
+      "cpc_usd": 0.24
+    },
+    {
+      "database": "hk",
+      "keyword": "speech to text",
+      "volume": 1300,
+      "cpc_usd": 0.97
+    },
+    {
+      "database": "hu",
+      "keyword": "speech to text",
+      "volume": 720,
+      "cpc_usd": 0.25
+    },
+    {
+      "database": "id",
+      "keyword": "speech to text",
+      "volume": 9900,
+      "cpc_usd": 0.11
+    },
+    {
+      "database": "ie",
+      "keyword": "speech to text",
+      "volume": 720,
+      "cpc_usd": 1
+    },
+    {
+      "database": "il",
+      "keyword": "speech to text",
+      "volume": 1300,
+      "cpc_usd": 0
+    },
+    {
+      "database": "in",
+      "keyword": "speech to text",
+      "volume": 33100,
+      "cpc_usd": 0.11
+    },
+    {
+      "database": "it",
+      "keyword": "speech to text",
+      "volume": 2900,
+      "cpc_usd": 0.53
+    },
+    {
+      "database": "jp",
+      "keyword": "speech to text",
+      "volume": 1900,
+      "cpc_usd": 1.3
+    },
+    {
+      "database": "kr",
+      "keyword": "speech to text",
+      "volume": 1600,
+      "cpc_usd": 0.71
+    },
+    {
+      "database": "ma",
+      "keyword": "speech to text",
+      "volume": 1000,
+      "cpc_usd": 0.27
+    },
+    {
+      "database": "mx",
+      "keyword": "speech to text",
+      "volume": 2900,
+      "cpc_usd": 0.31
+    },
+    {
+      "database": "my",
+      "keyword": "speech to text",
+      "volume": 1600,
+      "cpc_usd": 0.37
+    },
+    {
+      "database": "ng",
+      "keyword": "speech to text",
+      "volume": 1300,
+      "cpc_usd": 0.3
+    },
+    {
+      "database": "nl",
+      "keyword": "speech to text",
+      "volume": 2400,
+      "cpc_usd": 0.71
+    },
+    {
+      "database": "no",
+      "keyword": "speech to text",
+      "volume": 390,
+      "cpc_usd": 0.55
+    },
+    {
+      "database": "nz",
+      "keyword": "speech to text",
+      "volume": 720,
+      "cpc_usd": 0.95
+    },
+    {
+      "database": "ph",
+      "keyword": "speech to text",
+      "volume": 5400,
+      "cpc_usd": 0.19
+    },
+    {
+      "database": "pk",
+      "keyword": "speech to text",
+      "volume": 3600,
+      "cpc_usd": 0.11
+    },
+    {
+      "database": "pl",
+      "keyword": "speech to text",
+      "volume": 1900,
+      "cpc_usd": 0.33
+    },
+    {
+      "database": "pt",
+      "keyword": "speech to text",
+      "volume": 590,
+      "cpc_usd": 0.35
+    },
+    {
+      "database": "ro",
+      "keyword": "speech to text",
+      "volume": 1300,
+      "cpc_usd": 0.57
+    },
+    {
+      "database": "sa",
+      "keyword": "speech to text",
+      "volume": 720,
+      "cpc_usd": 0.37
+    },
+    {
+      "database": "se",
+      "keyword": "speech to text",
+      "volume": 880,
+      "cpc_usd": 0.53
+    },
+    {
+      "database": "sg",
+      "keyword": "speech to text",
+      "volume": 1600,
+      "cpc_usd": 1.17
+    },
+    {
+      "database": "th",
+      "keyword": "speech to text",
+      "volume": 1600,
+      "cpc_usd": 0.42
+    },
+    {
+      "database": "tr",
+      "keyword": "speech to text",
+      "volume": 2900,
+      "cpc_usd": 0.98
+    },
+    {
+      "database": "tw",
+      "keyword": "speech to text",
+      "volume": 1300,
+      "cpc_usd": 3.39
+    },
+    {
+      "database": "ua",
+      "keyword": "speech to text",
+      "volume": 720,
+      "cpc_usd": 0.17
+    },
+    {
+      "database": "uk",
+      "keyword": "speech to text",
+      "volume": 5400,
+      "cpc_usd": 1.3
+    },
+    {
+      "database": "us",
+      "keyword": "speech to text",
+      "volume": 27100,
+      "cpc_usd": 1.39
+    },
+    {
+      "database": "vn",
+      "keyword": "speech to text",
+      "volume": 4400,
+      "cpc_usd": 0.23
+    },
+    {
+      "database": "za",
+      "keyword": "speech to text",
+      "volume": 1900,
+      "cpc_usd": 0.52
+    }
+  ]
+}

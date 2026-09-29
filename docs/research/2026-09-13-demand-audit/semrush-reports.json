@@ -1,0 +1,304 @@
+{
+  "retrieved_at": "2026-09-13",
+  "purpose": "Incremental intent audit, India and Windows feasibility. Reuses previously saved country volumes.",
+  "source": "Semrush connector",
+  "executions": 13,
+  "reports": [
+    {
+      "report": "phrase_organic",
+      "params": {
+        "database": "ph",
+        "phrase": "speech to text",
+        "display_limit": 5,
+        "export_columns": [
+          "position",
+          "domain",
+          "url"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Position;Domain;Url\n1;speechnotes.co;https://speechnotes.co/\n2;quillbot.com;https://quillbot.com/tools/speech-to-text\n3;www.speechtexter.com;https://www.speechtexter.com/\n4;elevenlabs.io;https://elevenlabs.io/speech-to-text\n5;cloud.google.com;https://cloud.google.com/speech-to-text\n"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "report": "phrase_organic",
+      "params": {
+        "database": "ph",
+        "phrase": "voice to text",
+        "display_limit": 5,
+        "export_columns": [
+          "position",
+          "domain",
+          "url"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Position;Domain;Url\n1;speechnotes.co;https://speechnotes.co/\n2;evernote.com;https://evernote.com/ai-transcribe-audio-to-text/voice-to-text-converter\n3;quillbot.com;https://quillbot.com/tools/speech-to-text\n4;elevenlabs.io;https://elevenlabs.io/audio-to-text\n5;dictation.io;https://dictation.io/speech\n"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "report": "phrase_organic",
+      "params": {
+        "database": "in",
+        "phrase": "voice typing",
+        "display_limit": 5,
+        "export_columns": [
+          "position",
+          "domain",
+          "url"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Position;Domain;Url\n1;dictation.io;https://dictation.io/speech\n2;speechnotes.co;https://speechnotes.co/\n3;www.speechtexter.com;https://www.speechtexter.com/\n4;support.google.com;https://support.google.com/docs/answer/4492226?hl=en\n5;support.microsoft.com;https://support.microsoft.com/en-us/accessibility/windows/use-voice-typing-to-talk-instead-of-type-on-your-pc\n"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "report": "phrase_organic",
+      "params": {
+        "database": "in",
+        "phrase": "dictation software",
+        "display_limit": 5,
+        "export_columns": [
+          "position",
+          "domain",
+          "url"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Position;Domain;Url\n1;dictation.io;https://dictation.io/\n2;willowvoice.com;https://willowvoice.com/blog/best-voice-dictation-software-mac-windows\n3;zapier.com;https://zapier.com/blog/best-text-dictation-software/\n4;www.nytimes.com;https://www.nytimes.com/wirecutter/reviews/best-dictation-software/\n5;support.microsoft.com;https://support.microsoft.com/en-us/office/dictate-in-microsoft-365-eab203e1-d030-43c1-84ef-999b0b9675fe\n"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "report": "phrase_organic",
+      "params": {
+        "database": "au",
+        "phrase": "speech to text",
+        "display_limit": 5,
+        "export_columns": [
+          "position",
+          "domain",
+          "url"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Position;Domain;Url\n1;speechnotes.co;https://speechnotes.co/\n2;www.speechtexter.com;https://www.speechtexter.com/\n3;quillbot.com;https://quillbot.com/tools/speech-to-text\n4;cloud.google.com;https://cloud.google.com/speech-to-text\n5;evernote.com;https://evernote.com/ai-transcribe-audio-to-text/voice-to-text-converter\n"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "report": "phrase_organic",
+      "params": {
+        "database": "mx",
+        "phrase": "dictado por voz",
+        "display_limit": 5,
+        "export_columns": [
+          "position",
+          "domain",
+          "url"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Position;Domain;Url\n1;support.microsoft.com;https://support.microsoft.com/es-es/accessibility/windows/use-voice-typing-to-talk-instead-of-type-on-your-pc\n2;play.google.com;https://play.google.com/store/apps/details?id=ru.vsms&hl=es_MX\n3;www.speech-typing.com;https://www.speech-typing.com/p/escritura-devoz.html\n4;www.textfromtospeech.com;https://www.textfromtospeech.com/es/voice-to-text/\n5;support.google.com;https://support.google.com/gboard/answer/11197787?hl=es-419\n"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "report": "phrase_organic",
+      "params": {
+        "database": "id",
+        "phrase": "voice to text",
+        "display_limit": 5,
+        "export_columns": [
+          "position",
+          "domain",
+          "url"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Position;Domain;Url\n1;soundoftext.com;https://soundoftext.com/\n2;evernote.com;https://evernote.com/ai-transcribe-audio-to-text/voice-to-text-converter\n3;speechnotes.co;https://speechnotes.co/\n4;quillbot.com;https://quillbot.com/tools/speech-to-text\n5;cloud.google.com;https://cloud.google.com/speech-to-text\n"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "report": "phrase_these",
+      "params": {
+        "database": "in",
+        "phrase": "voice typing for pc;voice typing software for pc;speech to text software for pc;dictation software for windows;voice typing windows 11;offline speech to text software;offline voice typing software;best dictation software;ai dictation;ai dictation app;hindi voice typing;english speech to text",
+        "export_columns": [
+          "keyword",
+          "volume",
+          "cpc",
+          "competitive_density",
+          "intent"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Keyword;Search Volume;CPC;Competition;Intent\nvoice typing for pc;30;0.21;0.07;\nvoice typing software for pc;20;0.29;0.16;\nspeech to text software for pc;20;0.23;0.18;\ndictation software for windows;40;0.26;0.16;\noffline speech to text software;20;0;0.14;\noffline voice typing software;0;0;0;\nbest dictation software;20;0.32;0.46;\nhindi voice typing;6600;0.06;0.04;1\nenglish speech to text;260;0.1;0.24;0\n"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "report": "phrase_these",
+      "params": {
+        "database": "ph",
+        "phrase": "best dictation software;dictation software for mac;offline speech to text software;ai dictation;dictation software for windows;voice typing for pc",
+        "export_columns": [
+          "keyword",
+          "volume",
+          "cpc",
+          "competitive_density",
+          "intent"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Keyword;Search Volume;CPC;Competition;Intent\nvoice typing for pc;30;0;0.33;\n"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "report": "phrase_these",
+      "params": {
+        "database": "au",
+        "phrase": "best dictation software;dictation software for mac;offline speech to text software;ai dictation;dictation software for windows;voice typing for pc",
+        "export_columns": [
+          "keyword",
+          "volume",
+          "cpc",
+          "competitive_density",
+          "intent"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Keyword;Search Volume;CPC;Competition;Intent\nbest dictation software;20;2.56;0.8;\ndictation software for mac;20;1.4;0.52;\noffline speech to text software;0;0;0;\nai dictation;30;2.48;0.84;\ndictation software for windows;10;2.18;0.33;\nvoice typing for pc;20;0;0.33;\n"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "report": "phrase_these",
+      "params": {
+        "database": "us",
+        "phrase": "dictation software;voice typing software;best dictation software;dictation software for windows;voice typing for pc;offline speech to text software;ai dictation;ai dictation app",
+        "export_columns": [
+          "keyword",
+          "volume",
+          "cpc",
+          "competitive_density",
+          "intent"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Keyword;Search Volume;CPC;Competition;Intent\ndictation software;1900;2.86;0.94;0\nvoice typing software;110;1.9;0.47;0\nbest dictation software;390;2.7;0.62;0\ndictation software for windows;210;2.13;0.38;0\nvoice typing for pc;20;2.41;0.54;\noffline speech to text software;20;1.07;0.66;\nai dictation;390;2.87;0.79;1\nai dictation app;50;2.78;0.57;0\n"
+          }
+        ],
+        "isError": false
+      }
+    },
+    {
+      "report": "phrase_organic",
+      "params": {
+        "database": "in",
+        "phrase": "voice typing software",
+        "display_limit": 5,
+        "export_columns": [
+          "position",
+          "domain",
+          "url"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "get phrase_organic: ERROR 50 :: NOTHING FOUND\nNo data found for this request. Verify your parameters are correct. If parameters are valid, try a different date range or target.\nnot found"
+          }
+        ],
+        "structuredContent": {
+          "error_code": "INVALID_ARGUMENT"
+        },
+        "isError": true
+      }
+    },
+    {
+      "report": "phrase_organic",
+      "params": {
+        "database": "in",
+        "phrase": "speech to text software for pc",
+        "display_limit": 5,
+        "export_columns": [
+          "position",
+          "domain",
+          "url"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "get phrase_organic: ERROR 50 :: NOTHING FOUND\nNo data found for this request. Verify your parameters are correct. If parameters are valid, try a different date range or target.\nnot found"
+          }
+        ],
+        "structuredContent": {
+          "error_code": "INVALID_ARGUMENT"
+        },
+        "isError": true
+      }
+    }
+  ]
+}

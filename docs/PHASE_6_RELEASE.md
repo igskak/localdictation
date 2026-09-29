@@ -235,12 +235,6 @@ Sparkle uses the latter to decide whether an update is newer. Confirm the
 release assets are publicly accessible and test an update from the preceding
 signed version before telling users it is available.
 
-When releasing from an isolated worktree, `SPARKLE_KEY` can point to the
-absolute path of the ignored signing seed in the main checkout. If Xcode's
-binary package download stalls on this Mac, `XCODE_SOURCE_PACKAGES_DIR` can
-point to an already resolved Xcode `SourcePackages` directory; the release
-script passes it to the project build. Keep this path local to the machine.
-
 The current channel must contain only versions a current licence can install.
 Before shipping a separately licensed future major version, preserve the old
 channel and add an entitlement-aware upgrade path. The existing terms promise

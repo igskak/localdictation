@@ -69,6 +69,32 @@ jobs:
       - name: Run Windows platform tests
         working-directory: Windows
         run: dotnet test tests/Witness.Platform.Tests/Witness.Platform.Tests.csproj --configuration Release --no-build --no-restore
+        env:
+          WITNESS_CAPTURE_UI_EVIDENCE: "1"
+          WITNESS_UI_EVIDENCE_DIRECTORY: ${{ github.workspace }}\Windows\artifacts\ui-evidence
+
+      - name: Verify synthetic W5 UI evidence
+        shell: pwsh
+        run: |
+          $directory = "Windows/artifacts/ui-evidence"
+          $expected = @(
+            "w5-dictionary-synthetic.png",
+            "w5-onboarding-synthetic.png",
+            "w5-settings-synthetic.png"
+          )
+          $actual = @(Get-ChildItem $directory -File | Sort-Object Name | ForEach-Object Name)
+          if (Compare-Object $expected $actual) {
+            throw "Synthetic W5 UI evidence did not contain the exact allowlisted files."
+          }
+          Windows/tools/assert-artifact-privacy.ps1 -Path $directory
+
+      - name: Upload synthetic W5 UI evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: witness-windows-w5-ui-synthetic-${{ github.sha }}
+          path: Windows/artifacts/ui-evidence
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Configure native CPU build
         run: >-

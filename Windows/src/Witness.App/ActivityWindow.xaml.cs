@@ -30,11 +30,11 @@ public partial class ActivityWindow : Window
 
         var presentation = state switch
         {
-            ActivityVisualState.Listening => ("Listening…", System.Windows.SystemColors.HighlightBrush),
-            ActivityVisualState.Processing => ("Processing on this PC…", System.Windows.SystemColors.HighlightBrush),
-            ActivityVisualState.NoSpeech => ("No speech detected", System.Windows.SystemColors.GrayTextBrush),
-            ActivityVisualState.Interrupted => ("Microphone interrupted", System.Windows.SystemColors.GrayTextBrush),
-            ActivityVisualState.Error => ("Dictation could not continue", System.Windows.SystemColors.GrayTextBrush),
+            ActivityVisualState.Listening => (ResourceText("ActivityListening"), System.Windows.SystemColors.HighlightBrush),
+            ActivityVisualState.Processing => (ResourceText("ActivityProcessing"), System.Windows.SystemColors.HighlightBrush),
+            ActivityVisualState.NoSpeech => (ResourceText("ActivityNoSpeech"), System.Windows.SystemColors.GrayTextBrush),
+            ActivityVisualState.Interrupted => (ResourceText("ActivityInterrupted"), System.Windows.SystemColors.GrayTextBrush),
+            ActivityVisualState.Error => (ResourceText("ActivityError"), System.Windows.SystemColors.GrayTextBrush),
             _ => throw new ArgumentOutOfRangeException(nameof(state)),
         };
         StateText.Text = string.IsNullOrWhiteSpace(detail) ? presentation.Item1 : $"{presentation.Item1} {detail}";
@@ -42,6 +42,8 @@ public partial class ActivityWindow : Window
         PositionAtWorkingAreaEdge();
         if (!IsVisible) Show();
     }
+
+    private string ResourceText(string key) => TryFindResource(key) as string ?? key;
 
     private void PositionAtWorkingAreaEdge()
     {

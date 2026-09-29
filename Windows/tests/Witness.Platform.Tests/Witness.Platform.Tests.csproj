@@ -12,5 +12,6 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="MSTest" />
     <ProjectReference Include="..\..\src\Witness.Platform.Windows\Witness.Platform.Windows.csproj" />
+    <ProjectReference Include="..\..\src\Witness.App\Witness.App.csproj" />
   </ItemGroup>
 </Project>

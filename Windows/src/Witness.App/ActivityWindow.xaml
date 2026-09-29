@@ -13,7 +13,7 @@
         IsHitTestVisible="False"
         Background="Transparent"
         AllowsTransparency="True"
-        automation:AutomationProperties.Name="Witness dictation status">
+        automation:AutomationProperties.Name="{DynamicResource AutomationActivityStatus}">
     <Border Padding="16,12"
             CornerRadius="8"
             BorderThickness="1"
@@ -27,7 +27,7 @@
                      VerticalAlignment="Center"
                      Fill="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}" />
             <TextBlock x:Name="StateText"
-                       Text="Witness is ready"
+                       Text="{DynamicResource ActivityReady}"
                        TextWrapping="Wrap"
                        VerticalAlignment="Center"
                        Foreground="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}" />
