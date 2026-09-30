@@ -305,7 +305,12 @@ final class HALInputCaptureService: AudioCaptureService, @unchecked Sendable {
         }
 
         let from = session.segment?.deviceName
-        let startedAt = ProcessInfo.processInfo.systemUptime
+        // Measured from the last frame that actually arrived, not from the
+        // moment we decided to act. The device stops delivering as soon as
+        // whoever is reconfiguring it takes over, which is well before the
+        // notification reaches us and before the debounce elapses. Timing our
+        // own teardown instead reported a quarter of the real silence.
+        let lastFrameAt = session.segment?.lastCallbackUptime ?? ProcessInfo.processInfo.systemUptime
         if let old = session.segment {
             AudioOutputUnitStop(old.unit)
             drain(old, into: session.sink)
@@ -326,7 +331,7 @@ final class HALInputCaptureService: AudioCaptureService, @unchecked Sendable {
             session.budget.recordSuccess()
             monitor.rebound(to: segment.deviceID)
 
-            let gap = (ProcessInfo.processInfo.systemUptime - startedAt) * 1000
+            let gap = (ProcessInfo.processInfo.systemUptime - lastFrameAt) * 1000
             Log.audio.notice(
                 "Input rebound (\(String(describing: event), privacy: .public)): \(from ?? "none", privacy: .public) -> \(segment.deviceName, privacy: .public), \(Int(segment.binding.sampleRate)) Hz \(segment.binding.channelCount) ch, gap \(String(format: "%.0f", gap), privacy: .public) ms"
             )
