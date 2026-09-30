@@ -1,6 +1,13 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "The speech model has not been downloaded yet (about %@)": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Sprachmodell wurde noch nicht geladen (etwa %@)"}}}},
+    "less than a minute": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"weniger als eine Minute"}}}},
+    "about %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"etwa %@"}}}},
+    " — %lld%%, %@ left": {"localizations":{"de":{"stringUnit":{"state":"translated","value":" – %lld %%, noch %@"}}}},
+    " — %lld%%, %@ left, %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":" – %lld %%, noch %@, %@"}}}},
+    "Downloading the speech model… %lld%%. %@ left.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sprachmodell wird geladen … %lld %%. Noch %@."}}}},
+    "Downloading the speech model… %lld%%. %@ left, %@.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sprachmodell wird geladen … %lld %%. Noch %@, %@."}}}},
     "Updates": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Updates"}}}},
     "Installed version": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Installierte Version"}}}},
     "Check for updates…": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Auf Updates prüfen …"}}}},
@@ -1195,26 +1202,8 @@
         }
       }
     },
-    "%@ It is about 600 MB and needs a connection once; everything after that is offline.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ Es ist etwa 600 MB groß und benötigt einmalig eine Verbindung; danach funktioniert alles offline."
-          }
-        }
-      }
-    },
-    "About 600 MB, fetched once, usually within five minutes. It started on its own when the app launched — you can close this window and it keeps going. Afterwards recognition runs on this Mac with no network at all.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Etwa 600 MB, einmalig geladen, normalerweise in weniger als fünf Minuten. Der Download begann beim App-Start automatisch und läuft weiter, wenn du dieses Fenster schließt. Danach erfolgt die Erkennung vollständig offline auf diesem Mac."
-          }
-        }
-      }
-    },
+    "%@ It is about %@ and needs a connection once; everything after that is offline.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%@ Es ist etwa %@ groß und benötigt einmalig eine Verbindung; danach funktioniert alles offline."}}}},
+    "About %@, fetched once. It started on its own when the app launched — you can close this window and it keeps going. Afterwards recognition runs on this Mac with no network at all.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Etwa %@, einmalig geladen. Der Download begann beim App-Start automatisch und läuft weiter, wenn du dieses Fenster schließt. Danach erfolgt die Erkennung vollständig offline auf diesem Mac."}}}},
     "No language here is called “%@”.": {
       "localizations": {
         "de": {
@@ -2796,7 +2785,7 @@
     "This address or this Mac has already had the free trial. A license keeps it dictating: €99 once, or €49 a year, both covering two Macs.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Für diese Adresse oder diesen Mac wurde die Testphase bereits genutzt. Eine Lizenz kostet einmalig 99 € oder 49 € pro Jahr und gilt für zwei Macs."}}}},
     "the shortcut is already used by macOS or another app": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"das Tastenkürzel wird bereits von macOS oder einer anderen App verwendet"}}}},
     "the previous application": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"die vorherige App"}}}},
-    " — %lld%% of about 600 MB": {"localizations":{"de":{"stringUnit":{"state":"translated","value":" – %lld %% von etwa 600 MB"}}}},
+    " — %lld%% of about %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":" – %lld %% von etwa %@"}}}},
     "%1$@ of speech came back empty, so nothing was inserted. Say it again, or check that the language profile — %2$@ — is the one you spoke.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die Erkennung für %1$@ ergab keinen Text. Sprich erneut oder prüfe, ob das Profil „%2$@“ deiner Sprache entspricht."}}}},
     "A copy of the key is also on its way to that address. You do not need it now — it is for when you reinstall Witness or replace this Mac. If it never arrives, press the button again: the same key comes back here and the mail is retried.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Eine Kopie des Schlüssels wird auch an diese Adresse gesendet. Du brauchst sie nur nach einer Neuinstallation oder beim Austausch dieses Macs. Falls sie nicht ankommt, drücke die Taste erneut."}}}},
     "A license keeps it after that, on this Mac and one more.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Mit einer Lizenz kannst du danach auf diesem und einem weiteren Mac weiterarbeiten."}}}},
@@ -2814,10 +2803,10 @@
     "Licensed to %@.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Lizenziert für %@."}}}},
     "Nothing was inserted: %@ has secure input enabled, which blocks dictation everywhere until it stops. Switching to it and clicking into an ordinary field usually clears it; quitting it always does. The text is here and was not copied.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Nichts wurde eingefügt: %@ hat die sichere Eingabe aktiviert. Wechsle dorthin und klicke in ein normales Feld oder beende die App. Der Text wurde nicht kopiert."}}}},
     "Nothing was inserted: an application has secure input enabled, which blocks dictation everywhere until it stops. The text is here and was not copied.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Nichts wurde eingefügt: Eine App hat die sichere Eingabe aktiviert und blockiert damit das Diktieren. Der Text wurde nicht kopiert."}}}},
-    "Nothing was recorded yet — Witness is downloading the speech model%@. It happens once, usually within five minutes, and afterwards recognition runs entirely on this Mac. Hold %@ again when it is here; Witness will say so.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch nichts aufgenommen – Witness lädt das Sprachmodell%@. Dies geschieht einmalig und dauert meist weniger als fünf Minuten. Danach läuft die Erkennung vollständig auf diesem Mac. Halte %@ erneut gedrückt, sobald es bereit ist."}}}},
+    "Nothing was recorded yet — Witness is downloading the speech model%@. It happens once, and afterwards recognition runs entirely on this Mac. Hold %@ again when it is here; Witness will say so.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch nichts aufgenommen – Witness lädt das Sprachmodell%@. Dies geschieht einmalig, danach läuft die Erkennung vollständig auf diesem Mac. Halte %@ erneut gedrückt, sobald es bereit ist."}}}},
     "Nothing was recorded yet — macOS is preparing the speech model for this Mac. It happens once per macOS version and takes a few minutes. Hold %@ again when it is here; Witness will say so.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch nichts aufgenommen – macOS bereitet das Sprachmodell für diesen Mac vor. Dies geschieht einmal pro macOS-Version und dauert einige Minuten. Halte %@ danach erneut gedrückt."}}}},
     "Nothing was recorded yet — the speech model is loading. That takes seconds. Hold %@ again in a moment.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch nichts aufgenommen – das Sprachmodell wird geladen. Das dauert nur Sekunden. Halte %@ gleich erneut gedrückt."}}}},
-    "Nothing was recorded yet — the speech model is not on this Mac. The download has just started: about 600 MB, once, usually within five minutes. Hold %@ again when it is here; Witness will say so.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch nichts aufgenommen – das Sprachmodell fehlt auf diesem Mac. Der einmalige Download von etwa 600 MB wurde gestartet und dauert meist weniger als fünf Minuten. Halte %@ danach erneut gedrückt."}}}},
+    "Nothing was recorded yet — the speech model is not on this Mac. The download has just started: about %@, once. The menu bar shows how far it has got and how long is left. Hold %@ again when it is here; Witness will say so.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch nichts aufgenommen – das Sprachmodell fehlt auf diesem Mac. Der einmalige Download von etwa %@ wurde gestartet. Die Menüleiste zeigt, wie weit er ist und wie lange es noch dauert. Halte %@ danach erneut gedrückt."}}}},
     "Nothing was recorded — the speech model is not ready. %@ Witness is trying again; the menu bar icon shows how it is going.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Nichts aufgenommen – das Sprachmodell ist nicht bereit. %@ Witness versucht es erneut; den Fortschritt siehst du in der Menüleiste."}}}},
     "That key did not verify, so nothing was changed.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Schlüssel konnte nicht bestätigt werden. Es wurde nichts geändert."}}}},
     "That key was issued for a different Mac, so nothing was changed.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Schlüssel wurde für einen anderen Mac ausgestellt. Es wurde nichts geändert."}}}},

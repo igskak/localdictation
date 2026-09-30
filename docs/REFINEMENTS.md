@@ -562,3 +562,84 @@ the view reads `coordinator.entitlement` and a service that unlocked without
 telling anyone would leave the user staring at the wall they had just paid an
 address to get past. `testTheDaysLeftFallAsTheTrialRuns` covers the count coming
 down on refresh rather than on relaunch.
+
+## The first-run download is a bar with a number on it
+
+The download was already visible. There was a `ProgressView(value:)` in the menu
+and on the first-run screen and a percentage in the label beside it, and what
+they were showing was WhisperKit's own progress, which counts files: one unit per
+file, twenty-four files, and `AudioEncoder.mlmodelc/weights/weight.bin` holding
+1.27 GB of the 1.64 GB. So the bar ran to roughly a half in the first seconds and
+then did not move again until the download was nearly over. A bar that fills and
+stops is the shape of a hang, which is the one thing the first run cannot afford
+to look like: `downloads-never-reach-a-first-dictation` is the measurement that
+nobody who installs this app has yet reached a first dictation.
+
+The size was wrong too. "About 600 MB, usually within five minutes" had been in
+the copy since Phase 2, and the variant this app pins weighs 1.64 GB, measured on
+disk and confirmed against the repository's own file listing. On a 20 Mbit line
+that is eleven minutes, so the sentence promising five was doing the same damage
+as the bar that stopped: the app looked broken to somebody who was waiting
+exactly as long as it takes.
+
+### The numbers come from the bytes
+
+`ModelDownloadMeter` counts what has landed on disk, in the two places bytes land:
+the model folder for the files that have arrived, and the Hub's own download cache
+for the `.incomplete` file still being written. Counted per variant, so weights
+for another variant cannot fill the bar, and matched by suffix because WhisperKit
+resolves a variant through the glob `*<variant>/*`. Because it counts the disk
+rather than the transfer, a download resumed after a failed attempt starts from
+where the bytes already are.
+
+The total is asked of the repository before the transfer starts, which is one
+short request to the host that is about to serve 1.64 GB, listed in
+`docs/PRIVACY.md` next to the download itself. `SpeechModelDownloadSize` carries a
+measured constant for the run that cannot ask, and the copy that names the size
+reads the same constant, so the figure a user is told and the figure the bar
+divides by cannot drift apart the way "600 MB" drifted from a model three times
+that.
+
+The time left is the remainder over a rate, and the rate is the part worth being
+careful about. It is an exponential average over the recent samples rather than
+the instantaneous one, which swings by a factor of several either way and would
+alternate between two minutes and twenty twice a second. Three rules keep it from
+promising anything it cannot measure:
+
+- Nothing is quoted for the first three seconds. Those are handshakes, metadata
+  requests and a window that has not opened yet.
+- Bytes already on disk are a baseline, never throughput. Counting a resumed
+  900 MB as this second's rate would announce a download finishing at once.
+- Below 8 KB/s the transfer has stalled rather than slowed, and the estimate goes
+  away instead of growing into hours. Since the meter is read from `modelState`
+  on the menu's own 400 ms poll rather than from the download's callback, a stall
+  is noticed at all: a stalled transfer produces no callbacks to be noticed in.
+
+The figure is rounded up to the whole minute. A count in seconds invites somebody
+to watch it, and its last digit is noise from an average over a few seconds of one
+connection.
+
+### What it says
+
+| State | The label |
+| --- | --- |
+| Measured, with a rate | Downloading the speech model… 62%. 622,5 MB left, about 4 minutes. |
+| Measured, no rate yet | Downloading the speech model… 0%. 1,64 GB left. |
+| No total to measure against | Downloading the speech model… 42% |
+
+The last line is the old behaviour, kept for the case where the size could not be
+learned and there is no honest total to divide by. A bar with an invented total is
+worse than the spinner it replaced.
+
+`StatusPresentation` puts the first of those in the menu bar, the first-run window
+shows it under a bar of its own, and `SpeechModelNotice` answers a press during
+the wait with the same size and the same time rather than with "wait". That panel
+is where the person who pressed is looking, and it is the reason the numbers are
+worth computing at all.
+
+`ModelDownloadMeterTests` holds the arithmetic against a clock it controls: the
+warmup, the stall, the resumed download, the clamp at 100% for a total that turns
+out to be short, and that the folder is walked at most twice a second rather than
+for every one of the menu's asks. It also builds the download layout by hand and
+asserts the count follows both places, which is the one thing in here that no
+amount of pure logic can check.

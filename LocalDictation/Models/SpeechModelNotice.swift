@@ -15,8 +15,9 @@ import Foundation
 /// idea for the opposite case, and this deliberately shares its shape — a title,
 /// one sentence for the user, and a non-content label for the log.
 ///
-/// Every field is non-content: a phase, a percentage, and the name of a
-/// keyboard shortcut. Nothing derived from anything the user said can reach it.
+/// Every field is non-content: a phase, a percentage, two byte counts, a
+/// duration, and the name of a keyboard shortcut. Nothing derived from anything
+/// the user said can reach it.
 enum SpeechModelNotice: Sendable, Equatable {
     /// A load or a download is already running. The commonest case by far: the
     /// app starts the download itself at launch, so a press within the first
@@ -47,8 +48,8 @@ enum SpeechModelNotice: Sendable, Equatable {
             switch preparation.phase {
             case .downloading:
                 return L10n.format(
-                    "Nothing was recorded yet — Witness is downloading the speech model%@. It happens once, usually within five minutes, and afterwards recognition runs entirely on this Mac. Hold %@ again when it is here; Witness will say so.",
-                    Self.percentage(preparation.progress),
+                    "Nothing was recorded yet — Witness is downloading the speech model%@. It happens once, and afterwards recognition runs entirely on this Mac. Hold %@ again when it is here; Witness will say so.",
+                    Self.progressClause(preparation),
                     hotkey
                 )
             case .loading:
@@ -64,7 +65,8 @@ enum SpeechModelNotice: Sendable, Equatable {
             }
         case let .starting(hotkey):
             return L10n.format(
-                "Nothing was recorded yet — the speech model is not on this Mac. The download has just started: about 600 MB, once, usually within five minutes. Hold %@ again when it is here; Witness will say so.",
+                "Nothing was recorded yet — the speech model is not on this Mac. The download has just started: about %@, once. The menu bar shows how far it has got and how long is left. Hold %@ again when it is here; Witness will say so.",
+                SpeechModelDownloadSize.pinnedVariantSizeText,
                 hotkey
             )
         case let .failed(detail):
@@ -90,17 +92,43 @@ enum SpeechModelNotice: Sendable, Equatable {
     var logLabel: String {
         switch self {
         case let .preparing(preparation, _):
-            "model:\(preparation.phase)\(Self.percentage(preparation.progress))"
+            "model:\(preparation.phase)\(Self.logPercentage(preparation.progress))"
         case .starting: "model:startingDownload"
         case .failed: "model:failed"
         case .ready: "model:ready"
         }
     }
 
-    /// The download is the one phase with a real number in it. Everything else
+    /// The download is the one phase with real numbers in it. Everything else
     /// gets nothing rather than a fabricated estimate.
-    private static func percentage(_ progress: Double?) -> String {
+    ///
+    /// A measured download says how much is left and how long that is likely to
+    /// take, which is the whole reason the panel is worth reading: the person has
+    /// just pressed a key and been told to wait, and "wait" without a figure is
+    /// what they would have got from an app that had stopped.
+    private static func progressClause(_ preparation: ModelPreparation) -> String {
+        if let download = preparation.download {
+            if let time = download.remainingTimeText {
+                return L10n.format(
+                    " — %lld%%, %@ left, %@",
+                    Int64(download.percent),
+                    download.remainingSizeText,
+                    time
+                )
+            }
+            return L10n.format(" — %lld%%, %@ left", Int64(download.percent), download.remainingSizeText)
+        }
+        guard let progress = preparation.progress else { return "" }
+        return L10n.format(
+            " — %lld%% of about %@",
+            Int64((progress * 100).rounded()),
+            SpeechModelDownloadSize.pinnedVariantSizeText
+        )
+    }
+
+    /// The log wants the number and none of the sentence around it.
+    private static func logPercentage(_ progress: Double?) -> String {
         guard let progress else { return "" }
-        return L10n.format(" — %lld%% of about 600 MB", Int64((progress * 100).rounded()))
+        return " \(Int((progress * 100).rounded()))%"
     }
 }

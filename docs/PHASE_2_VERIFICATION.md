@@ -46,7 +46,7 @@ injects the rest. Without it the variable never arrives, the test quietly falls
 back to the fake engine, and passes in a fraction of a second while measuring
 nothing. If the run finishes suspiciously fast, that is what happened.
 
-The first run downloads roughly 600 MB of Whisper weights. The rendered table
+The first run downloads 1.64 GB of Whisper weights. The rendered table
 lands in `Benchmark/report-whisperkit.md`.
 
 - [ ] All 24 samples are scored; the failure list is empty.

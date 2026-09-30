@@ -344,7 +344,7 @@ final class DictationCoordinator: ObservableObject {
     /// Gets the speech model, in the background, at launch — loading weights
     /// that are on disk, and downloading them when they are not.
     ///
-    /// Through Phase 8 this only ever loaded: the 600 MB fetch was bound to a
+    /// Through Phase 8 this only ever loaded: the 1.64 GB fetch was bound to a
     /// button in the menu, on the reasoning that an application does not help
     /// itself to that much of somebody's connection. The first installation by
     /// somebody who had not built the app showed what that reasoning costs. A

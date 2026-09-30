@@ -11,7 +11,7 @@ engine decision is not final until the table below is filled in from a real run.
 | Engine | Adapter | License | Model | Deployment target | Per-token confidence |
 | --- | --- | --- | --- | --- | --- |
 | Apple on-device `SFSpeechRecognizer` | `AppleSpeechTranscriptionService` | System framework | Bundled with macOS | macOS 14.4 ✓ | Reported per segment, frequently `0` on device |
-| Whisper via WhisperKit 1.1.0 | `WhisperKitTranscriptionService` | MIT | `openai_whisper-large-v3-v20240930_turbo`, ~600 MB, downloaded | macOS 13+ ✓ | `WordTiming.probability` per word |
+| Whisper via WhisperKit 1.1.0 | `WhisperKitTranscriptionService` | MIT | `openai_whisper-large-v3-v20240930_turbo`, 1.64 GB, downloaded | macOS 13+ ✓ | `WordTiming.probability` per word |
 
 ### Not admitted
 
@@ -123,8 +123,8 @@ Without it the run silently uses the fake engine.
 The rendered table is written to `Benchmark/report-<engine>.md` for pasting into
 the results section below.
 
-**Check free disk space first.** The Whisper weights are roughly 600 MB
-compressed and about 1 GB unpacked, on top of 1.5–2 GB of DerivedData. On a full
+**Check free disk space first.** The Whisper weights are 1.64 GB, arriving as
+they are stored, on top of 1.5–2 GB of DerivedData. On a full
 disk the download fails and WhisperKit reports it as
 `Model not found. Please check the model or repo name and try again` — the real
 cause, `No space left on device`, is only visible in the attached error. Budget

@@ -8,7 +8,8 @@ import Foundation
 /// exactly how it read before this existed.
 struct ModelPreparation: Sendable, Equatable {
     enum Phase: Sendable, Equatable {
-        /// Fetching weights. The only phase with a real percentage.
+        /// Fetching weights. The only phase with a real percentage, a size and a
+        /// time, because it is the only one whose work is counted in bytes.
         case downloading
         /// Reading weights already on disk. Seconds, once the system has
         /// compiled this model before.
@@ -21,12 +22,27 @@ struct ModelPreparation: Sendable, Equatable {
     }
 
     var phase: Phase
-    /// `0...1` when the engine reports it, which in practice means downloads.
-    var progress: Double?
+    /// Bytes, a total and a time left. Present exactly while a download is in
+    /// flight and its total is known, which is where a bar and an estimate come
+    /// from; see `ModelDownloadProgress` for why a fraction over files was not
+    /// enough to build either on.
+    var download: ModelDownloadProgress?
+    /// What an engine reported as a bare fraction, for the engines and the runs
+    /// that have nothing better. Reached through `progress`.
+    private var reportedProgress: Double?
+
+    /// `0...1` when anything can say how far this has got, which in practice
+    /// means downloads.
+    var progress: Double? { download?.fraction ?? reportedProgress }
 
     init(phase: Phase, progress: Double? = nil) {
         self.phase = phase
-        self.progress = progress
+        reportedProgress = progress
+    }
+
+    init(phase: Phase, download: ModelDownloadProgress) {
+        self.phase = phase
+        self.download = download
     }
 }
 
@@ -37,7 +53,7 @@ struct ModelPreparation: Sendable, Equatable {
 /// when they are missing instead of watching dictation silently do nothing.
 enum TranscriptionModelState: Sendable, Equatable {
     /// Not ready and nothing in flight. `needsUserAction` separates "a person
-    /// has to do something" — grant access, approve a 600 MB download — from
+    /// has to do something" — grant access, approve a 1.6 GB download — from
     /// "the weights are on disk and only need loading", which reaches no
     /// network and the app may therefore start on its own.
     case unavailable(String, needsUserAction: Bool)
@@ -83,7 +99,25 @@ enum TranscriptionModelState: Sendable, Equatable {
         case let .preparing(preparation):
             switch preparation.phase {
             case .downloading:
-                if let progress = preparation.progress {
+                // Three levels of what can honestly be said, in order: bytes and
+                // a time, bytes, a bare percentage. The first is what a metered
+                // download reports and what the first run now shows.
+                if let download = preparation.download {
+                    if let time = download.remainingTimeText {
+                        L10n.format(
+                            "Downloading the speech model… %lld%%. %@ left, %@.",
+                            Int64(download.percent),
+                            download.remainingSizeText,
+                            time
+                        )
+                    } else {
+                        L10n.format(
+                            "Downloading the speech model… %lld%%. %@ left.",
+                            Int64(download.percent),
+                            download.remainingSizeText
+                        )
+                    }
+                } else if let progress = preparation.progress {
                     L10n.format("Downloading the speech model… %lld%%", Int64((progress * 100).rounded()))
                 } else {
                     L10n.string("Downloading the speech model…")

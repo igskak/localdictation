@@ -200,7 +200,7 @@ final class BenchmarkRunnerTests: XCTestCase {
     ///
     /// - unset — a fake engine, which checks the harness in a second;
     /// - `apple` — on-device `SFSpeechRecognizer`;
-    /// - `whisperkit` — Whisper, downloading roughly 600 MB on first run.
+    /// - `whisperkit` — Whisper, downloading 1.64 GB on first run.
     ///
     /// The rendered report is written next to the corpus for pasting into
     /// `docs/PHASE_2_BENCHMARK.md`.
