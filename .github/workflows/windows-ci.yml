@@ -379,15 +379,24 @@ jobs:
           $feed = (Resolve-Path Windows/artifacts/w7-feed).Path
           $marker = Join-Path $env:RUNNER_TEMP "witness-w7-preserved.txt"
           $identityMarker = Join-Path $env:RUNNER_TEMP "witness-w7-identity.txt"
+          function Invoke-WitnessHarness([string] $executable, [string[]] $arguments) {
+            # Witness is a Windows GUI executable. PowerShell does not wait for
+            # GUI applications invoked with &, so $LASTEXITCODE can still
+            # describe an earlier process. Always wait for the harness process
+            # and use its own exit code.
+            $process = Start-Process -FilePath $executable -ArgumentList $arguments -Wait -PassThru
+            return $process.ExitCode
+          }
           $install = Start-Process $setupA -ArgumentList "--silent" -Wait -PassThru
           if ($install.ExitCode -ne 0) { throw "Synthetic A install failed with exit code $($install.ExitCode)." }
           $candidates = @(Get-ChildItem $env:LOCALAPPDATA -Recurse -Depth 6 -File -Filter Witness.exe |
             Where-Object { $_.FullName -like "*Witness.Windows.Beta*current*" })
           if ($candidates.Count -ne 1) { throw "Expected one installed current Witness.exe; found $($candidates.Count)." }
-          & $candidates[0].FullName --w7-seed-data $identityMarker
-          if ($LASTEXITCODE -ne 0) { throw "Synthetic A could not seed preservation state." }
-          & $candidates[0].FullName --w7-apply-update $feed $marker $identityMarker
-          if ($LASTEXITCODE -ne 0) { throw "Synthetic A could not launch the manual B apply." }
+          $seedExitCode = Invoke-WitnessHarness $candidates[0].FullName @("--w7-seed-data", $identityMarker)
+          if ($seedExitCode -ne 0) { throw "Synthetic A could not seed preservation state (exit $seedExitCode)." }
+          if (-not (Test-Path $identityMarker)) { throw "Synthetic A did not record its identity observation." }
+          $applyExitCode = Invoke-WitnessHarness $candidates[0].FullName @("--w7-apply-update", $feed, $marker, $identityMarker)
+          if ($applyExitCode -ne 0) { throw "Synthetic A could not launch the manual B apply (exit $applyExitCode)." }
           $deadline = [DateTime]::UtcNow.AddSeconds(60)
           while (-not (Test-Path $marker) -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Seconds 1 }
           if (-not (Test-Path $marker) -or (Get-Content $marker -Raw).Trim() -ne "W7_A_TO_B_PRESERVED") {
@@ -422,8 +431,8 @@ jobs:
             Where-Object { $_.FullName -like "*Witness.Windows.Beta*current*" })
           if ($reinstalled.Count -ne 1) { throw "Expected one reinstalled current Witness.exe; found $($reinstalled.Count)." }
           $reinstallMarker = Join-Path $env:RUNNER_TEMP "witness-w7-reinstalled.txt"
-          & $reinstalled[0].FullName --w7-verify-data $reinstallMarker $identityMarker
-          if ($LASTEXITCODE -ne 0 -or
+          $verifyExitCode = Invoke-WitnessHarness $reinstalled[0].FullName @("--w7-verify-data", $reinstallMarker, $identityMarker)
+          if ($verifyExitCode -ne 0 -or
               -not (Test-Path $reinstallMarker) -or
               (Get-Content $reinstallMarker -Raw).Trim() -ne "W7_A_TO_B_PRESERVED") {
             throw "Reinstalled B did not confirm the preservation contract."
