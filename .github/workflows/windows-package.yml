@@ -183,7 +183,7 @@ jobs:
             --package-url $env:WITNESS_UPDATE_PACKAGE_URL `
             --package-hosts $env:WITNESS_UPDATE_PACKAGE_HOSTS `
             --output Windows/artifacts/package/envelope.json `
-            --release-notes Windows/RELEASE_NOTES_W7_INTERNAL.md `
+            --release-notes Windows/RELEASE_NOTES_W8_BETA.md `
             --version ${{ inputs.version }} `
             --build ${{ github.run_number }} `
             --key-id $env:WITNESS_UPDATE_KEY_ID
@@ -200,10 +200,35 @@ jobs:
         shell: pwsh
         run: Windows/tools/assert-artifact-privacy.ps1 -Path Windows/artifacts/package
 
-      - name: Upload unsigned internal package
+      - name: Assemble W8 tester kit
+        shell: pwsh
+        run: |
+          Windows/tools/New-W8BetaKit.ps1 `
+            -PackagePath Windows/artifacts/package `
+            -OutputPath Windows/artifacts/w8-kit `
+            -Version "${{ inputs.version }}" `
+            -Build ${{ github.run_number }} `
+            -SourceRevision "${{ github.sha }}" `
+            -TrustState unsigned-internal `
+            -ActivationConfigured ([bool]::Parse("${{ inputs.configure_activation }}")) `
+            -UpdatesConfigured ([bool]::Parse("${{ inputs.configure_updates }}"))
+
+      - name: Validate W8 tester kit
+        shell: pwsh
+        run: Windows/tools/Test-W8BetaKit.ps1 -Path Windows/artifacts/w8-kit
+
+      - name: Upload unsigned internal W8 tester kit
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: witness-windows-unsigned-${{ inputs.version }}-${{ github.sha }}
+          name: witness-windows-w8-kit-unsigned-${{ inputs.version }}-${{ github.sha }}
+          path: Windows/artifacts/w8-kit
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload internal update feed
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: witness-windows-update-feed-internal-${{ inputs.version }}-${{ github.sha }}
           path: Windows/artifacts/package
           if-no-files-found: error
           retention-days: 7
@@ -214,4 +239,5 @@ jobs:
           Write-Host "Unsigned internal artifact only. Not approved for external distribution; no Windows code-signing credential was used."
           Write-Host "Closed-beta activation requested: ${{ inputs.configure_activation }}. The private license key was never available to this build."
           Write-Host "Signed update metadata requested: ${{ inputs.configure_updates }}. The update signing seed was available only to the manifest-signing step."
+          Write-Host "The W8 kit records the exact source revision, runtime notices and SHA-256 inventory, but remains internal while its trust state is unsigned-internal."
           Write-Host "Windows executable code signing remains an external release gate."

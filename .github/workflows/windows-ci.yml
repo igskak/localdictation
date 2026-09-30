@@ -429,6 +429,28 @@ jobs:
           }
           Write-Host "Installed A-to-B and uninstall/reinstall preserved settings, entitlement, model and hardware identity."
 
+      - name: Assemble and validate synthetic W8 tester kit
+        shell: pwsh
+        run: |
+          $package = "Windows/artifacts/w8-package-smoke"
+          New-Item -ItemType Directory -Path $package | Out-Null
+          Copy-Item Windows/artifacts/w7-b-setup.exe (Join-Path $package "Witness.Windows.Beta-win-Setup.exe")
+          Windows/tools/New-W8BetaKit.ps1 `
+            -PackagePath $package `
+            -OutputPath Windows/artifacts/w8-kit-smoke `
+            -Version 0.1.1 `
+            -Build 102 `
+            -SourceRevision "${{ github.sha }}" `
+            -TrustState unsigned-internal
+          Windows/tools/Test-W8BetaKit.ps1 -Path Windows/artifacts/w8-kit-smoke
+          $info = Get-Content Windows/artifacts/w8-kit-smoke/BUILD_INFO.json -Raw | ConvertFrom-Json
+          if ($info.trustState -cne "unsigned-internal" -or
+              $info.activationConfigured -ne $false -or
+              $info.updatesConfigured -ne $false -or
+              $info.nativeBackend -cne "cpu") {
+            throw "Synthetic W8 kit does not preserve its explicit internal trust/configuration boundary."
+          }
+
       - name: Upload W0 build output
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:

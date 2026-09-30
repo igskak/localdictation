@@ -26,12 +26,12 @@ cross-targeting on macOS is not reported as Windows validation.
 | W0 | **Complete** | Pinned solution/toolchain/dependencies; Core and WPF shell; successful Windows CI and self-contained artifact; C ABI and real CPU-only RAM PCM-to-whisper smoke with segment timing; signed-manifest/verified-package spike; privacy endpoint inventory; build metadata; baseline hashes | Physical Windows/hardware claims remain intentionally outside W0 |
 | W1 | **Complete** | Recording state machine and cancellation generation; bounded PCM buffer and energy VAD; complete engine language catalog, selection/pin/continuity policy; final-recording language timing guard; Unicode boundary map; conservative cleanup/edit map; all risk signals and release prose bounds; review thresholds/history rules; entitlement/lifetime pure policy; 76 tests passed on macOS and Windows | Windows system lexicon capability remains a W5 platform integration; physical speech accuracy remains W3/W8 |
 | W2 | **Complete** | WPF tray lifecycle, named single-instance lease and non-activating activity badge; hold/toggle hotkeys and startup opt-in; preallocated packet queue and bounded fake-tested capture lifecycle; memory-only event-driven shared-mode WASAPI; PCM16/24/32/Float32 normalization; Media Foundation 44.1/48→16 kHz resampling with drain; opaque endpoint-ID enumeration with unknown built-in metadata kept explicit; microphone privacy recovery, local hotkey-to-capture preview and verified session-loss stop tests on Windows CI | Physical microphone/device/session QA remains W8 |
-| W3 | **Complete** | Verified local model manager and disclosed download UX; immutable multilingual product-model candidate; cancellable native transcription/token bridge; grapheme word mapping with honest segment-timing fallback; real backend probe and one controlled CPU retry policy; completed-recording language-score bridge with VAD speech boundary; pinned synthetic eSpeak DE/EN/RU plus neural Piper UK leading-noise regression; test-only native benchmark; app-level verified-model → completed-audio language decision → explicit-language transcription flow with generation cancellation and immediate audio clearing; successful real-model CPU Windows CI | Physical GPU/laptop performance and real-speech accuracy remain W8 QA; hosted CPU timings are recorded below rather than generalized |
+| W3 | **Complete** | Verified local model manager and disclosed download UX; immutable multilingual product model; cancellable native transcription/token bridge; grapheme word mapping with honest segment-timing fallback; real backend probe and one controlled CPU retry policy; completed-recording language-score bridge with VAD speech boundary; pinned synthetic eSpeak DE/EN/RU plus neural Piper UK leading-noise regression; test-only native benchmark; app-level verified-model → completed-audio language decision → explicit-language transcription flow with generation cancellation and immediate audio clearing; successful real-model CPU Windows CI | Physical GPU/laptop performance and real-speech accuracy remain W8 QA; hosted CPU timings are recorded below rather than generalized |
 | W4 | **Complete** | PID + root-HWND capture at hotkey start; active-session/default-desktop and changed-target guards; bounded single-STA UIA protection/value/selection inspection; verified standard `Edit` selection replacement; one-shot modifier-gated paste; fail-closed protected clipboard formats and sequence-safe restore; generation/target/protection race coordinator; app-level hotkey → local transcript → insertion wiring; test-only accessible normal/password/delayed-paste harness | Real Word, Chrome and VS Code compatibility remains explicitly pending physical W8 QA; no universal-application claim is made |
 | W5 | **In progress** | Cleanup/risk/review and RAM replay are connected to insertion; latest-ten RAM history excludes protected refusals; review audio has a bounded flagged-only lifetime; Windows dictionaries fail open per language capability; two-step onboarding, six navigable Settings sections, ordered language persistence, session-only glossary, audio-input selection, voice-boundary controls and key-parity EN/DE resources passed 63 Windows platform tests plus the privacy-scanned synthetic render harness | Complete physical Windows DPI/high-contrast/keyboard and screen-reader evidence before marking W5 complete |
 | W6 | **In progress** | Pure entitlement timing/major policy; offline LD1 verifier and Service fixture parity; atomic local record; SMBIOS-derived Windows identity; fixed activation/release adapter; full License screen and pre-microphone entitlement gate; first-success trial start; local/remote removal; three-event consent/local-only telemetry; build-time isolated beta authority/endpoint inputs; bundled Windows beta terms/privacy drafts; successful Windows CI | Provision the separate beta authority/service and protected build values; replace legal placeholders and obtain review before external distribution |
 | W7 | **In progress** | Manual updater state machine and Settings UX; build-time isolated feed trust; exact manifest/package re-verification; signed-manifest production tool/workflow; local-data/uninstall policy; deterministic tests and a hosted A→B/uninstall/reinstall preservation job | Run that installed lifecycle job on Windows CI; configure feed/signing credentials and Windows code signing before external distribution |
-| W8 | Not started | — | Installable closed-beta kit, checksum, notices with full license texts, release notes, known issues, tester guide/checklist/bug template, regression/soak/privacy evidence |
+| W8 | **In progress** | Deterministic repeated-session RAM-bound stress test; EN release notes, known issues, tester guide, checklist, synthetic DE/EN/RU/UK phrase set and privacy-safe bug template; package workflow now assembles and validates a canonical internal kit with exact source/build/model metadata, all-file checksums and restored-runtime license notices | Observe the W8 workflow on Windows; complete W5-W7 external gates, legal placeholders and Windows code signing; then run the signed two-version physical QA matrix and 30-minute soak |
 
 ## Implemented contracts and checks
 
@@ -229,6 +229,39 @@ cross-targeting on macOS is not reported as Windows validation.
   update requests and the uninstall policy. Real feed/CDN operators, regions,
   retention, code-signing provider and legal approval remain external gates.
 
+### W8 closed-beta QA kit foundation
+
+- `New-W8BetaKit.ps1` accepts exactly one Velopack Setup executable and creates
+  the canonical `Witness-Windows-Beta-<version>-x64-Setup.exe` kit. It records
+  the full source revision, build, minimum OS, CPU backend, activation/update
+  configuration booleans and exact model identity in `BUILD_INFO.json`.
+- `SHA256SUMS.txt` covers every kit file except itself. `Test-W8BetaKit.ps1`
+  verifies the complete required inventory, every checksum, build-info binding,
+  notice markers and the existing artifact privacy filename policy.
+- The generated `THIRD_PARTY_NOTICES.txt` contains the checked-in complete
+  shipping-component license texts and appends the exact license and third-party
+  notice files from the restored Windows x64 .NET runtime packs. Development-only
+  speech generators are inventoried but not presented as shipped components.
+- The EN tester guide, QA checklist, bug template, release notes and known
+  issues form one internally consistent handoff. Reports explicitly exclude
+  audio, free-form transcripts, clipboard/application contents, vocabulary,
+  credentials, identifiers and content-bearing diagnostics. The phrase corpus
+  is fixed synthetic DE/EN/RU/UK text with leading-silence, negation, number,
+  date, amount and name cases.
+- The checklist records exact app/source/OS/CPU/GPU/RAM/driver/backend/model,
+  audio category, DPI, UI/language and dictionary facts manually. It covers
+  capture, language choice, uncertainty, insertion safety, accessibility,
+  A-to-B preservation and a 30-minute memory/handle plateau without adding an
+  automatic content or timing telemetry path.
+- A deterministic 5,000-session Core stress test alternates retained and quiet
+  review outcomes while proving the capture buffer never exceeds capacity,
+  replaced audio arrays are cleared, at most one current review recording is
+  retained and history remains capped at ten.
+- The package workflow still labels the kit `unsigned-internal`, records the
+  CPU-only backend, and uploads the raw update feed separately. The resulting
+  artifact is not approved for external QA until signing, legal, activation and
+  feed gates are actually satisfied.
+
 ### W4 safe insertion boundary
 
 - A recording captures the destination process ID and root top-level HWND before
@@ -325,6 +358,13 @@ Windows platform/UI/preservation tests compile but have not yet run in this
 checkout; only Windows CI may report them passed. A synthetic RFC 8032 test key
 successfully exercised the manifest-signing tool against a non-product package;
 no distributable authority or private key was created or committed.
+
+Result after the first local W8 slice: 186 Core tests and 17 Update tests passed,
+including the new 5,000-session deterministic bounded-memory stress case. The
+full managed solution cross-builds on macOS with 0 warnings and 0 errors; both
+Windows workflows parse as YAML and `git diff --check` passes. PowerShell 7 is
+not installed on this Mac host, so the W8 kit assembly/validation scripts have
+not been executed locally and remain an explicit Windows workflow gate.
 
 /private/tmp/witness-dotnet/dotnet build Windows/Witness.Windows.sln \
   --configuration Release --no-restore --disable-build-servers -m:1
@@ -525,8 +565,10 @@ unrepresentative Ukrainian eSpeak test voice and are never shipped.
   deliberately unconfigured. The real installed Velopack A→B apply/restart and
   uninstall/reinstall preservation job has not yet run. Mac release/update URLs
   have not been changed.
-- Full third-party license texts still need to be assembled into the external
-  beta notices. The current notice file is an engineering inventory.
+- Full shipping-component license texts are now assembled into the internal W8
+  kit together with the exact restored .NET runtime notices. The generated kit
+  still requires a successful Windows workflow run before this is artifact
+  evidence.
 - The W5 synthetic render harness and focusable navigation checks pass on the
   hosted Windows runner. Physical Windows 11 DPI, high contrast, full keyboard
   traversal and screen-reader behavior remain explicit QA gates.
@@ -541,12 +583,13 @@ unrepresentative Ukrainian eSpeak test voice and are never shipped.
 
 ## Next step
 
-Provision the isolated beta authority/service, set the two protected W6 package
-values, verify a synthetic issued key against the packaged client, and
-complete/legal-review the named policy placeholders. For W7, run the Windows
-platform suite and the installed A→B plus uninstall/reinstall preservation job,
-then provision the separate feed/signing values and Windows code-signing
-pipeline.
-Physical W5
-accessibility, microphone, GPU/performance and ordinary-user Word, Chrome and
-VS Code behavior remain pending for external W8 QA.
+Run Windows CI at the current source to observe the W7 installed A→B plus
+uninstall/reinstall job and the 186-test W8 regression suite, then dispatch the
+unsigned package workflow to validate the generated W8 kit without treating it
+as distributable. In parallel, provision the isolated beta authority/service,
+complete and legally review every policy placeholder, configure the real update
+feed/manifest authority, and add Windows executable signing. Only after those
+gates pass should the workflow emit a `code-signed-beta` kit for the documented
+two-version physical Windows 11 QA matrix. GPU packaging/performance,
+accessibility, microphones and ordinary-user Word/browser/VS Code behavior
+remain pending physical evidence.
