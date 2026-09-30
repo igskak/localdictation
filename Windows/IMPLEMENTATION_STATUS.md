@@ -30,8 +30,8 @@ cross-targeting on macOS is not reported as Windows validation.
 | W4 | **Complete** | PID + root-HWND capture at hotkey start; active-session/default-desktop and changed-target guards; bounded single-STA UIA protection/value/selection inspection; verified standard `Edit` selection replacement; one-shot modifier-gated paste; fail-closed protected clipboard formats and sequence-safe restore; generation/target/protection race coordinator; app-level hotkey → local transcript → insertion wiring; test-only accessible normal/password/delayed-paste harness | Real Word, Chrome and VS Code compatibility remains explicitly pending physical W8 QA; no universal-application claim is made |
 | W5 | **In progress** | Cleanup/risk/review and RAM replay are connected to insertion; latest-ten RAM history excludes protected refusals; review audio has a bounded flagged-only lifetime; Windows dictionaries fail open per language capability; two-step onboarding, six navigable Settings sections, ordered language persistence, session-only glossary, audio-input selection, voice-boundary controls and key-parity EN/DE resources passed 63 Windows platform tests plus the privacy-scanned synthetic render harness | Complete physical Windows DPI/high-contrast/keyboard and screen-reader evidence before marking W5 complete |
 | W6 | **In progress** | Pure entitlement timing/major policy; offline LD1 verifier and Service fixture parity; atomic local record; SMBIOS-derived Windows identity; fixed activation/release adapter; full License screen and pre-microphone entitlement gate; first-success trial start; local/remote removal; three-event consent/local-only telemetry; build-time isolated beta authority/endpoint inputs; bundled Windows beta terms/privacy drafts; successful Windows CI | Provision the separate beta authority/service and protected build values; replace legal placeholders and obtain review before external distribution |
-| W7 | **In progress** | Manual updater state machine and Settings UX; build-time isolated feed trust; exact manifest/package re-verification; signed-manifest production tool/workflow; local-data/uninstall policy; deterministic tests and a hosted A→B/uninstall/reinstall preservation job | Run that installed lifecycle job on Windows CI; configure feed/signing credentials and Windows code signing before external distribution |
-| W8 | **In progress** | Deterministic repeated-session RAM-bound stress test; EN release notes, known issues, tester guide, checklist, synthetic DE/EN/RU/UK phrase set and privacy-safe bug template; package workflow now assembles and validates a canonical internal kit with exact source/build/model metadata, all-file checksums and restored-runtime license notices | Observe the W8 workflow on Windows; complete W5-W7 external gates, legal placeholders and Windows code signing; then run the signed two-version physical QA matrix and 30-minute soak |
+| W7 | **In progress** | Manual updater state machine and Settings UX; build-time isolated feed trust; exact manifest/package re-verification; signed-manifest production tool/workflow; local-data/uninstall policy; deterministic tests and a successful hosted A→B/uninstall/reinstall preservation job | Configure the real feed/signing credentials and Windows code signing before external distribution |
+| W8 | **In progress** | Deterministic repeated-session RAM-bound stress test; EN release notes, known issues, tester guide, checklist, synthetic DE/EN/RU/UK phrase set and privacy-safe bug template; canonical internal kit with exact source/build/model metadata, all-file checksums and restored-runtime license notices; successful Windows CI kit assembly/validation | Complete W5-W7 external gates, legal placeholders and Windows code signing; then run the signed two-version physical QA matrix and 30-minute soak |
 
 ## Implemented contracts and checks
 
@@ -227,8 +227,9 @@ cross-targeting on macOS is not reported as Windows validation.
   result across all three processes without printing or uploading the derived
   identifier; a hosted machine that exposes no usable SMBIOS identity proves
   only stable unavailability, not physical identity support. The harness is
-  excluded from ordinary builds. That hosted lifecycle job is authored but has
-  not yet been observed passing.
+  excluded from ordinary builds. The installed lifecycle passed on hosted
+  Windows CI; this remains packaging/preservation evidence rather than physical
+  Windows 11 identity support.
 - The bundled privacy/terms drafts and endpoint inventory now describe manual
   update requests and the uninstall policy. Real feed/CDN operators, regions,
   retention, code-signing provider and legal approval remain external gates.
@@ -367,10 +368,10 @@ Result after the first local W8 slice: 186 Core tests and 17 Update tests passed
 including the new 5,000-session deterministic bounded-memory stress case. The
 full managed solution cross-builds on macOS with 0 warnings and 0 errors; both
 Windows workflows parse as YAML and `git diff --check` passes. PowerShell 7 is
-not installed on this Mac host, so the W8 kit assembly/validation scripts have
-not been executed locally and remain an explicit Windows workflow gate.
-After the first hosted W7 lifecycle attempt exposed its physical-SMBIOS
-assumption, the CI-only A/B app also cross-built explicitly with
+not installed on this Mac host, so the W8 kit assembly/validation scripts were
+not executed locally; the Windows CI evidence below closes that workflow gate.
+While investigating the first hosted W7 lifecycle failure, the CI-only A/B app
+was corrected to accept stable identity unavailability and also cross-built with
 `WitnessEnableW7Harness=true`, version `0.1.1` and build `102`, with 0 warnings
 and 0 errors.
 
@@ -558,13 +559,41 @@ unrepresentative Ukrainian eSpeak test voice and are never shipped.
   for W7 source `f445c188aeb94734e71654c73d216000a5dd8905` passed the
   managed build, 185 Core tests, 17 Update tests, 90 platform tests, native ABI,
   multilingual regression, benchmark, publish, package and privacy gates, then
-  failed when installed A seeded preservation state. The harness had required
-  the hosted Windows Server to expose an available SMBIOS-derived identity,
-  contradicting the documented hosted-runner boundary. The follow-up records
-  the non-content identity result in runner-temporary storage, compares it
-  across A, updated B and reinstalled B without logging/uploading it, and treats
-  stable unavailability only as stable unavailability—not physical identity
-  evidence. A passing rerun remains required.
+  failed when installed A appeared to seed preservation state. Inspection also
+  found that the harness required the hosted Windows Server to expose an
+  available SMBIOS-derived identity, contradicting the documented hosted-runner
+  boundary. The follow-up records the non-content identity result in
+  runner-temporary storage, compares it across A, updated B and reinstalled B
+  without logging/uploading it, and treats stable unavailability only as stable
+  unavailability—not physical identity evidence.
+- Windows CI run
+  [`36727101427`](https://github.com/igskak/localdictation/actions/runs/36727101427)
+  passed the managed/native/model/publish gates at source
+  `6565bfc35a5dec9a9d3d51070160cbea6813adae`, but the lifecycle step still
+  reported the seed as failed. The CI workflow had invoked the WPF `WinExe`
+  harness with PowerShell's `&` operator, which does not wait for a Windows GUI
+  process; it then read a stale `$LASTEXITCODE`. The workflow now waits for each
+  harness process explicitly and verifies its marker before continuing.
+- Windows CI run
+  [`36768735123`](https://github.com/igskak/localdictation/actions/runs/36768735123)
+  at source `3743cb01eb3c30d199e5cc2141697c06702139b6` was the first successful
+  installed A→B apply/restart, uninstall, reinstall and preserved-state run.
+  Its following W8 kit smoke exposed only a validator-label mismatch: the exact
+  restored runtime notice was present, but its generated heading did not retain
+  the literal `THIRD-PARTY-NOTICES.TXT` source filename.
+- Windows CI run
+  [`36771243486`](https://github.com/igskak/localdictation/actions/runs/36771243486)
+  passed end to end for W8 source
+  `c915576a1b54ea8c63faee5aab1f1a7ead5eeeb1`: 186 Core tests, 17 Update tests
+  and 90 Windows platform tests passed, followed by native ownership/ABI,
+  RAM-only inference, strict DE/EN/RU/UK leading-noise regression, the CPU
+  benchmark, self-contained publish and privacy gates. The installed lifecycle
+  again preserved settings, entitlement, model and the stable hardware-identity
+  observation. The W8 smoke kit assembled and validated as
+  `unsigned-internal`, with activation and updates unconfigured, CPU-only native
+  backend metadata, exact restored-runtime notices, complete checksums and a
+  passing artifact privacy scan. This is hosted Windows Server and synthetic
+  evidence, not the signed physical Windows 11 QA matrix.
 
 ## Known limitations and external gates
 
@@ -582,13 +611,15 @@ unrepresentative Ukrainian eSpeak test voice and are never shipped.
   explicit controller/contact/processor/region/retention placeholders and need
   legal review before an external tester receives them.
 - A production Windows update/feed host and Windows commercial authority are
-  deliberately unconfigured. The real installed Velopack A→B apply/restart and
-  uninstall/reinstall preservation job has not yet run. Mac release/update URLs
-  have not been changed.
+  deliberately unconfigured. The installed Velopack A→B apply/restart and
+  uninstall/reinstall preservation job passes on hosted Windows Server, but no
+  signed production feed has been exercised. Mac release/update URLs have not
+  been changed.
 - Full shipping-component license texts are now assembled into the internal W8
-  kit together with the exact restored .NET runtime notices. The generated kit
-  still requires a successful Windows workflow run before this is artifact
-  evidence.
+  kit together with the exact restored .NET runtime notices. The synthetic
+  unsigned kit passes Windows CI validation. The package workflow cannot be
+  dispatched from this branch until that workflow exists on the repository's
+  default branch, so no standalone W8 kit artifact is claimed yet.
 - The W5 synthetic render harness and focusable navigation checks pass on the
   hosted Windows runner. Physical Windows 11 DPI, high contrast, full keyboard
   traversal and screen-reader behavior remain explicit QA gates.
@@ -603,13 +634,13 @@ unrepresentative Ukrainian eSpeak test voice and are never shipped.
 
 ## Next step
 
-Run Windows CI at the current source to observe the W7 installed A→B plus
-uninstall/reinstall job and the 186-test W8 regression suite, then dispatch the
-unsigned package workflow to validate the generated W8 kit without treating it
-as distributable. In parallel, provision the isolated beta authority/service,
-complete and legally review every policy placeholder, configure the real update
-feed/manifest authority, and add Windows executable signing. Only after those
-gates pass should the workflow emit a `code-signed-beta` kit for the documented
-two-version physical Windows 11 QA matrix. GPU packaging/performance,
-accessibility, microphones and ordinary-user Word/browser/VS Code behavior
-remain pending physical evidence.
+Merge or otherwise place the package workflow on the default branch, then
+dispatch its unsigned mode to retain the standalone W8 kit artifact without
+treating it as distributable. In parallel, provision the isolated beta
+authority/service, complete and legally review every policy placeholder,
+configure the real update feed/manifest authority, and add Windows executable
+signing. Only after those gates pass should the workflow emit a
+`code-signed-beta` kit for the documented two-version physical Windows 11 QA
+matrix and 30-minute soak. GPU packaging/performance, accessibility,
+microphones and ordinary-user Word/browser/VS Code behavior remain pending
+physical evidence.
