@@ -357,6 +357,26 @@ a sample rate changing mid-utterance:
           -> 60 tokens
 ```
 
+**5. `builtIn` selected, AirPods connected.** The system had genuinely moved on:
+`system_profiler` reports `Sweetheart's AirPods #2 ... coreaudio_default_audio_input_device`
+while capture opens the other device.
+
+```
+14:43:31  AirPods connect, profile "airpods noise suppression studio"
+14:43:34  IOWorkLoopInit: BuiltInMicrophoneDevice (BuiltInMicrophoneDevice)
+14:43:34  Capture started: MacBook Pro Microphone, device 48000 Hz 1 ch
+14:43:46  Capture finished: 11.65 s, 186368 frames, dropped 0, rebinds 0
+          -> 19 tokens
+```
+
+No `Input rebound`, no `Preferred microphone unavailable`, and no input context
+was ever opened on the AirPods, so nothing dragged them into the headset profile.
+
+Tested with the AirPods already connected before the press. Connecting them
+*during* a `builtIn` dictation, so the policy answers `.keep` to a live
+`defaultInputChanged`, is covered by `testANamedDeviceIgnoresTheDefaultChanging`
+and not yet on hardware.
+
 **6. Start latency.** `State ready -> starting` to `State starting -> recording`,
 three presses: 175 ms, 169 ms, 186 ms. The aggregate build it replaces was
 0.5 to 1.1 s.
@@ -397,7 +417,9 @@ from the last frame that arrived.
 
 ### Still open
 
-3 (Chrome), 5 (`builtIn` selected with AirPods connected).
+3 (Chrome), which may well be a negative result: Chrome may not use Apple voice
+processing at all, in which case the device stays at one channel and there is
+nothing to rebind through.
 
 ## Investigation recipe
 
