@@ -1346,7 +1346,7 @@
 				CODE_SIGN_ENTITLEMENTS = LocalDictation/Witness.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 10;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_PREVIEWS = YES;
@@ -1357,7 +1357,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.6.8;
+				MARKETING_VERSION = 0.6.9;
 				PRODUCT_BUNDLE_IDENTIFIER = com.witnessmac.Witness;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_STRICT_CONCURRENCY = complete;
@@ -1371,7 +1371,7 @@
 				CODE_SIGN_ENTITLEMENTS = LocalDictation/Witness.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 10;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -1381,7 +1381,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.6.8;
+				MARKETING_VERSION = 0.6.9;
 				PRODUCT_BUNDLE_IDENTIFIER = com.witnessmac.Witness;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_STRICT_CONCURRENCY = complete;
