@@ -31,6 +31,7 @@ internal sealed class LocalInferenceController : IAsyncDisposable
     private LanguageProfile? selectedProfile;
     private ProcessedDictation? latestResult;
     private bool disposed;
+    private int activeProcessingCount;
 
     internal event EventHandler? PrivacyStateChanged;
     internal event EventHandler? SuccessfulDictationCompleted;
@@ -84,6 +85,8 @@ internal sealed class LocalInferenceController : IAsyncDisposable
     }
 
     internal bool HasRetainedReviewAudio => reviewAudio.HasAudio;
+
+    internal bool IsBusy => Volatile.Read(ref activeProcessingCount) > 0 || fragmentPlayer.IsPlaying;
 
     internal IReadOnlyList<GlossaryEntry> GlossaryEntries
     {
@@ -203,6 +206,7 @@ internal sealed class LocalInferenceController : IAsyncDisposable
         }
 
         var completedAudioHandled = false;
+        Interlocked.Increment(ref activeProcessingCount);
         try
         {
             if (!insertionGenerations.IsCurrent(generation)) return true;
@@ -318,6 +322,7 @@ internal sealed class LocalInferenceController : IAsyncDisposable
         }
         finally
         {
+            Interlocked.Decrement(ref activeProcessingCount);
             if (!completedAudioHandled)
             {
                 Array.Clear(capture.Pcm16KhzMono);

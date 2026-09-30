@@ -12,6 +12,7 @@ using Witness.Core.Models;
 using Witness.Core.Recording;
 using Witness.Core.Review;
 using Witness.Core.Settings;
+using Witness.Update;
 using WpfButton = System.Windows.Controls.Button;
 using WpfCheckBox = System.Windows.Controls.CheckBox;
 using WpfRadioButton = System.Windows.Controls.RadioButton;
@@ -40,6 +41,9 @@ public partial class MainWindow : Window
     internal event Action<string>? LicenseKeySubmitted;
     internal event EventHandler? LicenseRemovalRequested;
     internal event Action<LegalDocumentKind>? LegalDocumentRequested;
+    internal event EventHandler? UpdateCheckRequested;
+    internal event EventHandler? UpdateDownloadRequested;
+    internal event EventHandler? UpdateInstallRequested;
 
     private readonly List<string> selectedLanguages = [];
     private readonly List<string> onboardingLanguages = [];
@@ -65,6 +69,46 @@ public partial class MainWindow : Window
         };
         SetVoiceConfiguration(VoiceActivityConfiguration.Default);
         ShowSection("General");
+    }
+
+    internal void ShowUpdateState(
+        AppUpdateSnapshot snapshot,
+        bool configured,
+        string currentVersion,
+        int currentBuild,
+        string? configurationError = null)
+    {
+        UpdateCurrentVersionText.Text = ResourceFormat("UpdateCurrentVersion", currentVersion, currentBuild);
+        UpdateReleaseNotesText.Text = snapshot.ReleaseNotes;
+        UpdateReleaseNotesText.Visibility = string.IsNullOrWhiteSpace(snapshot.ReleaseNotes)
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+        UpdateProgress.Value = snapshot.ProgressPercent;
+        UpdateProgress.Visibility = snapshot.State == AppUpdateState.Downloading
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+
+        var detail = snapshot.Message;
+        UpdateStatusText.Text = !configured
+            ? ResourceText(configurationError is null ? "UpdateNotConfigured" : "UpdateConfigurationInvalid")
+            : detail ?? snapshot.State switch
+            {
+                AppUpdateState.Idle => ResourceText("UpdateManualOnly"),
+                AppUpdateState.Checking => ResourceText("UpdateChecking"),
+                AppUpdateState.UpToDate => ResourceText("UpdateUpToDate"),
+                AppUpdateState.Available => ResourceFormat("UpdateAvailable", snapshot.Version ?? string.Empty, snapshot.Build ?? 0),
+                AppUpdateState.Downloading => ResourceFormat("UpdateDownloading", snapshot.ProgressPercent),
+                AppUpdateState.ReadyToInstall => ResourceText("UpdateReady"),
+                AppUpdateState.Installing => ResourceText("UpdateInstalling"),
+                _ => ResourceText("UpdateFailed"),
+            };
+
+        var busy = snapshot.State is AppUpdateState.Checking or AppUpdateState.Downloading or AppUpdateState.Installing;
+        CheckForUpdatesButton.IsEnabled = configured && !busy;
+        DownloadUpdateButton.Visibility = snapshot.State == AppUpdateState.Available ? Visibility.Visible : Visibility.Collapsed;
+        DownloadUpdateButton.IsEnabled = configured && !busy;
+        InstallUpdateButton.Visibility = snapshot.State == AppUpdateState.ReadyToInstall ? Visibility.Visible : Visibility.Collapsed;
+        InstallUpdateButton.IsEnabled = configured && !busy;
     }
 
     internal void ApplyPreferences(UserPreferences preferences, bool launchAtStartup)
@@ -705,6 +749,9 @@ public partial class MainWindow : Window
 
     private void DownloadModel(object sender, RoutedEventArgs e) => ModelDownloadRequested?.Invoke(this, EventArgs.Empty);
     private void CancelModelDownload(object sender, RoutedEventArgs e) => ModelDownloadCancelRequested?.Invoke(this, EventArgs.Empty);
+    private void CheckForUpdates(object sender, RoutedEventArgs e) => UpdateCheckRequested?.Invoke(this, EventArgs.Empty);
+    private void DownloadUpdate(object sender, RoutedEventArgs e) => UpdateDownloadRequested?.Invoke(this, EventArgs.Empty);
+    private void InstallUpdate(object sender, RoutedEventArgs e) => UpdateInstallRequested?.Invoke(this, EventArgs.Empty);
 
     private void OpenLatestReview(object sender, RoutedEventArgs e)
     {

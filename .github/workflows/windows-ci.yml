@@ -53,6 +53,7 @@ jobs:
         run: |
           dotnet restore Witness.Windows.sln --locked-mode
           dotnet restore src/Witness.App/Witness.App.csproj --locked-mode -p:PublishProfile=Beta -p:PublishReadyToRun=true
+          dotnet tool restore
 
       - name: Build managed solution
         working-directory: Windows
@@ -341,6 +342,92 @@ jobs:
       - name: Enforce artifact privacy boundary
         shell: pwsh
         run: Windows/tools/assert-artifact-privacy.ps1 -Path Windows/artifacts/publish
+
+      - name: Build installed W7 A and B fixtures
+        shell: pwsh
+        run: |
+          dotnet publish Windows/src/Witness.App/Witness.App.csproj `
+            --configuration Release --no-restore -p:PublishProfile=Beta `
+            -p:Version=0.1.0 -p:WitnessBuildNumber=101 -p:WitnessEnableW7Harness=true `
+            --output Windows/artifacts/w7-a
+          Copy-Item Windows/artifacts/native/bin/Release/*.dll Windows/artifacts/w7-a -Force
+          dotnet vpk pack --packId Witness.Windows.Beta --packVersion 0.1.0 `
+            --packDir Windows/artifacts/w7-a --mainExe Witness.exe --channel beta `
+            --runtime win-x64 --delta None --outputDir Windows/artifacts/w7-feed
+          $setups = @(Get-ChildItem Windows/artifacts/w7-feed -File -Filter "*Setup.exe")
+          if ($setups.Count -ne 1) { throw "Expected one synthetic A setup; found $($setups.Count)." }
+          Copy-Item $setups[0].FullName Windows/artifacts/w7-a-setup.exe -Force
+
+          dotnet publish Windows/src/Witness.App/Witness.App.csproj `
+            --configuration Release --no-restore -p:PublishProfile=Beta `
+            -p:Version=0.1.1 -p:WitnessBuildNumber=102 -p:WitnessEnableW7Harness=true `
+            --output Windows/artifacts/w7-b
+          Copy-Item Windows/artifacts/native/bin/Release/*.dll Windows/artifacts/w7-b -Force
+          dotnet vpk pack --packId Witness.Windows.Beta --packVersion 0.1.1 `
+            --packDir Windows/artifacts/w7-b --mainExe Witness.exe --channel beta `
+            --runtime win-x64 --delta None --outputDir Windows/artifacts/w7-feed
+          $setups = @(Get-ChildItem Windows/artifacts/w7-feed -File -Filter "*Setup.exe")
+          if ($setups.Count -ne 1) { throw "Expected one synthetic B setup; found $($setups.Count)." }
+          Copy-Item $setups[0].FullName Windows/artifacts/w7-b-setup.exe -Force
+          Windows/tools/assert-artifact-privacy.ps1 -Path Windows/artifacts/w7-feed
+
+      - name: Install A, apply B, uninstall, reinstall, and verify preserved state
+        shell: pwsh
+        run: |
+          $setupA = (Resolve-Path Windows/artifacts/w7-a-setup.exe).Path
+          $setupB = (Resolve-Path Windows/artifacts/w7-b-setup.exe).Path
+          $feed = (Resolve-Path Windows/artifacts/w7-feed).Path
+          $marker = Join-Path $env:RUNNER_TEMP "witness-w7-preserved.txt"
+          $install = Start-Process $setupA -ArgumentList "--silent" -Wait -PassThru
+          if ($install.ExitCode -ne 0) { throw "Synthetic A install failed with exit code $($install.ExitCode)." }
+          $candidates = @(Get-ChildItem $env:LOCALAPPDATA -Recurse -Depth 6 -File -Filter Witness.exe |
+            Where-Object { $_.FullName -like "*Witness.Windows.Beta*current*" })
+          if ($candidates.Count -ne 1) { throw "Expected one installed current Witness.exe; found $($candidates.Count)." }
+          & $candidates[0].FullName --w7-seed-data
+          if ($LASTEXITCODE -ne 0) { throw "Synthetic A could not seed preservation state." }
+          & $candidates[0].FullName --w7-apply-update $feed $marker
+          if ($LASTEXITCODE -ne 0) { throw "Synthetic A could not launch the manual B apply." }
+          $deadline = [DateTime]::UtcNow.AddSeconds(60)
+          while (-not (Test-Path $marker) -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Seconds 1 }
+          if (-not (Test-Path $marker) -or (Get-Content $marker -Raw).Trim() -ne "W7_A_TO_B_PRESERVED") {
+            throw "Installed B did not confirm the A-to-B preservation contract."
+          }
+          if (Test-Path (Join-Path $env:LOCALAPPDATA "Witness\glossary.json")) {
+            throw "A forbidden persisted glossary was found after A-to-B."
+          }
+
+          $currentExe = $candidates[0].FullName
+          $installRoot = Split-Path (Split-Path $currentExe -Parent) -Parent
+          $updateExe = Join-Path $installRoot "Update.exe"
+          if (-not (Test-Path $updateExe)) { throw "Installed Velopack Update.exe was not found." }
+          $uninstall = Start-Process $updateExe -ArgumentList "uninstall", "--silent" -Wait -PassThru
+          if ($uninstall.ExitCode -ne 0) { throw "Synthetic B uninstall failed with exit code $($uninstall.ExitCode)." }
+          $deadline = [DateTime]::UtcNow.AddSeconds(60)
+          while ((Test-Path $currentExe) -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Seconds 1 }
+          if (Test-Path $currentExe) { throw "Synthetic B remained installed after uninstall." }
+          $localData = Join-Path $env:LOCALAPPDATA "Witness"
+          @("settings.json", "license.json", "Models\synthetic-w7-model.bin") | ForEach-Object {
+            if (-not (Test-Path (Join-Path $localData $_))) {
+              throw "Uninstall removed preserved local data: $_"
+            }
+          }
+          if (Test-Path (Join-Path $localData "glossary.json")) {
+            throw "A forbidden persisted glossary was found after uninstall."
+          }
+
+          $reinstall = Start-Process $setupB -ArgumentList "--silent" -Wait -PassThru
+          if ($reinstall.ExitCode -ne 0) { throw "Synthetic B reinstall failed with exit code $($reinstall.ExitCode)." }
+          $reinstalled = @(Get-ChildItem $env:LOCALAPPDATA -Recurse -Depth 6 -File -Filter Witness.exe |
+            Where-Object { $_.FullName -like "*Witness.Windows.Beta*current*" })
+          if ($reinstalled.Count -ne 1) { throw "Expected one reinstalled current Witness.exe; found $($reinstalled.Count)." }
+          $reinstallMarker = Join-Path $env:RUNNER_TEMP "witness-w7-reinstalled.txt"
+          & $reinstalled[0].FullName --w7-verify-data $reinstallMarker
+          if ($LASTEXITCODE -ne 0 -or
+              -not (Test-Path $reinstallMarker) -or
+              (Get-Content $reinstallMarker -Raw).Trim() -ne "W7_A_TO_B_PRESERVED") {
+            throw "Reinstalled B did not confirm the preservation contract."
+          }
+          Write-Host "Installed A-to-B and uninstall/reinstall preserved settings, entitlement, model and hardware identity."
 
       - name: Upload W0 build output
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

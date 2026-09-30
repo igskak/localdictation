@@ -69,12 +69,7 @@ public sealed class JsonUserPreferencesStore : IUserPreferencesStore
     }
 
     public static string DefaultPath()
-    {
-        var localData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        if (string.IsNullOrWhiteSpace(localData))
-            throw new InvalidOperationException("Windows did not provide a local application-data directory.");
-        return Path.Combine(localData, "Witness", "settings.json");
-    }
+        => WitnessLocalDataPaths.Current().Settings;
 
     public SettingsLoadResult Load()
     {

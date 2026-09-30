@@ -1,17 +1,19 @@
 # Windows privacy and endpoint inventory
 
-Status: W6 source of truth. Activation remains local-only in ordinary builds and
+Status: W7 source of truth. Activation and updates remain local-only in ordinary builds and
 is enabled only when the packaging job injects the isolated Windows beta public
-authority and fixed HTTPS endpoint. Events, updates and checkout remain
-local-only. Model setup is the only remote capability in an unconfigured build.
+authority and fixed HTTPS endpoint. Updates require a separate compiled-in
+manifest endpoint, Ed25519 public key/key ID and package-host allowlist. Events
+and checkout remain local-only. Model setup is the only remote capability in
+an unconfigured build.
 
 | Capability | Beta default | Permitted endpoint and fields | Purpose | Recipient / retention | Content boundary |
 | --- | --- | --- | --- | --- | --- |
 | Model setup | Local inspection first; download starts only after the user accepts the visible disclosure | Fixed `GET https://huggingface.co/ggerganov/whisper.cpp/resolve/98aa99a0a9db05ae2342309f5096248665f7cba3/ggml-large-v3-turbo-q5_0.bin`; redirects are limited to HTTPS `huggingface.co` and `*.hf.co`; fixed `User-Agent: Witness-Windows-Beta/0.1.0`, no cookies or custom identifiers. Response must match 574,041,195 bytes and SHA-256 `394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2`. | Install the local speech model once, then reuse it offline. | Hugging Face and its CDN subprocessors receive ordinary connection metadata such as IP, request time, URL and User-Agent; their retention is governed by their service policy and must be repeated in the beta privacy draft. | No device ID, email, license, audio, transcript, selected language, vocabulary, clipboard, application content, risk fragment, timing, diagnostics, or content-derived field. |
 | Activation | Local-only unless the packaging workflow explicitly requires and injects `WINDOWS_BETA_LICENSE_PUBLIC_KEY` plus `WINDOWS_BETA_ACTIVATION_ENDPOINT`; the endpoint must be exact HTTPS `/v1/activate` with no user info, query or fragment | Production-compatible HTTPS `POST /v1/activate` body has exactly `device` and `email`; `/v1/devices/release` has exactly `device` and the signed key the service already issued. Fixed `User-Agent: Witness`, JSON only, no cookies, no automatic redirects, 8 KiB response limit. | Issue or release a closed-beta key after an explicit user action. The public authority and endpoint are assembly metadata; neither is a runtime setting. | The Windows beta service, database and signing authority must be separate from Mac production. Exact host, processor, region and retention are release blockers in `LEGAL/WINDOWS_BETA_PRIVACY.md`. | No audio, transcript, vocabulary, clipboard, app contents, risk data, usage count, raw hardware UUID, or diagnostics. |
 | Product events | Local sink only | Only `trial_started`, `activation_requested`, and `paywall_shown`, with the existing fixed non-content allowlist and opt-out. | Funnel measurement after policy/public documentation is ready. | Disabled for closed beta. | No content-derived, device, email, license-key, timing, performance, or general diagnostic fields. |
-| Update check | Local/CI fixture only | A fixed HTTPS signed-envelope URL after the user clicks Check. `User-Agent: Witness`; no cookies. | Fetch signed metadata for the Windows x64 beta channel. | Real host/CDN and retention pending. | No email, license, device ID, content, model data, or diagnostics in URL, headers, or body. |
-| Update package | Local/CI fixture only | Fixed/allowlisted HTTPS URL from a verified Ed25519 manifest; redirects must stay on the allowlist; exact signed size and SHA-256. | Download a user-confirmed full Velopack package. | Real host/CDN and retention pending. | Same prohibition as update check. |
+| Update check | Local-only unless packaging explicitly injects the isolated key ID/public key, exact HTTPS manifest endpoint and package-host allowlist | `GET` of the fixed signed-envelope URL only after the user clicks **Check for updates**. Fixed `User-Agent: Witness/0.1.0`, JSON response, no cookies, no automatic or cross-URL manifest redirects, 128 KiB limit. | Fetch Ed25519-signed metadata for the Windows x64 beta channel. | Exact feed operator, processor, region and connection-log retention remain external-release placeholders. | No email, license, install/device ID, content, model data, or diagnostics in URL, headers or body. |
+| Update package | Same explicit build configuration; never automatic | User-confirmed `GET` of the exact HTTPS `.nupkg` URL from the verified manifest; every redirect hop must remain on the compiled host allowlist; fixed binary Accept header, exact signed size and SHA-256. The full package and unchanged signed manifest are reverified immediately before apply. | Download one full Velopack package and apply it only after a second user confirmation and an idle recording/STT/insertion/replay state. | Exact package/CDN operators, regions and connection-log retention remain external-release placeholders. Local Velopack package cache/log paths must be confirmed on the packaged A→B run. | Same prohibition as update check. No delta package and no content-derived request data. |
 | Checkout | Disabled | Stub-only until Windows commercial terms are approved. | Open a browser only after explicit consent. | Not configured. | No automatic call-home and no Mac-only purchase URL in the beta. |
 
 General diagnostics, transcripts, clipboard snapshots, vocabulary, application contents, risk fragments, raw device UUIDs, and audio stay local. Product audio is memory-only. CI uploads only build/package outputs and technical summaries made from synthetic scenarios; it must never upload recordings, transcriptions, clipboard contents, real vocabulary, crash dumps, or content-derived traces.
@@ -45,3 +47,16 @@ firmware UUIDs disable activation rather than producing a shared or unstable
 identifier.
 
 Windows certificate-chain and SmartScreen checks can create operating-system network traffic independently of Witness. That behavior must be described separately once the code-signing provider is selected.
+
+## W7 update and uninstall state boundary
+
+The app directory is owned by Velopack. `%LOCALAPPDATA%\Witness\settings.json`,
+`license.json`, and `Models\` are outside it and are not removed by update,
+uninstall, or reinstall. Uninstall does not contact the activation service and
+does not release a remote device slot. A user may remove the local-data folder
+separately after preserving any key they still need.
+
+Session glossary, recent history, review audio, clipboard snapshots and
+transcripts are deliberately excluded from A→B preservation. In particular,
+there is no glossary handoff file: the required updater restart clears the
+RAM-only vocabulary as any normal exit does.

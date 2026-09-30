@@ -2,6 +2,7 @@ using System.IO;
 using System.Windows.Threading;
 using Witness.Core.Models;
 using Witness.Platform.Windows.Models;
+using Witness.Platform.Windows.Settings;
 
 namespace Witness.App;
 
@@ -22,10 +23,7 @@ internal sealed class ModelSetupController : IAsyncDisposable
         this.dispatcher = dispatcher;
         this.window = window;
         downloadClient = new HttpModelDownloadClient();
-        var modelDirectory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "Witness",
-            "Models");
+        var modelDirectory = WitnessLocalDataPaths.Current().Models;
         manager = new ModelManager(
             ProductModel.Default,
             modelDirectory,

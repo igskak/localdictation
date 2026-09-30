@@ -30,7 +30,7 @@ cross-targeting on macOS is not reported as Windows validation.
 | W4 | **Complete** | PID + root-HWND capture at hotkey start; active-session/default-desktop and changed-target guards; bounded single-STA UIA protection/value/selection inspection; verified standard `Edit` selection replacement; one-shot modifier-gated paste; fail-closed protected clipboard formats and sequence-safe restore; generation/target/protection race coordinator; app-level hotkey → local transcript → insertion wiring; test-only accessible normal/password/delayed-paste harness | Real Word, Chrome and VS Code compatibility remains explicitly pending physical W8 QA; no universal-application claim is made |
 | W5 | **In progress** | Cleanup/risk/review and RAM replay are connected to insertion; latest-ten RAM history excludes protected refusals; review audio has a bounded flagged-only lifetime; Windows dictionaries fail open per language capability; two-step onboarding, six navigable Settings sections, ordered language persistence, session-only glossary, audio-input selection, voice-boundary controls and key-parity EN/DE resources passed 63 Windows platform tests plus the privacy-scanned synthetic render harness | Complete physical Windows DPI/high-contrast/keyboard and screen-reader evidence before marking W5 complete |
 | W6 | **In progress** | Pure entitlement timing/major policy; offline LD1 verifier and Service fixture parity; atomic local record; SMBIOS-derived Windows identity; fixed activation/release adapter; full License screen and pre-microphone entitlement gate; first-success trial start; local/remote removal; three-event consent/local-only telemetry; build-time isolated beta authority/endpoint inputs; bundled Windows beta terms/privacy drafts; successful Windows CI | Provision the separate beta authority/service and protected build values; replace legal placeholders and obtain review before external distribution |
-| W7 | Not started | Manifest/package verification spike and unsigned internal packaging workflow only | Manual updater state machine/UX, signed metadata production path, A-to-B install/update preservation test, uninstall/reinstall policy, signing gate |
+| W7 | **In progress** | Manual updater state machine and Settings UX; build-time isolated feed trust; exact manifest/package re-verification; signed-manifest production tool/workflow; local-data/uninstall policy; deterministic tests and a hosted A→B/uninstall/reinstall preservation job | Run that installed lifecycle job on Windows CI; configure feed/signing credentials and Windows code signing before external distribution |
 | W8 | Not started | — | Installable closed-beta kit, checksum, notices with full license texts, release notes, known issues, tester guide/checklist/bug template, regression/soak/privacy evidence |
 
 ## Implemented contracts and checks
@@ -55,7 +55,9 @@ cross-targeting on macOS is not reported as Windows validation.
   URL allowlist, exact size and lowercase SHA-256. Only a full `.nupkg` is
   exposed to Velopack after download verification.
 - Velopack startup integration explicitly disables automatic apply on startup.
-  The current package workflow produces an **unsigned internal artifact only**.
+  The current package workflow produces an **unsigned internal artifact only**;
+  when explicitly configured it can additionally produce signed update metadata,
+  but Windows executable code signing remains a separate open gate.
 
 ### Pure Core parity already covered locally
 
@@ -182,6 +184,51 @@ cross-targeting on macOS is not reported as Windows validation.
   processor, region and retention placeholders. They are not approved for an
   external beta until those facts are filled and legally reviewed.
 
+### W7 manual updater and preservation boundary
+
+- `ManualAppUpdater` implements the required `Idle`, `Checking`, `UpToDate`,
+  `Available`, `Downloading`, `ReadyToInstall`, `Installing`, and `Failed`
+  states behind a single-operation gate. Construction and app startup perform
+  no check, download, or apply. Settings exposes separate Check, Download, and
+  Install/restart actions with plain-text release notes and recoverable errors.
+- The Velopack adapter disables downgrades and deltas. A signed manifest is
+  bound to the beta app ID, channel, Windows x64, current product major,
+  minimum OS, version/build, exact full-package URL, size and SHA-256. Every
+  redirect hop must stay within the compiled package-host allowlist. The full
+  package and unchanged signed manifest are read and verified again immediately
+  before apply.
+- Apply is refused while capture, transcription/insertion, or review playback
+  is active, then rechecks both the busy state and entitlement after package
+  verification. Velopack is asked to wait for a graceful app exit before apply
+  and restart; a pending package is never auto-applied at launch.
+- Release builds accept the update key ID, 32-byte Ed25519 public key, exact
+  HTTPS manifest endpoint and package-host allowlist only through assembly
+  metadata. Ordinary builds remain unconfigured. The installed app has no
+  runtime feed override and sends no license, email, device/install ID, content,
+  language/model choice, or diagnostics in update requests.
+- `Witness.UpdateManifestTool` signs the exact serialized manifest with a
+  separate 32-byte Ed25519 seed, refuses a seed that does not match the compiled
+  public key or a package URL outside the compiled host allowlist, and writes
+  the envelope atomically. The private seed is available only to the opt-in
+  manifest-signing workflow step and is never an app build input or committed
+  fixture.
+- Settings, entitlement, and model locations are centralized under
+  `%LOCALAPPDATA%\Witness`, outside the Velopack-owned app directory. The W7
+  preservation test replaces synthetic app A with B, reloads settings/license,
+  verifies the unchanged model hash and reproduces device identity, then proves
+  uninstall leaves those files in place and makes no remote release call.
+  Session glossary/history/review audio are intentionally not preserved: the
+  privacy contract forbids persisting vocabulary or transcripts, so restart
+  clears them and no handoff file exists.
+- Windows CI now builds two CI-only Velopack fixtures, installs A, invokes the
+  explicit B apply/restart path, uninstalls B, reinstalls B, and asks the
+  restarted build to re-verify the same allowlisted local state and absence of
+  a glossary handoff file. The harness is excluded from ordinary builds. That
+  hosted lifecycle job is authored but has not yet been observed passing.
+- The bundled privacy/terms drafts and endpoint inventory now describe manual
+  update requests and the uninstall policy. Real feed/CDN operators, regions,
+  retention, code-signing provider and legal approval remain external gates.
+
 ### W4 safe insertion boundary
 
 - A recording captures the destination process ID and root top-level HWND before
@@ -251,7 +298,8 @@ gates.
 /private/tmp/witness-dotnet/dotnet test \
   Windows/tests/Witness.Update.Tests/Witness.Update.Tests.csproj \
   --configuration Release --no-restore
-Result: passed; 6 passed, 0 failed, 0 skipped.
+Result after W7 updater state/verification tests: passed; 17 passed, 0 failed,
+0 skipped.
 
 /private/tmp/witness-dotnet/dotnet test \
   Windows/tests/Witness.Core.Tests/Witness.Core.Tests.csproj \
@@ -269,6 +317,14 @@ The required beta-build contract was also checked in both directions: a build
 with `WitnessRequireBetaActivation=true` and no values failed before compile;
 a build with a synthetic 32-byte public key and exact synthetic HTTPS endpoint
 passed. No remote endpoint was contacted.
+
+Result after the local W7 slice: the full managed solution, including the new
+manifest signer and Windows-only UI/preservation tests, cross-builds on macOS
+with 0 warnings and 0 errors. The 185 Core tests and 17 Update tests pass. The
+Windows platform/UI/preservation tests compile but have not yet run in this
+checkout; only Windows CI may report them passed. A synthetic RFC 8032 test key
+successfully exercised the manifest-signing tool against a non-product package;
+no distributable authority or private key was created or committed.
 
 /private/tmp/witness-dotnet/dotnet build Windows/Witness.Windows.sln \
   --configuration Release --no-restore --disable-build-servers -m:1
@@ -455,7 +511,8 @@ unrepresentative Ukrainian eSpeak test voice and are never shipped.
 - No physical Windows microphone, Windows 11 desktop, standard-user/UIPI,
   Word/browser/Electron insertion, GPU, sleep/wake, Bluetooth/USB device or
   SmartScreen claim has been tested.
-- Signing certificate/provider and protected CI credentials are not configured.
+- Windows code-signing certificate/provider and protected update-feed/signing
+  CI credentials are not configured.
 - The isolated Windows beta service, its D1 data store, signing identity,
   transactional mail and the protected `WINDOWS_BETA_LICENSE_PUBLIC_KEY` /
   `WINDOWS_BETA_ACTIVATION_ENDPOINT` build values are not provisioned here.
@@ -465,7 +522,9 @@ unrepresentative Ukrainian eSpeak test voice and are never shipped.
   explicit controller/contact/processor/region/retention placeholders and need
   legal review before an external tester receives them.
 - A production Windows update/feed host and Windows commercial authority are
-  deliberately unconfigured. Mac release/update URLs have not been changed.
+  deliberately unconfigured. The real installed Velopack A→B apply/restart and
+  uninstall/reinstall preservation job has not yet run. Mac release/update URLs
+  have not been changed.
 - Full third-party license texts still need to be assembled into the external
   beta notices. The current notice file is an engineering inventory.
 - The W5 synthetic render harness and focusable navigation checks pass on the
@@ -482,9 +541,12 @@ unrepresentative Ukrainian eSpeak test voice and are never shipped.
 
 ## Next step
 
-Provision the isolated beta authority/service, set the two protected package
+Provision the isolated beta authority/service, set the two protected W6 package
 values, verify a synthetic issued key against the packaged client, and
-complete/legal-review the named policy placeholders. In parallel, begin the W7
-manual updater and A-to-B preservation slice. Physical W5
+complete/legal-review the named policy placeholders. For W7, run the Windows
+platform suite and the installed A→B plus uninstall/reinstall preservation job,
+then provision the separate feed/signing values and Windows code-signing
+pipeline.
+Physical W5
 accessibility, microphone, GPU/performance and ordinary-user Word, Chrome and
 VS Code behavior remain pending for external W8 QA.

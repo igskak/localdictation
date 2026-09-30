@@ -204,7 +204,7 @@ Windows device ID: отдельная namespace-соль, нормализова
 - Отмена/обрыв скачивания, restart приложения с pending package и повторная проверка не приводят к установке без подтверждения. Перед apply снова сверить пакет/manifest. Не обрывать recording, STT, insertion или replay: предложить повторить после завершения; не планировать принудительный таймер завершения.
 - Lifetime: обновлять автоматически выбранным предложением только внутри покрываемой major. Отдельно лицензируемую major не ставить поверх рабочей копии; старый канал продолжает существовать. Проверку entitlement выполнить также непосредственно перед apply.
 - Beta и Stable имеют отдельные app IDs, authority/feed/config; каналы привязаны к Windows x64 и major. Stable не видит beta/downgrade/другую архитектуру.
-- Каталог приложения, Models и пользовательские данные раздельны. Проверить update A→B с сохранением настроек, glossary, device identity и лицензии; не скачивать модель повторно, если её artifact не изменился.
+- Каталог приложения, Models и пользовательские данные раздельны. Проверить update A→B с сохранением настроек, воспроизводимой device identity, лицензии и неизменившегося model artifact. Session glossary не сохранять даже ради update: vocabulary остаётся RAM-only и очищается при необходимом restart.
 - Установщик/updater/app подписывать через Windows code-signing pipeline с timestamp; сертификат выбрать до внешней раздачи. SDK помогает подписывать Setup/Update binaries, но факт подписи ещё не гарантирует отсутствие предупреждения SmartScreen. [Velopack signing](https://docs.velopack.io/packaging/signing).
 - Перечислить в Windows privacy: feed/package hosts и redirects/CDN, IP/URL/User-Agent, цель, хранение metadata у провайдера, локальный update cache/logs. Никаких ключей лицензии, email, device ID или контента в update URL/headers. Различать network activity приложения и системную проверку сертификатов Windows.
 
@@ -278,7 +278,7 @@ Windows device ID: отдельная namespace-соль, нормализова
 ### W7 — установка и обновления
 
 - Velopack packaging, отдельные feed/app IDs, подпись manifest/packages, ручной `IAppUpdater` и UX ошибок.
-- CI строит A и B: install A, сохранение искусственных settings/glossary/license, check/download/apply B, restart и проверка сохранности; отдельно tampered feed/package, неверный key/channel/arch, downgrade, не покрываемая major.
+- CI строит A и B: install A, сохранение искусственных settings/license/model, check/download/apply B, restart и проверка сохранности; session glossary после restart обязан быть пустым и не иметь handoff-файла; отдельно tampered feed/package, неверный key/channel/arch, downgrade, не покрываемая major.
 - Отключить auto-apply-on-startup и доказать отсутствие запроса/установки без пользовательского действия. Попытка update во время записи не теряет фразу.
 - Install/uninstall/reinstall проверки; политика удаления локальных данных обозначена, uninstall не вызывает remote slot release самовольно.
 
@@ -351,7 +351,7 @@ Windows/IMPLEMENTATION_STATUS.md
 - Встроенный/USB/Bluetooth микрофон; denied access, unplug mid-sentence, sleep/wake, смена default device, повторные короткие и 5-минутные диктовки.
 - Notepad, Word, Chrome/Edge textarea и contenteditable, VS Code, desktop messenger; password, elevated app, смена окна, удерживаемые modifiers, clipboard contention и повторная диктовка до конца paste.
 - EN/DE/RU/UK, короткие фразы, смешанный набор языков, числа/даты/отрицания/имена, временный pin; нативные носители языка там, где оценивается качество.
-- Чистая установка, offline после model setup, uninstall/reinstall, A→B, отмена update, launch с pending package, сохранность лицензии/словаря/микрофона/shortcut.
+- Чистая установка, offline после model setup, uninstall/reinstall, A→B, отмена update, launch с pending package, сохранность лицензии/модели/микрофона/shortcut и доказанное отсутствие persisted session glossary.
 - 30 минут повторений: память должна выходить на плато после warm-up, retained audio — максимум одна актуальная запись, история — 10 текстов, без монотонного роста handles/buffers. Отдельно фиксировать cold/warm model load, first-result и stop-to-result latency, RAM peak; это ручной QA-отчёт без авто-upload.
 
 **Public-release-ready:** устранены критические дефекты QA, проверены реальные upgrade/SmartScreen/standard-user сценарии, подписан выпуск, подтверждены hardware/model рекомендации и ограничения языковых сигналов, согласованы Windows commercial terms, privacy и download/update hosting. До этого не писать «verified Windows support» или «качество как на Mac».

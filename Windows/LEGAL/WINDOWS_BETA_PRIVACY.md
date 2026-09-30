@@ -4,8 +4,9 @@ Status: **internal legal draft, 2026-09-30. Not approved for public release.**
 Before an external beta, replace the controller/contact placeholders, name the
 actual beta activation host and processor, verify their regions and retention,
 and obtain legal review. This document is intentionally separate from the
-published Mac policy: the Windows beta has a separate authority, no checkout,
-no transmitted product events and no configured update feed.
+published Mac policy: the Windows beta has separate license and update
+authorities, no checkout and no transmitted product events. The update code is
+implemented, but the real feed/CDN facts below remain placeholders.
 
 ## 1. Controller and contact
 
@@ -35,11 +36,13 @@ non-content product events” is on.
 | Speech-model download | You accept the visible model disclosure and start the download | Requested model URL, IP address, request time and `Witness-Windows-Beta/0.1.0` User-Agent as ordinary HTTPS metadata | Hugging Face and its CDN, to deliver the pinned model file | Witness receives no request log. Provider retention follows the provider policy and must be rechecked before distribution |
 | Beta activation | You press **Send me a beta key**, and only in a build compiled with the private beta endpoint | The email address you entered and a 32-character derived device identifier | **[insert beta host/operator/processor]**, to issue one signed beta key | **[insert the beta retention period; recommended: until beta closure or earlier deletion]** |
 | Release beta device | You press **Remove from this PC** in a configured build | The derived device identifier and the signed key already issued | The same beta activation service, to release the device slot | The slot is deleted or marked released under the beta retention policy |
+| Update check | You press **Check for updates** in a build compiled with the isolated Windows beta feed | Fixed manifest URL, IP address, request time and `Witness/0.1.0` User-Agent as ordinary HTTPS metadata | **[insert Windows beta update-feed host/operator/processor]**, to return signed metadata for this Windows x64 beta channel | **[insert connection-log retention and region]** |
+| Update package | After a signed newer version is shown, you press **Download** | Signed package URL, IP address, request time and the same fixed User-Agent as ordinary HTTPS metadata | **[insert package/CDN host/operator/processors]**, to deliver the exact full package | **[insert connection-log retention and regions]** |
 
 There is no Windows checkout in this beta. The app does not open the Mac
-payment links. Update checks and update downloads remain unconfigured until W7
-adds a fixed signed Windows beta feed and this notice names its recipient and
-retention.
+payment links. Ordinary development and CI builds have no update endpoint.
+An externally distributed configured build remains blocked until the update
+feed/CDN recipients, regions and retention placeholders above are completed.
 
 ## 3. Local processing and local files
 
@@ -60,9 +63,10 @@ flagged review and is released when the review closes or a newer phrase starts.
 Windows itself may use paging or create a crash dump independently of Witness;
 the product promise is that Witness does not deliberately persist this content.
 
-Local files remain until the user removes them. Uninstall behaviour must be
-confirmed in W7; until then, uninstalling the executable must not be described
-as deleting `%LOCALAPPDATA%\Witness`.
+Local files remain until the user removes them. Update, uninstall and reinstall
+leave `%LOCALAPPDATA%\Witness` in place. Uninstall does not call the activation
+service and does not release a remote device slot. Session vocabulary, recent
+history and review audio are RAM-only and therefore clear on updater restart.
 
 ## 4. Activation data, field by field
 
@@ -108,7 +112,23 @@ contain executables, packages, checksums, technical summaries and screenshots
 made from hard-coded synthetic state. They must not contain recordings, real
 dictation, clipboard contents, vocabulary, application contents or crash dumps.
 
-## 6. Legal bases, recipients and transfers
+## 6. Manual updates
+
+Witness does not check at launch, on a timer, when Settings closes or when the
+network returns. A check begins only when you press the button. The signed
+manifest contains version/build, channel, platform, architecture, minimum OS,
+product major, plain-text release notes, exact package URL, byte length and
+SHA-256. Witness verifies the separate Windows update signature before reading
+those fields, then verifies the full package during download and again just
+before apply. It does not send an email address, license key, device/install
+identifier, language choice, model state or dictated content.
+
+Installation requires a separate confirmation and waits while recording,
+recognition, insertion or audio replay is active. A downloaded pending package
+is not applied automatically at the next launch. The installer, updater and
+app still require Windows code signing before external distribution.
+
+## 7. Legal bases, recipients and transfers
 
 Subject to legal review, the intended bases are:
 
@@ -125,7 +145,7 @@ this section must name all processors, their regions, any transfer outside the
 EEA, and the transfer safeguard. Do not infer those facts from the production
 Mac service.
 
-## 7. Your rights
+## 8. Your rights
 
 Depending on the circumstances, you may request access, correction, erasure,
 restriction, portability or object to processing. You may withdraw consent at
@@ -137,7 +157,7 @@ Deleting activation data means that no further key can be issued for that
 address. A key already stored locally continues to verify offline until it
 expires or is removed.
 
-## 8. Children and changes
+## 9. Children and changes
 
 The beta is not directed at children. A new category of network data, recipient
 or purpose must be documented here and in
@@ -187,7 +207,12 @@ Lizenzprüfung erfolgt nach Annahme eines Schlüssels vollständig offline.
 
 Produkt-Ereignisse werden in der geschlossenen Beta nicht übertragen und nicht
 auf Datenträger geschrieben. Es gibt keinen Windows-Checkout, keinen
-automatischen Diagnose-Upload und bis W7 keinen konfigurierten Update-Feed.
+automatischen Diagnose-Upload. Update-Prüfung und Download erfolgen nur nach
+getrennten Klicks, nur in einem fest konfigurierten Build und ohne Lizenz-,
+Geräte- oder Inhaltsdaten. Update, Deinstallation und Neuinstallation lassen
+`%LOCALAPPDATA%\Witness` bestehen; das Sitzungswörterbuch bleibt dagegen nur im
+RAM und wird beim Neustart gelöscht. Feed/CDN, Regionen und Speicherfristen
+müssen vor einer externen Beta noch eingesetzt und rechtlich geprüft werden.
 
 Je nach Voraussetzungen bestehen Rechte auf Auskunft, Berichtigung, Löschung,
 Einschränkung, Datenübertragbarkeit und Widerspruch sowie ein Beschwerderecht

@@ -13,6 +13,11 @@ on:
         required: true
         default: false
         type: boolean
+      configure_updates:
+        description: Require the isolated signed Windows beta update configuration and produce a signed manifest
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -55,8 +60,13 @@ jobs:
         env:
           WITNESS_BETA_LICENSE_PUBLIC_KEY: ${{ secrets.WINDOWS_BETA_LICENSE_PUBLIC_KEY }}
           WITNESS_BETA_ACTIVATION_ENDPOINT: ${{ secrets.WINDOWS_BETA_ACTIVATION_ENDPOINT }}
+          WITNESS_UPDATE_KEY_ID: ${{ secrets.WINDOWS_BETA_UPDATE_KEY_ID }}
+          WITNESS_UPDATE_MANIFEST_PUBLIC_KEY: ${{ secrets.WINDOWS_BETA_UPDATE_MANIFEST_PUBLIC_KEY }}
+          WITNESS_UPDATE_MANIFEST_ENDPOINT: ${{ secrets.WINDOWS_BETA_UPDATE_MANIFEST_ENDPOINT }}
+          WITNESS_UPDATE_PACKAGE_HOSTS: ${{ secrets.WINDOWS_BETA_UPDATE_PACKAGE_HOSTS }}
         run: |
           $required = "${{ inputs.configure_activation }}".ToLowerInvariant()
+          $updatesRequired = "${{ inputs.configure_updates }}".ToLowerInvariant()
           if ($required -eq "true" -and ([string]::IsNullOrWhiteSpace($env:WITNESS_BETA_LICENSE_PUBLIC_KEY) -or [string]::IsNullOrWhiteSpace($env:WITNESS_BETA_ACTIVATION_ENDPOINT))) {
             throw "Configured beta packaging requires WINDOWS_BETA_LICENSE_PUBLIC_KEY and WINDOWS_BETA_ACTIVATION_ENDPOINT repository secrets."
           }
@@ -76,14 +86,51 @@ jobs:
               throw "WINDOWS_BETA_ACTIVATION_ENDPOINT must be an exact HTTPS /v1/activate URL without user info, query, or fragment."
             }
           }
+          $missingUpdateValues = @(
+              $env:WITNESS_UPDATE_KEY_ID,
+              $env:WITNESS_UPDATE_MANIFEST_PUBLIC_KEY,
+              $env:WITNESS_UPDATE_MANIFEST_ENDPOINT,
+              $env:WITNESS_UPDATE_PACKAGE_HOSTS
+            ) | Where-Object { [string]::IsNullOrWhiteSpace($_) }
+          if ($updatesRequired -eq "true" -and $missingUpdateValues.Count -gt 0) {
+            throw "Configured beta updates require the key ID, public key, manifest endpoint and package-host secrets."
+          }
+          if ($updatesRequired -eq "true") {
+            try { $updateAuthority = [Convert]::FromBase64String($env:WITNESS_UPDATE_MANIFEST_PUBLIC_KEY) }
+            catch { throw "WINDOWS_BETA_UPDATE_MANIFEST_PUBLIC_KEY must be valid Base64." }
+            if ($updateAuthority.Length -ne 32) {
+              throw "WINDOWS_BETA_UPDATE_MANIFEST_PUBLIC_KEY must contain exactly 32 bytes."
+            }
+            if ($env:WITNESS_UPDATE_KEY_ID -notmatch '^[A-Za-z0-9._-]{1,80}$') {
+              throw "WINDOWS_BETA_UPDATE_KEY_ID must be a short stable identifier."
+            }
+            $manifestEndpoint = $null
+            if (-not [Uri]::TryCreate($env:WITNESS_UPDATE_MANIFEST_ENDPOINT, [UriKind]::Absolute, [ref]$manifestEndpoint) -or
+                $manifestEndpoint.Scheme -ne "https" -or
+                -not [string]::IsNullOrEmpty($manifestEndpoint.UserInfo) -or
+                -not [string]::IsNullOrEmpty($manifestEndpoint.Query) -or
+                -not [string]::IsNullOrEmpty($manifestEndpoint.Fragment)) {
+              throw "WINDOWS_BETA_UPDATE_MANIFEST_ENDPOINT must be an exact HTTPS URL without user info, query, or fragment."
+            }
+            $packageHosts = @($env:WITNESS_UPDATE_PACKAGE_HOSTS.Split(',') | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+            if ($packageHosts.Count -eq 0 -or @($packageHosts | Where-Object { [Uri]::CheckHostName($_) -eq [UriHostNameType]::Unknown }).Count -gt 0) {
+              throw "WINDOWS_BETA_UPDATE_PACKAGE_HOSTS must contain comma-separated bare DNS names or IP addresses."
+            }
+          }
           dotnet publish Windows/src/Witness.App/Witness.App.csproj `
             --configuration Release `
             --no-restore `
             -p:PublishProfile=Beta `
             -p:Version=${{ inputs.version }} `
+            -p:WitnessBuildNumber=${{ github.run_number }} `
             -p:WitnessRequireBetaActivation=$required `
             -p:WitnessBetaLicensePublicKey="$env:WITNESS_BETA_LICENSE_PUBLIC_KEY" `
             -p:WitnessBetaActivationEndpoint="$env:WITNESS_BETA_ACTIVATION_ENDPOINT" `
+            -p:WitnessRequireBetaUpdates=$updatesRequired `
+            -p:WitnessUpdateKeyId="$env:WITNESS_UPDATE_KEY_ID" `
+            -p:WitnessUpdateManifestPublicKey="$env:WITNESS_UPDATE_MANIFEST_PUBLIC_KEY" `
+            -p:WitnessUpdateManifestEndpoint="$env:WITNESS_UPDATE_MANIFEST_ENDPOINT" `
+            -p:WitnessUpdatePackageHosts="$env:WITNESS_UPDATE_PACKAGE_HOSTS" `
             --output Windows/artifacts/publish
 
       - name: Add native CPU binaries
@@ -105,6 +152,41 @@ jobs:
           --runtime win-x64
           --delta None
           --outputDir Windows/artifacts/package
+
+      - name: Create signed update manifest
+        if: inputs.configure_updates
+        shell: pwsh
+        env:
+          WITNESS_UPDATE_SIGNING_PRIVATE_KEY: ${{ secrets.WINDOWS_BETA_UPDATE_SIGNING_PRIVATE_KEY }}
+          WITNESS_UPDATE_MANIFEST_PUBLIC_KEY: ${{ secrets.WINDOWS_BETA_UPDATE_MANIFEST_PUBLIC_KEY }}
+          WITNESS_UPDATE_KEY_ID: ${{ secrets.WINDOWS_BETA_UPDATE_KEY_ID }}
+          WITNESS_UPDATE_PACKAGE_URL: ${{ secrets.WINDOWS_BETA_UPDATE_PACKAGE_URL }}
+          WITNESS_UPDATE_PACKAGE_HOSTS: ${{ secrets.WINDOWS_BETA_UPDATE_PACKAGE_HOSTS }}
+        run: |
+          $missingSigningValues = @(
+              $env:WITNESS_UPDATE_SIGNING_PRIVATE_KEY,
+              $env:WITNESS_UPDATE_MANIFEST_PUBLIC_KEY,
+              $env:WITNESS_UPDATE_KEY_ID,
+              $env:WITNESS_UPDATE_PACKAGE_URL,
+              $env:WITNESS_UPDATE_PACKAGE_HOSTS
+            ) | Where-Object { [string]::IsNullOrWhiteSpace($_) }
+          if ($missingSigningValues.Count -gt 0) {
+            throw "Signed beta metadata requires the private signing seed, matching public key, key ID and exact package URL."
+          }
+          $packages = @(Get-ChildItem Windows/artifacts/package -File -Filter "*-full.nupkg")
+          if ($packages.Count -ne 1) {
+            throw "Expected exactly one full Velopack package; found $($packages.Count)."
+          }
+          dotnet run --project Windows/tools/Witness.UpdateManifestTool/Witness.UpdateManifestTool.csproj `
+            --configuration Release --no-restore -- `
+            --package $packages[0].FullName `
+            --package-url $env:WITNESS_UPDATE_PACKAGE_URL `
+            --package-hosts $env:WITNESS_UPDATE_PACKAGE_HOSTS `
+            --output Windows/artifacts/package/envelope.json `
+            --release-notes Windows/RELEASE_NOTES_W7_INTERNAL.md `
+            --version ${{ inputs.version }} `
+            --build ${{ github.run_number }} `
+            --key-id $env:WITNESS_UPDATE_KEY_ID
 
       - name: Create SHA-256 inventory
         shell: pwsh
@@ -131,3 +213,5 @@ jobs:
         run: |
           Write-Host "Unsigned internal artifact only. Not approved for external distribution; no Windows code-signing credential was used."
           Write-Host "Closed-beta activation requested: ${{ inputs.configure_activation }}. The private license key was never available to this build."
+          Write-Host "Signed update metadata requested: ${{ inputs.configure_updates }}. The update signing seed was available only to the manifest-signing step."
+          Write-Host "Windows executable code signing remains an external release gate."

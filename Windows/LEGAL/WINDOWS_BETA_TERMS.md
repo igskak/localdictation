@@ -83,8 +83,9 @@ or application content is sent. A configured activation request contains only
 the email address entered by the tester and a derived device identifier.
 
 The closed beta has no checkout and must not open the production Mac payment
-links. Product events are local-only. W7 update networking is outside this
-draft until a fixed signed Windows beta feed and its privacy disclosure exist.
+links. Product events are local-only. Updates are manual and use a separately
+signed Windows beta manifest and package only in a configured build; the
+feed/CDN facts in the privacy draft remain release blockers.
 
 ## 7. Updates and ending participation
 
@@ -93,10 +94,12 @@ channel and should verify the provided checksum until Windows code signing is
 available. The provider may require an update to continue testing.
 
 The tester can stop using the beta at any time and remove the application.
-Local data under `%LOCALAPPDATA%\Witness\` may remain after uninstall until the
-W7 uninstall policy is verified; it can be removed separately after preserving
-any key the tester still needs. Deleting activation records from the service
-may prevent reissue of a key.
+Local settings, the entitlement record and verified model under
+`%LOCALAPPDATA%\Witness\` remain after update, uninstall and reinstall. They can
+be removed separately after preserving any key the tester still needs.
+Uninstall does not contact the activation service or release a device slot;
+use the in-app removal action first when that is intended. Session vocabulary,
+recent history and review audio are cleared on exit and updater restart.
 
 ## 8. Warranty and liability
 
@@ -166,8 +169,10 @@ Nicht vertrauliches freiwilliges Feedback darf der Anbieter unentgeltlich zur
 Fehlerbehebung und Produktverbesserung verwenden.
 
 Die Teilnahme kann jederzeit beendet und die App entfernt werden. Lokale Daten
-unter `%LOCALAPPDATA%\Witness\` können bis zur in W7 geprüften
-Deinstallationsregel bestehen bleiben. Der Anbieter kann eine Beta-Version oder
+unter `%LOCALAPPDATA%\Witness\` bleiben nach Update, Deinstallation und
+Neuinstallation bestehen. Die Deinstallation gibt keinen entfernten
+Geräteplatz frei. Sitzungswortschatz, Verlauf und Review-Audio werden beim
+Beenden beziehungsweise Update-Neustart gelöscht. Der Anbieter kann eine Beta-Version oder
 den Beta-Aktivierungsdienst ändern, aussetzen oder beenden.
 
 Die kostenlose Vorabversion wird zu Testzwecken bereitgestellt. Zwingende

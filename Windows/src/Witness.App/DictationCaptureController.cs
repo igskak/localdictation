@@ -25,6 +25,8 @@ internal sealed class DictationCaptureController(
     private bool disposed;
     private int statusGeneration;
 
+    internal bool IsBusy => Volatile.Read(ref session) is not null || operationGate.CurrentCount == 0;
+
     internal void SetAudioInputSelection(AudioInputSelection selection) =>
         Volatile.Write(ref audioInputSelection, selection ?? throw new ArgumentNullException(nameof(selection)));
 

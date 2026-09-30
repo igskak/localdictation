@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Diagnostics;
 using System.IO;
 using System.Media;
 
@@ -6,6 +7,7 @@ namespace Witness.Platform.Windows.Review;
 
 public interface IAudioFragmentPlayer : IDisposable
 {
+    bool IsPlaying { get; }
     bool TryPlay(float[] samples, int sampleRate);
     void Stop();
 }
@@ -66,7 +68,17 @@ public sealed class WaveAudioFragmentPlayer : IAudioFragmentPlayer
     private SoundPlayer? player;
     private MemoryStream? stream;
     private byte[]? encoded;
+    private long playbackDeadline;
     private bool disposed;
+
+    public bool IsPlaying
+    {
+        get
+        {
+            lock (gate)
+                return player is not null && Stopwatch.GetTimestamp() < playbackDeadline;
+        }
+    }
 
     public bool TryPlay(float[] samples, int sampleRate)
     {
@@ -92,6 +104,9 @@ public sealed class WaveAudioFragmentPlayer : IAudioFragmentPlayer
                 player = new SoundPlayer(stream);
                 player.Load();
                 player.Play();
+                var duration = samples.Length / (double)sampleRate;
+                playbackDeadline = checked(
+                    Stopwatch.GetTimestamp() + (long)Math.Ceiling(duration * Stopwatch.Frequency));
                 return true;
             }
             catch (Exception error) when (error is InvalidOperationException or IOException)
@@ -138,6 +153,7 @@ public sealed class WaveAudioFragmentPlayer : IAudioFragmentPlayer
         }
         player?.Dispose();
         player = null;
+        playbackDeadline = 0;
         stream?.Dispose();
         stream = null;
         if (encoded is not null)

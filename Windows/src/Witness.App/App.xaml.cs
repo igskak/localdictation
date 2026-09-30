@@ -13,6 +13,7 @@ using Witness.Platform.Windows.Audio;
 using Witness.Platform.Windows.Licensing;
 using Witness.Platform.Windows.Settings;
 using Witness.Platform.Windows.Startup;
+using Witness.Update;
 
 namespace Witness.App;
 
@@ -37,7 +38,10 @@ public partial class App : System.Windows.Application
     private EntitlementSession? entitlementSession;
     private DeviceIdentityResult deviceIdentity = new(null, "Windows device identity has not been read.");
     private WindowsBetaLicenseConfiguration licenseConfiguration = WindowsBetaLicenseConfiguration.FromValues(null, null);
+    private WindowsBetaUpdateConfiguration updateConfiguration = WindowsBetaUpdateConfiguration.FromValues(null, null, null, null);
+    private readonly WindowsBuildIdentity buildIdentity = WindowsBuildIdentity.Current();
     private HttpClientActivationTransport? activationTransport;
+    private IAppUpdater? appUpdater;
     private string? entitlementError;
     private UserPreferences preferences = UserPreferences.Default;
     private bool isExplicitExit;
@@ -93,6 +97,7 @@ public partial class App : System.Windows.Application
             CanBeginDictation,
             DictationBlockedByLicense);
         captureController.SetAudioInputSelection(preferences.AudioInput);
+        ConfigureUpdater(window);
 
         WireWindow(window);
         modelSetupController.ModelReady += inferenceController.SetVerifiedModelPath;
@@ -110,6 +115,7 @@ public partial class App : System.Windows.Application
         RefreshGlossary(window);
         RefreshDiagnostics(window);
         RefreshLicense(window);
+        RefreshUpdate(window);
         if (load.RecoveredFromInvalidData)
             window.SetStatus(window.ResourceText("SettingsRecovered"));
         window.Show();
@@ -135,6 +141,11 @@ public partial class App : System.Windows.Application
         modelSetupController?.DisposeAsync().AsTask().GetAwaiter().GetResult();
         activityWindow?.Close();
         activationTransport?.Dispose();
+        if (appUpdater is not null)
+        {
+            appUpdater.StateChanged -= AppUpdaterStateChanged;
+            appUpdater.Dispose();
+        }
         entitlementOperations.Dispose();
         base.OnExit(e);
     }
@@ -158,6 +169,9 @@ public partial class App : System.Windows.Application
         window.LicenseKeySubmitted += SubmitLicenseKey;
         window.LicenseRemovalRequested += RemoveLicense;
         window.LegalDocumentRequested += OpenLegalDocument;
+        window.UpdateCheckRequested += CheckForUpdates;
+        window.UpdateDownloadRequested += DownloadUpdate;
+        window.UpdateInstallRequested += InstallUpdate;
     }
 
     private void UnwireWindow(MainWindow window)
@@ -179,7 +193,87 @@ public partial class App : System.Windows.Application
         window.LicenseKeySubmitted -= SubmitLicenseKey;
         window.LicenseRemovalRequested -= RemoveLicense;
         window.LegalDocumentRequested -= OpenLegalDocument;
+        window.UpdateCheckRequested -= CheckForUpdates;
+        window.UpdateDownloadRequested -= DownloadUpdate;
+        window.UpdateInstallRequested -= InstallUpdate;
     }
+
+    private void ConfigureUpdater(MainWindow window)
+    {
+        updateConfiguration = WindowsBetaUpdateConfiguration.Current();
+        if (updateConfiguration.Policy is null) return;
+        try
+        {
+            var source = new VerifiedManifestUpdateSource(updateConfiguration.Policy);
+            appUpdater = new ManualAppUpdater(
+                new VelopackUpdateBackend(source, ProductMetadata.Channel),
+                buildIdentity.Version,
+                buildIdentity.Build,
+                ProductMetadata.ProductMajor,
+                IsProductBusy,
+                IsUpdateEntitled);
+            appUpdater.StateChanged += AppUpdaterStateChanged;
+        }
+        catch (Exception error)
+        {
+            updateConfiguration = updateConfiguration with { Policy = null, Error = error.Message };
+            window.SetStatus(window.ResourceText("UpdateConfigurationInvalid"));
+        }
+    }
+
+    private bool IsProductBusy() => captureController?.IsBusy == true || inferenceController?.IsBusy == true;
+
+    private bool IsUpdateEntitled(int productMajor)
+    {
+        if (productMajor != ProductMetadata.ProductMajor || entitlementSession is null) return false;
+        if (!entitlementOperations.Wait(0)) return false;
+        try
+        {
+            return entitlementSession.Refresh().AllowsDictation;
+        }
+        catch
+        {
+            return false;
+        }
+        finally
+        {
+            entitlementOperations.Release();
+        }
+    }
+
+    private void AppUpdaterStateChanged(object? sender, AppUpdateSnapshot snapshot) =>
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (MainWindow is MainWindow window) RefreshUpdate(window, snapshot);
+        });
+
+    private async void CheckForUpdates(object? sender, EventArgs e)
+    {
+        if (appUpdater is not null) await appUpdater.CheckAsync();
+    }
+
+    private async void DownloadUpdate(object? sender, EventArgs e)
+    {
+        if (appUpdater is not null) await appUpdater.DownloadAsync();
+    }
+
+    private async void InstallUpdate(object? sender, EventArgs e)
+    {
+        if (appUpdater is null) return;
+        if (await appUpdater.InstallAsync())
+        {
+            SavePreferences();
+            ExitApplication();
+        }
+    }
+
+    private void RefreshUpdate(MainWindow window, AppUpdateSnapshot? snapshot = null) =>
+        window.ShowUpdateState(
+            snapshot ?? appUpdater?.Snapshot ?? AppUpdateSnapshot.Idle,
+            updateConfiguration.IsConfigured,
+            buildIdentity.Version,
+            buildIdentity.Build,
+            updateConfiguration.Error);
 
     private void ConfigureLicensing()
     {

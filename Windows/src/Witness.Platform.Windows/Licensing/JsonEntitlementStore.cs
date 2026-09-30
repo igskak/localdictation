@@ -2,6 +2,7 @@ using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Witness.Core.Licensing;
+using Witness.Platform.Windows.Settings;
 
 namespace Witness.Platform.Windows.Licensing;
 
@@ -65,12 +66,7 @@ public sealed class JsonEntitlementStore : IEntitlementStore
     }
 
     public static string DefaultPath()
-    {
-        var localData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        if (string.IsNullOrWhiteSpace(localData))
-            throw new InvalidOperationException("Windows did not provide a local application-data directory.");
-        return Path.Combine(localData, "Witness", "license.json");
-    }
+        => WitnessLocalDataPaths.Current().License;
 
     public UsageRecord? Load()
     {

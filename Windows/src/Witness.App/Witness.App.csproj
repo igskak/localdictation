@@ -15,10 +15,23 @@
     <WitnessBetaLicensePublicKey Condition="'$(WitnessBetaLicensePublicKey)' == ''"></WitnessBetaLicensePublicKey>
     <WitnessBetaActivationEndpoint Condition="'$(WitnessBetaActivationEndpoint)' == ''"></WitnessBetaActivationEndpoint>
     <WitnessRequireBetaActivation Condition="'$(WitnessRequireBetaActivation)' == ''">false</WitnessRequireBetaActivation>
+    <WitnessUpdateKeyId Condition="'$(WitnessUpdateKeyId)' == ''"></WitnessUpdateKeyId>
+    <WitnessUpdateManifestPublicKey Condition="'$(WitnessUpdateManifestPublicKey)' == ''"></WitnessUpdateManifestPublicKey>
+    <WitnessUpdateManifestEndpoint Condition="'$(WitnessUpdateManifestEndpoint)' == ''"></WitnessUpdateManifestEndpoint>
+    <WitnessUpdatePackageHosts Condition="'$(WitnessUpdatePackageHosts)' == ''"></WitnessUpdatePackageHosts>
+    <WitnessRequireBetaUpdates Condition="'$(WitnessRequireBetaUpdates)' == ''">false</WitnessRequireBetaUpdates>
+    <WitnessBuildNumber Condition="'$(WitnessBuildNumber)' == ''">1</WitnessBuildNumber>
+    <WitnessEnableW7Harness Condition="'$(WitnessEnableW7Harness)' == ''">false</WitnessEnableW7Harness>
+    <DefineConstants Condition="'$(WitnessEnableW7Harness)' == 'true'">$(DefineConstants);WITNESS_W7_HARNESS</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <AssemblyMetadata Include="WitnessBetaLicensePublicKey" Value="$(WitnessBetaLicensePublicKey)" />
     <AssemblyMetadata Include="WitnessBetaActivationEndpoint" Value="$(WitnessBetaActivationEndpoint)" />
+    <AssemblyMetadata Include="WitnessUpdateKeyId" Value="$(WitnessUpdateKeyId)" />
+    <AssemblyMetadata Include="WitnessUpdateManifestPublicKey" Value="$(WitnessUpdateManifestPublicKey)" />
+    <AssemblyMetadata Include="WitnessUpdateManifestEndpoint" Value="$(WitnessUpdateManifestEndpoint)" />
+    <AssemblyMetadata Include="WitnessUpdatePackageHosts" Value="$(WitnessUpdatePackageHosts)" />
+    <AssemblyMetadata Include="WitnessBuildNumber" Value="$(WitnessBuildNumber)" />
     <Content Include="..\..\LEGAL\WINDOWS_BETA_PRIVACY.md" Link="Legal\WINDOWS_BETA_PRIVACY.md" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\LEGAL\WINDOWS_BETA_TERMS.md" Link="Legal\WINDOWS_BETA_TERMS.md" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
@@ -36,5 +49,18 @@
            Text="WitnessRequireBetaActivation requires WitnessBetaActivationEndpoint." />
     <Error Condition="$([System.String]::Copy('$(WitnessBetaActivationEndpoint)').StartsWith('https://')) != 'True'"
            Text="WitnessBetaActivationEndpoint must use HTTPS." />
+  </Target>
+  <Target Name="ValidateRequiredBetaUpdateConfiguration" BeforeTargets="CoreCompile"
+          Condition="'$(WitnessRequireBetaUpdates)' == 'true'">
+    <Error Condition="'$(WitnessUpdateKeyId)' == ''"
+           Text="WitnessRequireBetaUpdates requires WitnessUpdateKeyId." />
+    <Error Condition="'$(WitnessUpdateManifestPublicKey)' == ''"
+           Text="WitnessRequireBetaUpdates requires WitnessUpdateManifestPublicKey." />
+    <Error Condition="'$(WitnessUpdateManifestEndpoint)' == ''"
+           Text="WitnessRequireBetaUpdates requires WitnessUpdateManifestEndpoint." />
+    <Error Condition="'$(WitnessUpdatePackageHosts)' == ''"
+           Text="WitnessRequireBetaUpdates requires WitnessUpdatePackageHosts." />
+    <Error Condition="$([System.String]::Copy('$(WitnessUpdateManifestEndpoint)').StartsWith('https://')) != 'True'"
+           Text="WitnessUpdateManifestEndpoint must use HTTPS." />
   </Target>
 </Project>

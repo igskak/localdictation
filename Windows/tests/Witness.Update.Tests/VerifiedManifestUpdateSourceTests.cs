@@ -127,6 +127,43 @@ public sealed class VerifiedManifestUpdateSourceTests
     }
 
     [TestMethod]
+    public async Task PackageAndSignedManifestAreReverifiedImmediatelyBeforeApply()
+    {
+        using var authority = new TestAuthority();
+        var package = Encoding.UTF8.GetBytes("synthetic package");
+        var packageUri = new Uri("https://packages.test.invalid/Witness-0.1.1-full.nupkg");
+        var manifest = CreateManifest("0.1.1", 2, packageUri, package);
+        var routes = new Dictionary<Uri, byte[]>
+        {
+            [ManifestUri] = authority.Sign(manifest),
+            [packageUri] = package,
+        };
+        using var http = new HttpClient(new RouteHandler(routes));
+        using var source = new VerifiedManifestUpdateSource(CreatePolicy(authority.PublicKey), httpClient: http);
+        var asset = (await source.GetReleaseFeed(null!, PackageId, "beta")).Assets.Single();
+        var directory = Path.Combine(Path.GetTempPath(), "witness-update-tests", Guid.NewGuid().ToString("N"));
+        var destination = Path.Combine(directory, asset.FileName);
+        try
+        {
+            await source.DownloadReleaseEntry(null!, asset, destination, _ => { });
+            await source.ReverifyDownloadedPackageAsync(asset);
+
+            await File.AppendAllTextAsync(destination, "tampered");
+            await Assert.ThrowsAsync<UpdateVerificationException>(() =>
+                source.ReverifyDownloadedPackageAsync(asset));
+
+            await File.WriteAllBytesAsync(destination, package);
+            routes[ManifestUri] = authority.Sign(manifest with { ReleaseNotes = "Changed after download" });
+            await Assert.ThrowsAsync<UpdateVerificationException>(() =>
+                source.ReverifyDownloadedPackageAsync(asset));
+        }
+        finally
+        {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [TestMethod]
     public void WrongChannelAndArchitectureAreRejected()
     {
         using var authority = new TestAuthority();
@@ -139,6 +176,36 @@ public sealed class VerifiedManifestUpdateSourceTests
 
         Assert.Throws<UpdateVerificationException>(() =>
             new UpdateManifestVerifier().Verify(authority.Sign(manifest), CreatePolicy(authority.PublicKey)));
+    }
+
+    [TestMethod]
+    public async Task PackageRedirectCannotLeaveTheSignedHostAllowlist()
+    {
+        using var authority = new TestAuthority();
+        var package = Encoding.UTF8.GetBytes("synthetic package");
+        var packageUri = new Uri("https://packages.test.invalid/Witness-0.1.1-full.nupkg");
+        var manifest = CreateManifest("0.1.1", 2, packageUri, package);
+        var handler = new RedirectHandler(
+            authority.Sign(manifest),
+            packageUri,
+            new Uri("https://outside.test.invalid/stolen.nupkg"));
+        using var http = new HttpClient(handler);
+        using var source = new VerifiedManifestUpdateSource(CreatePolicy(authority.PublicKey), httpClient: http);
+        var asset = (await source.GetReleaseFeed(null!, PackageId, "beta")).Assets.Single();
+        var directory = Path.Combine(Path.GetTempPath(), "witness-update-tests", Guid.NewGuid().ToString("N"));
+        try
+        {
+            await Assert.ThrowsAsync<UpdateVerificationException>(() => source.DownloadReleaseEntry(
+                null!,
+                asset,
+                Path.Combine(directory, asset.FileName),
+                _ => { }));
+            Assert.AreEqual(0, handler.OutsideRequestCount);
+        }
+        finally
+        {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
     }
 
     private static UpdateManifest CreateManifest(string version, int build, Uri packageUri, byte[] package) => new()
@@ -216,5 +283,34 @@ public sealed class VerifiedManifestUpdateSourceTests
                 Content = new ByteArrayContent(content),
             });
         }
+    }
+
+    private sealed class RedirectHandler(byte[] envelope, Uri packageUri, Uri outsideUri) : HttpMessageHandler
+    {
+        public int OutsideRequestCount { get; private set; }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (request.RequestUri == ManifestUri)
+                return Task.FromResult(Response(HttpStatusCode.OK, request, new ByteArrayContent(envelope)));
+            if (request.RequestUri == packageUri)
+            {
+                var response = Response(HttpStatusCode.Redirect, request);
+                response.Headers.Location = outsideUri;
+                return Task.FromResult(response);
+            }
+            if (request.RequestUri == outsideUri) OutsideRequestCount++;
+            return Task.FromResult(Response(HttpStatusCode.NotFound, request));
+        }
+
+        private static HttpResponseMessage Response(
+            HttpStatusCode status,
+            HttpRequestMessage request,
+            HttpContent? content = null) => new(status)
+            {
+                RequestMessage = request,
+                Content = content,
+            };
     }
 }

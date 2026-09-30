@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Witness.Update.Tests", "tes
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Witness.Platform.Tests", "tests\Witness.Platform.Tests\Witness.Platform.Tests.csproj", "{EA739AF5-BBA0-4147-B160-B1A98C6AF38C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Witness.UpdateManifestTool", "tools\Witness.UpdateManifestTool\Witness.UpdateManifestTool.csproj", "{B5D94D70-7F0C-4D99-8DB5-3466EE8A8D4C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -51,5 +53,9 @@ Global
 		{EA739AF5-BBA0-4147-B160-B1A98C6AF38C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EA739AF5-BBA0-4147-B160-B1A98C6AF38C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EA739AF5-BBA0-4147-B160-B1A98C6AF38C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B5D94D70-7F0C-4D99-8DB5-3466EE8A8D4C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B5D94D70-7F0C-4D99-8DB5-3466EE8A8D4C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B5D94D70-7F0C-4D99-8DB5-3466EE8A8D4C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B5D94D70-7F0C-4D99-8DB5-3466EE8A8D4C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -185,6 +185,27 @@
                                         </WrapPanel>
                                     </StackPanel>
                                 </Border>
+
+                                <Border Style="{StaticResource SectionCard}">
+                                    <StackPanel>
+                                        <TextBlock Text="{DynamicResource UpdatesSection}" Style="{StaticResource SectionHeading}" />
+                                        <TextBlock x:Name="UpdateCurrentVersionText" TextWrapping="Wrap" />
+                                        <TextBlock x:Name="UpdateStatusText" Style="{StaticResource MutedText}" Margin="0,4,0,0"
+                                                   TextWrapping="Wrap" automation:AutomationProperties.LiveSetting="Polite" />
+                                        <TextBlock x:Name="UpdateReleaseNotesText" Margin="0,10,0,0" TextWrapping="Wrap"
+                                                   Visibility="Collapsed" />
+                                        <ProgressBar x:Name="UpdateProgress" Height="12" Margin="0,12,0,0"
+                                                     Minimum="0" Maximum="100" Visibility="Collapsed" />
+                                        <WrapPanel Margin="0,12,0,0">
+                                            <Button x:Name="CheckForUpdatesButton" Content="{DynamicResource CheckForUpdates}"
+                                                    Click="CheckForUpdates" />
+                                            <Button x:Name="DownloadUpdateButton" Content="{DynamicResource DownloadUpdate}"
+                                                    Margin="8,0,0,0" Visibility="Collapsed" Click="DownloadUpdate" />
+                                            <Button x:Name="InstallUpdateButton" Content="{DynamicResource InstallAndRestart}"
+                                                    Margin="8,0,0,0" Visibility="Collapsed" Click="InstallUpdate" />
+                                        </WrapPanel>
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
                         </ScrollViewer>
 
