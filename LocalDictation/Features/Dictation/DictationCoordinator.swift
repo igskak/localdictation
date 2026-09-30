@@ -442,6 +442,10 @@ final class DictationCoordinator: ObservableObject {
         apply(.permissionRequestStarted)
         let resolved = await permissionService.requestAccess()
         microphoneAuthorization = resolved
+        // The ask, and its answer. Read here rather than from the published
+        // value: this is the one moment a person decided, and the property is
+        // re-resolved every time the app comes forward.
+        if !resolved.allowsCapture { entitlementService?.noteMicrophoneDenied() }
         apply(.authorizationResolved(resolved))
         if resolved.allowsCapture, registeredHotkey == nil, !isCapturingHotkey {
             registerHotkey()
@@ -934,6 +938,7 @@ final class DictationCoordinator: ObservableObject {
         }
         pressedWhileModelWasArriving = true
         speechModelNotice = notice
+        entitlementService?.noteDictationBlockedByModel()
         Log.transcription.info("Press answered while the model was arriving: \(notice.logLabel, privacy: .public)")
     }
 
@@ -988,6 +993,10 @@ final class DictationCoordinator: ObservableObject {
         // a stuck one.
         Log.transcription.info("Preparing speech model for \(profile.displayName, privacy: .public)")
         let started = Date()
+        // Reported before the wait rather than after it: an install that starts
+        // the fetch and never finishes one is exactly the case this is here to
+        // count, and an event sent at the end would miss every one of them.
+        if phase == .downloading { entitlementService?.noteModelDownloadStarted() }
         // The engine knows which phase it is in and how far a download has got,
         // but `prepare` only returns at the end. Polling is what turns a silent
         // multi-minute wait into a label that changes.
@@ -998,6 +1007,7 @@ final class DictationCoordinator: ObservableObject {
             phasePolling.cancel()
             transcriptionModelState = await transcriptionService.modelState(for: profile)
             hasReadModelState = true
+            entitlementService?.noteModelReady(after: Date().timeIntervalSince(started))
             announceModelIsReady()
             // Explicitly public: string interpolations are redacted by default,
             // and a timing with no content in it is exactly what this log is
@@ -1009,7 +1019,20 @@ final class DictationCoordinator: ObservableObject {
             Log.transcription.error("Model preparation failed: \(message, privacy: .public)")
             transcriptionModelState = .failed(message)
             hasReadModelState = true
+            entitlementService?.noteModelFailed(Self.failureReason(for: error))
         }
+    }
+
+    /// The coarse why, for the one event that carries it.
+    ///
+    /// The engine classified it where the real `URLError` still existed, so
+    /// this only unwraps; anything that arrives without a classification is
+    /// `other` rather than a guess made from a localized sentence.
+    private static func failureReason(for error: any Error) -> ModelPreparationFailure {
+        guard case let .modelPreparationFailed(reason, _) = error as? TranscriptionError else {
+            return .other
+        }
+        return reason
     }
 
     /// Tells the person who pressed during the wait that the wait is over.

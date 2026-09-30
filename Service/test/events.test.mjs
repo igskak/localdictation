@@ -1,6 +1,6 @@
 // The event route, held to the list rather than to its intentions.
 //
-// Every assertion here is a sentence in `docs/PRIVACY.md`: three event names,
+// Every assertion here is a sentence in `docs/PRIVACY.md`: nine event names,
 // five fields, no address, ninety days. The route is the half of that boundary
 // this repository can still change after a build has shipped, which is why it
 // validates what a client already validated.
@@ -59,19 +59,31 @@ test("an event is accepted, stored, and answered without a body worth reading", 
   assert.equal(stored[0].system_version, "15.0");
 });
 
-test("all three of the listed events are accepted and nothing else is", async () => {
+test("all nine of the listed events are accepted and nothing else is", async () => {
   const env = makeEnv();
-  assert.deepEqual([...ALLOWED_EVENTS].sort(), ["activation_requested", "paywall_shown", "trial_started"]);
+  assert.deepEqual(
+    [...ALLOWED_EVENTS].sort(),
+    [
+      "activation_requested",
+      "dictation_blocked_by_model",
+      "installed",
+      "microphone_denied",
+      "model_download_started",
+      "model_failed",
+      "model_ready",
+      "paywall_shown",
+      "trial_started",
+    ],
+  );
 
   for (const event of ALLOWED_EVENTS) {
     const response = await worker.fetch(post(body({ event })), env, {});
     assert.equal(response.status, 202, event);
   }
 
-  // The seven the app builds but does not send. A client that started sending
+  // The six the app builds but does not send. A client that started sending
   // one is refused here rather than collected quietly.
   for (const event of [
-    "installed",
     "activation_succeeded",
     "activation_failed",
     "license_accepted",
@@ -82,6 +94,28 @@ test("all three of the listed events are accepted and nothing else is", async ()
     const response = await worker.fetch(post(body({ event })), env, {});
     assert.equal(response.status, 400, event);
     assert.equal((await response.json()).error, "unknown_event");
+  }
+
+  assert.equal((await rows(env)).length, ALLOWED_EVENTS.size);
+});
+
+/// The table's own `CHECK` is the third copy of the list, and the one that a
+/// worker deployed ahead of its migration would run into. It is asserted here
+/// because the test database runs the real `schema.sql`: a name accepted by the
+/// route and refused by the table would answer 202 and store nothing.
+test("the table accepts every name the route does", async () => {
+  const env = makeEnv();
+  const store = new Store(env.DB);
+
+  for (const event of ALLOWED_EVENTS) {
+    await store.recordEvent({
+      installID: INSTALL,
+      event,
+      qualifier: null,
+      appVersion: "0.6.9",
+      systemVersion: "15.0",
+      at: 1_700_000_000,
+    });
   }
 
   assert.equal((await rows(env)).length, ALLOWED_EVENTS.size);
@@ -102,7 +136,24 @@ test("a qualifier is only accepted where the app has one, and only from its fixe
   const misplaced = await worker.fetch(post(body({ event: "trial_started", qualifier: "trialExpired" })), env, {});
   assert.equal(misplaced.status, 400);
 
-  assert.equal((await rows(env)).length, 1);
+  // The two setup events that carry one, each from its own vocabulary — and a
+  // bucket borrowed by the wrong event is refused like any other invention.
+  const wait = await worker.fetch(post(body({ event: "model_ready", qualifier: "underFiveMinutes" })), env, {});
+  assert.equal(wait.status, 202);
+
+  const failure = await worker.fetch(post(body({ event: "model_failed", qualifier: "storage" })), env, {});
+  assert.equal(failure.status, 202);
+
+  const borrowed = await worker.fetch(post(body({ event: "model_ready", qualifier: "storage" })), env, {});
+  assert.equal(borrowed.status, 400);
+  assert.equal((await borrowed.json()).error, "unknown_qualifier");
+
+  // A duration where a bucket belongs. The app cannot produce one; this is what
+  // happens if something else tries.
+  const seconds = await worker.fetch(post(body({ event: "model_ready", qualifier: "743" })), env, {});
+  assert.equal(seconds.status, 400);
+
+  assert.equal((await rows(env)).length, 3);
 });
 
 /// The one field that could carry something if it were free text. It is not:

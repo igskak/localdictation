@@ -239,8 +239,14 @@ actor WhisperKitTranscriptionService: TranscriptionService {
                 throw error
             } catch {
                 // Wrapped inside the task so joiners and the originating caller
-                // receive the same error.
-                throw TranscriptionError.modelUnavailable(error.localizedDescription)
+                // receive the same error — and classified here, where the real
+                // `URLError` or `ENOSPC` is still in hand. One line further up
+                // the stack there is only a localized sentence, and reading a
+                // cause out of a sentence is how a funnel starts lying.
+                throw TranscriptionError.modelPreparationFailed(
+                    ModelPreparationFailure(error),
+                    detail: error.localizedDescription
+                )
             }
         }
     }

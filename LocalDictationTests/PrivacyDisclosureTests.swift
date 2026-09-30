@@ -60,8 +60,8 @@ final class PrivacyDisclosureTests: XCTestCase {
         }
     }
 
-    /// Three events are sent and seven are not, and the document has to name
-    /// the three by the names that go on the wire.
+    /// Nine events are sent and six are not, and the document has to name the
+    /// nine by the names that go on the wire.
     ///
     /// This replaces the assertion that nothing was transmitted at all.
     /// `docs/PHASE_8_DECISIONS.md` D7 decided that, `docs/REFINEMENTS.md`
@@ -70,14 +70,13 @@ final class PrivacyDisclosureTests: XCTestCase {
     func testTheDocumentNamesEveryEventThatIsTransmitted() throws {
         let text = try policy()
 
-        XCTAssertEqual(TelemetryEvent.transmitted.count, 3)
+        XCTAssertEqual(TelemetryEvent.transmitted.count, 9)
         for name in TelemetryEvent.transmitted {
             XCTAssertTrue(text.contains(name), "docs/PRIVACY.md does not name the '\(name)' event")
         }
 
-        // The other seven have to stay off the wire, and the document says so.
+        // The other six have to stay off the wire, and the document says so.
         let silent: [TelemetryEvent] = [
-            .installed,
             .activationSucceeded,
             .activationFailed(.unreachable),
             .licenseAccepted(.annual),

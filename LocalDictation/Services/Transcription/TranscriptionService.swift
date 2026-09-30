@@ -133,8 +133,75 @@ enum TranscriptionModelState: Sendable, Equatable {
     }
 }
 
+/// Why getting a model ready did not work, in the three answers that lead to
+/// three different things to do about it.
+///
+/// It is coarse on purpose. The detail belongs in the sentence the user reads
+/// and in the log; what a funnel can act on is whether first runs are dying on
+/// a connection, on a full disk, or on something nobody has seen yet. The three
+/// words are also the entire vocabulary the `model_failed` event may carry, so
+/// there is nothing here a filename or a path could be passed into.
+enum ModelPreparationFailure: String, Sendable, Equatable {
+    /// Anything `URLSession` refuses: offline, a timeout, DNS, a refused host.
+    case network
+    /// Out of space. The download is 1.6 GB and it is written twice on its way
+    /// in, so this is the second-commonest way a first run ends.
+    case storage
+    case other
+
+    /// Reads the answer out of whatever the engine threw.
+    ///
+    /// The chain matters more than the top: WhisperKit reports a disk that
+    /// filled mid-download as "Model not found. Please check the model or repo
+    /// name and try again" and keeps the real `No space left on device`
+    /// underneath it, which is the confusion `docs/PHASE_2_BENCHMARK.md`
+    /// records somebody losing an afternoon to.
+    init(_ error: any Error) {
+        for candidate in Self.chain(from: error as NSError) {
+            switch (candidate.domain, candidate.code) {
+            case (NSURLErrorDomain, _):
+                self = .network
+                return
+            case (NSCocoaErrorDomain, NSFileWriteOutOfSpaceError),
+                 (NSPOSIXErrorDomain, Int(ENOSPC)):
+                self = .storage
+                return
+            default:
+                continue
+            }
+        }
+        self = .other
+    }
+
+    /// The error and everything under it, oldest wrapper first. Bounded because
+    /// a chain is somebody else's data structure and a cycle in it would hang
+    /// a launch.
+    private static func chain(from error: NSError, limit: Int = 8) -> [NSError] {
+        var found = [error]
+        var frontier = [error]
+        while !frontier.isEmpty, found.count < limit {
+            var next: [NSError] = []
+            for error in frontier {
+                var underlying = error.underlyingErrors.map { $0 as NSError }
+                if underlying.isEmpty, let legacy = error.userInfo[NSUnderlyingErrorKey] as? NSError {
+                    underlying = [legacy]
+                }
+                next.append(contentsOf: underlying)
+            }
+            found.append(contentsOf: next.prefix(limit - found.count))
+            frontier = next
+        }
+        return found
+    }
+}
+
 enum TranscriptionError: Error, Sendable, Equatable {
     case modelUnavailable(String)
+    /// A load or a download that failed, carrying why in a form something other
+    /// than a person can read. `modelUnavailable` stays for the cases that are
+    /// a statement about this Mac rather than a failure — no model installed,
+    /// recognition not authorized — and reads the same to the user.
+    case modelPreparationFailed(ModelPreparationFailure, detail: String)
     case unsupportedProfile(LanguageProfile)
     case emptyAudio
     case cancelled
@@ -143,6 +210,8 @@ enum TranscriptionError: Error, Sendable, Equatable {
     var message: String {
         switch self {
         case let .modelUnavailable(detail):
+            L10n.format("Speech model unavailable: %@", detail)
+        case let .modelPreparationFailed(_, detail):
             L10n.format("Speech model unavailable: %@", detail)
         case let .unsupportedProfile(profile):
             L10n.format("%@ is not supported by the current speech engine", profile.displayName)

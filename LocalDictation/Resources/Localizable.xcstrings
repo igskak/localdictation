@@ -513,12 +513,12 @@
         }
       }
     },
-    "Send three events about the trial": {
+    "Send nine events about setup and the trial": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Drei Ereignisse zur Testphase senden"
+            "value": "Neun Ereignisse zur Einrichtung und zur Testphase senden"
           }
         }
       }
@@ -1153,12 +1153,12 @@
         }
       }
     },
-    "Nothing you dictate ever leaves this Mac. Three events about the trial itself do — when it starts, when it asks for an email, and when it shows the offers — with no more than an app version, a macOS version, and a random number made at install. Settings → Privacy turns them off.": {
+    "Nothing you dictate ever leaves this Mac. Nine events about setting it up and about the trial do — the install, the speech model arriving or failing to, a press that finds it still arriving, a refused microphone, the trial starting, the email ask, and the offers — with no more than an app version, a macOS version, and a random number made at install. Settings → Privacy turns them off.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nichts von dem, was du diktierst, verlässt diesen Mac. Nur drei Ereignisse zur Testphase werden gesendet: ihr Start, die Abfrage der E-Mail-Adresse und das Anzeigen der Angebote – jeweils nur mit App-Version, macOS-Version und einer bei der Installation erzeugten Zufallsnummer. Unter Einstellungen → Datenschutz kannst du dies deaktivieren."
+            "value": "Nichts von dem, was du diktierst, verlässt diesen Mac. Gesendet werden neun Ereignisse zur Einrichtung und zur Testphase: die Installation, das Eintreffen des Sprachmodells oder dessen Scheitern, ein Tastendruck, der noch darauf trifft, ein abgelehntes Mikrofon, der Start der Testphase, die Abfrage der E-Mail-Adresse und das Anzeigen der Angebote – jeweils nur mit App-Version, macOS-Version und einer bei der Installation erzeugten Zufallsnummer. Unter Einstellungen → Datenschutz kannst du dies deaktivieren."
           }
         }
       }
@@ -2840,7 +2840,7 @@
     "the event handler could not be installed (OSStatus %d)": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"der Ereignishandler konnte nicht installiert werden (OSStatus %d)"}}}},
     "the reply was not an HTTP response": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"die Antwort war keine HTTP-Antwort"}}}},
     "Audio stays in memory on this Mac. Nothing is written to disk during normal capture, and nothing you dictate is ever sent anywhere. A recording is discarded as soon as the app decides no review is needed, and otherwise when the review ends.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Audio bleibt im Arbeitsspeicher dieses Macs. Bei einer normalen Aufnahme wird nichts auf die Festplatte geschrieben und keine Diktatinhalte werden versendet. Die Aufnahme wird gelöscht, sobald keine Überprüfung nötig ist – andernfalls nach Abschluss der Überprüfung."}}}},
-    "On, the app says when a trial starts, when it asks for an email, and when it puts the offers on screen — with the app version, the macOS version, and a random number made at install that is not derived from this Mac. That is the whole message; there is no fourth field and nothing about what you said. Off, it sends none of them and nothing else changes.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Wenn aktiviert, meldet die App den Start der Testphase, die Abfrage der E-Mail-Adresse und das Anzeigen der Angebote – zusammen mit App-Version, macOS-Version und einer zufälligen Installationskennung. Weitere Felder oder Diktatinhalte werden nicht gesendet. Wenn deaktiviert, werden auch diese Ereignisse nicht gesendet."}}}},
+    "On, the app says when it was installed, when the speech model starts arriving and whether it arrived, when a press finds it still arriving, when the microphone is refused, when a trial starts, when it asks for an email, and when it puts the offers on screen — with the app version, the macOS version, and a random number made at install that is not derived from this Mac. The six about setup are sent once for this installation and never again. That is the whole message, and nothing in it is about what you said. Off, it sends none of them and nothing else changes.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Wenn aktiviert, meldet die App die Installation, den Beginn des Sprachmodell-Downloads und ob er geklappt hat, einen Tastendruck, der noch auf das Warten trifft, ein abgelehntes Mikrofon, den Start der Testphase, die Abfrage der E-Mail-Adresse und das Anzeigen der Angebote – zusammen mit App-Version, macOS-Version und einer zufälligen Installationskennung. Die sechs Ereignisse zur Einrichtung werden pro Installation genau einmal gesendet. Weitere Felder oder Diktatinhalte werden nicht gesendet. Wenn deaktiviert, werden auch diese Ereignisse nicht gesendet."}}}},
     "On, a result with nothing worth checking goes straight into the application you were typing in. Off, it waits in this menu for an explicit insert. A result that does need review always waits for you either way.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Wenn aktiviert, wird ein Ergebnis ohne Prüfhinweise direkt in die zuvor verwendete App eingefügt. Wenn deaktiviert, wartet es in diesem Menü auf dein Einfügen. Ergebnisse mit Prüfhinweisen warten immer auf dich."}}}},
     "Without Accessibility access the text is copied to the clipboard instead. A development build loses this permission on every rebuild, because macOS keys it to the code signature.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Ohne Bedienungshilfen-Zugriff wird der Text stattdessen in die Zwischenablage kopiert. Eine Entwicklungs-Version verliert diese Berechtigung nach jeder neuen Signatur."}}}},
     "The review step appears only when a fragment is worth checking — an amount, a date, a name, a dictionary near-miss, or a word the app removed. When nothing is marked, the text is simply ready and the recording is discarded immediately.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die Überprüfung erscheint nur für Stellen, die du prüfen solltest – etwa Beträge, Daten, Namen, ähnliche Wörterbucheinträge oder entfernte Wörter. Wenn nichts markiert ist, ist der Text sofort fertig und die Aufnahme wird verworfen."}}}},

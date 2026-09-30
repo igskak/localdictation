@@ -1,22 +1,48 @@
-// POST /v1/events — the three facts about the funnel, and nothing else.
+// POST /v1/events — the nine facts about the funnel, and nothing else.
 //
 // `docs/PHASE_8_DECISIONS.md` D7 shipped the first release transmitting
-// nothing. This route is the reversal, and it is deliberately the narrowest
-// thing that answers the question it was opened for: how many people reach the
-// wall at the fifth dictation, and how many get past it.
+// nothing. This route is the reversal, and it stays the narrowest thing that
+// answers the two questions it was opened for:
+//
+//   1. the wall — how many people reach it and how many get past it:
+//      `trial_started`, `paywall_shown`, `activation_requested`;
+//   2. the setup — what happens between a download and a first dictation:
+//      `installed`, `model_download_started`, `model_ready`, `model_failed`,
+//      `dictation_blocked_by_model`, `microphone_denied`.
+//
+// The second group was added when eight genuine downloads had produced no
+// `trial_started` at all and nothing in the data could say whether the app had
+// ever launched, whether the 1.6 GB had ever arrived, or whether people were
+// pressing the key into a wait.
 //
 // The allowlists below are the second half of a boundary whose first half is in
 // the app — `TelemetryEvent.transmitted`, an enum with no free-form field in
-// it. Keeping both means a build that starts sending a fourth event is refused
+// it. Keeping both means a build that starts sending a tenth event is refused
 // here rather than quietly collected, which is the only version of this promise
 // that survives a mistake in a client nobody can update.
 
-export const ALLOWED_EVENTS = new Set(["trial_started", "activation_requested", "paywall_shown"]);
+export const ALLOWED_EVENTS = new Set([
+  "installed",
+  "model_download_started",
+  "model_ready",
+  "model_failed",
+  "dictation_blocked_by_model",
+  "microphone_denied",
+  "trial_started",
+  "activation_requested",
+  "paywall_shown",
+]);
 
-/// Only `paywall_shown` has one, and only these four. Everything else in the
-/// app's qualifier vocabulary belongs to events this route does not accept.
+/// Three events carry one, and only from these fixed sets. Everything else in
+/// the app's qualifier vocabulary belongs to events this route does not accept.
+///
+/// `model_ready` carries a bucket rather than a duration: the app never sends a
+/// number of seconds, because a number about one Mac on one connection is a
+/// finer thing than this table has any use for.
 export const ALLOWED_QUALIFIERS = {
   paywall_shown: new Set(["activationRequired", "trialExpired", "licenseExpired", "updateRequired"]),
+  model_ready: new Set(["underOneMinute", "underFiveMinutes", "underFifteenMinutes", "overFifteenMinutes"]),
+  model_failed: new Set(["network", "storage", "other"]),
 };
 
 /// Ninety days. Long enough to compare a cohort against the fortnight after it,

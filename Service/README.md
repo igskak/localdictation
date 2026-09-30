@@ -32,6 +32,7 @@ src/
   mailer.js     Resend or Postmark, behind one method
   http.js       JSON answers, bounded requests
 schema.sql      the whole of what is stored
+migrations/     what a database that already exists runs instead
 test/           node:test, over the real schema in an in-memory SQLite
 ```
 
@@ -125,6 +126,23 @@ npx wrangler secret put WEBHOOK_SECRET
 
 npx wrangler deploy
 ```
+
+### Changing a table that already exists
+
+`schema.sql` is written for a database that does not exist yet: every statement
+in it is `CREATE TABLE IF NOT EXISTS`, so running it again against the live D1
+changes nothing at all. Anything that has to change a table that is already
+there is a file in `migrations/`, run by hand, oldest first:
+
+```bash
+npx wrangler d1 execute localdictation-licenses --remote \
+  --file migrations/001-setup-funnel-events.sql
+```
+
+`001-setup-funnel-events.sql` widens the `CHECK` on `product_events` to the six
+setup events. **Run it before deploying the worker that accepts those names**:
+a route that accepts an event the table refuses answers `202` to the app and
+loses the row, which is the one failure here nobody would see.
 
 Then set `MAIL_PROVIDER`, `MAIL_FROM` and, if the provider needs it,
 `MAIL_STREAM` in `wrangler.toml`.

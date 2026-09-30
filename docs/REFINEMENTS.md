@@ -449,6 +449,9 @@ about, so the first-run screen carries the sentence, Settings → Privacy carrie
 the switch, and `docs/PRIVACY.md` prints the body byte for byte — four fields,
 five for `paywall_shown`, and a test that fails when a sixth appears.
 
+(Nine of fifteen are sent now. *Six more events say what happens before a first
+dictation*, below, is why.)
+
 The transport is deliberately the smallest thing that works. One attempt, no
 queue: a retry queue would be a fourth file this app writes to disk, and the
 privacy policy enumerates three. No reply is read, nothing blocks a press, and a
@@ -643,3 +646,61 @@ out to be short, and that the folder is walked at most twice a second rather tha
 for every one of the menu's asks. It also builds the download layout by hand and
 asserts the count follows both places, which is the one thing in here that no
 amount of pure logic can check.
+
+## Six more events say what happens before a first dictation
+
+The three above measure the end of the funnel. Nothing measured the beginning,
+and the beginning was where the product was losing people: eight genuine
+downloads from the ad account had produced **no `trial_started` at all**, and
+there was no way to tell apart a person who never opened the app, a person whose
+1.6 GB never arrived, a person who pressed the key into the wait and gave up, and
+a person who refused the microphone. Four different products need fixing in
+those four cases, and the data could not name one of them.
+
+So `installed` moves onto the wire as the denominator, and five events describe
+the stretch that follows it:
+
+| Sent | What it answers |
+| --- | --- |
+| `installed` | The app was opened at all. Every rate below is read against this |
+| `model_download_started` | The fetch began, so this Mac had a connection and reached Hugging Face |
+| `model_ready` | It finished, with the wait in one of four buckets rather than in seconds |
+| `model_failed` | It did not, and whether that was `network`, `storage` or `other` |
+| `dictation_blocked_by_model` | Somebody held the hotkey while it was still arriving |
+| `microphone_denied` | macOS asked and the answer was no |
+
+**Each is sent once per installation, ever, and that is a privacy property
+before it is anything else.** The model is loaded at every launch. An event sent
+whenever it became ready would not be a funnel step at all — it would be a
+record, on a server, for ninety days, of when this Mac opens Witness. The same
+goes for a denied microphone, which is re-read every time the app comes forward,
+and for a press into the wait. `TelemetryMilestone` is the list of facts that
+work this way, `UsageRecord.reportedMilestones` is where the app remembers which
+it has already sent — a sixth field in a file that already exists rather than a
+fourth file — and `EntitlementService.report` is the single place that decides,
+so no call site can forget and turn the table into a usage log. A test asserts
+it across a relaunch.
+
+Two of them carry a qualifier, and neither carries a measurement. `model_ready`
+sends `underOneMinute`, `underFiveMinutes`, `underFifteenMinutes` or
+`overFifteenMinutes`, never a number of seconds: a duration is a fact about one
+Mac on one connection, and a bucket is everything a count needs.
+`model_failed` sends `network`, `storage` or `other` — no filename, no path, no
+message from the system — and it is classified in the engine, where the real
+`URLError` or `ENOSPC` still exists, rather than by matching words in a
+localized sentence one rewrite away from changing meaning. A disk that fills
+mid-download arrives as "Model not found. Please check the model or repo name",
+with the real cause underneath it, so the classifier reads the chain.
+
+The service half moved with it: `Service/src/events.js` accepts the nine names
+and the two new qualifier vocabularies, and the `CHECK` on `product_events`
+accepts them too. That constraint is the one thing here a deploy cannot change
+in place — SQLite cannot alter a `CHECK` — so `Service/migrations/001-setup-funnel-events.sql`
+rebuilds the table, and it has to run *before* the worker that accepts the new
+names, or the route answers 202 and the row is lost.
+
+What is deliberately not measured: which application text was inserted into,
+whether insertion fell back to the clipboard, how long a dictation was, or
+anything per dictation at all. Those are facts about using the product rather
+than about setting it up, and the first three of them are one join away from
+being a diary.
