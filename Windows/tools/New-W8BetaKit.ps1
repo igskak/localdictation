@@ -134,7 +134,7 @@ $noticeParts = @(
     $engineeringNotices,
     "`r`n---`r`n`r`n# Microsoft.NETCore.App.Runtime.win-x64 $runtimeVersion license`r`n",
     (Get-Content -LiteralPath $runtimeLicense -Raw),
-    "`r`n# Microsoft.NETCore.App.Runtime.win-x64 $runtimeVersion third-party notices`r`n",
+    "`r`n# Microsoft.NETCore.App.Runtime.win-x64 $runtimeVersion THIRD-PARTY-NOTICES.TXT`r`n",
     (Get-Content -LiteralPath $runtimeNotices -Raw),
     "`r`n# Microsoft.WindowsDesktop.App.Runtime.win-x64 $desktopVersion license`r`n",
     (Get-Content -LiteralPath $desktopLicense -Raw)
