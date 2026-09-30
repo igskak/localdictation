@@ -316,6 +316,89 @@ Hardware checklist (use the unified log; see the recipe below):
 7. coreaudiod shows no `CADefaultDeviceAggregate-<Witness pid>` during
    dictation.
 
+## Verified on hardware 2026-09-30
+
+Author's MacBook Pro, macOS 26.6.2, the build from this branch. Log lines are
+quoted as they appeared.
+
+**2. Dictating with the Meet page already open.** The microphone reports the raw
+array and capture takes channel 0:
+
+```
+Capture started: MacBook Pro Microphone, device 48000 Hz 3 ch, client 16000 Hz mono from channel 0
+Capture finished: 64853 frames, dropped 0, rebinds 0
+RU+EN+UK decoded as ru (confident) -> 6 tokens
+```
+
+Before this branch the same situation logged `3 ch` and then `peak=0.000`.
+
+**1. The Meet page opening mid-sentence.** One utterance across the change:
+
+```
+13:43:57  Capture started: device 48000 Hz 1 ch
+13:44:13  Input rebound (boundDeviceFormatChanged): -> 48000 Hz 3 ch
+13:44:47  Capture finished: 48.83 s, 781312 frames, dropped 0, rebinds 1
+          -> 58 tokens
+```
+
+One rebind rather than two is correct here: Safari held voice processing until
+13:44:49, two seconds *after* the press ended, so the device never went back to
+one channel while recording.
+
+**4. AirPods connecting and disconnecting mid-sentence, `systemDefault`.** The
+first hardware exercise of following the default onto a different device, and of
+a sample rate changing mid-utterance:
+
+```
+14:40:49  Capture started: MacBook Pro Microphone, device 48000 Hz 1 ch
+14:41:01  Input rebound (defaultInputChanged): MacBook Pro Microphone -> AirPods, 24000 Hz 1 ch, gap 281 ms
+14:41:14  Input rebound (defaultInputChanged): AirPods -> MacBook Pro Microphone, 48000 Hz 1 ch, gap 139 ms
+14:41:21  Capture finished: 31.42 s, 502784 frames, dropped 0, rebinds 2
+          -> 60 tokens
+```
+
+**6. Start latency.** `State ready -> starting` to `State starting -> recording`,
+three presses: 175 ms, 169 ms, 186 ms. The aggregate build it replaces was
+0.5 to 1.1 s.
+
+**7. No aggregate.** Zero occurrences of `CADefaultDeviceAggregate-<pid>` across
+every session; coreaudiod logs
+`IOWorkLoopInit: BuiltInMicrophoneDevice (BuiltInMicrophoneDevice)`.
+
+### What a rebind still costs
+
+The Meet run recorded 48.83 s of a 49.64 s press: **0.81 s of speech is missing**
+across one route change. The sentence survives, the words inside that gap do not.
+Broken down from the log:
+
+```
+13:44:12.826  the device stops delivering frames
+              ~469 ms of notifications, each restarting the debounce
+13:44:13.295  last notification of the burst
+              +150 ms debounce
+13:44:13.445  rebind starts
+              +192 ms tearing down the old unit and building the new one
+13:44:13.637  the new segment is running
+```
+
+Only the last 192 ms is ours. The rest is detection plus the debounce, and most
+of that is the debouncer restarting its quiet period on every event in a burst
+that lasted 469 ms.
+
+A cap — fire at most N ms after the *first* event of a burst, however long the
+burst continues — would cut it. Not done: rebinding mid-burst can bind to an
+intermediate state of the device and cost a second rebind immediately after, and
+there is no measurement yet saying which is cheaper. The number above is what
+that decision should be made against.
+
+The logged `gap` was itself wrong until 2026-09-30: it timed our own teardown
+rather than the silence, and reported 192 ms where 810 ms had passed. It now runs
+from the last frame that arrived.
+
+### Still open
+
+3 (Chrome), 5 (`builtIn` selected with AirPods connected).
+
 ## Investigation recipe
 
 ```bash
