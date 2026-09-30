@@ -29,7 +29,7 @@ cross-targeting on macOS is not reported as Windows validation.
 | W3 | **Complete** | Verified local model manager and disclosed download UX; immutable multilingual product-model candidate; cancellable native transcription/token bridge; grapheme word mapping with honest segment-timing fallback; real backend probe and one controlled CPU retry policy; completed-recording language-score bridge with VAD speech boundary; pinned synthetic eSpeak DE/EN/RU plus neural Piper UK leading-noise regression; test-only native benchmark; app-level verified-model → completed-audio language decision → explicit-language transcription flow with generation cancellation and immediate audio clearing; successful real-model CPU Windows CI | Physical GPU/laptop performance and real-speech accuracy remain W8 QA; hosted CPU timings are recorded below rather than generalized |
 | W4 | **Complete** | PID + root-HWND capture at hotkey start; active-session/default-desktop and changed-target guards; bounded single-STA UIA protection/value/selection inspection; verified standard `Edit` selection replacement; one-shot modifier-gated paste; fail-closed protected clipboard formats and sequence-safe restore; generation/target/protection race coordinator; app-level hotkey → local transcript → insertion wiring; test-only accessible normal/password/delayed-paste harness | Real Word, Chrome and VS Code compatibility remains explicitly pending physical W8 QA; no universal-application claim is made |
 | W5 | **In progress** | Cleanup/risk/review and RAM replay are connected to insertion; latest-ten RAM history excludes protected refusals; review audio has a bounded flagged-only lifetime; Windows dictionaries fail open per language capability; two-step onboarding, six navigable Settings sections, ordered language persistence, session-only glossary, audio-input selection, voice-boundary controls and key-parity EN/DE resources passed 63 Windows platform tests plus the privacy-scanned synthetic render harness | Complete physical Windows DPI/high-contrast/keyboard and screen-reader evidence before marking W5 complete |
-| W6 | **In progress** | Pure entitlement timing/major policy; offline LD1 verifier and Service fixture parity; atomic local record; SMBIOS-derived Windows identity; fixed activation/release adapter; full License screen and pre-microphone entitlement gate; first-success trial start; local/remote removal; three-event consent/local-only telemetry; build-time isolated beta authority/endpoint inputs; bundled Windows beta terms/privacy drafts | Run this slice in Windows CI; provision the separate beta authority/service and protected build values; replace legal placeholders and obtain review before external distribution |
+| W6 | **In progress** | Pure entitlement timing/major policy; offline LD1 verifier and Service fixture parity; atomic local record; SMBIOS-derived Windows identity; fixed activation/release adapter; full License screen and pre-microphone entitlement gate; first-success trial start; local/remote removal; three-event consent/local-only telemetry; build-time isolated beta authority/endpoint inputs; bundled Windows beta terms/privacy drafts; successful Windows CI | Provision the separate beta authority/service and protected build values; replace legal placeholders and obtain review before external distribution |
 | W7 | Not started | Manifest/package verification spike and unsigned internal packaging workflow only | Manual updater state machine/UX, signed metadata production path, A-to-B install/update preservation test, uninstall/reinstall policy, signing gate |
 | W8 | Not started | — | Installable closed-beta kit, checksum, notices with full license texts, release notes, known issues, tester guide/checklist/bug template, regression/soak/privacy evidence |
 
@@ -439,7 +439,16 @@ unrepresentative Ukrainian eSpeak test voice and are never shipped.
   `0d584111713c5068a4841155b42ed962d328b37f`: 183 Core tests, 6 update tests
   and 85 Windows platform tests passed with the native/model/publish/privacy
   pipeline. This verifies the offline licensing foundation and injected HTTP
-  boundary, not the uncommitted License-screen/configuration/legal slice above.
+  boundary, not the later License-screen/configuration/legal slice.
+- Windows CI run
+  [`36679561576`](https://github.com/igskak/localdictation/actions/runs/36679561576)
+  passed for W6 License/configuration/legal source
+  `62541f1c67e7c5b0e53b09728a52510bd5469780`: 185 Core tests, 6 update tests
+  and 86 Windows platform tests passed, followed by the native ownership/ABI,
+  real-model multilingual regression, CPU benchmark, self-contained publish,
+  synthetic UI evidence and artifact privacy gates. The hosted run verifies the
+  build-time configuration and WPF wiring with synthetic inputs; it does not
+  provision or contact a real beta activation endpoint.
 
 ## Known limitations and external gates
 
@@ -473,9 +482,9 @@ unrepresentative Ukrainian eSpeak test voice and are never shipped.
 
 ## Next step
 
-Run the W6 License/configuration/legal slice in Windows CI. In parallel with the
-later W7/W8 work, provision the isolated beta authority/service, set the two
-protected package values, verify a synthetic issued key against the packaged
-client, and complete/legal-review the named policy placeholders. Physical W5
+Provision the isolated beta authority/service, set the two protected package
+values, verify a synthetic issued key against the packaged client, and
+complete/legal-review the named policy placeholders. In parallel, begin the W7
+manual updater and A-to-B preservation slice. Physical W5
 accessibility, microphone, GPU/performance and ordinary-user Word, Chrome and
 VS Code behavior remain pending for external W8 QA.
