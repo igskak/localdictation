@@ -243,7 +243,7 @@ final class HALInputCaptureService: AudioCaptureService, @unchecked Sendable {
 
         let utterance = current.sink.finish(reason: reason, rebindCount: current.rebindCount)
         Log.audio.info(
-            "Capture finished: \(String(format: "%.2f", utterance.duration)) s, \(utterance.frameCount) frames, dropped \(utterance.droppedFrameCount), rebinds \(current.rebindCount), reason \(reason.rawValue, privacy: .public)"
+            "Capture finished: \(String(format: "%.2f", utterance.duration), privacy: .public) s, \(utterance.frameCount) frames, dropped \(utterance.droppedFrameCount), rebinds \(current.rebindCount), reason \(reason.rawValue, privacy: .public)"
         )
         return utterance
     }
@@ -328,7 +328,7 @@ final class HALInputCaptureService: AudioCaptureService, @unchecked Sendable {
 
             let gap = (ProcessInfo.processInfo.systemUptime - startedAt) * 1000
             Log.audio.notice(
-                "Input rebound (\(String(describing: event), privacy: .public)): \(from ?? "none", privacy: .public) -> \(segment.deviceName, privacy: .public), \(Int(segment.binding.sampleRate)) Hz \(segment.binding.channelCount) ch, gap \(String(format: "%.0f", gap)) ms"
+                "Input rebound (\(String(describing: event), privacy: .public)): \(from ?? "none", privacy: .public) -> \(segment.deviceName, privacy: .public), \(Int(segment.binding.sampleRate)) Hz \(segment.binding.channelCount) ch, gap \(String(format: "%.0f", gap), privacy: .public) ms"
             )
         } catch {
             // No segment is running now. The retry re-reads the hardware, so a
