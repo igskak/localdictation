@@ -378,14 +378,15 @@ jobs:
           $setupB = (Resolve-Path Windows/artifacts/w7-b-setup.exe).Path
           $feed = (Resolve-Path Windows/artifacts/w7-feed).Path
           $marker = Join-Path $env:RUNNER_TEMP "witness-w7-preserved.txt"
+          $identityMarker = Join-Path $env:RUNNER_TEMP "witness-w7-identity.txt"
           $install = Start-Process $setupA -ArgumentList "--silent" -Wait -PassThru
           if ($install.ExitCode -ne 0) { throw "Synthetic A install failed with exit code $($install.ExitCode)." }
           $candidates = @(Get-ChildItem $env:LOCALAPPDATA -Recurse -Depth 6 -File -Filter Witness.exe |
             Where-Object { $_.FullName -like "*Witness.Windows.Beta*current*" })
           if ($candidates.Count -ne 1) { throw "Expected one installed current Witness.exe; found $($candidates.Count)." }
-          & $candidates[0].FullName --w7-seed-data
+          & $candidates[0].FullName --w7-seed-data $identityMarker
           if ($LASTEXITCODE -ne 0) { throw "Synthetic A could not seed preservation state." }
-          & $candidates[0].FullName --w7-apply-update $feed $marker
+          & $candidates[0].FullName --w7-apply-update $feed $marker $identityMarker
           if ($LASTEXITCODE -ne 0) { throw "Synthetic A could not launch the manual B apply." }
           $deadline = [DateTime]::UtcNow.AddSeconds(60)
           while (-not (Test-Path $marker) -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Seconds 1 }
@@ -421,12 +422,13 @@ jobs:
             Where-Object { $_.FullName -like "*Witness.Windows.Beta*current*" })
           if ($reinstalled.Count -ne 1) { throw "Expected one reinstalled current Witness.exe; found $($reinstalled.Count)." }
           $reinstallMarker = Join-Path $env:RUNNER_TEMP "witness-w7-reinstalled.txt"
-          & $reinstalled[0].FullName --w7-verify-data $reinstallMarker
+          & $reinstalled[0].FullName --w7-verify-data $reinstallMarker $identityMarker
           if ($LASTEXITCODE -ne 0 -or
               -not (Test-Path $reinstallMarker) -or
               (Get-Content $reinstallMarker -Raw).Trim() -ne "W7_A_TO_B_PRESERVED") {
             throw "Reinstalled B did not confirm the preservation contract."
           }
+          Remove-Item $identityMarker -Force
           Write-Host "Installed A-to-B and uninstall/reinstall preserved settings, entitlement, model and hardware identity."
 
       - name: Assemble and validate synthetic W8 tester kit

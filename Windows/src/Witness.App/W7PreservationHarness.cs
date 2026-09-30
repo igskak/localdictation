@@ -27,14 +27,14 @@ internal static class W7PreservationHarness
         {
             switch (arguments[0])
             {
-                case "--w7-seed-data" when arguments.Length == 1:
-                    Seed();
+                case "--w7-seed-data" when arguments.Length == 2:
+                    Seed(arguments[1]);
                     return true;
-                case "--w7-apply-update" when arguments.Length == 3:
-                    Apply(arguments[1], arguments[2]);
+                case "--w7-apply-update" when arguments.Length == 4:
+                    Apply(arguments[1], arguments[2], arguments[3]);
                     return true;
-                case "--w7-verify-data" when arguments.Length == 2:
-                    Verify(arguments[1]);
+                case "--w7-verify-data" when arguments.Length == 3:
+                    Verify(arguments[1], arguments[2]);
                     return true;
                 default:
                     throw new ArgumentException("Invalid W7 CI harness arguments.");
@@ -48,7 +48,7 @@ internal static class W7PreservationHarness
         }
     }
 
-    private static void Seed()
+    private static void Seed(string identityMarker)
     {
         var paths = WitnessLocalDataPaths.Current();
         new JsonUserPreferencesStore(paths.Settings).Save(new UserPreferences(
@@ -65,11 +65,10 @@ internal static class W7PreservationHarness
             LicenseToken: null));
         Directory.CreateDirectory(paths.Models);
         File.WriteAllBytes(Path.Combine(paths.Models, "synthetic-w7-model.bin"), SyntheticModel);
-        if (!new WindowsHardwareDeviceIdentity().Resolve().IsAvailable)
-            throw new InvalidOperationException("The Windows CI host did not expose a usable SMBIOS identity.");
+        File.WriteAllText(Path.GetFullPath(identityMarker), IdentityObservation());
     }
 
-    private static void Apply(string feedDirectory, string successMarker)
+    private static void Apply(string feedDirectory, string successMarker, string identityMarker)
     {
         var manager = new UpdateManager(
             Path.GetFullPath(feedDirectory),
@@ -86,10 +85,15 @@ internal static class W7PreservationHarness
             update.TargetFullRelease,
             silent: true,
             restart: true,
-            restartArgs: ["--w7-verify-data", Path.GetFullPath(successMarker)]);
+            restartArgs:
+            [
+                "--w7-verify-data",
+                Path.GetFullPath(successMarker),
+                Path.GetFullPath(identityMarker),
+            ]);
     }
 
-    private static void Verify(string successMarker)
+    private static void Verify(string successMarker, string identityMarker)
     {
         var identity = WindowsBuildIdentity.Current();
         if (!string.Equals(identity.Version, "0.1.1", StringComparison.Ordinal) || identity.Build != 102)
@@ -113,9 +117,16 @@ internal static class W7PreservationHarness
             throw new InvalidOperationException("The unchanged synthetic model was not preserved.");
         if (File.Exists(Path.Combine(paths.Root, "glossary.json")))
             throw new InvalidOperationException("A forbidden glossary handoff file was created.");
-        if (!new WindowsHardwareDeviceIdentity().Resolve().IsAvailable)
-            throw new InvalidOperationException("The hardware-derived identity became unavailable after update.");
+        var expectedIdentity = File.ReadAllText(Path.GetFullPath(identityMarker));
+        if (!string.Equals(expectedIdentity, IdentityObservation(), StringComparison.Ordinal))
+            throw new InvalidOperationException("The hardware-identity result changed across the installed lifecycle.");
         File.WriteAllText(Path.GetFullPath(successMarker), "W7_A_TO_B_PRESERVED");
+    }
+
+    private static string IdentityObservation()
+    {
+        var identity = new WindowsHardwareDeviceIdentity().Resolve();
+        return identity.DeviceId ?? "unavailable";
     }
 }
 #endif

@@ -223,8 +223,12 @@ cross-targeting on macOS is not reported as Windows validation.
 - Windows CI now builds two CI-only Velopack fixtures, installs A, invokes the
   explicit B apply/restart path, uninstalls B, reinstalls B, and asks the
   restarted build to re-verify the same allowlisted local state and absence of
-  a glossary handoff file. The harness is excluded from ordinary builds. That
-  hosted lifecycle job is authored but has not yet been observed passing.
+  a glossary handoff file. The harness also compares the local hardware-identity
+  result across all three processes without printing or uploading the derived
+  identifier; a hosted machine that exposes no usable SMBIOS identity proves
+  only stable unavailability, not physical identity support. The harness is
+  excluded from ordinary builds. That hosted lifecycle job is authored but has
+  not yet been observed passing.
 - The bundled privacy/terms drafts and endpoint inventory now describe manual
   update requests and the uninstall policy. Real feed/CDN operators, regions,
   retention, code-signing provider and legal approval remain external gates.
@@ -365,6 +369,10 @@ full managed solution cross-builds on macOS with 0 warnings and 0 errors; both
 Windows workflows parse as YAML and `git diff --check` passes. PowerShell 7 is
 not installed on this Mac host, so the W8 kit assembly/validation scripts have
 not been executed locally and remain an explicit Windows workflow gate.
+After the first hosted W7 lifecycle attempt exposed its physical-SMBIOS
+assumption, the CI-only A/B app also cross-built explicitly with
+`WitnessEnableW7Harness=true`, version `0.1.1` and build `102`, with 0 warnings
+and 0 errors.
 
 /private/tmp/witness-dotnet/dotnet build Windows/Witness.Windows.sln \
   --configuration Release --no-restore --disable-build-servers -m:1
@@ -545,6 +553,18 @@ unrepresentative Ukrainian eSpeak test voice and are never shipped.
   synthetic UI evidence and artifact privacy gates. The hosted run verifies the
   build-time configuration and WPF wiring with synthetic inputs; it does not
   provision or contact a real beta activation endpoint.
+- Windows CI run
+  [`36723761769`](https://github.com/igskak/localdictation/actions/runs/36723761769)
+  for W7 source `f445c188aeb94734e71654c73d216000a5dd8905` passed the
+  managed build, 185 Core tests, 17 Update tests, 90 platform tests, native ABI,
+  multilingual regression, benchmark, publish, package and privacy gates, then
+  failed when installed A seeded preservation state. The harness had required
+  the hosted Windows Server to expose an available SMBIOS-derived identity,
+  contradicting the documented hosted-runner boundary. The follow-up records
+  the non-content identity result in runner-temporary storage, compares it
+  across A, updated B and reinstalled B without logging/uploading it, and treats
+  stable unavailability only as stable unavailability—not physical identity
+  evidence. A passing rerun remains required.
 
 ## Known limitations and external gates
 
