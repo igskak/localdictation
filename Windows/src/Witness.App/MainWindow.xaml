@@ -277,14 +277,83 @@
                             </StackPanel>
                         </Grid>
 
-                        <StackPanel x:Name="LicensePanel" Visibility="Collapsed">
-                            <Border Style="{StaticResource SectionCard}">
-                                <StackPanel>
-                                    <TextBlock Text="{DynamicResource LicenseHeading}" Style="{StaticResource SectionHeading}" />
-                                    <TextBlock Text="{DynamicResource LicenseBody}" Style="{StaticResource MutedText}" />
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
+                        <ScrollViewer x:Name="LicensePanel" Visibility="Collapsed" VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled" KeyboardNavigation.TabNavigation="Local">
+                            <StackPanel>
+                                <Border Style="{StaticResource SectionCard}">
+                                    <StackPanel>
+                                        <TextBlock x:Name="LicenseStandingHeading" Text="{DynamicResource LicenseHeading}"
+                                                   Style="{StaticResource SectionHeading}" />
+                                        <TextBlock x:Name="LicenseStandingDetail" Text="{DynamicResource LicenseBody}"
+                                                   Style="{StaticResource MutedText}" />
+                                        <TextBlock x:Name="LicenseNoticeText" Margin="0,12,0,0" TextWrapping="Wrap"
+                                                   Visibility="Collapsed" FontWeight="SemiBold"
+                                                   automation:AutomationProperties.LiveSetting="Assertive"
+                                                   automation:AutomationProperties.Name="{DynamicResource AutomationLicenseNotice}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Style="{StaticResource SectionCard}">
+                                    <StackPanel>
+                                        <TextBlock x:Name="LicenseActivationHeading" Text="{DynamicResource ActivateTrial}"
+                                                   Style="{StaticResource SectionHeading}" />
+                                        <TextBlock Text="{DynamicResource EmailAddressLabel}" Margin="0,0,0,4" />
+                                        <TextBox x:Name="LicenseEmailBox" MinHeight="36" MaxLength="254"
+                                                 automation:AutomationProperties.Name="{DynamicResource AutomationLicenseEmail}" />
+                                        <WrapPanel Margin="0,10,0,0">
+                                            <Button x:Name="LicenseActivationButton" Content="{DynamicResource SendBetaKey}"
+                                                    Click="RequestLicenseActivation" />
+                                            <ProgressBar x:Name="LicenseBusyProgress" Width="92" Height="8" Margin="8,18,0,0"
+                                                         IsIndeterminate="True" Visibility="Collapsed"
+                                                         automation:AutomationProperties.Name="{DynamicResource AutomationLicenseBusy}" />
+                                        </WrapPanel>
+                                        <TextBlock x:Name="LicenseActivationDetail" Text="{DynamicResource ActivationPrivacyDetail}"
+                                                   Style="{StaticResource MutedText}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Style="{StaticResource SectionCard}">
+                                    <StackPanel>
+                                        <TextBlock Text="{DynamicResource EnterLicenseKey}" Style="{StaticResource SectionHeading}" />
+                                        <TextBlock Text="{DynamicResource LicenseKeyLabel}" Margin="0,0,0,4" />
+                                        <TextBox x:Name="LicenseKeyBox" MinHeight="36" MaxLength="4096"
+                                                 FontFamily="Consolas" HorizontalScrollBarVisibility="Auto"
+                                                 automation:AutomationProperties.Name="{DynamicResource AutomationLicenseKey}" />
+                                        <WrapPanel Margin="0,10,0,0">
+                                            <Button x:Name="UseLicenseKeyButton" Content="{DynamicResource UseLicenseKey}"
+                                                    Click="UseLicenseKey" />
+                                            <Button x:Name="RemoveLicenseButton" Content="{DynamicResource RemoveLicense}"
+                                                    Margin="8,0,0,8" Visibility="Collapsed" Click="RemoveLicense" />
+                                        </WrapPanel>
+                                        <TextBlock x:Name="ManualKeyDetail" Text="{DynamicResource ManualKeyDetail}"
+                                                   Style="{StaticResource MutedText}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Style="{StaticResource SectionCard}">
+                                    <StackPanel>
+                                        <TextBlock Text="{DynamicResource ThisComputer}" Style="{StaticResource SectionHeading}" />
+                                        <TextBlock Text="{DynamicResource DeviceIdentifierLabel}" Margin="0,0,0,4" />
+                                        <TextBox x:Name="LicenseDeviceIdText" IsReadOnly="True" IsReadOnlyCaretVisible="True"
+                                                 FontFamily="Consolas" BorderThickness="0" Background="Transparent"
+                                                 automation:AutomationProperties.Name="{DynamicResource AutomationDeviceIdentifier}" />
+                                        <TextBlock x:Name="LicenseDeviceDetail" Text="{DynamicResource DeviceIdentifierDetail}"
+                                                   Style="{StaticResource MutedText}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Style="{StaticResource SectionCard}">
+                                    <StackPanel>
+                                        <TextBlock Text="{DynamicResource WindowsBetaDocuments}" Style="{StaticResource SectionHeading}" />
+                                        <TextBlock Text="{DynamicResource WindowsBetaDocumentsDetail}" Style="{StaticResource MutedText}" />
+                                        <WrapPanel Margin="0,10,0,0">
+                                            <Button Content="{DynamicResource OpenPrivacyDraft}" Click="OpenPrivacyDraft" />
+                                            <Button Content="{DynamicResource OpenTermsDraft}" Margin="8,0,0,8" Click="OpenTermsDraft" />
+                                        </WrapPanel>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
 
                         <ScrollViewer x:Name="DiagnosticsPanel" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
                             <StackPanel>

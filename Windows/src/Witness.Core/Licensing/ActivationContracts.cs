@@ -3,6 +3,7 @@ namespace Witness.Core.Licensing;
 public enum ActivationErrorKind
 {
     NotConfigured,
+    DeviceIdentityUnavailable,
     InvalidEmail,
     Unreachable,
     Rejected,

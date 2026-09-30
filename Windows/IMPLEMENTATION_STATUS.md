@@ -1,6 +1,6 @@
 # Witness for Windows — implementation status
 
-Last updated: 2026-09-29
+Last updated: 2026-09-30
 
 This file is the source of truth for the Windows port. A phase is complete only
 after its required Windows CI and artifact checks have run successfully. Local
@@ -29,7 +29,7 @@ cross-targeting on macOS is not reported as Windows validation.
 | W3 | **Complete** | Verified local model manager and disclosed download UX; immutable multilingual product-model candidate; cancellable native transcription/token bridge; grapheme word mapping with honest segment-timing fallback; real backend probe and one controlled CPU retry policy; completed-recording language-score bridge with VAD speech boundary; pinned synthetic eSpeak DE/EN/RU plus neural Piper UK leading-noise regression; test-only native benchmark; app-level verified-model → completed-audio language decision → explicit-language transcription flow with generation cancellation and immediate audio clearing; successful real-model CPU Windows CI | Physical GPU/laptop performance and real-speech accuracy remain W8 QA; hosted CPU timings are recorded below rather than generalized |
 | W4 | **Complete** | PID + root-HWND capture at hotkey start; active-session/default-desktop and changed-target guards; bounded single-STA UIA protection/value/selection inspection; verified standard `Edit` selection replacement; one-shot modifier-gated paste; fail-closed protected clipboard formats and sequence-safe restore; generation/target/protection race coordinator; app-level hotkey → local transcript → insertion wiring; test-only accessible normal/password/delayed-paste harness | Real Word, Chrome and VS Code compatibility remains explicitly pending physical W8 QA; no universal-application claim is made |
 | W5 | **In progress** | Cleanup/risk/review and RAM replay are connected to insertion; latest-ten RAM history excludes protected refusals; review audio has a bounded flagged-only lifetime; Windows dictionaries fail open per language capability; two-step onboarding, six navigable Settings sections, ordered language persistence, session-only glossary, audio-input selection, voice-boundary controls and key-parity EN/DE resources passed 63 Windows platform tests plus the privacy-scanned synthetic render harness | Complete physical Windows DPI/high-contrast/keyboard and screen-reader evidence before marking W5 complete |
-| W6 | **In progress** | Pure entitlement timing/major policy; offline LD1 verifier; committed Service fixture parity for trial/annual/lifetime; atomic five-field local entitlement record; restart-safe entitlement session and invalid-token removal; Windows-scoped SMBIOS identity with placeholder refusal; production-compatible activation/release adapter behind an injected transport; verified-key acceptance and local/remote release outcome orchestration; three-event telemetry allowlist, persisted opt-out and local-only beta default | Isolated beta authority/configuration, License UI wiring and Windows terms/privacy draft |
+| W6 | **In progress** | Pure entitlement timing/major policy; offline LD1 verifier and Service fixture parity; atomic local record; SMBIOS-derived Windows identity; fixed activation/release adapter; full License screen and pre-microphone entitlement gate; first-success trial start; local/remote removal; three-event consent/local-only telemetry; build-time isolated beta authority/endpoint inputs; bundled Windows beta terms/privacy drafts | Run this slice in Windows CI; provision the separate beta authority/service and protected build values; replace legal placeholders and obtain review before external distribution |
 | W7 | Not started | Manifest/package verification spike and unsigned internal packaging workflow only | Manual updater state machine/UX, signed metadata production path, A-to-B install/update preservation test, uninstall/reinstall policy, signing gate |
 | W8 | Not started | — | Installable closed-beta kit, checksum, notices with full license texts, release notes, known issues, tester guide/checklist/bug template, regression/soak/privacy evidence |
 
@@ -119,7 +119,7 @@ cross-targeting on macOS is not reported as Windows validation.
   verifies the exact filenames, runs the artifact privacy scan and uploads the
   evidence separately with seven-day retention.
 
-### W6 offline licensing foundation
+### W6 licensing and closed-beta boundary
 
 - LD1 tokens are verified locally with the pinned NSec Ed25519 implementation.
   The signature covers the exact decoded payload bytes and is checked before
@@ -159,6 +159,28 @@ cross-targeting on macOS is not reported as Windows validation.
   qualifier, app version, coarse `windows-10.0` family and a random install ID.
   Consent is persisted, shown in onboarding and Settings, and read at send time;
   the beta default service performs no network or disk I/O for events.
+- The License destination now renders untouched/free-use, activated trial,
+  annual, lifetime, expired and update-ineligible states; accepts an explicitly
+  requested emailed key or a pasted LD1 key; reports device identity and
+  recoverable errors inline; confirms removal; and opens the two bundled beta
+  documents. English and German keys remain in parity and use system
+  colors/fonts plus native keyboard-accessible controls.
+- Entitlement is re-evaluated before microphone capture or target observation.
+  A refused hotkey opens License without touching audio; expiry during a phrase
+  does not discard that phrase. The first non-empty locally processed result
+  starts the three-day window. Licensing operations are serialized so a key,
+  clock observation and release cannot race each other.
+- A release build can receive only a Base64 32-byte Windows beta public key and
+  an exact HTTPS `/v1/activate` URL through assembly metadata at build time.
+  The installed app has no authority/URL setting or environment override.
+  Ordinary development and CI builds stay unconfigured; the package workflow
+  has an explicit opt-in and rejects absent or malformed values. The private
+  signing key is never a build input.
+- `LEGAL/WINDOWS_BETA_PRIVACY.md` and `LEGAL/WINDOWS_BETA_TERMS.md` are bundled
+  internal EN/DE drafts. They enumerate the Windows beta data boundary, keep
+  Mac checkout wording out, and visibly retain controller, activation host,
+  processor, region and retention placeholders. They are not approved for an
+  external beta until those facts are filled and legally reviewed.
 
 ### W4 safe insertion boundary
 
@@ -238,6 +260,15 @@ Result after the W5 settings/session-glossary slice: passed; 148 passed, 0 faile
 
 Result after the first W6 offline-license/persistence/identity/network-policy slice: passed; 183 passed,
 0 failed, 0 skipped. The managed solution builds with 0 warnings and 0 errors.
+
+Result after the W6 License/configuration/legal slice: passed; 185 Core tests
+and 6 update tests, 0 failed or skipped. The managed solution cross-builds on
+macOS with 0 warnings and 0 errors. The added WPF/configuration tests compile
+but require the Windows test host and are not reported as locally executed.
+The required beta-build contract was also checked in both directions: a build
+with `WitnessRequireBetaActivation=true` and no values failed before compile;
+a build with a synthetic 32-byte public key and exact synthetic HTTPS endpoint
+passed. No remote endpoint was contacted.
 
 /private/tmp/witness-dotnet/dotnet build Windows/Witness.Windows.sln \
   --configuration Release --no-restore --disable-build-servers -m:1
@@ -402,6 +433,13 @@ unrepresentative Ukrainian eSpeak test voice and are never shipped.
   the exact three PNG filenames passed the artifact privacy scan and were kept
   separately for seven days. This is hosted-runner layout evidence, not physical
   Windows 11 DPI, high-contrast, keyboard or screen-reader QA.
+- Windows CI run
+  [`36621031707`](https://github.com/igskak/localdictation/actions/runs/36621031707)
+  passed for W6 foundation source
+  `0d584111713c5068a4841155b42ed962d328b37f`: 183 Core tests, 6 update tests
+  and 85 Windows platform tests passed with the native/model/publish/privacy
+  pipeline. This verifies the offline licensing foundation and injected HTTP
+  boundary, not the uncommitted License-screen/configuration/legal slice above.
 
 ## Known limitations and external gates
 
@@ -409,6 +447,14 @@ unrepresentative Ukrainian eSpeak test voice and are never shipped.
   Word/browser/Electron insertion, GPU, sleep/wake, Bluetooth/USB device or
   SmartScreen claim has been tested.
 - Signing certificate/provider and protected CI credentials are not configured.
+- The isolated Windows beta service, its D1 data store, signing identity,
+  transactional mail and the protected `WINDOWS_BETA_LICENSE_PUBLIC_KEY` /
+  `WINDOWS_BETA_ACTIVATION_ENDPOINT` build values are not provisioned here.
+  The code and packaging boundary are ready; no production Mac authority or
+  endpoint is reused.
+- The bundled Windows beta privacy/terms files remain internal drafts with
+  explicit controller/contact/processor/region/retention placeholders and need
+  legal review before an external tester receives them.
 - A production Windows update/feed host and Windows commercial authority are
   deliberately unconfigured. Mac release/update URLs have not been changed.
 - Full third-party license texts still need to be assembled into the external
@@ -427,9 +473,9 @@ unrepresentative Ukrainian eSpeak test voice and are never shipped.
 
 ## Next step
 
-Run the first W6 offline-license/persistence/identity/network-policy slice in
-Windows CI, then wire the local-only beta authority/configuration,
-License UI and Windows-specific terms/privacy draft. The beta authority and transport remain isolated and
-local-only until their explicit configuration exists. Physical W5
+Run the W6 License/configuration/legal slice in Windows CI. In parallel with the
+later W7/W8 work, provision the isolated beta authority/service, set the two
+protected package values, verify a synthetic issued key against the packaged
+client, and complete/legal-review the named policy placeholders. Physical W5
 accessibility, microphone, GPU/performance and ordinary-user Word, Chrome and
 VS Code behavior remain pending for external W8 QA.

@@ -19,7 +19,7 @@ public sealed class EntitlementSession
     private readonly IEntitlementStore store;
     private readonly LicenseKeyVerifier verifier;
     private readonly LicenseAuthority authority;
-    private readonly string deviceId;
+    private readonly string? deviceId;
     private readonly string runningVersion;
     private readonly Func<DateTimeOffset> clock;
     private readonly IActivationBackend activationBackend;
@@ -30,7 +30,7 @@ public sealed class EntitlementSession
         IEntitlementStore store,
         LicenseKeyVerifier verifier,
         LicenseAuthority authority,
-        string deviceId,
+        string? deviceId,
         string runningVersion,
         Func<DateTimeOffset>? clock = null,
         Func<string>? installIdFactory = null,
@@ -40,7 +40,7 @@ public sealed class EntitlementSession
         this.store = store ?? throw new ArgumentNullException(nameof(store));
         this.verifier = verifier ?? throw new ArgumentNullException(nameof(verifier));
         this.authority = authority ?? throw new ArgumentNullException(nameof(authority));
-        if (!DeviceIdentityDerivation.IsValidDeviceId(deviceId))
+        if (deviceId is not null && !DeviceIdentityDerivation.IsValidDeviceId(deviceId))
             throw new ArgumentException("A derived 32-character Windows device ID is required.", nameof(deviceId));
         ArgumentException.ThrowIfNullOrWhiteSpace(runningVersion);
         this.deviceId = deviceId;
@@ -66,7 +66,9 @@ public sealed class EntitlementSession
     public License? License { get; private set; }
     public string InstallId => record.InstallId;
     public DateTimeOffset? FirstDictationAt => record.FirstDictationAt;
-    public bool CanRequestActivation => activationBackend.IsConfigured;
+    public bool CanRequestActivation => deviceId is not null && authority.IsConfigured && activationBackend.IsConfigured;
+    public bool CanEnterLicenseKey => deviceId is not null && authority.IsConfigured;
+    public bool HasStoredLicenseToken => record.LicenseToken is not null;
 
     public EntitlementState Refresh()
     {
@@ -96,6 +98,12 @@ public sealed class EntitlementSession
 
     public License AcceptLicense(string token)
     {
+        if (deviceId is null)
+        {
+            throw new LicenseKeyVerificationException(
+                LicenseKeyErrorKind.DeviceIdentityUnavailable,
+                "Windows did not provide a usable hardware identity.");
+        }
         var license = verifier.Verify(token, authority, deviceId);
         SaveReplacing(record with { LicenseToken = token.Trim() });
         Reevaluate(discardInvalidStoredToken: false);
@@ -116,6 +124,18 @@ public sealed class EntitlementSession
             throw new ActivationException(
                 ActivationErrorKind.NotConfigured,
                 "This build has no activation service. Paste a license key instead.");
+        }
+        if (!authority.IsConfigured)
+        {
+            throw new ActivationException(
+                ActivationErrorKind.NotConfigured,
+                "This build has no matching license authority and cannot safely request a key.");
+        }
+        if (deviceId is null)
+        {
+            throw new ActivationException(
+                ActivationErrorKind.DeviceIdentityUnavailable,
+                "Windows did not provide a usable hardware identity.");
         }
 
         telemetry.Send(ProductTelemetryEvent.ActivationRequested);
@@ -140,6 +160,13 @@ public sealed class EntitlementSession
         if (token is null)
         {
             return new DeviceReleaseOutcome(DeviceReleaseOutcomeKind.RemovedLocally);
+        }
+        if (deviceId is null)
+        {
+            RemoveLicense();
+            return new DeviceReleaseOutcome(
+                DeviceReleaseOutcomeKind.RemovedLocallyOnly,
+                "Windows did not provide a usable hardware identity, so the remote device slot could not be released.");
         }
         if (!activationBackend.IsConfigured)
         {
@@ -179,10 +206,13 @@ public sealed class EntitlementSession
         return State;
     }
 
+    public void RecordPaywallShown(PaywallTrigger trigger) =>
+        telemetry.Send(ProductTelemetryEvent.PaywallShown(trigger));
+
     private void Reevaluate(bool discardInvalidStoredToken)
     {
         License? verified = null;
-        if (record.LicenseToken is string token)
+        if (record.LicenseToken is string token && deviceId is not null)
         {
             try
             {

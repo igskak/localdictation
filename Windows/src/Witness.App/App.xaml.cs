@@ -1,10 +1,16 @@
 using System.Diagnostics;
+using System.IO;
+using Witness.Core;
 using Witness.Core.Audio;
 using Witness.Core.Input;
 using Witness.Core.Languages;
+using Witness.Core.Licensing;
+using Witness.Core.Recording;
 using Witness.Core.Review;
 using Witness.Core.Settings;
+using Witness.Core.Telemetry;
 using Witness.Platform.Windows.Audio;
+using Witness.Platform.Windows.Licensing;
 using Witness.Platform.Windows.Settings;
 using Witness.Platform.Windows.Startup;
 
@@ -27,6 +33,12 @@ public partial class App : System.Windows.Application
     private Witness.Platform.Windows.Insertion.ProtectedClipboardService? protectedClipboard;
     private IUserPreferencesStore? preferencesStore;
     private RunAtStartupService? startupService;
+    private readonly SemaphoreSlim entitlementOperations = new(1, 1);
+    private EntitlementSession? entitlementSession;
+    private DeviceIdentityResult deviceIdentity = new(null, "Windows device identity has not been read.");
+    private WindowsBetaLicenseConfiguration licenseConfiguration = WindowsBetaLicenseConfiguration.FromValues(null, null);
+    private HttpClientActivationTransport? activationTransport;
+    private string? entitlementError;
     private UserPreferences preferences = UserPreferences.Default;
     private bool isExplicitExit;
 
@@ -43,6 +55,7 @@ public partial class App : System.Windows.Application
 
         var window = new MainWindow();
         MainWindow = window;
+        ConfigureLicensing();
         window.Closing += (_, eventArgs) =>
         {
             if (isExplicitExit) return;
@@ -76,12 +89,15 @@ public partial class App : System.Windows.Application
             window,
             insertionTargets,
             inferenceController.BeginOperation,
-            inferenceController.ProcessAsync);
+            inferenceController.ProcessAsync,
+            CanBeginDictation,
+            DictationBlockedByLicense);
         captureController.SetAudioInputSelection(preferences.AudioInput);
 
         WireWindow(window);
         modelSetupController.ModelReady += inferenceController.SetVerifiedModelPath;
         inferenceController.PrivacyStateChanged += InferencePrivacyStateChanged;
+        inferenceController.SuccessfulDictationCompleted += SuccessfulDictationCompleted;
 
         trayIcon = new TrayIconService();
         trayIcon.OpenRequested += (_, _) => ShowMainWindow();
@@ -93,6 +109,7 @@ public partial class App : System.Windows.Application
         RefreshAudioInputs(window, preferences.AudioInput);
         RefreshGlossary(window);
         RefreshDiagnostics(window);
+        RefreshLicense(window);
         if (load.RecoveredFromInvalidData)
             window.SetStatus(window.ResourceText("SettingsRecovered"));
         window.Show();
@@ -108,12 +125,17 @@ public partial class App : System.Windows.Application
         if (modelSetupController is not null && inferenceController is not null)
             modelSetupController.ModelReady -= inferenceController.SetVerifiedModelPath;
         if (inferenceController is not null)
+        {
             inferenceController.PrivacyStateChanged -= InferencePrivacyStateChanged;
+            inferenceController.SuccessfulDictationCompleted -= SuccessfulDictationCompleted;
+        }
         if (MainWindow is MainWindow window) UnwireWindow(window);
         inferenceController?.DisposeAsync().AsTask().GetAwaiter().GetResult();
         insertionInspector?.Dispose();
         modelSetupController?.DisposeAsync().AsTask().GetAwaiter().GetResult();
         activityWindow?.Close();
+        activationTransport?.Dispose();
+        entitlementOperations.Dispose();
         base.OnExit(e);
     }
 
@@ -132,6 +154,10 @@ public partial class App : System.Windows.Application
         window.GlossaryTermRemoveRequested += RemoveGlossaryTerm;
         window.OnboardingLanguageSelectionConfirmed += ConfirmOnboardingLanguages;
         window.OnboardingCompleted += CompleteOnboarding;
+        window.LicenseActivationRequested += RequestLicenseActivation;
+        window.LicenseKeySubmitted += SubmitLicenseKey;
+        window.LicenseRemovalRequested += RemoveLicense;
+        window.LegalDocumentRequested += OpenLegalDocument;
     }
 
     private void UnwireWindow(MainWindow window)
@@ -149,6 +175,40 @@ public partial class App : System.Windows.Application
         window.GlossaryTermRemoveRequested -= RemoveGlossaryTerm;
         window.OnboardingLanguageSelectionConfirmed -= ConfirmOnboardingLanguages;
         window.OnboardingCompleted -= CompleteOnboarding;
+        window.LicenseActivationRequested -= RequestLicenseActivation;
+        window.LicenseKeySubmitted -= SubmitLicenseKey;
+        window.LicenseRemovalRequested -= RemoveLicense;
+        window.LegalDocumentRequested -= OpenLegalDocument;
+    }
+
+    private void ConfigureLicensing()
+    {
+        licenseConfiguration = WindowsBetaLicenseConfiguration.Current();
+        try
+        {
+            deviceIdentity = new WindowsHardwareDeviceIdentity().Resolve();
+        }
+        catch (Exception error)
+        {
+            deviceIdentity = new DeviceIdentityResult(null, error.Message);
+        }
+
+        try
+        {
+            var backend = licenseConfiguration.CreateBackend(out activationTransport);
+            entitlementSession = new EntitlementSession(
+                new JsonEntitlementStore(JsonEntitlementStore.DefaultPath()),
+                new LicenseKeyVerifier(),
+                licenseConfiguration.Authority,
+                deviceIdentity.DeviceId,
+                ProductMetadata.Version,
+                activationBackend: backend);
+        }
+        catch (Exception error)
+        {
+            entitlementSession = null;
+            entitlementError = error.Message;
+        }
     }
 
     private static RunAtStartupService? BuildStartupService()
@@ -260,6 +320,221 @@ public partial class App : System.Windows.Application
         preferences = preferences with { ProductEventSharingEnabled = enabled };
         SavePreferences();
     }
+
+    private bool CanBeginDictation()
+    {
+        var session = entitlementSession;
+        if (session is null) return false;
+        if (!entitlementOperations.Wait(0)) return session.State.AllowsDictation;
+        try
+        {
+            var state = session.Refresh();
+            if (MainWindow is MainWindow window) RefreshLicense(window, state);
+            return state.AllowsDictation;
+        }
+        catch (Exception error)
+        {
+            entitlementError = error.Message;
+            if (MainWindow is MainWindow window) RefreshLicense(window);
+            return false;
+        }
+        finally
+        {
+            entitlementOperations.Release();
+        }
+    }
+
+    private void DictationBlockedByLicense()
+    {
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (MainWindow is not MainWindow window) return;
+            var state = entitlementSession?.State;
+            if (state?.Lock is EntitlementLock entitlementLock)
+            {
+                entitlementSession?.RecordPaywallShown(PaywallTriggerFor(entitlementLock));
+            }
+            RefreshLicense(window, state);
+            window.SetStatus(window.ResourceText("LicenseLockedStatus"));
+            window.OpenLicenseSection();
+            ShowMainWindow();
+        });
+    }
+
+    private void SuccessfulDictationCompleted(object? sender, EventArgs e) =>
+        _ = RecordSuccessfulDictationAsync();
+
+    private async Task RecordSuccessfulDictationAsync()
+    {
+        await entitlementOperations.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            entitlementSession?.RecordSuccessfulDictation();
+        }
+        catch (Exception error)
+        {
+            entitlementError = error.Message;
+        }
+        finally
+        {
+            entitlementOperations.Release();
+        }
+        await Dispatcher.InvokeAsync(() =>
+        {
+            if (MainWindow is MainWindow window) RefreshLicense(window);
+        });
+    }
+
+    private async void RequestLicenseActivation(string email)
+    {
+        if (MainWindow is not MainWindow window || entitlementSession is null) return;
+        window.SetLicenseBusy(true);
+        await entitlementOperations.WaitAsync();
+        try
+        {
+            await entitlementSession.RequestActivationAsync(email);
+            entitlementError = null;
+            window.ClearLicenseInputs();
+            window.ShowLicenseNotice(window.ResourceText("LicenseActivationSucceeded"));
+        }
+        catch (ActivationException error)
+        {
+            window.ShowLicenseNotice(ActivationErrorMessage(window, error.Kind));
+        }
+        catch (Exception error)
+        {
+            entitlementError = error.Message;
+            window.ShowLicenseNotice(window.ResourceFormat("LicenseStorageError", error.Message));
+        }
+        finally
+        {
+            entitlementOperations.Release();
+            RefreshLicense(window);
+            window.SetLicenseBusy(false);
+        }
+    }
+
+    private async void SubmitLicenseKey(string token)
+    {
+        if (MainWindow is not MainWindow window || entitlementSession is null) return;
+        window.SetLicenseBusy(true);
+        await entitlementOperations.WaitAsync();
+        try
+        {
+            entitlementSession.AcceptLicense(token);
+            entitlementError = null;
+            window.ClearLicenseInputs();
+            window.ShowLicenseNotice(window.ResourceText("LicenseKeyAccepted"));
+        }
+        catch (LicenseKeyVerificationException error)
+        {
+            window.ShowLicenseNotice(LicenseErrorMessage(window, error.Kind));
+        }
+        catch (Exception error)
+        {
+            entitlementError = error.Message;
+            window.ShowLicenseNotice(window.ResourceFormat("LicenseStorageError", error.Message));
+        }
+        finally
+        {
+            entitlementOperations.Release();
+            RefreshLicense(window);
+            window.SetLicenseBusy(false);
+        }
+    }
+
+    private async void RemoveLicense(object? sender, EventArgs e)
+    {
+        if (MainWindow is not MainWindow window || entitlementSession is null) return;
+        window.SetLicenseBusy(true);
+        await entitlementOperations.WaitAsync();
+        try
+        {
+            var outcome = await entitlementSession.ReleaseFromThisComputerAsync();
+            entitlementError = null;
+            var message = outcome.Kind switch
+            {
+                DeviceReleaseOutcomeKind.ReleasedEverywhere => window.ResourceText("LicenseRemovedEverywhere"),
+                DeviceReleaseOutcomeKind.RemovedLocally => window.ResourceText("LicenseRemovedLocally"),
+                _ => window.ResourceFormat("LicenseRemovedLocallyOnly", outcome.Warning ?? window.ResourceText("LicenseServiceUnavailable")),
+            };
+            window.ShowLicenseNotice(message);
+        }
+        catch (Exception error)
+        {
+            entitlementError = error.Message;
+            window.ShowLicenseNotice(window.ResourceFormat("LicenseStorageError", error.Message));
+        }
+        finally
+        {
+            entitlementOperations.Release();
+            RefreshLicense(window);
+            window.SetLicenseBusy(false);
+        }
+    }
+
+    private void RefreshLicense(MainWindow window, EntitlementState? state = null)
+    {
+        state ??= entitlementSession?.State ?? EntitlementState.Locked(EntitlementLock.ActivationRequired);
+        window.ShowLicense(new LicenseScreenState(
+            state,
+            entitlementSession is null ? null : deviceIdentity.DeviceId,
+            entitlementError ?? deviceIdentity.Error,
+            entitlementSession is not null && licenseConfiguration.Authority.IsConfigured,
+            entitlementSession?.CanRequestActivation == true,
+            entitlementSession?.HasStoredLicenseToken == true));
+    }
+
+    private void OpenLegalDocument(LegalDocumentKind kind)
+    {
+        if (MainWindow is not MainWindow window) return;
+        var fileName = kind == LegalDocumentKind.Privacy
+            ? "WINDOWS_BETA_PRIVACY.md"
+            : "WINDOWS_BETA_TERMS.md";
+        var path = Path.Combine(AppContext.BaseDirectory, "Legal", fileName);
+        if (!File.Exists(path))
+        {
+            window.ShowLicenseNotice(window.ResourceFormat("LegalDocumentMissing", fileName));
+            return;
+        }
+        try
+        {
+            Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+        }
+        catch (Exception error)
+        {
+            window.ShowLicenseNotice(window.ResourceFormat("LegalDocumentOpenFailed", error.Message));
+        }
+    }
+
+    private static PaywallTrigger PaywallTriggerFor(EntitlementLock entitlementLock) => entitlementLock.Kind switch
+    {
+        EntitlementLockKind.ActivationRequired => PaywallTrigger.ActivationRequired,
+        EntitlementLockKind.ExpiredTrial => PaywallTrigger.TrialExpired,
+        EntitlementLockKind.ExpiredAnnual => PaywallTrigger.LicenseExpired,
+        _ => PaywallTrigger.UpdateRequired,
+    };
+
+    private static string ActivationErrorMessage(MainWindow window, ActivationErrorKind kind) => window.ResourceText(kind switch
+    {
+        ActivationErrorKind.NotConfigured => "LicenseActivationNotConfigured",
+        ActivationErrorKind.DeviceIdentityUnavailable => "LicenseDeviceUnavailable",
+        ActivationErrorKind.InvalidEmail => "LicenseInvalidEmail",
+        ActivationErrorKind.Unreachable => "LicenseServiceUnavailable",
+        ActivationErrorKind.DeviceLimitReached => "LicenseDeviceLimit",
+        _ => "LicenseActivationRejected",
+    });
+
+    private static string LicenseErrorMessage(MainWindow window, LicenseKeyErrorKind kind) => window.ResourceText(kind switch
+    {
+        LicenseKeyErrorKind.Malformed => "LicenseMalformed",
+        LicenseKeyErrorKind.UnsupportedVersion => "LicenseUnsupported",
+        LicenseKeyErrorKind.NoAuthority => "LicenseNoAuthority",
+        LicenseKeyErrorKind.DeviceIdentityUnavailable => "LicenseDeviceUnavailable",
+        LicenseKeyErrorKind.BadSignature => "LicenseBadSignature",
+        LicenseKeyErrorKind.WrongDevice => "LicenseWrongDevice",
+        _ => "LicenseBadDates",
+    });
 
     private void ChangeVoiceConfiguration(VoiceActivityConfiguration configuration) =>
         captureController?.SetVoiceActivityConfiguration(configuration);

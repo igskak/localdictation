@@ -10,6 +10,7 @@ public enum LicenseKeyErrorKind
     Malformed,
     UnsupportedVersion,
     NoAuthority,
+    DeviceIdentityUnavailable,
     BadSignature,
     WrongDevice,
     InconsistentDates,

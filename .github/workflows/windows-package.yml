@@ -8,6 +8,11 @@ on:
         required: true
         default: "0.1.0"
         type: string
+      configure_activation:
+        description: Require the isolated Windows beta authority and HTTPS endpoint from repository secrets
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -46,13 +51,40 @@ jobs:
           cmake --build Windows/artifacts/native --config Release --parallel 2
 
       - name: Publish self-contained x64 app
-        run: >-
-          dotnet publish Windows/src/Witness.App/Witness.App.csproj
-          --configuration Release
-          --no-restore
-          -p:PublishProfile=Beta
-          -p:Version=${{ inputs.version }}
-          --output Windows/artifacts/publish
+        shell: pwsh
+        env:
+          WITNESS_BETA_LICENSE_PUBLIC_KEY: ${{ secrets.WINDOWS_BETA_LICENSE_PUBLIC_KEY }}
+          WITNESS_BETA_ACTIVATION_ENDPOINT: ${{ secrets.WINDOWS_BETA_ACTIVATION_ENDPOINT }}
+        run: |
+          $required = "${{ inputs.configure_activation }}".ToLowerInvariant()
+          if ($required -eq "true" -and ([string]::IsNullOrWhiteSpace($env:WITNESS_BETA_LICENSE_PUBLIC_KEY) -or [string]::IsNullOrWhiteSpace($env:WITNESS_BETA_ACTIVATION_ENDPOINT))) {
+            throw "Configured beta packaging requires WINDOWS_BETA_LICENSE_PUBLIC_KEY and WINDOWS_BETA_ACTIVATION_ENDPOINT repository secrets."
+          }
+          if ($required -eq "true") {
+            try { $authority = [Convert]::FromBase64String($env:WITNESS_BETA_LICENSE_PUBLIC_KEY) }
+            catch { throw "WINDOWS_BETA_LICENSE_PUBLIC_KEY must be valid Base64." }
+            if ($authority.Length -ne 32) {
+              throw "WINDOWS_BETA_LICENSE_PUBLIC_KEY must contain exactly 32 bytes."
+            }
+            $endpoint = $null
+            if (-not [Uri]::TryCreate($env:WITNESS_BETA_ACTIVATION_ENDPOINT, [UriKind]::Absolute, [ref]$endpoint) -or
+                $endpoint.Scheme -ne "https" -or
+                $endpoint.AbsolutePath -cne "/v1/activate" -or
+                -not [string]::IsNullOrEmpty($endpoint.UserInfo) -or
+                -not [string]::IsNullOrEmpty($endpoint.Query) -or
+                -not [string]::IsNullOrEmpty($endpoint.Fragment)) {
+              throw "WINDOWS_BETA_ACTIVATION_ENDPOINT must be an exact HTTPS /v1/activate URL without user info, query, or fragment."
+            }
+          }
+          dotnet publish Windows/src/Witness.App/Witness.App.csproj `
+            --configuration Release `
+            --no-restore `
+            -p:PublishProfile=Beta `
+            -p:Version=${{ inputs.version }} `
+            -p:WitnessRequireBetaActivation=$required `
+            -p:WitnessBetaLicensePublicKey="$env:WITNESS_BETA_LICENSE_PUBLIC_KEY" `
+            -p:WitnessBetaActivationEndpoint="$env:WITNESS_BETA_ACTIVATION_ENDPOINT" `
+            --output Windows/artifacts/publish
 
       - name: Add native CPU binaries
         shell: pwsh
@@ -96,4 +128,6 @@ jobs:
 
       - name: State trust boundary
         shell: pwsh
-        run: Write-Host "Unsigned internal artifact only. Not approved for external distribution; no Windows code-signing credential was used."
+        run: |
+          Write-Host "Unsigned internal artifact only. Not approved for external distribution; no Windows code-signing credential was used."
+          Write-Host "Closed-beta activation requested: ${{ inputs.configure_activation }}. The private license key was never available to this build."

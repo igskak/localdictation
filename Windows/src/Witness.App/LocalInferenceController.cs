@@ -33,6 +33,7 @@ internal sealed class LocalInferenceController : IAsyncDisposable
     private bool disposed;
 
     internal event EventHandler? PrivacyStateChanged;
+    internal event EventHandler? SuccessfulDictationCompleted;
 
     public LocalInferenceController(
         Dispatcher dispatcher,
@@ -256,6 +257,8 @@ internal sealed class LocalInferenceController : IAsyncDisposable
                     warning).ConfigureAwait(false);
                 return true;
             }
+
+            SuccessfulDictationCompleted?.Invoke(this, EventArgs.Empty);
 
             var insertionResult = await insertion.InsertAsync(
                 processed.TextForInsertion,

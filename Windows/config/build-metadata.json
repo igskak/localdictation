@@ -35,7 +35,8 @@
     "status": "pinned-candidate-pending-w3-language-and-performance-validation"
   },
   "authorities": {
-    "license": "windows-beta-separate-unconfigured",
+    "license": "windows-beta-separate-build-time-injected",
+    "activation": "windows-beta-fixed-https-build-time-injected",
     "updates": "windows-beta-separate-unconfigured",
     "macSparkle": "unchanged"
   }

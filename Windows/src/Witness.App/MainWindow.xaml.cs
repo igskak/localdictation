@@ -7,7 +7,9 @@ using Witness.Core.Audio;
 using Witness.Core.History;
 using Witness.Core.Input;
 using Witness.Core.Languages;
+using Witness.Core.Licensing;
 using Witness.Core.Models;
+using Witness.Core.Recording;
 using Witness.Core.Review;
 using Witness.Core.Settings;
 using WpfButton = System.Windows.Controls.Button;
@@ -34,6 +36,10 @@ public partial class MainWindow : Window
     internal event Action<GlossaryEntry>? GlossaryTermRemoveRequested;
     internal event Action<LanguageProfile>? OnboardingLanguageSelectionConfirmed;
     internal event EventHandler? OnboardingCompleted;
+    internal event Action<string>? LicenseActivationRequested;
+    internal event Action<string>? LicenseKeySubmitted;
+    internal event EventHandler? LicenseRemovalRequested;
+    internal event Action<LegalDocumentKind>? LegalDocumentRequested;
 
     private readonly List<string> selectedLanguages = [];
     private readonly List<string> onboardingLanguages = [];
@@ -45,6 +51,8 @@ public partial class MainWindow : Window
     private ProcessedDictation? displayedResult;
     private bool displaysRawTranscript;
     private bool updatingControls;
+    private bool licenseActivationAvailable;
+    private bool licenseKeyAvailable;
 
     public MainWindow()
     {
@@ -208,6 +216,98 @@ public partial class MainWindow : Window
 
     internal void ClearGlossaryTermInput() => GlossaryTermBox.Clear();
 
+    internal void ShowLicense(LicenseScreenState screen)
+    {
+        ArgumentNullException.ThrowIfNull(screen);
+        var state = screen.State;
+        switch (state.Kind)
+        {
+            case EntitlementStateKind.Ungated when state.Grace?.ExpiresAt is null:
+                LicenseStandingHeading.Text = ResourceText("LicenseReadyHeading");
+                LicenseStandingDetail.Text = ResourceText("LicenseReadyDetail");
+                break;
+            case EntitlementStateKind.Ungated:
+                LicenseStandingHeading.Text = ResourceText("LicenseGraceHeading");
+                LicenseStandingDetail.Text = ResourceFormat(
+                    "LicenseGraceDetail",
+                    FormatMoment(state.Grace!.ExpiresAt!.Value));
+                break;
+            case EntitlementStateKind.Licensed:
+                ShowLicensedStanding(state.License!);
+                break;
+            case EntitlementStateKind.Locked:
+                ShowLockedStanding(state.Lock!);
+                break;
+        }
+
+        var activatesTrial = state.Kind == EntitlementStateKind.Ungated
+            || state.Lock?.Kind == EntitlementLockKind.ActivationRequired;
+        LicenseActivationHeading.Text = ResourceText(activatesTrial ? "ActivateTrial" : "RetrieveLicense");
+        LicenseActivationButton.Content = ResourceText(activatesTrial ? "SendBetaKey" : "SendOwnedKey");
+        licenseActivationAvailable = screen.ActivationConfigured
+            && screen.AuthorityConfigured
+            && screen.DeviceId is not null;
+        LicenseActivationButton.IsEnabled = licenseActivationAvailable;
+        LicenseEmailBox.IsEnabled = licenseActivationAvailable;
+        LicenseActivationDetail.Text = screen.DeviceId is null
+            ? screen.DeviceError ?? ResourceText("DeviceIdentityUnavailable")
+            : !screen.AuthorityConfigured
+                ? ResourceText("AuthorityNotConfiguredDetail")
+                : screen.ActivationConfigured
+                ? ResourceText("ActivationPrivacyDetail")
+                : ResourceText("ActivationNotConfiguredDetail");
+
+        licenseKeyAvailable = screen.AuthorityConfigured && screen.DeviceId is not null;
+        LicenseKeyBox.IsEnabled = licenseKeyAvailable;
+        UseLicenseKeyButton.IsEnabled = licenseKeyAvailable;
+        RemoveLicenseButton.Visibility = screen.HasStoredLicenseToken ? Visibility.Visible : Visibility.Collapsed;
+        ManualKeyDetail.Text = !screen.AuthorityConfigured
+            ? ResourceText("AuthorityNotConfiguredDetail")
+            : screen.DeviceId is null
+                ? screen.DeviceError ?? ResourceText("DeviceIdentityUnavailable")
+                : ResourceText("ManualKeyDetail");
+
+        LicenseDeviceIdText.Text = screen.DeviceId ?? ResourceText("Unavailable");
+        LicenseDeviceDetail.Text = screen.DeviceId is null
+            ? screen.DeviceError ?? ResourceText("DeviceIdentityUnavailable")
+            : ResourceText("DeviceIdentifierDetail");
+    }
+
+    internal void SetLicenseBusy(bool busy)
+    {
+        LicenseBusyProgress.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
+        LicenseActivationButton.IsEnabled = !busy && licenseActivationAvailable;
+        LicenseEmailBox.IsEnabled = !busy && licenseActivationAvailable;
+        UseLicenseKeyButton.IsEnabled = !busy && licenseKeyAvailable;
+        LicenseKeyBox.IsEnabled = !busy && licenseKeyAvailable;
+        RemoveLicenseButton.IsEnabled = !busy;
+    }
+
+    internal void ShowLicenseNotice(string message)
+    {
+        LicenseNoticeText.Text = message;
+        LicenseNoticeText.Visibility = Visibility.Visible;
+    }
+
+    internal void ClearLicenseNotice()
+    {
+        LicenseNoticeText.Text = string.Empty;
+        LicenseNoticeText.Visibility = Visibility.Collapsed;
+    }
+
+    internal void ClearLicenseInputs()
+    {
+        LicenseEmailBox.Clear();
+        LicenseKeyBox.Clear();
+    }
+
+    internal void OpenLicenseSection()
+    {
+        LicenseNavigation.IsChecked = true;
+        ShowSection("License");
+        LicensePanel.Focus();
+    }
+
     internal void ShowDiagnostics(
         LanguageProfile profile,
         int glossaryCount,
@@ -301,11 +401,99 @@ public partial class MainWindow : Window
     private static string FormatMegabytes(long bytes) =>
         Math.Ceiling(bytes / (1024D * 1024D)).ToString("N0", CultureInfo.CurrentCulture);
 
+    private static string FormatMoment(DateTimeOffset value) =>
+        value.ToLocalTime().ToString("g", CultureInfo.CurrentCulture);
+
+    private void ShowLicensedStanding(License license)
+    {
+        LicenseStandingHeading.Text = ResourceText(license.Kind switch
+        {
+            LicenseKind.Trial => "LicenseTrialHeading",
+            LicenseKind.Annual => "LicenseAnnualHeading",
+            _ => "LicenseLifetimeHeading",
+        });
+        LicenseStandingDetail.Text = license.ExpiresAt is DateTimeOffset expiry
+            ? ResourceFormat("LicenseDatedDetail", license.Email, FormatMoment(expiry))
+            : ResourceFormat("LicenseLifetimeDetail", license.Email, LifetimeUpdatePolicy.CoveredMajor(license.IssuedAt));
+    }
+
+    private void ShowLockedStanding(EntitlementLock entitlementLock)
+    {
+        switch (entitlementLock.Kind)
+        {
+            case EntitlementLockKind.ActivationRequired:
+                LicenseStandingHeading.Text = ResourceText("LicenseActivationRequiredHeading");
+                LicenseStandingDetail.Text = ResourceText("LicenseActivationRequiredDetail");
+                break;
+            case EntitlementLockKind.ExpiredTrial:
+                LicenseStandingHeading.Text = ResourceText("LicenseTrialExpiredHeading");
+                LicenseStandingDetail.Text = ResourceFormat("LicenseExpiredDetail", FormatMoment(entitlementLock.ExpiredAt!.Value));
+                break;
+            case EntitlementLockKind.ExpiredAnnual:
+                LicenseStandingHeading.Text = ResourceText("LicenseAnnualExpiredHeading");
+                LicenseStandingDetail.Text = ResourceFormat("LicenseExpiredDetail", FormatMoment(entitlementLock.ExpiredAt!.Value));
+                break;
+            default:
+                LicenseStandingHeading.Text = ResourceText("LicenseUpdateRequiredHeading");
+                LicenseStandingDetail.Text = ResourceFormat(
+                    "LicenseUpdateRequiredDetail",
+                    entitlementLock.CoveredMajor ?? 1,
+                    entitlementLock.RunningMajor ?? 1);
+                break;
+        }
+    }
+
     private void NavigateSettings(object sender, RoutedEventArgs e)
     {
         if (!IsInitialized || sender is not WpfRadioButton { Tag: string section }) return;
         ShowSection(section);
     }
+
+    private void RequestLicenseActivation(object sender, RoutedEventArgs e)
+    {
+        var email = LicenseEmailBox.Text.Trim();
+        if (!EmailAddress.LooksComplete(email))
+        {
+            ShowLicenseNotice(ResourceText("LicenseEmailInvalid"));
+            LicenseEmailBox.Focus();
+            return;
+        }
+        ClearLicenseNotice();
+        LicenseActivationRequested?.Invoke(email);
+    }
+
+    private void UseLicenseKey(object sender, RoutedEventArgs e)
+    {
+        var key = LicenseKeyBox.Text.Trim();
+        if (string.IsNullOrEmpty(key))
+        {
+            ShowLicenseNotice(ResourceText("LicenseKeyEmpty"));
+            LicenseKeyBox.Focus();
+            return;
+        }
+        ClearLicenseNotice();
+        LicenseKeySubmitted?.Invoke(key);
+    }
+
+    private void RemoveLicense(object sender, RoutedEventArgs e)
+    {
+        var confirmation = System.Windows.MessageBox.Show(
+            this,
+            ResourceText("RemoveLicenseConfirmation"),
+            ResourceText("RemoveLicenseConfirmationTitle"),
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning,
+            MessageBoxResult.No);
+        if (confirmation != MessageBoxResult.Yes) return;
+        ClearLicenseNotice();
+        LicenseRemovalRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void OpenPrivacyDraft(object sender, RoutedEventArgs e) =>
+        LegalDocumentRequested?.Invoke(LegalDocumentKind.Privacy);
+
+    private void OpenTermsDraft(object sender, RoutedEventArgs e) =>
+        LegalDocumentRequested?.Invoke(LegalDocumentKind.Terms);
 
     private void ShowSection(string section)
     {
@@ -651,3 +839,17 @@ public partial class MainWindow : Window
 
     private sealed record ReviewDisplayItem(string DisplayText, bool CanReplay, RiskSpan Span);
 }
+
+internal enum LegalDocumentKind
+{
+    Privacy,
+    Terms,
+}
+
+internal sealed record LicenseScreenState(
+    EntitlementState State,
+    string? DeviceId,
+    string? DeviceError,
+    bool AuthorityConfigured,
+    bool ActivationConfigured,
+    bool HasStoredLicenseToken);

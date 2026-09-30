@@ -109,6 +109,63 @@ public sealed class EntitlementSessionTests
     }
 
     [TestMethod]
+    public async Task MissingHardwareIdentityPreservesStoredKeyButCanStillRemoveItLocally()
+    {
+        var fixture = LoadFixture();
+        var token = fixture.Keys.Single(key => key.Kind == "lifetime").Token;
+        var store = new MemoryStore
+        {
+            Record = UsageRecord.New(Origin, "synthetic-install") with { LicenseToken = token },
+        };
+        var session = new EntitlementSession(
+            store,
+            new LicenseKeyVerifier(),
+            LicenseAuthority.FromBase64(fixture.PublicKeyBase64),
+            deviceId: null,
+            "1.0.0",
+            () => Origin,
+            () => "synthetic-install",
+            new FakeActivationBackend { Key = token });
+
+        Assert.IsFalse(session.CanRequestActivation);
+        Assert.IsFalse(session.CanEnterLicenseKey);
+        Assert.IsTrue(session.HasStoredLicenseToken);
+        Assert.IsNull(session.License);
+        Assert.AreEqual(token, store.Record?.LicenseToken);
+        var error = Assert.ThrowsExactly<LicenseKeyVerificationException>(() => session.AcceptLicense(token));
+        Assert.AreEqual(LicenseKeyErrorKind.DeviceIdentityUnavailable, error.Kind);
+
+        var outcome = await session.ReleaseFromThisComputerAsync();
+
+        Assert.AreEqual(DeviceReleaseOutcomeKind.RemovedLocallyOnly, outcome.Kind);
+        Assert.IsFalse(session.HasStoredLicenseToken);
+        Assert.IsNull(store.Record?.LicenseToken);
+    }
+
+    [TestMethod]
+    public async Task MissingAuthorityPreventsActivationBeforeTheBackendIsCalled()
+    {
+        var fixture = LoadFixture();
+        var backend = new FakeActivationBackend { Key = fixture.Keys[0].Token };
+        var session = new EntitlementSession(
+            new MemoryStore(),
+            new LicenseKeyVerifier(),
+            LicenseAuthority.Unconfigured,
+            fixture.Device,
+            "1.0.0",
+            () => Origin,
+            () => "synthetic-install",
+            backend);
+
+        Assert.IsFalse(session.CanRequestActivation);
+        var error = await Assert.ThrowsExactlyAsync<ActivationException>(() =>
+            session.RequestActivationAsync(EmailForTest));
+
+        Assert.AreEqual(ActivationErrorKind.NotConfigured, error.Kind);
+        Assert.IsNull(backend.Email);
+    }
+
+    [TestMethod]
     public void FailedPersistenceDoesNotClaimThatAKeyWasAccepted()
     {
         var fixture = LoadFixture();

@@ -12,11 +12,29 @@
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
     <StartupObject>Witness.App.Program</StartupObject>
     <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
+    <WitnessBetaLicensePublicKey Condition="'$(WitnessBetaLicensePublicKey)' == ''"></WitnessBetaLicensePublicKey>
+    <WitnessBetaActivationEndpoint Condition="'$(WitnessBetaActivationEndpoint)' == ''"></WitnessBetaActivationEndpoint>
+    <WitnessRequireBetaActivation Condition="'$(WitnessRequireBetaActivation)' == ''">false</WitnessRequireBetaActivation>
   </PropertyGroup>
+  <ItemGroup>
+    <AssemblyMetadata Include="WitnessBetaLicensePublicKey" Value="$(WitnessBetaLicensePublicKey)" />
+    <AssemblyMetadata Include="WitnessBetaActivationEndpoint" Value="$(WitnessBetaActivationEndpoint)" />
+    <Content Include="..\..\LEGAL\WINDOWS_BETA_PRIVACY.md" Link="Legal\WINDOWS_BETA_PRIVACY.md" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\LEGAL\WINDOWS_BETA_TERMS.md" Link="Legal\WINDOWS_BETA_TERMS.md" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Witness.Core\Witness.Core.csproj" />
     <ProjectReference Include="..\Witness.Platform.Windows\Witness.Platform.Windows.csproj" />
     <ProjectReference Include="..\Witness.Update\Witness.Update.csproj" />
     <PackageReference Include="Velopack" />
   </ItemGroup>
+  <Target Name="ValidateRequiredBetaActivationConfiguration" BeforeTargets="CoreCompile"
+          Condition="'$(WitnessRequireBetaActivation)' == 'true'">
+    <Error Condition="'$(WitnessBetaLicensePublicKey)' == ''"
+           Text="WitnessRequireBetaActivation requires WitnessBetaLicensePublicKey." />
+    <Error Condition="'$(WitnessBetaActivationEndpoint)' == ''"
+           Text="WitnessRequireBetaActivation requires WitnessBetaActivationEndpoint." />
+    <Error Condition="$([System.String]::Copy('$(WitnessBetaActivationEndpoint)').StartsWith('https://')) != 'True'"
+           Text="WitnessBetaActivationEndpoint must use HTTPS." />
+  </Target>
 </Project>

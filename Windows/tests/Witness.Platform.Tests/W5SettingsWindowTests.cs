@@ -6,7 +6,10 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Text.RegularExpressions;
 using Witness.Core.Audio;
+using Witness.Core.Input;
 using Witness.Core.Languages;
+using Witness.Core.Licensing;
+using Witness.Core.Recording;
 using Witness.Core.Review;
 using Witness.Core.Settings;
 
@@ -101,6 +104,49 @@ public sealed class W5SettingsWindowTests
                 Assert.AreEqual(
                     ScrollBarVisibility.Auto,
                     ScrollViewer.GetVerticalScrollBarVisibility(onboardingLanguages));
+
+                window.ShowLicense(new Witness.App.LicenseScreenState(
+                    EntitlementState.Ungated(new GraceStanding(DateTimeOffset.UtcNow.AddDays(2))),
+                    "0123456789abcdef0123456789abcdef",
+                    null,
+                    AuthorityConfigured: true,
+                    ActivationConfigured: true,
+                    HasStoredLicenseToken: false));
+                ((RadioButton)window.FindName("LicenseNavigation")).IsChecked = true;
+                window.UpdateLayout();
+                Assert.IsTrue(((Button)window.FindName("LicenseActivationButton")).IsEnabled);
+                Assert.IsTrue(((Button)window.FindName("UseLicenseKeyButton")).IsEnabled);
+                Assert.AreEqual(
+                    "0123456789abcdef0123456789abcdef",
+                    ((TextBox)window.FindName("LicenseDeviceIdText")).Text);
+                Assert.AreEqual(
+                    ScrollBarVisibility.Auto,
+                    ((ScrollViewer)window.FindName("LicensePanel")).VerticalScrollBarVisibility);
+
+                window.ShowLicense(new Witness.App.LicenseScreenState(
+                    EntitlementState.Locked(EntitlementLock.ActivationRequired),
+                    "0123456789abcdef0123456789abcdef",
+                    null,
+                    AuthorityConfigured: true,
+                    ActivationConfigured: false,
+                    HasStoredLicenseToken: true));
+                Assert.IsFalse(((Button)window.FindName("LicenseActivationButton")).IsEnabled);
+                Assert.IsTrue(((Button)window.FindName("UseLicenseKeyButton")).IsEnabled);
+                Assert.AreEqual(Visibility.Visible, ((Button)window.FindName("RemoveLicenseButton")).Visibility);
+
+                var activity = new Witness.App.ActivityWindow();
+                var blocked = 0;
+                using (var controller = new Witness.App.DictationCaptureController(
+                    window.Dispatcher,
+                    activity,
+                    window,
+                    canBeginRecording: () => false,
+                    recordingBlocked: () => blocked++))
+                {
+                    controller.Handle(HotkeyAction.BeginRecording);
+                }
+                Assert.AreEqual(1, blocked);
+                activity.Close();
                 window.Close();
             }
             catch (Exception error)

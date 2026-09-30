@@ -12,7 +12,9 @@ internal sealed class DictationCaptureController(
     MainWindow mainWindow,
     IInsertionTargetObserver? insertionTargets = null,
     Func<long>? beginOperation = null,
-    Func<AudioCaptureResult, InsertionTarget?, long, Task<bool>>? completedCaptureProcessor = null) : IDisposable
+    Func<AudioCaptureResult, InsertionTarget?, long, Task<bool>>? completedCaptureProcessor = null,
+    Func<bool>? canBeginRecording = null,
+    Action? recordingBlocked = null) : IDisposable
 {
     private readonly SemaphoreSlim operationGate = new(1, 1);
     private AudioInputSelection audioInputSelection = AudioInputSelection.SystemDefault;
@@ -34,6 +36,11 @@ internal sealed class DictationCaptureController(
         if (disposed || action == HotkeyAction.None) return;
         if (action == HotkeyAction.BeginRecording)
         {
+            if (canBeginRecording is not null && !canBeginRecording())
+            {
+                recordingBlocked?.Invoke();
+                return;
+            }
             var generation = beginOperation?.Invoke() ?? 0;
             var observation = insertionTargets?.Observe();
             var target = observation?.DesktopAvailable == true ? observation.Target : null;
