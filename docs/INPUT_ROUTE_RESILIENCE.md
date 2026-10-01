@@ -415,6 +415,39 @@ The logged `gap` was itself wrong until 2026-09-30: it timed our own teardown
 rather than the silence, and reported 192 ms where 810 ms had passed. It now runs
 from the last frame that arrived.
 
+### Verified on hardware 2026-10-01
+
+Author's MacBook Pro, AirPods Pro 2 shared with the phone, music playing from the
+phone, the build from this branch:
+
+```
+09:42:44.548  Capture started: Sweetheart's AirPods #2 (direct), device 24000 Hz 1 ch
+09:42:45.316  Input rebound (boundDeviceDeliveredSilence): Sweetheart's AirPods #2
+              -> MacBook Pro Microphone (direct), 48000 Hz 1 ch, gap 106 ms
+09:42:47.434  Capture finished: 2.64 s, 42261 frames, dropped 0, rebinds 1
+09:42:48.498  RU+EN+UK decoded as ru (confident) -> 3 tokens
+```
+
+One utterance, one rebind, a transcript. The same situation produced 90 thousand
+frames of zeros and `silent:nothingHeard` before this branch.
+
+Where the 768 ms goes: 424 ms before the headset's first callback arrives at all
+(its latency, measured in phase A as well), then 250 ms for the watchdog to be
+sure the zeros are not a coincidence, then the debouncer's 150 ms quiet period.
+The logged `gap 106 ms` is smaller than the real loss, and correctly so by that
+metric's definition: it runs from the last frame that arrived, and the headset
+kept delivering frames, just empty ones. The recorded utterance carries about
+0.77 s of digital silence at its head, which costs recognition nothing and costs
+the user the words they said into it.
+
+Two cheap trims exist and are not done: this event does not need the debouncer,
+since it is a verdict from our own watchdog rather than a burst of notifications
+(150 ms), and the limit could fall from 250 ms to 120 ms with the watchdog
+interval from 250 ms to 100 ms (about 150 ms more). That leaves roughly 0.5 s,
+almost all of it the headset's own latency. Removing the loss entirely means
+opening both microphones for the first quarter second and keeping the one that
+speaks, which is a change to how a session owns its segment.
+
 ### Still open
 
 3 (Chrome), which may well be a negative result: Chrome may not use Apple voice
@@ -506,15 +539,47 @@ before the first zeros arrive, 250 ms before the watchdog is sure, then the
 rebind. The words inside that are lost the way the words inside any rebind gap
 are.
 
+### Verified on hardware 2026-10-01
+
+Author's MacBook Pro, AirPods Pro 2 shared with the phone, music playing from the
+phone, the build from this branch:
+
+```
+09:42:44.548  Capture started: Sweetheart's AirPods #2 (direct), device 24000 Hz 1 ch
+09:42:45.316  Input rebound (boundDeviceDeliveredSilence): Sweetheart's AirPods #2
+              -> MacBook Pro Microphone (direct), 48000 Hz 1 ch, gap 106 ms
+09:42:47.434  Capture finished: 2.64 s, 42261 frames, dropped 0, rebinds 1
+09:42:48.498  RU+EN+UK decoded as ru (confident) -> 3 tokens
+```
+
+One utterance, one rebind, a transcript. The same situation produced 90 thousand
+frames of zeros and `silent:nothingHeard` before this branch.
+
+Where the 768 ms goes: 424 ms before the headset's first callback arrives at all
+(its latency, measured in phase A as well), then 250 ms for the watchdog to be
+sure the zeros are not a coincidence, then the debouncer's 150 ms quiet period.
+The logged `gap 106 ms` is smaller than the real loss, and correctly so by that
+metric's definition: it runs from the last frame that arrived, and the headset
+kept delivering frames, just empty ones. The recorded utterance carries about
+0.77 s of digital silence at its head, which costs recognition nothing and costs
+the user the words they said into it.
+
+Two cheap trims exist and are not done: this event does not need the debouncer,
+since it is a verdict from our own watchdog rather than a burst of notifications
+(150 ms), and the limit could fall from 250 ms to 120 ms with the watchdog
+interval from 250 ms to 100 ms (about 150 ms more). That leaves roughly 0.5 s,
+almost all of it the headset's own latency. Removing the loss entirely means
+opening both microphones for the first quarter second and keeping the one that
+speaks, which is a change to how a session owns its segment.
+
 ### Still open
 
 - The music does not come back after a voice processing claim. Measured with the
   probe: the phone stopped and stayed stopped. It only matters on a machine with
   no other microphone, which is why it did not block the fix, and it should be
   measured against what Wispr leaves behind before anyone builds on that path.
-- Hardware verification of the fix: dictate with music playing from the phone and
-  expect one utterance, one rebind to the built-in microphone, correct text, and
-  the music still playing. Not yet done.
+- The opening of the sentence. Verified below: 768 ms from the press to the
+  rebind, and most of it is not ours to recover.
 - Chrome, from the earlier slice.
 
 ## Investigation recipe
