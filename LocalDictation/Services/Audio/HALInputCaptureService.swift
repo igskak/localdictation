@@ -306,6 +306,8 @@ final class HALInputCaptureService: AudioCaptureService, @unchecked Sendable {
             return
         case let .rebind(device):
             rebind(session, to: device, because: event)
+        case let .escalate(device):
+            rebind(session, to: device, because: event, mode: .voiceProcessing)
         case let .interrupt(error):
             // A microphone that vanished often comes back within a moment: an
             // aggregate being rebuilt, a dock waking up. Ending the sentence is
@@ -326,7 +328,12 @@ final class HALInputCaptureService: AudioCaptureService, @unchecked Sendable {
         }
     }
 
-    private func rebind(_ session: Session, to device: AudioDeviceID, because event: InputRouteEvent) {
+    private func rebind(
+        _ session: Session,
+        to device: AudioDeviceID,
+        because event: InputRouteEvent,
+        mode: InputCaptureMode = .direct
+    ) {
         let now = ProcessInfo.processInfo.systemUptime
         guard session.budget.allowsAttempt(at: now) else {
             finish(session, with: .engineStartFailed("the microphone could not be reopened"))
@@ -353,7 +360,7 @@ final class HALInputCaptureService: AudioCaptureService, @unchecked Sendable {
         }
 
         do {
-            let segment = try makeSegment(device: replacement, sink: session.sink)
+            let segment = try makeSegment(device: replacement, sink: session.sink, mode: mode)
 
             let status = AudioOutputUnitStart(segment.unit)
             guard status == noErr else {
@@ -403,18 +410,20 @@ final class HALInputCaptureService: AudioCaptureService, @unchecked Sendable {
 
     // MARK: - Building a segment
 
-    /// Opens the device the way its transport needs.
+    /// Opens the device, directly unless the route policy has asked for the
+    /// stronger claim.
     ///
-    /// A Bluetooth headset is opened with voice processing, because that is what
-    /// takes its microphone back from another host that is playing to it; see
-    /// `InputCaptureMode`. Voice processing is pickier than the plain unit about
-    /// which formats it will accept, and which combination works depends on the
-    /// device, so it is asked twice with decreasing demands. If it will not open
-    /// at all, the direct path still records: a headset that is not shared with
-    /// anything hands over its microphone either way, and failing the press would
-    /// be worse than recording without the stronger claim.
-    private func makeSegment(device: SystemAudioInput.Device, sink: PCMCaptureSink) throws -> InputSegment {
-        guard InputCaptureMode.preferred(for: device) == .voiceProcessing else {
+    /// Voice processing is pickier than the plain unit about which formats it
+    /// will accept, and which combination works depends on the device, so it is
+    /// asked twice with decreasing demands. If it will not open at all, the
+    /// direct path still records: failing the press would be worse than
+    /// recording without the claim.
+    private func makeSegment(
+        device: SystemAudioInput.Device,
+        sink: PCMCaptureSink,
+        mode: InputCaptureMode = .direct
+    ) throws -> InputSegment {
+        guard mode == .voiceProcessing else {
             return try openSegment(device: device, sink: sink, mode: .direct, setsPlaybackFormat: false)
         }
 

@@ -52,6 +52,11 @@ enum InputRouteAction: Equatable, Sendable {
     /// Stop this segment, drain it into the same utterance, and open that
     /// device instead. The user sees nothing.
     case rebind(AudioDeviceID)
+    /// Reopen the same device with voice processing, which owns both halves of
+    /// it and takes a shared headset back from the host that is playing to it.
+    /// The last resort before recording nothing, because it costs the user the
+    /// audio they were listening to.
+    case escalate(AudioDeviceID)
     /// There is no input to continue with. The utterance ends, and what was
     /// already said is still transcribed and delivered.
     case interrupt(AudioCaptureError)
@@ -69,12 +74,13 @@ enum InputCaptureMode: Equatable, Sendable {
     /// Measured on AirPods Pro with music playing from the phone: direct gave
     /// bit-exact zeros, voice processing gave speech at -11.8 dBFS peak and
     /// reached its first callback in 202 ms against the direct path's 424 ms.
+    ///
+    /// It is never the first thing capture does, because taking the headset
+    /// stops what the user was listening to on the other device. It is what
+    /// capture does on a machine where there is no other microphone at all, and
+    /// there the trade is the other way round: stopping the music beats
+    /// recording nothing.
     case voiceProcessing
-
-    /// What to open a device with before anything has gone wrong.
-    static func preferred(for device: SystemAudioInput.Device) -> InputCaptureMode {
-        device.isBluetooth ? .voiceProcessing : .direct
-    }
 }
 
 /// The device a running segment is bound to, and the format it was built for.
@@ -147,6 +153,12 @@ enum InputRoutePolicy {
             // interrupting would add a second wrong answer to the first.
             let elsewhere = resolve(selection, snapshot: snapshot, excluding: binding.deviceID)
             if case let .rebind(device) = elsewhere, device != binding.deviceID { return elsewhere }
+            // Nowhere to go. On a headset there is still one claim left, and on
+            // a machine with no other microphone it is worth what it costs.
+            let bound = snapshot.devices.first { $0.id == binding.deviceID }
+            if bound?.isBluetooth == true, binding.mode == .direct {
+                return .escalate(binding.deviceID)
+            }
             return .keep
 
         case .boundDeviceFormatChanged:

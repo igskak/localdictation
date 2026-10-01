@@ -421,85 +421,101 @@ from the last frame that arrived.
 processing at all, in which case the device stays at one channel and there is
 nothing to rebind through.
 
-## Open: a headset shared with a phone (reported 2026-09-30)
+## A headset shared with a phone (measured and fixed 2026-10-01)
 
-Reported by the user on 2026-10-01 about the evening before: AirPods paired to
-both this Mac and the phone, music playing from the phone, and Witness does not
-pick up the microphone at all. Wispr Flow in the same situation stops the music
-and dictates normally.
+Reported by the user: AirPods paired to both this Mac and the phone, music
+playing from the phone, and Witness does not pick up the microphone at all.
+Wispr Flow in the same situation stops the music and dictates normally. It never
+worked, including before 0.6.8, so removing the aggregate in slice 2 is not the
+cause.
 
-This is a different failure from everything above. There the microphone was open
-and the signal was wrong; here another host owns the headset, and the question is
-what makes it hand the microphone over.
+The incident itself left no trace: the audio category from that session is not in
+the persisted store, and every `No microphone input device is available` burst
+that day belongs to a test run. So it was measured from scratch with
+`Tools/probe_bluetooth_input.swift`, which opens a chosen device three ways and
+reports callbacks, first-callback latency, peak and RMS.
 
-### What the log says about the incident: nothing
+### What the headset does
 
-Checked on 2026-10-01 over the whole retained window. The Witness audio category
-has no entry from that session: the running instance (pid 61288, 17:00 to 18:44)
-left only `transcription` lines in the persisted store, and every
-`No microphone input device is available` burst that day belongs to a test run,
-not to a press. So the failure mode is not established yet, and the three
-candidates below are still candidates:
+AirPods Pro 2, music playing from the phone, four seconds per phase:
 
-1. The AirPods report input streams with zero channels while the phone holds the
-   link, `configure` reads `0 ch` and start fails with `unsupportedInputFormat`.
-2. Frames arrive, at the noise floor, because the headset answered the Mac
-   without switching its microphone over. The user then gets "nothing heard".
-3. No callback arrives, the watchdog fires `inputStalled` four times inside its
-   2 s window and the utterance ends with `engineStartFailed`.
+| Phase | first callback | peak | rms |
+| --- | ---: | ---: | ---: |
+| 0, built-in microphone, input only (control) | 84 ms | -22.1 dBFS | -46.7 dBFS |
+| A, headset, input only (what capture did) | 424 ms | `-inf` | `-inf` |
+| C, headset, voice processing | 202 ms | -11.8 dBFS | -27.2 dBFS |
 
-### The mechanism, and why this may be ours rather than Apple's
+Phase A is the bug, and its shape is the point: 190 callbacks and 91 200 frames
+arrived on time, and every sample was bit-exact zero. The device was alive, was
+the default input, opened at 24 kHz, and nothing in the route said anything. The
+headset answers the Mac while its microphone stays with the phone.
 
-Opening the input half of a Bluetooth device is the whole claim capture makes
-today. Slice 2 deliberately removed the other half: `AVAudioEngine` used to
-record through `CADefaultDeviceAggregate`, whose IO work loop is the default
-**output** device, so recording used to claim an output too. For a headset that
-two hosts are competing for, the output claim is exactly what a call makes and
-what media playback makes, and it may be what the arbitration actually keys on.
-If so, the aggregate we were right to remove was carrying this for free, and the
-regression arrived with 0da260c.
+Phase C says what takes the microphone back: a unit that owns both halves of the
+device, which is what a call owns. It is also faster to the first callback than
+the direct path, and louder than the built-in microphone.
 
-Worth asking the user and cheap to answer: did dictation with music from the
-phone work before 0.6.8?
+Phase B, a silent output claim beside the input, could not be made as written:
+the probe binds the input device, and macOS exposes a Bluetooth headset as two
+device objects, `<address>:input` and `<address>:output`, so the input object has
+no output half to claim. Untested, and left that way.
 
-### The probe
+### What Wispr Flow actually does
 
-`Tools/probe_bluetooth_input.swift` answers both halves of the question in one
-run of about a minute, and needs the phone, the AirPods and music:
+From the unified log, two of its dictations with music playing from the phone
+(`/tmp/route-handoff.log`, 2026-10-01 09:16:46 to 09:17:29):
 
-```bash
-swift Tools/probe_bluetooth_input.swift --device AirPods
+```
+09:16:48.998  IOWorkLoopInit: 5949 9C-F3-AC-7E-D9-84:output
+09:16:49.141  IOWorkLoopInit: 3683 BuiltInMicrophoneDevice
+09:16:49.169  PublishRecordingClientInfo: Report client 88048 running: yes
+09:16:49.282  IOWorkLoopDeinit: 5949 9C-F3-AC-7E-D9-84:output
+09:16:49.293  SetDefaultDevice 'dIn ' | transient 5912: '9C-F3-AC-7E-D9-84:input'
+09:16:52.722  IOWorkLoopDeinit: 3683 BuiltInMicrophoneDevice
+09:17:19.856  IOWorkLoopInit: 3683 BuiltInMicrophoneDevice
 ```
 
-Phase 0 records the built-in microphone as a control, because the probe's
-microphone permission belongs to the terminal and zeros everywhere would
-otherwise read as a Bluetooth result. Phase A opens the headset input only, the
-way capture does today. Phase B adds a silent output on the same device. Phase C
-opens the device with voice processing, the way a call does. Each phase reports
-callbacks, first-callback latency, peak and RMS, and re-reads the device's
-channels and rate while it runs; the operator notes after each phase whether the
-music is still playing.
+It records the **built-in microphone**, both times, the second one while the
+headset was already the system default input. What stops the music is its start
+sound, played on the headset's output device for 284 ms; the Bluetooth stack then
+spends 426 ms switching the profile and the phone loses the route. There is no
+`VPAUAggregate` anywhere in the window, so no voice processing is involved.
 
-### Decision rule
+So the behaviour the user asked for is not "take the headset's microphone". It is
+"record from something that works, and do not make a point of it".
 
-- Phase A already hears speech: the failure is not the claim, and the log from a
-  real press decides between the three candidates above.
-- Phase B stops the music and hears speech: capture keeps a silent output claim
-  open on the bound device for the duration of a recording, and only for
-  Bluetooth transports. It is a second audio unit beside the segment's, owned by
-  the same queue, torn down with it, and it leaves the signal path and the
-  benchmark untouched.
-- Only phase C works: voice processing becomes the path for Bluetooth inputs.
-  That is a bigger change than it looks, because it ducks other apps' audio,
-  changes the signal the benchmark was measured on, and would have to be
-  measured again per language.
-- Nothing works: the next experiment is making the headset the default output
-  for the duration of a recording, which mutates a system setting and needs its
-  own decision.
+### What capture does now
 
-Either way the start path has to stop reporting this as "nothing heard": a
-Bluetooth device delivering frames at the noise floor is a different thing to
-say, and the user can act on it.
+1. The audio callback notices a run of bit-exact zeros from the bound device. The
+   scan stops at the first sample that is not zero, and once a segment has heard
+   anything it is never run again.
+2. The watchdog reports it once per binding, after 250 ms, as
+   `boundDeviceDeliveredSilence`.
+3. The policy moves the recording to another microphone, keeping the sentence
+   through the existing rebind.
+4. Only when there is no other microphone at all, and the bound device is a
+   headset opened directly, does capture reopen it with voice processing. That is
+   the one case where stopping the user's music beats recording nothing. A Mac
+   without a microphone of its own is the configuration this exists for.
+
+The watch is limited to Bluetooth. On a local microphone bit-exact zeros mean the
+input is muted, and moving the recording off a microphone someone muted on
+purpose is the last thing capture should do.
+
+Cost in the reported case: the opening of the sentence, about 0.8 s. 424 ms
+before the first zeros arrive, 250 ms before the watchdog is sure, then the
+rebind. The words inside that are lost the way the words inside any rebind gap
+are.
+
+### Still open
+
+- The music does not come back after a voice processing claim. Measured with the
+  probe: the phone stopped and stayed stopped. It only matters on a machine with
+  no other microphone, which is why it did not block the fix, and it should be
+  measured against what Wispr leaves behind before anyone builds on that path.
+- Hardware verification of the fix: dictate with music playing from the phone and
+  expect one utterance, one rebind to the built-in microphone, correct text, and
+  the music still playing. Not yet done.
+- Chrome, from the earlier slice.
 
 ## Investigation recipe
 

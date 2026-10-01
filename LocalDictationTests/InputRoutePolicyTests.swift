@@ -22,8 +22,13 @@ final class InputRoutePolicyTests: XCTestCase {
         transportType: kAudioDeviceTransportTypeUSB, nominalSampleRate: 48_000
     )
 
-    private func binding(_ device: SystemAudioInput.Device, channels: Int = 1, rate: Double = 48_000) -> InputBinding {
-        InputBinding(deviceID: device.id, sampleRate: rate, channelCount: channels)
+    private func binding(
+        _ device: SystemAudioInput.Device,
+        channels: Int = 1,
+        rate: Double = 48_000,
+        mode: InputCaptureMode = .direct
+    ) -> InputBinding {
+        InputBinding(deviceID: device.id, sampleRate: rate, channelCount: channels, mode: mode)
     }
 
     private func snapshot(
@@ -205,16 +210,42 @@ final class InputRoutePolicyTests: XCTestCase {
         XCTAssertEqual(action, .rebind(builtIn.id))
     }
 
-    func testADeviceDeliveringOnlySilenceIsKeptWhenItIsTheOnlyOne() {
+    /// A Mac with no microphone of its own, and a headset that is listening to
+    /// something else. Taking the headset stops what the user was hearing, which
+    /// is why it is never the first answer; here it is the only one.
+    func testTheOnlyMicrophoneBeingAHeadsetEarnsTheStrongerClaim() {
         let action = InputRoutePolicy.action(
             for: .boundDeviceDeliveredSilence,
             selection: .systemDefault,
             binding: binding(airPods, rate: 24_000),
             snapshot: snapshot([airPods], defaultID: airPods.id)
         )
+        XCTAssertEqual(action, .escalate(airPods.id))
+    }
+
+    func testTheStrongerClaimIsNotMadeTwice() {
+        let action = InputRoutePolicy.action(
+            for: .boundDeviceDeliveredSilence,
+            selection: .systemDefault,
+            binding: binding(airPods, rate: 24_000, mode: .voiceProcessing),
+            snapshot: snapshot([airPods], defaultID: airPods.id)
+        )
         XCTAssertEqual(
             action, .keep,
             "Ending the sentence would add a second wrong answer to the first; the notice tells the truth about the silence"
+        )
+    }
+
+    func testALocalMicrophoneThatGoesSilentIsLeftAlone() {
+        let action = InputRoutePolicy.action(
+            for: .boundDeviceDeliveredSilence,
+            selection: .systemDefault,
+            binding: binding(builtIn),
+            snapshot: snapshot([builtIn], defaultID: builtIn.id)
+        )
+        XCTAssertEqual(
+            action, .keep,
+            "Exact zeros from a local microphone mean someone muted it, and voice processing would not change that"
         )
     }
 
@@ -229,17 +260,6 @@ final class InputRoutePolicyTests: XCTestCase {
             action, .rebind(builtIn.id),
             "A chosen device that delivers nothing is not a reason to record nothing"
         )
-    }
-
-    // MARK: - How a device is opened
-
-    func testABluetoothDeviceIsOpenedWithVoiceProcessing() {
-        XCTAssertEqual(InputCaptureMode.preferred(for: airPods), .voiceProcessing)
-    }
-
-    func testLocalDevicesKeepTheDirectPath() {
-        XCTAssertEqual(InputCaptureMode.preferred(for: builtIn), .direct)
-        XCTAssertEqual(InputCaptureMode.preferred(for: usb), .direct)
     }
 
     // MARK: - Precedence inside a burst
