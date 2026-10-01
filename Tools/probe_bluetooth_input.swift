@@ -36,6 +36,10 @@ import Foundation
 var requestedDevice: String?
 var phaseSeconds: Double = 4
 var pauseBetweenPhases = true
+/// Which phases to run, by letter. Phase B is pointless on a device that reports
+/// no output streams, and once a phase has answered there is no reason to pay
+/// for it again.
+var phases = "0abc"
 
 var arguments = Array(CommandLine.arguments.dropFirst())
 while let argument = arguments.first {
@@ -49,10 +53,14 @@ while let argument = arguments.first {
         if !arguments.isEmpty { arguments.removeFirst() }
     case "--no-pause":
         pauseBetweenPhases = false
+    case "--phases":
+        if let value = arguments.first { phases = value.lowercased() }
+        if !arguments.isEmpty { arguments.removeFirst() }
     case "--help", "-h":
         print("""
         usage: swift Tools/probe_bluetooth_input.swift [--device <name or uid substring>]
                                                       [--seconds <per phase, default 4>]
+                                                      [--phases 0abc]
                                                       [--no-pause]
         """)
         exit(0)
@@ -487,11 +495,11 @@ if let requested = requestedDevice {
 let builtIn = inputs.first { $0.transport == kAudioDeviceTransportTypeBuiltIn }
 
 print("Target: \(target.name) [\(transportName(target.transport))]")
-print("Each phase runs \(String(format: "%.0f", phaseSeconds)) s. Speak during every phase, and after each one")
+print("Phases \(phases.map(String.init).joined(separator: " ")), \(String(format: "%.0f", phaseSeconds)) s each. Speak during every phase, and after each one")
 print("note whether the music from the other device is still playing.\n")
 
 // Phase 0: the control. Without it, zeros below could just be a missing permission.
-if let builtIn {
+if let builtIn, phases.contains("0") {
     print("Phase 0  built-in microphone, input only (control)")
     describe(builtIn, label: "device")
     do {
@@ -509,7 +517,7 @@ if let builtIn {
 }
 
 // Phase A: exactly what capture does today.
-if announce("Phase A opens \(target.name) input only, the way Witness does. Start the music on the other device first.") {
+if phases.contains("a"), announce("Phase A opens \(target.name) input only, the way Witness does. Start the music on the other device first.") {
     print("Phase A  \(target.name), input only")
     describe(target, label: "before")
     do {
@@ -528,7 +536,7 @@ if announce("Phase A opens \(target.name) input only, the way Witness does. Star
 }
 
 // Phase B: the same input, plus the output half of the same device.
-if announce("Phase B adds a silent output on \(target.name) to the same input. Make sure the music is playing again.") {
+if phases.contains("b"), announce("Phase B adds a silent output on \(target.name) to the same input. Make sure the music is playing again.") {
     print("Phase B  \(target.name), input + silent output on the same device")
     describe(target, label: "before")
     if target.outputChannels == 0 {
@@ -560,7 +568,7 @@ if announce("Phase B adds a silent output on \(target.name) to the same input. M
 }
 
 // Phase C: what a call does.
-if announce("Phase C opens \(target.name) with voice processing, the way a call does. Make sure the music is playing again.") {
+if phases.contains("c"), announce("Phase C opens \(target.name) with voice processing, the way a call does. Make sure the music is playing again.") {
     print("Phase C  \(target.name), voice processing IO")
     describe(target, label: "before")
     // Voice processing refuses some format combinations outright, and which it
