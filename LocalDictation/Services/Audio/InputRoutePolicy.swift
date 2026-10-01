@@ -16,6 +16,15 @@ enum InputRouteEvent: Equatable, Sendable {
     /// No input callback arrived for longer than the watchdog allows, or the
     /// callback reported a render failure.
     case inputStalled
+    /// The bound device is delivering frames of bit-exact zeros and has never
+    /// delivered anything else.
+    ///
+    /// Measured on 2026-10-01: AirPods paired to both this Mac and a phone,
+    /// music playing from the phone. The device is alive, is the default input,
+    /// opens at 24 kHz and delivers 190 callbacks of exact zeros in four
+    /// seconds. The headset answers the Mac without handing over its
+    /// microphone, and nothing in the route says so.
+    case boundDeviceDeliveredSilence
 
     /// Which event survives when a burst is collapsed into one.
     ///
@@ -28,7 +37,10 @@ enum InputRouteEvent: Equatable, Sendable {
         case .boundDeviceFormatChanged: 1
         case .defaultInputChanged: 2
         case .inputStalled: 3
-        case .boundDeviceDied: 4
+        // A stall may be transient; silence from a device that has never
+        // delivered a sample is a verdict on that device.
+        case .boundDeviceDeliveredSilence: 4
+        case .boundDeviceDied: 5
         }
     }
 }
@@ -45,11 +57,34 @@ enum InputRouteAction: Equatable, Sendable {
     case interrupt(AudioCaptureError)
 }
 
+/// How a segment opens its device.
+enum InputCaptureMode: Equatable, Sendable {
+    /// An input-only AUHAL unit. Nothing else on the machine is affected.
+    case direct
+    /// Apple voice processing, which opens both halves of the device.
+    ///
+    /// For a Bluetooth headset this is not a signal-processing choice but a
+    /// routing one: a headset shared with a phone hands its microphone to
+    /// whichever host opens a voice link, and the direct path does not open one.
+    /// Measured on AirPods Pro with music playing from the phone: direct gave
+    /// bit-exact zeros, voice processing gave speech at -11.8 dBFS peak and
+    /// reached its first callback in 202 ms against the direct path's 424 ms.
+    case voiceProcessing
+
+    /// What to open a device with before anything has gone wrong.
+    static func preferred(for device: SystemAudioInput.Device) -> InputCaptureMode {
+        device.isBluetooth ? .voiceProcessing : .direct
+    }
+}
+
 /// The device a running segment is bound to, and the format it was built for.
 struct InputBinding: Equatable, Sendable {
     var deviceID: AudioDeviceID
     var sampleRate: Double
     var channelCount: Int
+    /// Defaults to the direct path, which is what every non-Bluetooth device
+    /// uses and what the existing route tests describe.
+    var mode: InputCaptureMode = .direct
 }
 
 /// What the hardware looks like at the moment an event is handled.
@@ -101,6 +136,18 @@ enum InputRoutePolicy {
             // utterance instead.
             guard !boundIsPresent else { return .keep }
             return resolve(selection, snapshot: snapshot, excluding: binding.deviceID)
+
+        case .boundDeviceDeliveredSilence:
+            // The device is there, it is alive, and it is useless: it has been
+            // handing us zeros since the segment opened. Bluetooth already
+            // opens with voice processing, so there is no stronger claim left to
+            // make on it, and the only thing worth doing is recording somewhere
+            // else. When there is nowhere else, keep going rather than ending
+            // the sentence: the notice tells the truth about the silence, and
+            // interrupting would add a second wrong answer to the first.
+            let elsewhere = resolve(selection, snapshot: snapshot, excluding: binding.deviceID)
+            if case let .rebind(device) = elsewhere, device != binding.deviceID { return elsewhere }
+            return .keep
 
         case .boundDeviceFormatChanged:
             guard boundIsPresent else {

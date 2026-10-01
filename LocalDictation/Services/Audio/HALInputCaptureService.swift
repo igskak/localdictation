@@ -42,6 +42,26 @@ final class HALInputCaptureService: AudioCaptureService, @unchecked Sendable {
         var lastCallbackUptime: TimeInterval
         /// Set by the audio callback when `AudioUnitRender` or conversion fails.
         var failure: OSStatus = noErr
+        /// Frames of bit-exact zeros since this segment opened, and whether it
+        /// has ever delivered anything else. Written by the audio callback and
+        /// read by the watchdog under the same contract as `lastCallbackUptime`:
+        /// aligned stores of values nothing computes with, so the real-time
+        /// thread takes no lock for them.
+        var silentFrames = 0
+        var sawSignal = false
+        /// Whether a run of zeros from this device is worth reporting. True only
+        /// for Bluetooth: there it means a headset that answered us while its
+        /// microphone stayed with another host. On a local microphone exact zeros
+        /// mean the input is muted, and switching away from a microphone someone
+        /// muted on purpose is the last thing capture should do.
+        let watchesDigitalSilence: Bool
+
+        /// How long this device has been handing us nothing, or `nil` when there
+        /// is nothing to suspect.
+        var digitalSilenceSeconds: Double? {
+            guard watchesDigitalSilence, !sawSignal, binding.sampleRate > 0 else { return nil }
+            return Double(silentFrames) / binding.sampleRate
+        }
 
         init(
             unit: AudioUnit,
@@ -51,6 +71,7 @@ final class HALInputCaptureService: AudioCaptureService, @unchecked Sendable {
             converter: AudioFormatConverter,
             sink: PCMCaptureSink,
             renderBuffer: AVAudioPCMBuffer,
+            watchesDigitalSilence: Bool,
             startedAt: TimeInterval
         ) {
             self.unit = unit
@@ -60,6 +81,7 @@ final class HALInputCaptureService: AudioCaptureService, @unchecked Sendable {
             self.converter = converter
             self.sink = sink
             self.renderBuffer = renderBuffer
+            self.watchesDigitalSilence = watchesDigitalSilence
             self.lastCallbackUptime = startedAt
         }
     }
@@ -208,14 +230,20 @@ final class HALInputCaptureService: AudioCaptureService, @unchecked Sendable {
             // Read on the monitor's queue, which is this service's queue, so
             // reaching the live segment through `self` is safe and always sees
             // the current one rather than the segment start began with.
-            lastCallbackUptime: { [weak self] in
-                self?.session?.segment?.lastCallbackUptime ?? ProcessInfo.processInfo.systemUptime
+            progress: { [weak self] in
+                guard let segment = self?.session?.segment else {
+                    return InputProgress(lastCallbackUptime: ProcessInfo.processInfo.systemUptime, digitalSilenceSeconds: nil)
+                }
+                return InputProgress(
+                    lastCallbackUptime: segment.lastCallbackUptime,
+                    digitalSilenceSeconds: segment.digitalSilenceSeconds
+                )
             },
             onEvent: { [weak self] event in self?.handle(event) }
         )
 
         Log.audio.info(
-            "Capture started: \(segment.deviceName, privacy: .public), device \(Int(segment.binding.sampleRate)) Hz \(segment.binding.channelCount) ch, client 16000 Hz mono from channel 0, capacity \(sink.capacityFrames) frames"
+            "Capture started: \(segment.deviceName, privacy: .public) (\(Self.describe(segment.binding.mode), privacy: .public)), device \(Int(segment.binding.sampleRate)) Hz \(segment.binding.channelCount) ch, client 16000 Hz mono from channel 0, capacity \(sink.capacityFrames) frames"
         )
         if resolution.usedFallback {
             Log.audio.notice("Preferred microphone unavailable; capture uses another local input")
@@ -260,6 +288,12 @@ final class HALInputCaptureService: AudioCaptureService, @unchecked Sendable {
             binding: binding,
             snapshot: makeSnapshot(binding: binding)
         )
+
+        if event == .boundDeviceDeliveredSilence, action == .keep {
+            Log.audio.notice(
+                "Input delivered only silence and there is no other microphone to move to; the recording continues on \(session.segment?.deviceName ?? "the same device", privacy: .public)"
+            )
+        }
 
         switch action {
         case .keep:
@@ -320,6 +354,7 @@ final class HALInputCaptureService: AudioCaptureService, @unchecked Sendable {
 
         do {
             let segment = try makeSegment(device: replacement, sink: session.sink)
+
             let status = AudioOutputUnitStart(segment.unit)
             guard status == noErr else {
                 Self.dispose(segment)
@@ -333,7 +368,7 @@ final class HALInputCaptureService: AudioCaptureService, @unchecked Sendable {
 
             let gap = (ProcessInfo.processInfo.systemUptime - lastFrameAt) * 1000
             Log.audio.notice(
-                "Input rebound (\(String(describing: event), privacy: .public)): \(from ?? "none", privacy: .public) -> \(segment.deviceName, privacy: .public), \(Int(segment.binding.sampleRate)) Hz \(segment.binding.channelCount) ch, gap \(String(format: "%.0f", gap), privacy: .public) ms"
+                "Input rebound (\(String(describing: event), privacy: .public)): \(from ?? "none", privacy: .public) -> \(segment.deviceName, privacy: .public) (\(Self.describe(segment.binding.mode), privacy: .public)), \(Int(segment.binding.sampleRate)) Hz \(segment.binding.channelCount) ch, gap \(String(format: "%.0f", gap), privacy: .public) ms"
             )
         } catch {
             // No segment is running now. The retry re-reads the hardware, so a
@@ -368,10 +403,46 @@ final class HALInputCaptureService: AudioCaptureService, @unchecked Sendable {
 
     // MARK: - Building a segment
 
+    /// Opens the device the way its transport needs.
+    ///
+    /// A Bluetooth headset is opened with voice processing, because that is what
+    /// takes its microphone back from another host that is playing to it; see
+    /// `InputCaptureMode`. Voice processing is pickier than the plain unit about
+    /// which formats it will accept, and which combination works depends on the
+    /// device, so it is asked twice with decreasing demands. If it will not open
+    /// at all, the direct path still records: a headset that is not shared with
+    /// anything hands over its microphone either way, and failing the press would
+    /// be worse than recording without the stronger claim.
     private func makeSegment(device: SystemAudioInput.Device, sink: PCMCaptureSink) throws -> InputSegment {
+        guard InputCaptureMode.preferred(for: device) == .voiceProcessing else {
+            return try openSegment(device: device, sink: sink, mode: .direct, setsPlaybackFormat: false)
+        }
+
+        var failures: [String] = []
+        for setsPlaybackFormat in [true, false] {
+            do {
+                return try openSegment(
+                    device: device, sink: sink, mode: .voiceProcessing, setsPlaybackFormat: setsPlaybackFormat
+                )
+            } catch {
+                failures.append((error as? AudioCaptureError)?.message ?? "\(error)")
+            }
+        }
+        Log.audio.notice(
+            "Voice processing would not open \(device.name, privacy: .public) (\(failures.joined(separator: "; "), privacy: .public)); capture falls back to the direct input path"
+        )
+        return try openSegment(device: device, sink: sink, mode: .direct, setsPlaybackFormat: false)
+    }
+
+    private func openSegment(
+        device: SystemAudioInput.Device,
+        sink: PCMCaptureSink,
+        mode: InputCaptureMode,
+        setsPlaybackFormat: Bool
+    ) throws -> InputSegment {
         var description = AudioComponentDescription(
             componentType: kAudioUnitType_Output,
-            componentSubType: kAudioUnitSubType_HALOutput,
+            componentSubType: mode == .voiceProcessing ? kAudioUnitSubType_VoiceProcessingIO : kAudioUnitSubType_HALOutput,
             componentManufacturer: kAudioUnitManufacturer_Apple,
             componentFlags: 0,
             componentFlagsMask: 0
@@ -387,21 +458,36 @@ final class HALInputCaptureService: AudioCaptureService, @unchecked Sendable {
         }
 
         do {
-            return try configure(unit: unit, device: device, sink: sink)
+            return try configure(
+                unit: unit, device: device, sink: sink, mode: mode, setsPlaybackFormat: setsPlaybackFormat
+            )
         } catch {
+            AudioUnitUninitialize(unit)
             AudioComponentInstanceDispose(unit)
             throw error
+        }
+    }
+
+    static func describe(_ mode: InputCaptureMode) -> String {
+        switch mode {
+        case .direct: "direct"
+        case .voiceProcessing: "voice processing"
         }
     }
 
     private func configure(
         unit: AudioUnit,
         device: SystemAudioInput.Device,
-        sink: PCMCaptureSink
+        sink: PCMCaptureSink,
+        mode: InputCaptureMode,
+        setsPlaybackFormat: Bool
     ) throws -> InputSegment {
-        // Input on element 1, output off on element 0. Without turning output
-        // off the unit would pull the default output device into our IO cycle,
-        // which is exactly the coupling this service exists to remove.
+        // Input on element 1. Output stays off on element 0 for the direct path:
+        // without turning it off the unit would pull the default output device
+        // into our IO cycle, which is exactly the coupling this service exists to
+        // remove. Voice processing needs its output half, and that is the point
+        // of it here rather than a side effect: owning both halves of the device
+        // is what a call owns, and what a shared headset answers to.
         var enable: UInt32 = 1
         try check(
             AudioUnitSetProperty(
@@ -410,13 +496,13 @@ final class HALInputCaptureService: AudioCaptureService, @unchecked Sendable {
             ),
             "enabling input"
         )
-        var disable: UInt32 = 0
+        var playback: UInt32 = mode == .voiceProcessing ? 1 : 0
         try check(
             AudioUnitSetProperty(
                 unit, kAudioOutputUnitProperty_EnableIO, kAudioUnitScope_Output,
-                Self.outputElement, &disable, UInt32(MemoryLayout<UInt32>.size)
+                Self.outputElement, &playback, UInt32(MemoryLayout<UInt32>.size)
             ),
-            "disabling output"
+            mode == .voiceProcessing ? "enabling the output half" : "disabling output"
         )
 
         // Always bind the device explicitly, `systemDefault` included. Leaving it
@@ -467,17 +553,34 @@ final class HALInputCaptureService: AudioCaptureService, @unchecked Sendable {
             "setting the client format"
         )
 
-        // One client channel, fed from device channel 0. On a raw microphone
-        // array channel 0 is the one that carries speech; the others are quiet
-        // array channels that would only add noise if they were mixed in.
-        var channelMap: Int32 = 0
-        try check(
-            AudioUnitSetProperty(
-                unit, kAudioOutputUnitProperty_ChannelMap, kAudioUnitScope_Output,
-                Self.inputElement, &channelMap, UInt32(MemoryLayout<Int32>.size)
-            ),
-            "mapping device channel 0"
-        )
+        if mode == .voiceProcessing {
+            // The output half is fed silence, so it needs a format too. Some
+            // devices refuse ours there and initialize only with their own,
+            // which is what `setsPlaybackFormat` exists for.
+            if setsPlaybackFormat {
+                try check(
+                    AudioUnitSetProperty(
+                        unit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input,
+                        Self.outputElement, &clientDescription,
+                        UInt32(MemoryLayout<AudioStreamBasicDescription>.size)
+                    ),
+                    "setting the playback format"
+                )
+            }
+        } else {
+            // One client channel, fed from device channel 0. On a raw microphone
+            // array channel 0 is the one that carries speech; the others are quiet
+            // array channels that would only add noise if they were mixed in.
+            // Voice processing does its own channel handling and rejects a map.
+            var channelMap: Int32 = 0
+            try check(
+                AudioUnitSetProperty(
+                    unit, kAudioOutputUnitProperty_ChannelMap, kAudioUnitScope_Output,
+                    Self.inputElement, &channelMap, UInt32(MemoryLayout<Int32>.size)
+                ),
+                "mapping device channel 0"
+            )
+        }
 
         var maximumFrames: UInt32 = 0
         var maximumFramesSize = UInt32(MemoryLayout<UInt32>.size)
@@ -506,11 +609,13 @@ final class HALInputCaptureService: AudioCaptureService, @unchecked Sendable {
             binding: InputBinding(
                 deviceID: device.id,
                 sampleRate: hardwareSampleRate,
-                channelCount: Int(hardwareFormat.mChannelsPerFrame)
+                channelCount: Int(hardwareFormat.mChannelsPerFrame),
+                mode: mode
             ),
             converter: converter,
             sink: sink,
             renderBuffer: renderBuffer,
+            watchesDigitalSilence: device.isBluetooth,
             startedAt: ProcessInfo.processInfo.systemUptime
         )
 
@@ -525,6 +630,17 @@ final class HALInputCaptureService: AudioCaptureService, @unchecked Sendable {
             ),
             "installing the input callback"
         )
+
+        if mode == .voiceProcessing {
+            var playbackCallback = AURenderCallbackStruct(inputProc: halSilenceCallback, inputProcRefCon: nil)
+            try check(
+                AudioUnitSetProperty(
+                    unit, kAudioUnitProperty_SetRenderCallback, kAudioUnitScope_Input,
+                    Self.outputElement, &playbackCallback, UInt32(MemoryLayout<AURenderCallbackStruct>.size)
+                ),
+                "installing the playback callback"
+            )
+        }
 
         try check(AudioUnitInitialize(unit), "initializing the audio unit")
         return segment
@@ -574,6 +690,32 @@ final class HALInputCaptureService: AudioCaptureService, @unchecked Sendable {
             return status
         }
 
+        if segment.watchesDigitalSilence, !segment.sawSignal {
+            // A headset that answers the Mac while its microphone stays with
+            // another host delivers bit-exact zeros, on time, for as long as the
+            // recording lasts. Nothing else in the route says so, so the only
+            // place to notice it is here. The scan stops at the first sample that
+            // is not zero, and once this segment has heard anything it is never
+            // run again.
+            var hasSignal = false
+            if let samples = buffer.floatChannelData?[0] {
+                var index = 0
+                while index < Int(frameCount) {
+                    if samples[index] != 0 {
+                        hasSignal = true
+                        break
+                    }
+                    index += 1
+                }
+            }
+            if hasSignal {
+                segment.sawSignal = true
+                segment.silentFrames = 0
+            } else {
+                segment.silentFrames += Int(frameCount)
+            }
+        }
+
         buffer.frameLength = frameCount
         do {
             let frames = try segment.converter.convert(buffer)
@@ -584,6 +726,28 @@ final class HALInputCaptureService: AudioCaptureService, @unchecked Sendable {
         }
         return noErr
     }
+}
+
+/// Feeds the playback half of a voice processing unit silence.
+///
+/// The claim is the point, not the sound: voice processing has to own both halves
+/// of the device, and capture has nothing to play.
+private func halSilenceCallback(
+    refCon: UnsafeMutableRawPointer,
+    flags: UnsafeMutablePointer<AudioUnitRenderActionFlags>,
+    timestamp: UnsafePointer<AudioTimeStamp>,
+    busNumber: UInt32,
+    frameCount: UInt32,
+    data: UnsafeMutablePointer<AudioBufferList>?
+) -> OSStatus {
+    guard let data else { return noErr }
+    let buffers = UnsafeMutableAudioBufferListPointer(data)
+    for buffer in buffers {
+        guard let bytes = buffer.mData else { continue }
+        memset(bytes, 0, Int(buffer.mDataByteSize))
+    }
+    flags.pointee.insert(.unitRenderAction_OutputIsSilence)
+    return noErr
 }
 
 /// The C entry point the HAL calls on its IO thread. It cannot capture context,

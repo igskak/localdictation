@@ -189,6 +189,59 @@ final class InputRoutePolicyTests: XCTestCase {
         XCTAssertEqual(action, .rebind(builtIn.id))
     }
 
+    // MARK: - A device that answers without its microphone
+
+    /// AirPods paired to this Mac and to a phone that is playing music: the
+    /// device is alive, is the default input, and hands us bit-exact zeros for
+    /// as long as we care to record. There is no stronger claim left to make on
+    /// it, so the recording moves to a microphone that works.
+    func testADeviceDeliveringOnlySilenceIsLeftForAnotherOne() {
+        let action = InputRoutePolicy.action(
+            for: .boundDeviceDeliveredSilence,
+            selection: .systemDefault,
+            binding: binding(airPods, rate: 24_000),
+            snapshot: snapshot([builtIn, airPods], defaultID: airPods.id)
+        )
+        XCTAssertEqual(action, .rebind(builtIn.id))
+    }
+
+    func testADeviceDeliveringOnlySilenceIsKeptWhenItIsTheOnlyOne() {
+        let action = InputRoutePolicy.action(
+            for: .boundDeviceDeliveredSilence,
+            selection: .systemDefault,
+            binding: binding(airPods, rate: 24_000),
+            snapshot: snapshot([airPods], defaultID: airPods.id)
+        )
+        XCTAssertEqual(
+            action, .keep,
+            "Ending the sentence would add a second wrong answer to the first; the notice tells the truth about the silence"
+        )
+    }
+
+    func testANamedDeviceDeliveringOnlySilenceAlsoMovesOn() {
+        let action = InputRoutePolicy.action(
+            for: .boundDeviceDeliveredSilence,
+            selection: .device(uid: airPods.uid),
+            binding: binding(airPods, rate: 24_000),
+            snapshot: snapshot([builtIn, airPods], defaultID: airPods.id)
+        )
+        XCTAssertEqual(
+            action, .rebind(builtIn.id),
+            "A chosen device that delivers nothing is not a reason to record nothing"
+        )
+    }
+
+    // MARK: - How a device is opened
+
+    func testABluetoothDeviceIsOpenedWithVoiceProcessing() {
+        XCTAssertEqual(InputCaptureMode.preferred(for: airPods), .voiceProcessing)
+    }
+
+    func testLocalDevicesKeepTheDirectPath() {
+        XCTAssertEqual(InputCaptureMode.preferred(for: builtIn), .direct)
+        XCTAssertEqual(InputCaptureMode.preferred(for: usb), .direct)
+    }
+
     // MARK: - Precedence inside a burst
 
     func testADeadDeviceOutranksEverythingElseInABurst() {
@@ -197,6 +250,7 @@ final class InputRoutePolicyTests: XCTestCase {
             .boundDeviceFormatChanged,
             .defaultInputChanged,
             .inputStalled,
+            .boundDeviceDeliveredSilence,
             .boundDeviceDied,
         ]
         XCTAssertEqual(ordered.sorted { $0.precedence < $1.precedence }, ordered)

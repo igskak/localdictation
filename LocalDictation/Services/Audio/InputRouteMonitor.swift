@@ -54,6 +54,20 @@ final class RouteChangeDebouncer: @unchecked Sendable {
     }
 }
 
+/// What the watchdog reads about the running segment.
+///
+/// Read on the monitor's queue through a closure, so the watchdog always sees
+/// the segment that is live now rather than the one recording started with.
+struct InputProgress: Sendable {
+    /// When the last input callback arrived.
+    var lastCallbackUptime: TimeInterval
+    /// How long the device has been handing us bit-exact zeros, while never
+    /// having delivered anything else. `nil` when there is nothing to suspect:
+    /// a device that has delivered a sample, or a transport where a run of
+    /// zeros means a quiet room rather than a headset that is somewhere else.
+    var digitalSilenceSeconds: Double?
+}
+
 /// Watches the audio route while a recording runs.
 ///
 /// Everything here happens on one private serial queue: Core Audio's listener
@@ -66,39 +80,44 @@ final class InputRouteMonitor: @unchecked Sendable {
     private let quietPeriod: TimeInterval
     private let watchdogSilence: TimeInterval
     private let watchdogInterval: TimeInterval
+    private let digitalSilenceLimit: TimeInterval
 
     private var debouncer: RouteChangeDebouncer?
     private var systemTokens: [AudioPropertyListenerToken] = []
     private var deviceTokens: [AudioPropertyListenerToken] = []
     private var watchdog: DispatchSourceTimer?
-    private var lastCallbackUptime: (@Sendable () -> TimeInterval)?
+    private var progress: (@Sendable () -> InputProgress)?
     private var stalled = false
+    private var reportedDigitalSilence = false
 
     init(
         hardware: any AudioHardware,
         queue: DispatchQueue,
         quietPeriod: TimeInterval = 0.15,
         watchdogSilence: TimeInterval = 0.5,
-        watchdogInterval: TimeInterval = 0.25
+        watchdogInterval: TimeInterval = 0.25,
+        digitalSilenceLimit: TimeInterval = 0.25
     ) {
         self.hardware = hardware
         self.queue = queue
         self.quietPeriod = quietPeriod
         self.watchdogSilence = watchdogSilence
         self.watchdogInterval = watchdogInterval
+        self.digitalSilenceLimit = digitalSilenceLimit
     }
 
     /// Starts watching. `onEvent` is called on the monitor's queue, at most once
     /// per quiet period.
     func start(
         device: AudioDeviceID,
-        lastCallbackUptime: @escaping @Sendable () -> TimeInterval,
+        progress: @escaping @Sendable () -> InputProgress,
         onEvent: @escaping @Sendable (InputRouteEvent) -> Void
     ) {
         queue.async { [self] in
             stop_locked()
             stalled = false
-            self.lastCallbackUptime = lastCallbackUptime
+            reportedDigitalSilence = false
+            self.progress = progress
             let debouncer = RouteChangeDebouncer(queue: queue, quietPeriod: quietPeriod, handler: onEvent)
             self.debouncer = debouncer
 
@@ -116,6 +135,7 @@ final class InputRouteMonitor: @unchecked Sendable {
         queue.async { [self] in
             bind_locked(to: device)
             stalled = false
+            reportedDigitalSilence = false
         }
     }
 
@@ -165,14 +185,27 @@ final class InputRouteMonitor: @unchecked Sendable {
         let timer = DispatchSource.makeTimerSource(queue: queue)
         timer.schedule(deadline: .now() + watchdogInterval, repeating: watchdogInterval)
         timer.setEventHandler { [weak self] in
-            guard let self, let lastCallbackUptime = self.lastCallbackUptime else { return }
-            let silence = ProcessInfo.processInfo.systemUptime - lastCallbackUptime()
-            guard silence > self.watchdogSilence else {
+            guard let self, let progress = self.progress else { return }
+            let reading = progress()
+
+            // A device handing us exact zeros since it opened is a worse problem
+            // than a late callback, and it is checked first because such a
+            // device is never late: the callbacks arrive on time and carry
+            // nothing.
+            if let silence = reading.digitalSilenceSeconds, silence > self.digitalSilenceLimit {
+                // One report per binding. The rebind resets it; a device that
+                // keeps delivering zeros must not produce an event every tick.
+                guard !self.reportedDigitalSilence else { return }
+                self.reportedDigitalSilence = true
+                self.debouncer?.submit(.boundDeviceDeliveredSilence)
+                return
+            }
+
+            let stall = ProcessInfo.processInfo.systemUptime - reading.lastCallbackUptime
+            guard stall > self.watchdogSilence else {
                 self.stalled = false
                 return
             }
-            // One report per stall: the rebind resets it, and a device that
-            // stays silent must not produce a new event every tick.
             guard !self.stalled else { return }
             self.stalled = true
             self.debouncer?.submit(.inputStalled)
@@ -186,7 +219,7 @@ final class InputRouteMonitor: @unchecked Sendable {
         watchdog = nil
         debouncer?.cancel()
         debouncer = nil
-        lastCallbackUptime = nil
+        progress = nil
         for token in systemTokens { hardware.removeListener(token) }
         systemTokens.removeAll(keepingCapacity: true)
         for token in deviceTokens { hardware.removeListener(token) }

@@ -161,6 +161,82 @@ final class InputRebindTests: XCTestCase {
         XCTAssertEqual(received.value, .boundDeviceDied)
     }
 
+    // MARK: - The watchdog
+
+    /// The only place a headset that answers without its microphone can be
+    /// noticed: the callbacks arrive on time and carry bit-exact zeros, so
+    /// nothing in the route reports anything.
+    func testDigitalSilenceIsReportedOnceWhileItLasts() {
+        let queue = DispatchQueue(label: "test.route.silence")
+        let monitor = InputRouteMonitor(
+            hardware: DeafHardware(),
+            queue: queue,
+            quietPeriod: 0.02,
+            watchdogSilence: 10,
+            watchdogInterval: 0.02,
+            digitalSilenceLimit: 0.05
+        )
+        let count = Counter()
+        let received = EventBox()
+        let fired = expectation(description: "the silence is reported")
+        fired.assertForOverFulfill = false
+
+        monitor.start(
+            device: 1,
+            progress: {
+                InputProgress(
+                    lastCallbackUptime: ProcessInfo.processInfo.systemUptime,
+                    digitalSilenceSeconds: 0.5
+                )
+            },
+            onEvent: { event in
+                received.value = event
+                count.increment()
+                fired.fulfill()
+            }
+        )
+
+        wait(for: [fired], timeout: 2)
+        let settled = expectation(description: "several more watchdog ticks pass")
+        queue.asyncAfter(deadline: .now() + 0.3) { settled.fulfill() }
+        wait(for: [settled], timeout: 2)
+        monitor.stop()
+
+        XCTAssertEqual(received.value, .boundDeviceDeliveredSilence)
+        XCTAssertEqual(count.value, 1, "A device that keeps delivering zeros must not produce an event every tick")
+    }
+
+    func testADeviceThatDeliversSomethingIsNotReported() {
+        let queue = DispatchQueue(label: "test.route.signal")
+        let monitor = InputRouteMonitor(
+            hardware: DeafHardware(),
+            queue: queue,
+            quietPeriod: 0.02,
+            watchdogSilence: 10,
+            watchdogInterval: 0.02,
+            digitalSilenceLimit: 0.05
+        )
+        let count = Counter()
+
+        monitor.start(
+            device: 1,
+            progress: {
+                InputProgress(
+                    lastCallbackUptime: ProcessInfo.processInfo.systemUptime,
+                    digitalSilenceSeconds: nil
+                )
+            },
+            onEvent: { _ in count.increment() }
+        )
+
+        let settled = expectation(description: "the watchdog ticks several times")
+        queue.asyncAfter(deadline: .now() + 0.3) { settled.fulfill() }
+        wait(for: [settled], timeout: 2)
+        monitor.stop()
+
+        XCTAssertEqual(count.value, 0)
+    }
+
     func testCancellingStopsAPendingEvent() {
         let queue = DispatchQueue(label: "test.route.cancel")
         let count = Counter()
@@ -177,6 +253,24 @@ final class InputRebindTests: XCTestCase {
 
         XCTAssertEqual(count.value, 0, "A recording that ended must not rebind afterwards")
     }
+}
+
+/// Hardware that registers no listeners, so the watchdog is the only thing that
+/// can speak. Nothing here opens a device or asks for permission.
+private struct DeafHardware: AudioHardware {
+    func defaultInputDeviceID() -> AudioDeviceID? { 1 }
+    func availableInputDevices() -> [SystemAudioInput.Device] { [] }
+    func inputChannelCount(of device: AudioDeviceID) -> Int? { 1 }
+    func nominalSampleRate(of device: AudioDeviceID) -> Double? { 48_000 }
+    func isAlive(_ device: AudioDeviceID) -> Bool { true }
+    func addListener(
+        object: AudioObjectID,
+        selector: AudioObjectPropertySelector,
+        scope: AudioObjectPropertyScope,
+        queue: DispatchQueue,
+        handler: @escaping @Sendable () -> Void
+    ) -> AudioPropertyListenerToken? { nil }
+    func removeListener(_ token: AudioPropertyListenerToken) {}
 }
 
 private final class Counter: @unchecked Sendable {

@@ -12,6 +12,12 @@ enum SystemAudioInput {
         let nominalSampleRate: Double?
 
         var isBuiltIn: Bool { transportType == kAudioDeviceTransportTypeBuiltIn }
+        /// A headset on the far side of a radio link, which may be shared with
+        /// another host and may answer us without its microphone.
+        var isBluetooth: Bool {
+            transportType == kAudioDeviceTransportTypeBluetooth
+                || transportType == kAudioDeviceTransportTypeBluetoothLE
+        }
     }
 
     struct Resolution: Sendable, Equatable {
