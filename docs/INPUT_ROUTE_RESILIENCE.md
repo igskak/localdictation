@@ -421,6 +421,86 @@ from the last frame that arrived.
 processing at all, in which case the device stays at one channel and there is
 nothing to rebind through.
 
+## Open: a headset shared with a phone (reported 2026-09-30)
+
+Reported by the user on 2026-10-01 about the evening before: AirPods paired to
+both this Mac and the phone, music playing from the phone, and Witness does not
+pick up the microphone at all. Wispr Flow in the same situation stops the music
+and dictates normally.
+
+This is a different failure from everything above. There the microphone was open
+and the signal was wrong; here another host owns the headset, and the question is
+what makes it hand the microphone over.
+
+### What the log says about the incident: nothing
+
+Checked on 2026-10-01 over the whole retained window. The Witness audio category
+has no entry from that session: the running instance (pid 61288, 17:00 to 18:44)
+left only `transcription` lines in the persisted store, and every
+`No microphone input device is available` burst that day belongs to a test run,
+not to a press. So the failure mode is not established yet, and the three
+candidates below are still candidates:
+
+1. The AirPods report input streams with zero channels while the phone holds the
+   link, `configure` reads `0 ch` and start fails with `unsupportedInputFormat`.
+2. Frames arrive, at the noise floor, because the headset answered the Mac
+   without switching its microphone over. The user then gets "nothing heard".
+3. No callback arrives, the watchdog fires `inputStalled` four times inside its
+   2 s window and the utterance ends with `engineStartFailed`.
+
+### The mechanism, and why this may be ours rather than Apple's
+
+Opening the input half of a Bluetooth device is the whole claim capture makes
+today. Slice 2 deliberately removed the other half: `AVAudioEngine` used to
+record through `CADefaultDeviceAggregate`, whose IO work loop is the default
+**output** device, so recording used to claim an output too. For a headset that
+two hosts are competing for, the output claim is exactly what a call makes and
+what media playback makes, and it may be what the arbitration actually keys on.
+If so, the aggregate we were right to remove was carrying this for free, and the
+regression arrived with 0da260c.
+
+Worth asking the user and cheap to answer: did dictation with music from the
+phone work before 0.6.8?
+
+### The probe
+
+`Tools/probe_bluetooth_input.swift` answers both halves of the question in one
+run of about a minute, and needs the phone, the AirPods and music:
+
+```bash
+swift Tools/probe_bluetooth_input.swift --device AirPods
+```
+
+Phase 0 records the built-in microphone as a control, because the probe's
+microphone permission belongs to the terminal and zeros everywhere would
+otherwise read as a Bluetooth result. Phase A opens the headset input only, the
+way capture does today. Phase B adds a silent output on the same device. Phase C
+opens the device with voice processing, the way a call does. Each phase reports
+callbacks, first-callback latency, peak and RMS, and re-reads the device's
+channels and rate while it runs; the operator notes after each phase whether the
+music is still playing.
+
+### Decision rule
+
+- Phase A already hears speech: the failure is not the claim, and the log from a
+  real press decides between the three candidates above.
+- Phase B stops the music and hears speech: capture keeps a silent output claim
+  open on the bound device for the duration of a recording, and only for
+  Bluetooth transports. It is a second audio unit beside the segment's, owned by
+  the same queue, torn down with it, and it leaves the signal path and the
+  benchmark untouched.
+- Only phase C works: voice processing becomes the path for Bluetooth inputs.
+  That is a bigger change than it looks, because it ducks other apps' audio,
+  changes the signal the benchmark was measured on, and would have to be
+  measured again per language.
+- Nothing works: the next experiment is making the headset the default output
+  for the duration of a recording, which mutates a system setting and needs its
+  own decision.
+
+Either way the start path has to stop reporting this as "nothing heard": a
+Bluetooth device delivering frames at the noise floor is a different thing to
+say, and the user can act on it.
+
 ## Investigation recipe
 
 ```bash
