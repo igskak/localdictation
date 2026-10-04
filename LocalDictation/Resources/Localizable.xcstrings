@@ -1,6 +1,7 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Have a promo code? Enter it on the payment page. If you opened a partner’s link in this browser, it is filled in already.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Du hast einen Rabattcode? Gib ihn auf der Bezahlseite ein. Hast du den Link eines Partners in diesem Browser geöffnet, ist er schon eingetragen."}}}},
     "The speech model has not been downloaded yet (about %@)": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Sprachmodell wurde noch nicht geladen (etwa %@)"}}}},
     "less than a minute": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"weniger als eine Minute"}}}},
     "about %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"etwa %@"}}}},
@@ -2797,7 +2798,7 @@
     "The trial ran out on %@. Your dictionary and settings are untouched and come straight back with a license.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Test ist am %@ abgelaufen. Wörterbuch und Einstellungen bleiben unverändert und sind mit einer Lizenz sofort wieder verfügbar."}}}},
     "It ran out %@. Renewing unlocks dictation again; nothing on this Mac was touched.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sie ist am %@ abgelaufen. Eine Verlängerung schaltet das Diktieren wieder frei; lokale Daten wurden nicht verändert."}}}},
     "It ran out on %@. Renewing unlocks dictation again on this Mac; nothing local was removed.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sie ist am %@ abgelaufen. Eine Verlängerung schaltet das Diktieren wieder frei; lokale Daten wurden nicht entfernt."}}}},
-    "It runs out on %@. A license keeps this Mac dictating; your dictionary and settings stay exactly as they are either way.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sie läuft am %@ ab. Mit einer Lizenz kannst du weiter diktieren; Wörterbuch und Einstellungen bleiben unverändert."}}}},
+    "It runs out on %@. A license keeps this Mac dictating; your dictionary and settings stay exactly as they are either way. Have a promo code? It goes in on the payment page.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sie läuft am %@ ab. Mit einer Lizenz kannst du weiter diktieren; Wörterbuch und Einstellungen bleiben unverändert. Einen Rabattcode gibst du auf der Bezahlseite ein."}}}},
     "It runs out on %@. Renewing before then means dictation never stops; nothing local is touched either way.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sie läuft am %@ ab. Bei rechtzeitiger Verlängerung kannst du ohne Unterbrechung weiter diktieren; lokale Daten bleiben unverändert."}}}},
     "Licensed to %1$@. This Mac needs nothing further — no renewal, and no connection. It covers version %2$lld and every update to it.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Lizenziert für %1$@. Dieser Mac benötigt weder Verlängerung noch Verbindung. Abgedeckt sind Version %2$lld und alle zugehörigen Updates."}}}},
     "Licensed to %@.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Lizenziert für %@."}}}},

@@ -171,6 +171,16 @@ struct LicenseView: View {
                 isBuyable: StoreFront.annualCheckout != nil && coordinator.hasCheckoutConsent
             ) { coordinator.openCheckout(.annual) }
 
+            // A partner's code is typed on Stripe's page, not here: the app
+            // never learns it. `/buy` prefills it when the partner's link was
+            // opened in the same browser; this line is for everybody else.
+            if StoreFront.isOpen {
+                Text("Have a promo code? Enter it on the payment page. If you opened a partner’s link in this browser, it is filled in already.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
             if !StoreFront.isOpen {
                 Text("Checkout is not open yet. When it is, these buttons open the payment page in your browser — the app never sees a card number, and the key still comes back here, to this Mac.")
                     .font(.callout)

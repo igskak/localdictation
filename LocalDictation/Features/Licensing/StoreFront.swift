@@ -3,14 +3,17 @@ import Foundation
 
 /// The commercial offer, in one place, so changing a price is not a search.
 ///
-/// `docs/PHASE_8_DECISIONS.md` D2, executed: Stripe, as merchant of record. The
-/// two checkout URLs are its Payment Links, and filling them in is the whole of
-/// what turned the Buy buttons on.
+/// `docs/PHASE_8_DECISIONS.md` D2, executed: Stripe, as merchant of record.
 ///
-/// Which link is which was checked rather than assumed, because the failure is
-/// silent and expensive: swapping them sells a lifetime licence for €49 and
-/// nothing in the app could tell. `…ds401` shows €99 and a `Pay` button;
-/// `…ds402` shows €49.00 / year and `Pay and subscribe`.
+/// The Buy buttons open `witnessmac.com/buy`, which redirects to one of the
+/// two Stripe Payment Links. The hop is there for partner discounts: a reader
+/// who came through a partner's link two weeks earlier carries a cookie in
+/// that browser, and `/buy` turns it into the code already typed into Stripe's
+/// checkout. Without one it is the plain Payment Link, as before. The links
+/// themselves now live in `website/app/_data/partnerOffers.ts`, where a test
+/// pins `…ds401` to lifetime (€99, `Pay`) and `…ds402` to annual (€49.00 /
+/// year, `Pay and subscribe`): swapping them sells a lifetime licence for €49
+/// and nothing in the app could tell.
 ///
 /// The other side is already written: `Service/src/webhook.js` turns the
 /// resulting payment into a licence on the buyer's address, and the two links'
@@ -26,13 +29,13 @@ enum StoreFront {
     static let annualPrice = "€49"
 
     /// €99, once. `Pay` on the checkout page — a payment, not a subscription.
-    static let lifetimeCheckout = URL(string: "https://buy.stripe.com/4gMeVd20c3xs58g8oads401")
+    static let lifetimeCheckout = URL(string: "https://witnessmac.com/buy?plan=lifetime")
 
     /// €49 a year, as a subscription. `Pay and subscribe` on the checkout page,
     /// which is why the offer copy says so: a recurring charge a buyer did not
     /// know they were agreeing to is the kind of surprise this product is
     /// supposed to be the opposite of.
-    static let annualCheckout = URL(string: "https://buy.stripe.com/cNidR97kw6JEeIQ33Qds402")
+    static let annualCheckout = URL(string: "https://witnessmac.com/buy?plan=annual")
 
     /// The product page. Read in one place that matters: a lifetime licence on
     /// a superseded major version is told to download the version it owns,
