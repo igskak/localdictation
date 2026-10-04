@@ -436,30 +436,22 @@ test("the first invoice of a subscription is left to the checkout session", asyn
   assert.equal((await h.store.all("SELECT id FROM licenses")).length, 0, "or the address gets two licences for one sale");
 });
 
-// In API versions from 2025 on, a refund's charge no longer names its invoice
-// and a subscription checkout session carries no payment intent. The first
-// invoice is the one event that holds the payment intent and the charge beside
-// the subscription, so it is what lets a refund find the licence.
-const firstInvoice = (overrides = {}) => ({
-  id: "evt_first_invoice",
-  type: "invoice.paid",
-  data: {
-    object: {
-      id: "in_0",
-      subscription: "sub_1",
-      billing_reason: "subscription_create",
-      charge: "ch_1",
-      payment_intent: "pi_1",
-      lines: { data: [{ pricing: { price_details: { price: "pri_annual" } } }] },
-      ...overrides,
-    },
-  },
+// In API versions from 2025 on, a refund's charge no longer names its invoice,
+// and neither an invoice nor a subscription checkout session carries the payment
+// intent. `invoice_payment.paid` is the one event that says which payment paid
+// which invoice, so it is what lets a refund find the licence.
+const invoicePaid = (overrides = {}) => ({
+  id: "evt_payment",
+  type: "invoice_payment.paid",
+  data: { object: { id: "inpay_1", invoice: "in_0", payment: { type: "payment_intent", payment_intent: "pi_1" }, ...overrides } },
 });
 
 const annualSession = {
   id: "evt_session",
   type: "checkout.session.completed",
-  data: { object: { id: "cs_1", subscription: "sub_1", payment_link: "plink_annual", customer_details: { email: EMAIL } } },
+  data: {
+    object: { id: "cs_1", subscription: "sub_1", invoice: "in_0", payment_link: "plink_annual", customer_details: { email: EMAIL } },
+  },
 };
 
 const chargeRefunded = {
@@ -468,10 +460,10 @@ const chargeRefunded = {
   data: { object: { id: "ch_1", payment_intent: "pi_1", amount_refunded: 4900, currency: "eur" } },
 };
 
-test("a refund of a subscription's first payment finds the licence through the first invoice", async () => {
+test("a refund of a subscription's first payment finds the licence through its invoice payment", async () => {
   const h = await harness();
   await h.deliver(annualSession, { provider: stripe });
-  const attached = await h.deliver(firstInvoice(), { provider: stripe });
+  const attached = await h.deliver(invoicePaid(), { provider: stripe });
   assert.equal(attached.body.applied, true);
 
   const refunded = await h.deliver(chargeRefunded, { provider: stripe });
@@ -479,27 +471,52 @@ test("a refund of a subscription's first payment finds the licence through the f
   assert.equal(await h.store.strongestLicense(EMAIL, NOW), null, "the licence is dead for future issuance");
 });
 
-test("the first invoice arriving before its checkout session asks to be sent again", async () => {
+test("the payment arriving before its checkout session is held and collected by the purchase", async () => {
   const h = await harness();
-  const early = await h.deliver(firstInvoice(), { provider: stripe });
-  assert.equal(early.status, 503);
+  const early = await h.deliver(invoicePaid(), { provider: stripe });
+  assert.equal(early.status, 200);
+  assert.equal(early.body.applied, false);
 
   await h.deliver(annualSession, { provider: stripe });
-  // Not claimed on the first attempt, so the second is not refused as seen.
-  const retried = await h.deliver(firstInvoice(), { provider: stripe });
-  assert.equal(retried.status, 200);
-  assert.equal(retried.body.applied, true);
   assert.equal((await h.deliver(chargeRefunded, { provider: stripe })).body.applied, true);
+  assert.equal((await h.store.all("SELECT * FROM held_refs")).length, 0, "what was held is not kept");
 });
 
-test("another product's first invoice is acknowledged and never asked to be retried", async () => {
+test("another product's invoice payment is acknowledged and never attached to a licence", async () => {
   const h = await harness();
-  const result = await h.deliver(
-    firstInvoice({ lines: { data: [{ pricing: { price_details: { price: "price_other" } } }] } }),
+  await h.deliver(annualSession, { provider: stripe });
+  await h.deliver(invoicePaid({ invoice: "in_other", payment: { type: "payment_intent", payment_intent: "pi_other" } }), {
+    provider: stripe,
+  });
+  const refund = await h.deliver(
+    { id: "evt_other_refund", type: "charge.refunded", data: { object: { id: "ch_o", payment_intent: "pi_other" } } },
     { provider: stripe },
   );
-  assert.equal(result.status, 200);
-  assert.equal(result.body.applied, false);
+  assert.equal(refund.body.applied, false);
+  assert.ok(await h.store.strongestLicense(EMAIL, NOW), "this product's licence is untouched");
+});
+
+test("a renewal's payment is attached through the renewal invoice", async () => {
+  const h = await harness();
+  await h.deliver(annualSession, { provider: stripe });
+  const renewalAt = NOW + 360 * 86400;
+  await h.deliver(
+    {
+      id: "evt_renewal",
+      type: "invoice.paid",
+      data: { object: { id: "in_1", subscription: "sub_1", billing_reason: "subscription_cycle", customer_email: EMAIL } },
+    },
+    { provider: stripe, now: renewalAt },
+  );
+  await h.deliver(
+    invoicePaid({ id: "inpay_2", invoice: "in_1", payment: { type: "payment_intent", payment_intent: "pi_2" } }),
+    { provider: stripe, now: renewalAt },
+  );
+  const refund = await h.deliver(
+    { id: "evt_refund_2", type: "charge.refunded", data: { object: { id: "ch_2", payment_intent: "pi_2" } } },
+    { provider: stripe, now: renewalAt },
+  );
+  assert.equal(refund.body.applied, true);
 });
 
 test("a refund that matched nothing can be sent again once the licence has its identifiers", async () => {
@@ -508,7 +525,7 @@ test("a refund that matched nothing can be sent again once the licence has its i
   const early = await h.deliver(chargeRefunded, { provider: stripe });
   assert.equal(early.body.applied, false);
 
-  await h.deliver(firstInvoice(), { provider: stripe });
+  await h.deliver(invoicePaid(), { provider: stripe });
   const again = await h.deliver(chargeRefunded, { provider: stripe });
   assert.equal(again.body.applied, true);
 });

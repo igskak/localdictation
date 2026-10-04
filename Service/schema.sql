@@ -63,6 +63,16 @@ CREATE TABLE IF NOT EXISTS provider_refs (
 
 CREATE INDEX IF NOT EXISTS provider_refs_by_license ON provider_refs (license_id);
 
+-- Identifiers for a licence that does not exist yet. The payment event and the
+-- checkout session race; when the payment wins, what it knows waits here under
+-- the invoice it paid, and the purchase collects it. Nothing here is personal.
+CREATE TABLE IF NOT EXISTS held_refs (
+    anchor     TEXT NOT NULL,
+    ref        TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (anchor, ref)
+);
+
 -- Every provider re-delivers. Idempotency on their event id is what keeps a
 -- redelivery from creating a second license.
 CREATE TABLE IF NOT EXISTS webhook_events (

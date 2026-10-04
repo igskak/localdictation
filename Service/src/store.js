@@ -69,6 +69,34 @@ export class Store {
     }
   }
 
+  /// Keeps identifiers whose licence does not exist yet. The payment event and
+  /// the checkout session race, and the payment can win; what it knows is
+  /// filed under the invoice it paid, and the purchase collects it when it
+  /// records its own identifiers.
+  async holdRefs(anchor, refs, now) {
+    for (const ref of new Set(refs.filter(Boolean))) {
+      await this.run(`INSERT OR IGNORE INTO held_refs (anchor, ref, created_at) VALUES (?, ?, ?)`, [
+        String(anchor),
+        String(ref),
+        now,
+      ]);
+    }
+  }
+
+  /// Everything held under any of these anchors, removed as it is read. Also
+  /// forgets whatever has been held for a week: it belongs to another product,
+  /// whose licence this service will never create.
+  async takeHeldRefs(anchors, now) {
+    const taken = [];
+    for (const anchor of anchors.filter(Boolean)) {
+      const rows = await this.all(`SELECT ref FROM held_refs WHERE anchor = ?`, [String(anchor)]);
+      taken.push(...rows.map((row) => row.ref));
+      await this.run(`DELETE FROM held_refs WHERE anchor = ?`, [String(anchor)]);
+    }
+    await this.run(`DELETE FROM held_refs WHERE created_at < ?`, [now - 7 * 86400]);
+    return taken;
+  }
+
   /// The licence one of these identifiers belongs to, or `null` — which is the
   /// answer for every event that belongs to another product.
   async licenseByRef(refs) {

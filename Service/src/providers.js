@@ -129,33 +129,28 @@ export const stripe = {
     // than in a README nobody re-reads while clicking checkboxes.
     if (type === "invoice.payment_succeeded") return { id, effect: "ignore" };
 
+    // The payment behind an invoice. In API versions from 2025 on, neither an
+    // invoice nor a subscription checkout session carries the payment intent,
+    // and a refund's charge no longer names its invoice, so this is the only
+    // event that says which payment paid which invoice. It is read for those
+    // identifiers and does nothing else: the licence itself comes from the
+    // checkout session, and a renewal from the invoice.
+    if (type === "invoice_payment.paid") {
+      const payment = object.payment ?? {};
+      return {
+        id,
+        effect: "attach",
+        lookup: [object.invoice],
+        refs: [payment.payment_intent, payment.charge],
+      };
+    }
+
     if (type === "invoice.paid") {
       // The first invoice of a subscription arrives alongside the checkout
       // session that created it. The session is what carries the buyer's
       // address, so the first one is left to the session and only the renewals
       // are read here.
       const reason = object.billing_reason ?? "";
-
-      // What the first invoice is for is its payment. In API versions from
-      // 2025 on, a refund's charge no longer names its invoice, and a
-      // subscription checkout session carries no payment intent, so the only
-      // event that holds the charge and the payment intent next to the
-      // subscription is this one. It is read for those identifiers and nothing
-      // else; the licence itself still comes from the checkout session.
-      if (reason === "subscription_create") {
-        const subscription = subscriptionOf(object);
-        if (!subscription) return { id, effect: "ignore" };
-        return {
-          id,
-          effect: "attach",
-          lookup: [subscription],
-          refs: [object.id, object.charge, object.payment_intent],
-          // Whether the invoice is one of ours, so the webhook can ask to be
-          // retried for it -- the two events race -- without asking to be
-          // retried forever for another product's subscription.
-          ours: kindFor(invoicePrices(object), env) !== null,
-        };
-      }
 
       if (reason !== "subscription_cycle" && reason !== "subscription_update") {
         return { id, effect: "ignore" };
@@ -251,16 +246,6 @@ export const stripe = {
 /// stop renewing anybody's licence.
 function subscriptionOf(invoice) {
   return invoice.subscription ?? invoice.parent?.subscription_details?.subscription ?? null;
-}
-
-/// The prices an invoice bills for, from both places Stripe puts them:
-/// `price` in the API versions this was first written against, and
-/// `pricing.price_details.price` in the newer ones.
-function invoicePrices(invoice) {
-  const lines = invoice.lines?.data ?? [];
-  return lines.map(
-    (line) => line.price?.id ?? line.pricing?.price_details?.price ?? line.plan?.id ?? null,
-  );
 }
 
 function identifiers(object) {

@@ -276,8 +276,16 @@ Select exactly these events:
 | --- | --- |
 | `checkout.session.completed` | Creates or extends the licence on the buyer's address |
 | `invoice.paid` | Extends an annual on renewal, a year later |
+| `invoice_payment.paid` | Records which payment intent and charge paid which invoice, so a refund can find the licence |
 | `charge.refunded` | Marks the licence dead for future issuance |
 | `charge.dispute.created` | The same |
+
+`invoice_payment.paid` is not optional on an API version from 2025 on: a refund's
+charge no longer names its invoice and a subscription checkout carries no payment
+intent, so without this event a refund or a dispute of an annual licence matches
+nothing and the licence stays live. It races the checkout session; what arrives
+first waits in `held_refs` and is collected by the purchase. Apply `schema.sql`
+to the remote database once when this event is first selected.
 
 `invoice.payment_succeeded` fires for the same money as `invoice.paid` and
 carries a different event id, so idempotency cannot stop both from being acted
