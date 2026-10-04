@@ -11,7 +11,7 @@ import Foundation
 /// that browser, and `/buy` turns it into the code already typed into Stripe's
 /// checkout. Without one it is the plain Payment Link, as before. The links
 /// themselves now live in `website/app/_data/partnerOffers.ts`, where a test
-/// pins `…ds401` to lifetime (€99, `Pay`) and `…ds402` to annual (€49.00 /
+/// pins `…ds403` to lifetime (€99, `Pay`) and `…ds404` to annual (€49.00 /
 /// year, `Pay and subscribe`): swapping them sells a lifetime licence for €49
 /// and nothing in the app could tell.
 ///

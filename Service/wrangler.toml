@@ -55,8 +55,12 @@ MAIL_FROM = "Witness <keys@witnessmac.com>"
 # never by the customer's address: one account can sell two products to the same
 # person, and a refund for the other one must not touch this one's licence.
 PAYMENT_PROVIDER = "stripe"
-PAYMENT_LINK_LIFETIME = "plink_1UBsx2HOSgmME2jEse2p1dor"
-PAYMENT_LINK_ANNUAL = "plink_1UBsxhHOSgmME2jEYQctLUIb"
+#
+# Each takes several ids, comma-separated: the first is the Managed Payments link
+# from 4 September, the second the link made on 4 October when checkout moved off
+# the merchant of record. Old builds still open the first, so both stay.
+PAYMENT_LINK_LIFETIME = "plink_1UBsx2HOSgmME2jEse2p1dor,plink_1UMoAXHOSgmME2jEGRo93fS9"
+PAYMENT_LINK_ANNUAL = "plink_1UBsxhHOSgmME2jEYQctLUIb,plink_1UMoBpHOSgmME2jEg37Jl8QG"
 
 # Optional, and only read when a checkout session arrives with its line items
 # expanded, which a Payment Link's does not. Kept because it costs nothing and

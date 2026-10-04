@@ -299,6 +299,30 @@ test("a Payment Link purchase is identified by the link, because Stripe sends no
   assert.equal(license.provider_order_id, "pi_1", "the payment intent is what a refund names");
 });
 
+test("a product that has gained a second link is recognised on either", async () => {
+  const h = await harness();
+  const manyLinks = { ...env, PAYMENT_LINK_LIFETIME: "plink_lifetime_old, plink_lifetime_new", PAYMENT_LINK_ANNUAL: "plink_annual_old,plink_annual_new" };
+  const sale = (id, link, email) => ({
+    id,
+    type: "checkout.session.completed",
+    data: { object: { id: `cs_${id}`, payment_intent: `pi_${id}`, payment_link: link, customer_details: { email } } },
+  });
+  const deliver = (event) => handleEvent({
+    event, provider: stripe, env: manyLinks, store: h.store, now: NOW,
+    mailer: { async send() { return true; } }, log: () => {}, uuid: () => crypto.randomUUID(),
+  });
+
+  await deliver(sale("a", "plink_lifetime_old", "a@example.com"));
+  await deliver(sale("b", "plink_lifetime_new", "b@example.com"));
+  await deliver(sale("c", "plink_annual_new", "c@example.com"));
+  await deliver(sale("d", "plink_other_product", "d@example.com"));
+
+  assert.equal((await h.store.strongestLicense("a@example.com", NOW)).kind, "lifetime");
+  assert.equal((await h.store.strongestLicense("b@example.com", NOW)).kind, "lifetime");
+  assert.equal((await h.store.strongestLicense("c@example.com", NOW)).kind, "annual");
+  assert.equal(await h.store.strongestLicense("d@example.com", NOW), null, "another product's link is still ignored");
+});
+
 test("a subscription renewal a year later extends the licence", async () => {
   const h = await harness();
   await h.deliver(
