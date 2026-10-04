@@ -92,11 +92,12 @@ a **Cloudflare D1** database in Cloudflare's **EEUR (Eastern Europe)** region.
 Cloudflare is a processor: it runs the code and stores the table, and it does
 not get the data for any purpose of its own.
 
-Payment runs on **Stripe**, which is the merchant of record for the sale. The
-app never opens a payment page itself and never sees a card number — the buy
-buttons hand a URL to your browser. What Stripe knows about a purchase is
-governed by Stripe's own policy, and the only thing it passes to this service is
-the address you bought with and an order identifier.
+Payment runs on **Stripe**, which processes the card payment for the seller,
+Ihor Skakovskyi (IČO 17328691). The app never opens a payment page itself and
+never sees a card number: the buy buttons hand a URL to your browser. What
+Stripe knows about a purchase is governed by Stripe's own policy, and the only
+things it passes to this service are the address you bought with and the
+identifiers of the order and its payment, which a later refund refers to.
 
 Nothing you dictate reaches either of them, and nothing could: the app has two
 fields to send and neither can carry it.
