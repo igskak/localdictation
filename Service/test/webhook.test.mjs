@@ -299,6 +299,39 @@ test("a Payment Link purchase is identified by the link, because Stripe sends no
   assert.equal(license.provider_order_id, "pi_1", "the payment intent is what a refund names");
 });
 
+// Leaving Managed Payments means new links, because a link's Managed Payments
+// state is fixed when it is created, and every installed build still opens the
+// old ones. Both sell until the old ones are deactivated.
+test("a link variable can name the old link and its replacement, and both sell", async () => {
+  const h = await harness();
+  const twoLinks = { ...env, PAYMENT_LINK_LIFETIME: "plink_old_lifetime, plink_new_lifetime" };
+  const sale = (eventID, session, link, email) =>
+    handleEvent({
+      event: {
+        id: eventID,
+        type: "checkout.session.completed",
+        data: { object: { id: session, payment_intent: `pi_${session}`, payment_link: link, customer_details: { email } } },
+      },
+      provider: stripe,
+      env: twoLinks,
+      store: h.store,
+      now: NOW,
+      mailer: { async send() { return true; } },
+      log: () => {},
+      uuid: () => `00000000-0000-4000-8000-00000000000${session.at(-1)}`,
+    });
+
+  assert.equal((await sale("evt_old", "cs_1", "plink_old_lifetime", "old@example.com")).body.applied, true);
+  assert.equal((await sale("evt_new", "cs_2", "plink_new_lifetime", "new@example.com")).body.applied, true);
+  assert.equal((await h.store.strongestLicense("old@example.com", NOW)).kind, "lifetime");
+  assert.equal((await h.store.strongestLicense("new@example.com", NOW)).kind, "lifetime");
+
+  // A list is not a prefix match: a third link on the account sells nothing here.
+  const other = await sale("evt_other", "cs_3", "plink_new", "other@example.com");
+  assert.notEqual(other.body.applied, true);
+  assert.equal(await h.store.strongestLicense("other@example.com", NOW), null);
+});
+
 test("a subscription renewal a year later extends the licence", async () => {
   const h = await harness();
   await h.deliver(

@@ -240,9 +240,19 @@ function identifiers(object) {
   ];
 }
 
+/// A link variable may name several links, separated by commas.
+///
+/// A Payment Link's Managed Payments state cannot be changed after it is
+/// created, so leaving the merchant-of-record setup means new links — and every
+/// build already installed keeps opening the old ones. Both have to sell until
+/// the old ones are deactivated, and that is a list, not a second variable.
+function linkIDs(value) {
+  return (value ?? "").split(",").map((piece) => piece.trim()).filter(Boolean);
+}
+
 function kindFor(candidates, env) {
-  const lifetime = [env.PRICE_LIFETIME, env.PAYMENT_LINK_LIFETIME].filter(Boolean);
-  const annual = [env.PRICE_ANNUAL, env.PAYMENT_LINK_ANNUAL].filter(Boolean);
+  const lifetime = [env.PRICE_LIFETIME, ...linkIDs(env.PAYMENT_LINK_LIFETIME)].filter(Boolean);
+  const annual = [env.PRICE_ANNUAL, ...linkIDs(env.PAYMENT_LINK_ANNUAL)].filter(Boolean);
   for (const candidate of candidates) {
     if (!candidate) continue;
     if (lifetime.includes(candidate)) return "lifetime";

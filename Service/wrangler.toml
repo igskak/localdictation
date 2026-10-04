@@ -54,6 +54,10 @@ MAIL_FROM = "Witness <keys@witnessmac.com>"
 # licence by an identifier this service recorded itself, in `provider_refs`, and
 # never by the customer's address: one account can sell two products to the same
 # person, and a refund for the other one must not touch this one's licence.
+#
+# Each link variable takes several ids separated by commas, old one first. A
+# link's Managed Payments state cannot be changed after it is created, so moving
+# off it means new links while installed builds still open the old ones.
 PAYMENT_PROVIDER = "stripe"
 PAYMENT_LINK_LIFETIME = "plink_1UBsx2HOSgmME2jEse2p1dor"
 PAYMENT_LINK_ANNUAL = "plink_1UBsxhHOSgmME2jEYQctLUIb"
