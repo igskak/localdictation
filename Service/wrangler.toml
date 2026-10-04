@@ -54,15 +54,19 @@ MAIL_FROM = "Witness <keys@witnessmac.com>"
 # licence by an identifier this service recorded itself, in `provider_refs`, and
 # never by the customer's address: one account can sell two products to the same
 # person, and a refund for the other one must not touch this one's licence.
+#
+# Each link variable takes several ids separated by commas, old one first. A
+# link's Managed Payments state cannot be changed after it is created, so moving
+# off it means new links while installed builds still open the old ones.
 PAYMENT_PROVIDER = "stripe"
-PAYMENT_LINK_LIFETIME = "plink_1UBsx2HOSgmME2jEse2p1dor"
-PAYMENT_LINK_ANNUAL = "plink_1UBsxhHOSgmME2jEYQctLUIb"
+PAYMENT_LINK_LIFETIME = "plink_1UBsx2HOSgmME2jEse2p1dor,plink_1UMoAXHOSgmME2jEGRo93fS9"
+PAYMENT_LINK_ANNUAL = "plink_1UBsxhHOSgmME2jEYQctLUIb,plink_1UMoBpHOSgmME2jEg37Jl8QG"
 
 # Optional, and only read when a checkout session arrives with its line items
 # expanded, which a Payment Link's does not. Kept because it costs nothing and
 # it is one more way for a sale to be recognised as ours.
 PRICE_LIFETIME = "price_1UBstqHOSgmME2jEJc3X8NVq"
-PRICE_ANNUAL = ""
+PRICE_ANNUAL = "price_1UBsuZHOSgmME2jEqlNKU0Sn"
 
 # PostHog, EU cloud, project 271280 — the same project the website reports to,
 # so trials and sales land on the dashboard next to visits and downloads.

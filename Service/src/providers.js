@@ -129,12 +129,29 @@ export const stripe = {
     // than in a README nobody re-reads while clicking checkboxes.
     if (type === "invoice.payment_succeeded") return { id, effect: "ignore" };
 
+    // The payment behind an invoice. In API versions from 2025 on, neither an
+    // invoice nor a subscription checkout session carries the payment intent,
+    // and a refund's charge no longer names its invoice, so this is the only
+    // event that says which payment paid which invoice. It is read for those
+    // identifiers and does nothing else: the licence itself comes from the
+    // checkout session, and a renewal from the invoice.
+    if (type === "invoice_payment.paid") {
+      const payment = object.payment ?? {};
+      return {
+        id,
+        effect: "attach",
+        lookup: [object.invoice],
+        refs: [payment.payment_intent, payment.charge],
+      };
+    }
+
     if (type === "invoice.paid") {
       // The first invoice of a subscription arrives alongside the checkout
       // session that created it. The session is what carries the buyer's
       // address, so the first one is left to the session and only the renewals
       // are read here.
       const reason = object.billing_reason ?? "";
+
       if (reason !== "subscription_cycle" && reason !== "subscription_update") {
         return { id, effect: "ignore" };
       }
@@ -240,9 +257,19 @@ function identifiers(object) {
   ];
 }
 
+/// A link variable may name several links, separated by commas.
+///
+/// A Payment Link's Managed Payments state cannot be changed after it is
+/// created, so leaving the merchant-of-record setup means new links — and every
+/// build already installed keeps opening the old ones. Both have to sell until
+/// the old ones are deactivated, and that is a list, not a second variable.
+function linkIDs(value) {
+  return (value ?? "").split(",").map((piece) => piece.trim()).filter(Boolean);
+}
+
 function kindFor(candidates, env) {
-  const lifetime = [env.PRICE_LIFETIME, env.PAYMENT_LINK_LIFETIME].filter(Boolean);
-  const annual = [env.PRICE_ANNUAL, env.PAYMENT_LINK_ANNUAL].filter(Boolean);
+  const lifetime = [env.PRICE_LIFETIME, ...linkIDs(env.PAYMENT_LINK_LIFETIME)].filter(Boolean);
+  const annual = [env.PRICE_ANNUAL, ...linkIDs(env.PAYMENT_LINK_ANNUAL)].filter(Boolean);
   for (const candidate of candidates) {
     if (!candidate) continue;
     if (lifetime.includes(candidate)) return "lifetime";
