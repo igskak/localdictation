@@ -240,17 +240,9 @@ function identifiers(object) {
   ];
 }
 
-/// Each variable may hold several ids, comma-separated. A product keeps its old
-/// links when a new one is made for it (the checkout moved off the merchant of
-/// record, say), and every build and bookmark that still opens an old link must
-/// keep issuing a licence.
-function idsOf(...variables) {
-  return variables.flatMap((value) => (value ?? "").split(",").map((id) => id.trim())).filter(Boolean);
-}
-
 function kindFor(candidates, env) {
-  const lifetime = idsOf(env.PRICE_LIFETIME, env.PAYMENT_LINK_LIFETIME);
-  const annual = idsOf(env.PRICE_ANNUAL, env.PAYMENT_LINK_ANNUAL);
+  const lifetime = [env.PRICE_LIFETIME, env.PAYMENT_LINK_LIFETIME].filter(Boolean);
+  const annual = [env.PRICE_ANNUAL, env.PAYMENT_LINK_ANNUAL].filter(Boolean);
   for (const candidate of candidates) {
     if (!candidate) continue;
     if (lifetime.includes(candidate)) return "lifetime";
