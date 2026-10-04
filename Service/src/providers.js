@@ -135,6 +135,28 @@ export const stripe = {
       // address, so the first one is left to the session and only the renewals
       // are read here.
       const reason = object.billing_reason ?? "";
+
+      // What the first invoice is for is its payment. In API versions from
+      // 2025 on, a refund's charge no longer names its invoice, and a
+      // subscription checkout session carries no payment intent, so the only
+      // event that holds the charge and the payment intent next to the
+      // subscription is this one. It is read for those identifiers and nothing
+      // else; the licence itself still comes from the checkout session.
+      if (reason === "subscription_create") {
+        const subscription = subscriptionOf(object);
+        if (!subscription) return { id, effect: "ignore" };
+        return {
+          id,
+          effect: "attach",
+          lookup: [subscription],
+          refs: [object.id, object.charge, object.payment_intent],
+          // Whether the invoice is one of ours, so the webhook can ask to be
+          // retried for it -- the two events race -- without asking to be
+          // retried forever for another product's subscription.
+          ours: kindFor(invoicePrices(object), env) !== null,
+        };
+      }
+
       if (reason !== "subscription_cycle" && reason !== "subscription_update") {
         return { id, effect: "ignore" };
       }
@@ -229,6 +251,16 @@ export const stripe = {
 /// stop renewing anybody's licence.
 function subscriptionOf(invoice) {
   return invoice.subscription ?? invoice.parent?.subscription_details?.subscription ?? null;
+}
+
+/// The prices an invoice bills for, from both places Stripe puts them:
+/// `price` in the API versions this was first written against, and
+/// `pricing.price_details.price` in the newer ones.
+function invoicePrices(invoice) {
+  const lines = invoice.lines?.data ?? [];
+  return lines.map(
+    (line) => line.price?.id ?? line.pricing?.price_details?.price ?? line.plan?.id ?? null,
+  );
 }
 
 function identifiers(object) {

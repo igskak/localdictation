@@ -436,6 +436,83 @@ test("the first invoice of a subscription is left to the checkout session", asyn
   assert.equal((await h.store.all("SELECT id FROM licenses")).length, 0, "or the address gets two licences for one sale");
 });
 
+// In API versions from 2025 on, a refund's charge no longer names its invoice
+// and a subscription checkout session carries no payment intent. The first
+// invoice is the one event that holds the payment intent and the charge beside
+// the subscription, so it is what lets a refund find the licence.
+const firstInvoice = (overrides = {}) => ({
+  id: "evt_first_invoice",
+  type: "invoice.paid",
+  data: {
+    object: {
+      id: "in_0",
+      subscription: "sub_1",
+      billing_reason: "subscription_create",
+      charge: "ch_1",
+      payment_intent: "pi_1",
+      lines: { data: [{ pricing: { price_details: { price: "pri_annual" } } }] },
+      ...overrides,
+    },
+  },
+});
+
+const annualSession = {
+  id: "evt_session",
+  type: "checkout.session.completed",
+  data: { object: { id: "cs_1", subscription: "sub_1", payment_link: "plink_annual", customer_details: { email: EMAIL } } },
+};
+
+const chargeRefunded = {
+  id: "evt_refund",
+  type: "charge.refunded",
+  data: { object: { id: "ch_1", payment_intent: "pi_1", amount_refunded: 4900, currency: "eur" } },
+};
+
+test("a refund of a subscription's first payment finds the licence through the first invoice", async () => {
+  const h = await harness();
+  await h.deliver(annualSession, { provider: stripe });
+  const attached = await h.deliver(firstInvoice(), { provider: stripe });
+  assert.equal(attached.body.applied, true);
+
+  const refunded = await h.deliver(chargeRefunded, { provider: stripe });
+  assert.equal(refunded.body.applied, true);
+  assert.equal(await h.store.strongestLicense(EMAIL, NOW), null, "the licence is dead for future issuance");
+});
+
+test("the first invoice arriving before its checkout session asks to be sent again", async () => {
+  const h = await harness();
+  const early = await h.deliver(firstInvoice(), { provider: stripe });
+  assert.equal(early.status, 503);
+
+  await h.deliver(annualSession, { provider: stripe });
+  // Not claimed on the first attempt, so the second is not refused as seen.
+  const retried = await h.deliver(firstInvoice(), { provider: stripe });
+  assert.equal(retried.status, 200);
+  assert.equal(retried.body.applied, true);
+  assert.equal((await h.deliver(chargeRefunded, { provider: stripe })).body.applied, true);
+});
+
+test("another product's first invoice is acknowledged and never asked to be retried", async () => {
+  const h = await harness();
+  const result = await h.deliver(
+    firstInvoice({ lines: { data: [{ pricing: { price_details: { price: "price_other" } } }] } }),
+    { provider: stripe },
+  );
+  assert.equal(result.status, 200);
+  assert.equal(result.body.applied, false);
+});
+
+test("a refund that matched nothing can be sent again once the licence has its identifiers", async () => {
+  const h = await harness();
+  await h.deliver(annualSession, { provider: stripe });
+  const early = await h.deliver(chargeRefunded, { provider: stripe });
+  assert.equal(early.body.applied, false);
+
+  await h.deliver(firstInvoice(), { provider: stripe });
+  const again = await h.deliver(chargeRefunded, { provider: stripe });
+  assert.equal(again.body.applied, true);
+});
+
 /// Both invoice events fire for the same money and carry different event ids,
 /// so idempotency cannot save us: acting on both would grow an annual by two
 /// years for one payment. Selecting both in the dashboard has to be harmless.

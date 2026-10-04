@@ -208,6 +208,13 @@ export class Store {
     return true;
   }
 
+  /// Forgets that an event was seen. Used for a refund that matched nothing, so
+  /// that sending the same event again once the licence's identifiers have
+  /// arrived is not refused as already applied.
+  async releaseEvent(id) {
+    await this.run(`DELETE FROM webhook_events WHERE id = ?`, [id]);
+  }
+
   // MARK: - Rate limiting
 
   /// A fixed window, counted per bucket. Returns the count after this call.

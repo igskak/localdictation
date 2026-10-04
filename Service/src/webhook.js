@@ -38,6 +38,29 @@ export async function handleEvent({
     return { status: 400, body: { error: "missing_event_id" } };
   }
 
+  // The first invoice of a subscription carries the payment's identifiers and
+  // nothing a licence is made from, so it is matched to the licence its
+  // checkout session created. The two events race. When the licence is not
+  // there yet and the invoice is one of ours, the answer is a failure so that
+  // the provider sends it again, and the event is not claimed so the second
+  // attempt is not refused as already seen.
+  if (parsed.effect === "attach") {
+    const license = await store.licenseByRef(parsed.lookup ?? []);
+    if (!license) {
+      if (parsed.ours) {
+        log("payment identifiers arrived before their licence", { provider: provider.name });
+        return { status: 503, body: { received: false, retry: true } };
+      }
+      return { status: 200, body: { received: true, applied: false } };
+    }
+    if (!(await store.claimEvent(parsed.id, now))) {
+      return { status: 200, body: { received: true, applied: false } };
+    }
+    await store.recordRefs(license.id, parsed.refs ?? [], now);
+    log("payment identifiers recorded", { license: license.id });
+    return { status: 200, body: { received: true, applied: true } };
+  }
+
   // Every provider re-delivers, and a second delivery must not create a second
   // license. Claimed before anything is written.
   if (!(await store.claimEvent(parsed.id, now))) {
@@ -101,6 +124,7 @@ export async function handleEvent({
     // Almost always another product on the same account, which is why this is
     // an acknowledgement and not an error.
     log("refund for nothing this service issued", { provider: provider.name });
+    await store.releaseEvent(parsed.id);
     return { status: 200, body: { received: true, applied: false } };
   }
 
