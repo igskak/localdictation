@@ -222,7 +222,9 @@ are. `docs/PRIVACY.md` prints the row shape and the retention period.
 In the dashboard, once:
 
 1. One product with two prices — €99 one-off and €49 yearly.
-2. A Payment Link for each. Copy the two URLs into `StoreFront` in the app, and
+2. A Payment Link for each, with **Allow promotion codes** on. Copy the two URLs
+   into `website/app/_data/partnerOffers.ts` (the app's Buy buttons open
+   `witnessmac.com/buy`, which redirects there and prefills a partner's code), and
    the two `plink_…` ids into `PAYMENT_LINK_LIFETIME` and `PAYMENT_LINK_ANNUAL`
    — a Payment Link checkout sends **no line items** on the webhook, so the
    link id is the only thing in that payload that says which offer was bought.

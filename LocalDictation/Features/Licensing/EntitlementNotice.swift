@@ -62,7 +62,7 @@ struct EntitlementNotice: Sendable, Equatable {
                 headline = days <= 1
                     ? L10n.string("The trial ends today")
                     : L10n.format("The trial ends in %lld days", Int64(days))
-                detail = L10n.format("It runs out on %@. A license keeps this Mac dictating; your dictionary and settings stay exactly as they are either way.", Self.moment.string(from: expiresAt))
+                detail = L10n.format("It runs out on %@. A license keeps this Mac dictating; your dictionary and settings stay exactly as they are either way. Have a promo code? It goes in on the payment page.", Self.moment.string(from: expiresAt))
                 actionTitle = L10n.string("Open License settings")
                 symbol = "clock.badge.exclamationmark"
                 isPressing = days <= 1

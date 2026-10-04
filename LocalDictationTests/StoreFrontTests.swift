@@ -29,15 +29,21 @@ final class StoreFrontTests: XCTestCase {
         XCTAssertNotEqual(lifetime, annual)
     }
 
-    /// Verified against the live pages rather than assumed from the URLs, which
-    /// are random strings: `…ds401` shows €99.00 with a `Pay` button, `…ds402`
-    /// shows €49.00 / year with `Pay and subscribe`.
+    /// Each button asks `/buy` for its own plan. Which Payment Link a plan ends
+    /// on — `…ds401` shows €99.00 with `Pay`, `…ds402` €49.00 / year with
+    /// `Pay and subscribe` — is pinned by the website's own test, next to the
+    /// links; what can go wrong on this side is the plan name.
     func testEachOfferGoesToThePageThatChargesIt() throws {
         XCTAssertEqual(StoreFront.price(for: .lifetime), "€99")
         XCTAssertEqual(StoreFront.price(for: .annual), "€49")
 
-        XCTAssertTrue(try XCTUnwrap(StoreFront.checkoutURL(for: .lifetime)).absoluteString.hasSuffix("ds401"))
-        XCTAssertTrue(try XCTUnwrap(StoreFront.checkoutURL(for: .annual)).absoluteString.hasSuffix("ds402"))
+        for (offer, plan) in [(TelemetryEvent.Offer.lifetime, "lifetime"), (.annual, "annual")] {
+            let url = try XCTUnwrap(StoreFront.checkoutURL(for: offer))
+            let components = try XCTUnwrap(URLComponents(url: url, resolvingAgainstBaseURL: false))
+            XCTAssertEqual(components.host, "witnessmac.com")
+            XCTAssertEqual(components.path, "/buy")
+            XCTAssertEqual(components.queryItems, [URLQueryItem(name: "plan", value: plan)])
+        }
     }
 
     /// A card number is about to be typed into whatever these open. The app
