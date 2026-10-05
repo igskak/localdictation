@@ -9,7 +9,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import worker from "../src/worker.js";
-import { ALLOWED_EVENTS, RATE_LIMITS, RETENTION_SECONDS } from "../src/events.js";
+import { ALLOWED_EVENTS, RATE_LIMITS, RETENTION_SECONDS, record } from "../src/events.js";
+import { createAnalytics } from "../src/analytics.js";
 import { Store } from "../src/store.js";
 import { makeTestDatabase } from "./support/d1.mjs";
 import { makeKeypair } from "./support/keys.mjs";
@@ -259,4 +260,73 @@ test("a body that is not an object is refused the way every other route refuses 
 
   const wrongMethod = await worker.fetch(new Request("https://api.witnessmac.com/v1/events", { method: "GET" }), env, {});
   assert.equal(wrongMethod.status, 405);
+});
+
+// MARK: - What is passed on to PostHog
+
+function forwarding() {
+  const sent = [];
+  const analytics = createAnalytics(
+    { POSTHOG_KEY: "phc_test" },
+    { fetcher: async (url, init) => { sent.push({ url, body: JSON.parse(init.body) }); return { ok: true, status: 200 }; } },
+  );
+  const store = new Store(makeTestDatabase());
+  const run = (payload, now = 1767225600) =>
+    record({ body: payload, store, now, clientIP: "203.0.113.7", log: () => {}, analytics });
+  return { sent, run, store };
+}
+
+test("an accepted event reaches PostHog with the install id, its qualifier and the two versions, and nothing else", async () => {
+  const { sent, run } = forwarding();
+  const result = await run(body({ event: "model_failed", qualifier: "network" }));
+
+  assert.equal(result.status, 202);
+  assert.equal(sent.length, 1);
+  const { body: wire } = sent[0];
+  assert.equal(sent[0].url, "https://eu.i.posthog.com/i/v0/e/");
+  assert.equal(wire.event, "model_failed");
+  assert.equal(wire.distinct_id, INSTALL);
+  assert.equal(wire.timestamp, new Date(1767225600 * 1000).toISOString());
+  assert.deepEqual(
+    Object.keys(wire.properties).sort(),
+    ["$geoip_disable", "$process_person_profile", "app_version", "qualifier", "source", "system_version"],
+  );
+  assert.equal(wire.properties.qualifier, "network");
+  assert.equal(wire.properties.$process_person_profile, false);
+  assert.equal(wire.properties.$geoip_disable, true);
+  assert.equal(JSON.stringify(wire).includes("203.0.113.7"), false, "an address reached PostHog");
+});
+
+test("an event with no qualifier sends no qualifier property", async () => {
+  const { sent, run } = forwarding();
+  await run(body({ event: "installed" }));
+  assert.equal("qualifier" in sent[0].body.properties, false);
+});
+
+test("every one of the nine listed events is forwarded under its own name", async () => {
+  const { sent, run } = forwarding();
+  const qualifiers = { paywall_shown: "trialExpired", model_ready: "underOneMinute", model_failed: "other" };
+  for (const event of ALLOWED_EVENTS) await run(body({ event, qualifier: qualifiers[event] }));
+  assert.deepEqual(sent.map((s) => s.body.event).sort(), [...ALLOWED_EVENTS].sort());
+});
+
+test("an event the route refuses never reaches PostHog", async () => {
+  const { sent, run } = forwarding();
+  assert.equal((await run(body({ event: "dictation_finished" }))).status, 400);
+  assert.equal((await run(body({ event: "paywall_shown", qualifier: "invented" }))).status, 400);
+  assert.equal((await run(body({ install_id: "not-a-uuid" }))).status, 400);
+  assert.equal(sent.length, 0);
+});
+
+test("a rate-limited event is not forwarded either", async () => {
+  const { sent, run } = forwarding();
+  for (let i = 0; i < RATE_LIMITS.install.limit + 5; i += 1) await run(body({ event: "installed" }));
+  assert.equal(sent.length, RATE_LIMITS.install.limit);
+});
+
+test("with no PostHog key the route behaves exactly as before", async () => {
+  const env = makeEnv();
+  const response = await worker.fetch(post(body()), env, {});
+  assert.equal(response.status, 202);
+  assert.equal((await rows(env)).length, 1);
 });

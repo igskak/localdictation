@@ -147,7 +147,14 @@ async function handleEvents(request, env, ctx) {
 
   let result;
   try {
-    result = await record({ body, store, now, clientIP: clientAddress(request), log });
+    result = await record({
+      body,
+      store,
+      now,
+      clientIP: clientAddress(request),
+      log,
+      analytics: createAnalytics(env, { log, ctx }),
+    });
   } catch (error) {
     // Nothing downstream of this matters to anybody: a funnel row that did not
     // land is a funnel row that did not land, and the app is not waiting.

@@ -120,11 +120,28 @@ event says "a lifetime licence was sold for €99" and not who bought it.
 `Service/test/analytics.test.mjs` asserts the exact set of fields that leave, and
 that an address handed to it by mistake is dropped rather than sent.
 
+The service also passes on, to the same PostHog project, each of the nine
+product events described under "Product events, field by field" below, at the
+moment it accepts and stores one. That is what puts the stretch between a
+download and a first dictation on the same dashboard as the website's visits and
+downloads. Each carries the event name, the **install's own random identifier**
+as PostHog's distinct id, the qualifier the event has (one word from the fixed
+sets printed below, or none), and the two version fields: the app version and
+the macOS major and minor. It carries the same four things the app already sent
+to the service and **nothing the service did not already hold**: no email
+address, no device identifier, no licence identifier and no IP address, and it
+creates no person profile. The install identifier is not the licence identifier
+and is joined to neither, so a funnel event never meets a sale in PostHog except
+as a count on the same chart. An event the service refuses, or rate-limits, is
+not passed on. Turning product events off in Settings, Privacy stops them
+before they reach the service, and therefore before they could reach PostHog.
+`Service/test/events.test.mjs` asserts the exact set of properties that leave.
+
 PostHog is a processor under a data processing agreement. The legal basis is
-Art. 6(1)(f) GDPR — knowing how many trials and sales there are, over time, is
-necessary to run a product sold for money — and the events are deleted on the
-same terms as the website's own PostHog events. The service refuses to send to any PostHog
-host outside the EU.
+Art. 6(1)(f) GDPR — knowing how many trials and sales there are, and where
+people stop before the first one, over time, is necessary to run a product sold
+for money — and the events are deleted on the same terms as the website's own
+PostHog events. The service refuses to send to any PostHog host outside the EU.
 
 ## What the service stores
 
@@ -188,6 +205,11 @@ it has already sent, as a list of their names in
 that already knows when this installation happened — and sends nothing the
 second time. `EntitlementServiceTests` asserts it, including across
 a relaunch.
+
+They go to `api.witnessmac.com`, which stores them for ninety days (see "What
+the service stores") and passes each one on to PostHog's EU region, as described
+under "What the service tells PostHog". Those are the only two places they ever
+exist outside this Mac.
 
 Each one is this, and nothing else:
 

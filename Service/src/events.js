@@ -71,7 +71,7 @@ export const RATE_LIMITS = {
 /// status codes here exist for whoever is looking at this service, not for a
 /// user who is about to be shown a sentence. Which is also why a refusal
 /// carries no `message`: there is no one to read it.
-export async function record({ body, store, now, clientIP, log }) {
+export async function record({ body, store, now, clientIP, log, analytics = null }) {
   if ((await store.bump(`ip:${clientIP}`, now, RATE_LIMITS.address.window)) > RATE_LIMITS.address.limit) {
     return { status: 429, body: { error: "rate_limited" } };
   }
@@ -107,6 +107,15 @@ export async function record({ body, store, now, clientIP, log }) {
   }
 
   await store.recordEvent({ installID, event, qualifier, appVersion, systemVersion, at: now });
+
+  // Only what was just stored, and only after it was stored: PostHog never sees
+  // an event this table refused. The install id is the app's own random one.
+  analytics?.capture(
+    event,
+    installID,
+    { qualifier, app_version: appVersion, system_version: systemVersion },
+    now,
+  );
 
   return { status: 202, body: {} };
 }
