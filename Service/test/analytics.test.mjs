@@ -144,12 +144,15 @@ test("an event carries the licence id, the allowlisted properties, and no addres
   assert.equal(JSON.stringify(body).includes(MAC), false, "a device identifier reached PostHog");
 });
 
-test("only the four named events can be sent", async () => {
+test("only the four business events and the nine app events can be sent", async () => {
   const { analytics, sent } = recorder();
   await analytics.capture("identify", "lic_1", {});
   await analytics.capture("$pageview", "lic_1", {});
   assert.equal(sent.length, 0);
-  assert.deepEqual(ALLOWED_PROPERTIES.sort(), ["currency", "kind", "provider", "revenue", "upgrade"]);
+  assert.deepEqual(
+    [...ALLOWED_PROPERTIES].sort(),
+    ["app_version", "currency", "kind", "provider", "qualifier", "revenue", "system_version", "upgrade"],
+  );
 });
 
 test("a failure to reach PostHog is swallowed, never thrown into a purchase", async () => {
