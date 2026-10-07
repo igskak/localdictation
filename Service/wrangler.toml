@@ -62,6 +62,14 @@ PAYMENT_PROVIDER = "stripe"
 PAYMENT_LINK_LIFETIME = "plink_1UBsx2HOSgmME2jEse2p1dor,plink_1UMoAXHOSgmME2jEGRo93fS9"
 PAYMENT_LINK_ANNUAL = "plink_1UBsxhHOSgmME2jEYQctLUIb,plink_1UMoBpHOSgmME2jEg37Jl8QG"
 
+# The promotion codes we issue, as `id=LABEL` pairs separated by commas. The id
+# is the Stripe coupon id (or the promotion code's `promo_` id); the label is
+# what `license_purchased` carries to PostHog as `promo`. A discounted sale whose
+# id is not listed is reported as `other`. Add a partner's code here when it is
+# created in Stripe, and in `docs/PRIVACY.md` nothing changes: the field is the
+# same.
+PROMO_CODES = "UWYM1LLF=TAMARA30"
+
 # Optional, and only read when a checkout session arrives with its line items
 # expanded, which a Payment Link's does not. Kept because it costs nothing and
 # it is one more way for a sale to be recognised as ours.

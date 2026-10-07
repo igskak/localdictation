@@ -42,11 +42,17 @@ export const EVENTS = {
 /// Both are gross — what the buyer paid, VAT included, before the payment
 /// provider's fee.
 ///
+/// `promo` is the label of a promotion code we issued, taken from the
+/// `PROMO_CODES` list in `wrangler.toml`, or the word `other` for a discounted
+/// sale whose code is not on that list. It is never what the buyer typed and
+/// never a Stripe id: a partner's code is not personal data, an arbitrary
+/// string would not be known to be.
+///
 /// `qualifier`, `app_version` and `system_version` are the app's own fields, each
 /// from a fixed vocabulary or a bounded pattern that `events.js` has already
 /// enforced by the time an event gets here.
 export const ALLOWED_PROPERTIES = [
-  "kind", "revenue", "currency", "provider", "upgrade", "qualifier", "app_version", "system_version",
+  "kind", "revenue", "currency", "provider", "upgrade", "promo", "qualifier", "app_version", "system_version",
 ];
 
 const DEFAULT_HOST = "https://eu.i.posthog.com";
@@ -119,4 +125,23 @@ export function money(amount, currency) {
   const code = currency.toLowerCase();
   const major = ZERO_DECIMAL.has(code) ? amount : amount / 100;
   return { revenue: Math.round(major * 100) / 100, currency: code.toUpperCase() };
+}
+
+/// `PROMO_CODES` is `id=LABEL` pairs separated by commas, where the id is a
+/// Stripe coupon or promotion-code id and the label is what shows up in PostHog.
+/// A label that is not a short upper-case word is dropped, so a typo in the list
+/// can cost a label but never put anything odd on the wire.
+const LABEL = /^[A-Z0-9_-]{2,24}$/;
+
+export function promoLabel(promo, env) {
+  if (!promo || promo.discounted !== true) return undefined;
+  const known = new Map();
+  for (const pair of String(env?.PROMO_CODES ?? "").split(",")) {
+    const [id, label] = pair.split("=").map((part) => part?.trim());
+    if (id && LABEL.test(label ?? "")) known.set(id, label);
+  }
+  for (const id of promo.ids ?? []) {
+    if (known.has(id)) return known.get(id);
+  }
+  return "other";
 }

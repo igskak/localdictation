@@ -227,10 +227,30 @@ export const stripe = {
       refs: [object.id, object.payment_intent, object.subscription, object.invoice],
       amount: object.amount_total ?? null,
       currency: object.currency ?? null,
+      // Which coupon or promotion code the buyer used, as Stripe's own ids, and
+      // whether any discount was applied at all. For the analytics event and
+      // nothing else: no licence decision reads it, and the ids never leave
+      // this service, only a label from `PROMO_CODES`.
+      promo: promoOf(object),
       at: now,
     };
   },
 };
+
+/// The coupon and promotion-code ids on a checkout session. `discounts` holds
+/// them as strings, or as objects when a caller expanded them; both are read.
+/// `discounted` is true when money came off even though no id was found, so a
+/// code this service has no label for is still counted as a discounted sale.
+function promoOf(session) {
+  const ids = [];
+  for (const discount of Array.isArray(session.discounts) ? session.discounts : []) {
+    for (const reference of [discount?.promotion_code, discount?.coupon]) {
+      const id = typeof reference === "string" ? reference : reference?.id;
+      if (id) ids.push(id);
+    }
+  }
+  return { ids, discounted: (session.total_details?.amount_discount ?? 0) > 0 || ids.length > 0 };
+}
 
 /// Everything in an event that could say which of the two offers was bought.
 ///

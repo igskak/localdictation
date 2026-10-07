@@ -10,7 +10,7 @@
 
 import { ANNUAL_SECONDS } from "./providers.js";
 import { purchaseMail, renewalMail } from "./mailer.js";
-import { EVENTS, money } from "./analytics.js";
+import { EVENTS, money, promoLabel } from "./analytics.js";
 
 export async function handleEvent({
   event,
@@ -210,6 +210,7 @@ export async function handleEvent({
       kind: parsed.kind,
       provider: provider.name,
       upgrade: Boolean(existing && existing.kind !== "trial"),
+      promo: promoLabel(parsed.promo, env),
       ...money(parsed.amount, parsed.currency),
     },
     now,
