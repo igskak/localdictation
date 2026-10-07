@@ -249,3 +249,78 @@ struct RebindBudget: Equatable, Sendable {
         missingSince = nil
     }
 }
+
+/// A headset that handed us nothing but zeros, remembered so the next recording
+/// does not begin on it.
+///
+/// Leaving such a device happens mid-sentence: the watchdog needs a stretch of
+/// zeros before it can tell a silent device from a quiet speaker, and the
+/// rebind takes its own gap. Measured on 2026-10-07 with AirPods shared with a
+/// phone: every one of fourteen recordings opened on them and moved to the
+/// built-in microphone about 1.2 s after the press, which is exactly where the
+/// first word of a sentence is said. Nothing on the Mac side changes between
+/// those recordings, so the next press would make the same mistake again.
+///
+/// Forgotten as soon as the evidence may no longer hold: the device reconnects
+/// (its id or uid changes or it disappears), the system default input moves,
+/// or `lifetime` passes, after which the device gets one more chance to prove
+/// itself. A device that comes back to life in the meantime costs only the
+/// built-in microphone's quality, which is better than a missing word.
+struct SilentInputMemory: Equatable, Sendable {
+    static let lifetime: TimeInterval = 30 * 60
+
+    private struct Verdict: Equatable, Sendable {
+        var deviceID: AudioDeviceID
+        var uid: String
+        var defaultInputID: AudioDeviceID?
+        var at: Date
+    }
+
+    private var verdict: Verdict?
+
+    init() {}
+
+    mutating func remember(_ device: SystemAudioInput.Device, defaultInputID: AudioDeviceID?, at now: Date) {
+        verdict = Verdict(deviceID: device.id, uid: device.uid, defaultInputID: defaultInputID, at: now)
+    }
+
+    /// The device a new recording should not start on, if the verdict still
+    /// describes the hardware as it is now. A stale verdict is dropped.
+    mutating func deviceToAvoid(
+        among devices: [SystemAudioInput.Device],
+        defaultInputID: AudioDeviceID?,
+        at now: Date
+    ) -> SystemAudioInput.Device? {
+        guard let verdict else { return nil }
+        let stillThere = devices.first { $0.id == verdict.deviceID && $0.uid == verdict.uid }
+        guard let device = stillThere,
+              defaultInputID == verdict.defaultInputID,
+              now.timeIntervalSince(verdict.at) >= 0,
+              now.timeIntervalSince(verdict.at) < Self.lifetime
+        else {
+            self.verdict = nil
+            return nil
+        }
+        return device
+    }
+}
+
+extension SystemAudioInput {
+    /// Where a new recording opens: the selection's own answer, unless that is
+    /// a device known to deliver only silence and the selection has somewhere
+    /// else to go. With nowhere else, the silent device is still opened, and the
+    /// route policy makes the stronger claim on it once the zeros arrive.
+    static func resolveStart(
+        _ selection: AudioInputSelection,
+        among devices: [Device],
+        defaultID: AudioDeviceID?,
+        avoiding silent: Device?
+    ) -> (resolution: Resolution, skipped: Device?)? {
+        guard let resolution = resolve(selection, among: devices, defaultID: defaultID) else { return nil }
+        guard let silent, resolution.device.id == silent.id else { return (resolution, nil) }
+        guard let elsewhere = resolve(selection, among: devices.filter { $0.id != silent.id }, defaultID: defaultID) else {
+            return (resolution, nil)
+        }
+        return (Resolution(device: elsewhere.device, usedFallback: true), silent)
+    }
+}

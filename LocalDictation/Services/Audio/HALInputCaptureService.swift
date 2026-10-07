@@ -125,6 +125,9 @@ final class HALInputCaptureService: AudioCaptureService, @unchecked Sendable {
 
     /// Touched only on `queue`.
     private var session: Session?
+    /// A headset that delivered only zeros, so the next press does not lose its
+    /// first word to it again. Touched only on `queue`.
+    private var silentInputs = SilentInputMemory()
 
     /// Read from the main actor by `snapshot`, so it may not go through `queue`.
     private let stateLock = UnfairLock()
@@ -182,13 +185,17 @@ final class HALInputCaptureService: AudioCaptureService, @unchecked Sendable {
         _ configuration: AudioCaptureConfiguration,
         _ onInterruption: @escaping @Sendable (AudioCaptureError) -> Void
     ) throws -> CaptureFormatDescription {
-        guard let resolution = SystemAudioInput.resolve(
+        let devices = hardware.availableInputDevices()
+        let defaultID = hardware.defaultInputDeviceID()
+        guard let start = SystemAudioInput.resolveStart(
             configuration.inputSelection,
-            among: hardware.availableInputDevices(),
-            defaultID: hardware.defaultInputDeviceID()
+            among: devices,
+            defaultID: defaultID,
+            avoiding: silentInputs.deviceToAvoid(among: devices, defaultInputID: defaultID, at: Date())
         ) else {
             throw AudioCaptureError.noInputDevice
         }
+        let (resolution, skipped) = start
 
         let detector = EnergyVoiceActivityDetector(
             configuration: configuration.voiceActivity,
@@ -245,7 +252,11 @@ final class HALInputCaptureService: AudioCaptureService, @unchecked Sendable {
         Log.audio.info(
             "Capture started: \(segment.deviceName, privacy: .public) (\(Self.describe(segment.binding.mode), privacy: .public)), device \(Int(segment.binding.sampleRate)) Hz \(segment.binding.channelCount) ch, client 16000 Hz mono from channel 0, capacity \(sink.capacityFrames) frames"
         )
-        if resolution.usedFallback {
+        if let skipped {
+            Log.audio.notice(
+                "Capture skipped \(skipped.name, privacy: .public): it delivered only silence on a recent recording"
+            )
+        } else if resolution.usedFallback {
             Log.audio.notice("Preferred microphone unavailable; capture uses another local input")
         }
         return format
@@ -282,12 +293,22 @@ final class HALInputCaptureService: AudioCaptureService, @unchecked Sendable {
         guard let session, !session.isFinished else { return }
         let binding = session.binding
 
+        let snapshot = makeSnapshot(binding: binding)
         let action = InputRoutePolicy.action(
             for: event,
             selection: session.selection,
             binding: binding,
-            snapshot: makeSnapshot(binding: binding)
+            snapshot: snapshot
         )
+
+        // Leaving a silent headset for another microphone is a verdict worth
+        // keeping: without it the next press opens the same headset and loses
+        // its first word the same way.
+        if event == .boundDeviceDeliveredSilence,
+           case let .rebind(elsewhere) = action, elsewhere != binding.deviceID,
+           let silent = snapshot.devices.first(where: { $0.id == binding.deviceID }) {
+            silentInputs.remember(silent, defaultInputID: snapshot.defaultInputID, at: Date())
+        }
 
         if event == .boundDeviceDeliveredSilence, action == .keep {
             Log.audio.notice(

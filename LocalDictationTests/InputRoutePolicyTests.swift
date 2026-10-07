@@ -313,4 +313,109 @@ final class InputRoutePolicyTests: XCTestCase {
         budget.recordSuccess()
         XCTAssertTrue(budget.toleratesMissingInput(at: 13))
     }
+
+    // MARK: - Starting away from a silent headset
+
+    private let marked = Date(timeIntervalSinceReferenceDate: 1_000)
+
+    private func memoryOfSilentAirPods() -> SilentInputMemory {
+        var memory = SilentInputMemory()
+        memory.remember(airPods, defaultInputID: airPods.id, at: marked)
+        return memory
+    }
+
+    /// The 2026-10-07 report: AirPods shared with a phone were the default
+    /// input, every recording opened on them and left for the built-in
+    /// microphone 1.2 s in, and the first word of every sentence was lost. The
+    /// second press must start where the first one ended up.
+    func testTheNextRecordingStartsAwayFromAHeadsetThatWasSilent() throws {
+        var memory = memoryOfSilentAirPods()
+        let devices = [builtIn, airPods]
+        let avoid = memory.deviceToAvoid(among: devices, defaultInputID: airPods.id, at: marked.addingTimeInterval(60))
+
+        let start = try XCTUnwrap(
+            SystemAudioInput.resolveStart(.systemDefault, among: devices, defaultID: airPods.id, avoiding: avoid)
+        )
+        XCTAssertEqual(start.resolution.device, builtIn)
+        XCTAssertEqual(start.skipped, airPods, "The skip is logged, so a report can tell it happened")
+    }
+
+    func testANamedSilentHeadsetIsAlsoSkippedAtTheStart() throws {
+        var memory = memoryOfSilentAirPods()
+        let devices = [builtIn, airPods]
+        let avoid = memory.deviceToAvoid(among: devices, defaultInputID: airPods.id, at: marked.addingTimeInterval(60))
+
+        let start = try XCTUnwrap(
+            SystemAudioInput.resolveStart(.device(uid: airPods.uid), among: devices, defaultID: airPods.id, avoiding: avoid)
+        )
+        XCTAssertEqual(start.resolution.device, builtIn, "Mid-sentence the policy leaves it too; the start agrees")
+    }
+
+    /// With no other microphone the silent headset is still opened, so the
+    /// route policy can make the stronger claim on it instead of recording
+    /// nothing.
+    func testASilentHeadsetIsStillUsedWhenItIsTheOnlyMicrophone() throws {
+        var memory = memoryOfSilentAirPods()
+        let avoid = memory.deviceToAvoid(among: [airPods], defaultInputID: airPods.id, at: marked.addingTimeInterval(60))
+
+        let start = try XCTUnwrap(
+            SystemAudioInput.resolveStart(.systemDefault, among: [airPods], defaultID: airPods.id, avoiding: avoid)
+        )
+        XCTAssertEqual(start.resolution.device, airPods)
+        XCTAssertNil(start.skipped)
+    }
+
+    func testARecordingThatWouldNotHaveUsedTheHeadsetIsUntouched() throws {
+        var memory = memoryOfSilentAirPods()
+        let devices = [builtIn, airPods, usb]
+        let avoid = memory.deviceToAvoid(among: devices, defaultInputID: airPods.id, at: marked.addingTimeInterval(60))
+
+        let start = try XCTUnwrap(
+            SystemAudioInput.resolveStart(.device(uid: usb.uid), among: devices, defaultID: airPods.id, avoiding: avoid)
+        )
+        XCTAssertEqual(start.resolution.device, usb)
+        XCTAssertFalse(start.resolution.usedFallback)
+        XCTAssertNil(start.skipped)
+    }
+
+    func testTheVerdictExpiresSoTheHeadsetGetsAnotherChance() {
+        var memory = memoryOfSilentAirPods()
+        let devices = [builtIn, airPods]
+        XCTAssertEqual(
+            memory.deviceToAvoid(among: devices, defaultInputID: airPods.id, at: marked.addingTimeInterval(29 * 60)),
+            airPods
+        )
+        XCTAssertNil(memory.deviceToAvoid(among: devices, defaultInputID: airPods.id, at: marked.addingTimeInterval(31 * 60)))
+        XCTAssertNil(
+            memory.deviceToAvoid(among: devices, defaultInputID: airPods.id, at: marked.addingTimeInterval(60)),
+            "An expired verdict is dropped, not revived by an earlier clock"
+        )
+    }
+
+    func testAReconnectedHeadsetIsTrustedAgain() {
+        var memory = memoryOfSilentAirPods()
+        let reconnected = SystemAudioInput.Device(
+            id: 9, uid: airPods.uid, name: airPods.name,
+            transportType: airPods.transportType, nominalSampleRate: 24_000
+        )
+        XCTAssertNil(
+            memory.deviceToAvoid(among: [builtIn, reconnected], defaultInputID: reconnected.id, at: marked.addingTimeInterval(60))
+        )
+    }
+
+    func testAHeadsetThatLeftIsForgotten() {
+        var memory = memoryOfSilentAirPods()
+        XCTAssertNil(memory.deviceToAvoid(among: [builtIn], defaultInputID: builtIn.id, at: marked.addingTimeInterval(60)))
+        XCTAssertNil(
+            memory.deviceToAvoid(among: [builtIn, airPods], defaultInputID: airPods.id, at: marked.addingTimeInterval(120)),
+            "Coming back is a new connection, not the one that was silent"
+        )
+    }
+
+    func testAMovedDefaultInputDropsTheVerdict() {
+        var memory = memoryOfSilentAirPods()
+        XCTAssertNil(
+            memory.deviceToAvoid(among: [builtIn, airPods], defaultInputID: builtIn.id, at: marked.addingTimeInterval(60))
+        )
+    }
 }
