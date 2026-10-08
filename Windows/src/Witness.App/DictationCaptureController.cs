@@ -98,10 +98,15 @@ internal sealed class DictationCaptureController(
                 }
                 endpointId = resolution.Device.Id;
             }
+            var routeMonitor = selection.Kind == AudioInputSelectionKind.SystemDefault
+                ? new AudioEndpointNotificationMonitor()
+                : null;
             var candidate = new AudioCaptureSession(
                 new NativeAudioCapture(endpointId),
                 new NativeAudioSampleProcessor(),
-                configuration);
+                configuration,
+                new NativeAudioCaptureFactory(endpointId),
+                routeMonitor);
             candidate.AutomaticStopRequested += AutomaticStopRequested;
             try
             {

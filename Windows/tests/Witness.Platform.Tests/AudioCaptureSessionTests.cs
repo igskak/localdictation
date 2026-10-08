@@ -72,6 +72,29 @@ public sealed class AudioCaptureSessionTests
     }
 
     [TestMethod]
+    public async Task RebindSplicesSegmentsIntoOnePhraseAndOneVadBuffer()
+    {
+        using var first = new FakePacketSource();
+        using var second = new FakePacketSource();
+        using var session = new AudioCaptureSession(
+            first,
+            new FakeProcessor(),
+            TestConfiguration(),
+            new FakePacketSourceFactory(second));
+        session.Start();
+        first.Enqueue(Enumerable.Repeat(0.1F, 1_500).ToArray());
+        first.EnqueueInterruption();
+        Assert.IsTrue(SpinWait.SpinUntil(() => second.Started, TimeSpan.FromSeconds(1)));
+        second.Enqueue(Enumerable.Repeat(0.1F, 1_500).ToArray());
+
+        var result = await session.StopAsync();
+
+        Assert.AreEqual(AudioCaptureCompletionKind.Speech, result.Kind);
+        Assert.AreEqual(1, result.RouteRebindCount);
+        Assert.IsTrue(result.HadDiscontinuity);
+    }
+
+    [TestMethod]
     public async Task SpeechStartIsReportedForCompletedAudio()
     {
         using var source = new FakePacketSource();
@@ -95,8 +118,13 @@ public sealed class AudioCaptureSessionTests
     {
         public BoundedAudioPacketQueue Queue { get; } = new(8, 16_384);
         public EventWaitHandle PacketAvailable { get; } = new AutoResetEvent(false);
+        public bool Started { get; private set; }
 
-        public NativeCaptureFormat Start() => new(48_000, 1, 4, NativeAudioSampleFormat.Float32LittleEndian);
+        public NativeCaptureFormat Start()
+        {
+            Started = true;
+            return new(48_000, 1, 4, NativeAudioSampleFormat.Float32LittleEndian);
+        }
         public void Stop() => PacketAvailable.Set();
         public void Dispose() => PacketAvailable.Dispose();
 
@@ -113,6 +141,11 @@ public sealed class AudioCaptureSessionTests
             Assert.IsTrue(Queue.TryWrite(IntPtr.Zero, 0, 0, AudioPacketFlags.Interrupted));
             PacketAvailable.Set();
         }
+    }
+
+    private sealed class FakePacketSourceFactory(FakePacketSource replacement) : IAudioPacketSourceFactory
+    {
+        public IAudioPacketSource Create() => replacement;
     }
 
     private sealed class FakeProcessor : IAudioSampleProcessor

@@ -151,3 +151,13 @@ public sealed partial class NativeAudioCapture : IAudioPacketSource
         internal static partial void Destroy(IntPtr capture);
     }
 }
+
+/// <summary>
+/// Reopens the selected endpoint on the packet worker after WASAPI reports an
+/// invalidated segment. A null endpoint intentionally re-resolves Windows'
+/// current default at each replacement.
+/// </summary>
+public sealed class NativeAudioCaptureFactory(string? endpointId) : IAudioPacketSourceFactory
+{
+    public IAudioPacketSource Create() => new NativeAudioCapture(endpointId);
+}

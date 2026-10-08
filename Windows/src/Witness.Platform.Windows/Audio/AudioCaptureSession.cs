@@ -10,6 +10,18 @@ public interface IAudioPacketSource : IDisposable
     void Stop();
 }
 
+/// <summary>Creates a fresh WASAPI segment without extending a phrase lifetime.</summary>
+public interface IAudioPacketSourceFactory
+{
+    IAudioPacketSource Create();
+}
+
+public interface IAudioRouteChangeMonitor : IDisposable
+{
+    event EventHandler? RouteMayHaveChanged;
+    void Start();
+}
+
 public interface IAudioSampleProcessor
 {
     int DecodeToMono(
@@ -37,7 +49,8 @@ public sealed record AudioCaptureResult(
     long DroppedPacketCount,
     bool BufferOverflowed,
     uint SourceSampleRate,
-    double? SpeechStartSeconds = null);
+    double? SpeechStartSeconds = null,
+    int RouteRebindCount = 0);
 
 /// <summary>
 /// Drains native packets on a worker, normalizes into a bounded mono buffer,
@@ -46,8 +59,11 @@ public sealed record AudioCaptureResult(
 public sealed class AudioCaptureSession(
     IAudioPacketSource source,
     IAudioSampleProcessor processor,
-    VoiceActivityConfiguration? voiceActivityConfiguration = null) : IDisposable
+    VoiceActivityConfiguration? voiceActivityConfiguration = null,
+    IAudioPacketSourceFactory? rebindSourceFactory = null,
+    IAudioRouteChangeMonitor? routeChangeMonitor = null) : IDisposable
 {
+    private const int MaximumRouteRebindAttempts = 2;
     private readonly VoiceActivityConfiguration vadConfiguration =
         (voiceActivityConfiguration ?? VoiceActivityConfiguration.Default).Validated();
     private readonly object stateGate = new();
@@ -61,6 +77,10 @@ public sealed class AudioCaptureSession(
     private bool hadDiscontinuity;
     private bool bufferOverflowed;
     private bool disposed;
+    private IAudioPacketSource activeSource = source;
+    private volatile bool routeRebindRequested;
+    private int routeRebindCount;
+    private long droppedPacketCount;
 
     public event EventHandler<VoiceActivityObservation>? ActivityChanged;
     public event EventHandler? AutomaticStopRequested;
@@ -71,16 +91,21 @@ public sealed class AudioCaptureSession(
         {
             ObjectDisposedException.ThrowIf(disposed, this);
             if (worker is not null) throw new InvalidOperationException("This capture session has already started.");
-            format = source.Start();
+            format = activeSource.Start();
             if (format.SampleRate is < 8_000 or > 96_000 || format.ChannelCount is < 1 or > 32 || format.BytesPerFrame == 0)
             {
-                source.Stop();
+                activeSource.Stop();
                 throw new NativeAudioException(NativeAudioStatus.AudioFormatUnsupported,
                     "The microphone mix format is outside the supported capture bounds.");
             }
             var capacity = checked((int)Math.Ceiling(format.SampleRate * vadConfiguration.MaximumUtteranceDuration));
             buffer = new BoundedPcmBuffer(capacity);
             vad = new EnergyVoiceActivityDetector(vadConfiguration, format.SampleRate);
+            if (routeChangeMonitor is not null)
+            {
+                routeChangeMonitor.RouteMayHaveChanged += RouteMayHaveChanged;
+                routeChangeMonitor.Start();
+            }
             stopping = false;
             worker = Task.Run(ProcessPackets);
             return format;
@@ -94,9 +119,9 @@ public sealed class AudioCaptureSession(
         {
             ObjectDisposedException.ThrowIf(disposed, this);
             activeWorker = worker ?? throw new InvalidOperationException("This capture session has not started.");
-            source.Stop();
+            activeSource.Stop();
             stopping = true;
-            source.PacketAvailable.Set();
+            activeSource.PacketAvailable.Set();
         }
         await activeWorker.ConfigureAwait(false);
         if (workerFailure is not null) throw new InvalidOperationException("Audio packet processing failed.", workerFailure);
@@ -141,39 +166,63 @@ public sealed class AudioCaptureSession(
             kind,
             normalized,
             hadDiscontinuity,
-            source.Queue.DroppedPacketCount,
+            droppedPacketCount + activeSource.Queue.DroppedPacketCount,
             bufferOverflowed,
             format.SampleRate,
-            observation.SpeechStart);
+            observation.SpeechStart,
+            routeRebindCount);
     }
 
     public void Dispose()
     {
         if (disposed) return;
-        source.Stop();
+        activeSource.Stop();
         stopping = true;
-        source.PacketAvailable.Set();
+        activeSource.PacketAvailable.Set();
         worker?.GetAwaiter().GetResult();
-        source.Dispose();
+        activeSource.Dispose();
+        if (routeChangeMonitor is not null)
+        {
+            routeChangeMonitor.RouteMayHaveChanged -= RouteMayHaveChanged;
+            routeChangeMonitor.Dispose();
+        }
         disposed = true;
     }
+
+    /// <summary>
+    /// Called by an endpoint-notification adapter. It merely wakes the bounded
+    /// worker; device enumeration and reopening never occur in that callback.
+    /// </summary>
+    public void RequestRouteRebind()
+    {
+        routeRebindRequested = true;
+        activeSource.PacketAvailable.Set();
+    }
+
+    private void RouteMayHaveChanged(object? sender, EventArgs args) => RequestRouteRebind();
 
     private void ProcessPackets()
     {
         try
         {
-            var maximumFrames = Math.Max(1, source.Queue.MaximumPacketBytes / checked((int)format.BytesPerFrame));
-            var mono = new float[maximumFrames];
             while (true)
             {
+                var segment = activeSource;
+                var maximumFrames = Math.Max(1, segment.Queue.MaximumPacketBytes / checked((int)format.BytesPerFrame));
+                var mono = new float[maximumFrames];
                 var consumed = false;
-                while (source.Queue.TryConsume((data, frames, flags) =>
+                var rebound = false;
+                while (segment.Queue.TryConsume((data, frames, flags) =>
                 {
                     consumed = true;
                     if ((flags & AudioPacketFlags.Interrupted) != 0)
                     {
-                        interrupted = true;
-                        AutomaticStopRequested?.Invoke(this, EventArgs.Empty);
+                        rebound = TryRebind(segment);
+                        if (!rebound)
+                        {
+                            interrupted = true;
+                            AutomaticStopRequested?.Invoke(this, EventArgs.Empty);
+                        }
                         return;
                     }
                     if ((flags & AudioPacketFlags.Discontinuity) != 0) hadDiscontinuity = true;
@@ -192,13 +241,52 @@ public sealed class AudioCaptureSession(
                         AutomaticStopRequested?.Invoke(this, EventArgs.Empty);
                 })) { }
 
+                if (rebound) continue;
+                if (routeRebindRequested)
+                {
+                    routeRebindRequested = false;
+                    if (TryRebind(segment)) continue;
+                }
                 if (stopping && !consumed) break;
-                source.PacketAvailable.WaitOne(100);
+                segment.PacketAvailable.WaitOne(100);
             }
         }
         catch (Exception error)
         {
             workerFailure = error;
+        }
+    }
+
+    private bool TryRebind(IAudioPacketSource previous)
+    {
+        if (rebindSourceFactory is null || routeRebindCount >= MaximumRouteRebindAttempts || stopping)
+            return false;
+
+        IAudioPacketSource? replacement = null;
+        try
+        {
+            previous.Stop();
+            replacement = rebindSourceFactory.Create();
+            var replacementFormat = replacement.Start();
+            // Different sample formats/channels are decoded per packet, but a
+            // sample-rate switch needs a segment-aware resampler and must not
+            // quietly corrupt the phrase.
+            if (replacementFormat.SampleRate != format.SampleRate)
+                throw new NativeAudioException(NativeAudioStatus.AudioFormatUnsupported,
+                    "The replacement microphone changed sample rate during the phrase.");
+            activeSource = replacement;
+            format = replacementFormat;
+            replacement = null;
+            droppedPacketCount += previous.Queue.DroppedPacketCount;
+            previous.Dispose();
+            hadDiscontinuity = true;
+            routeRebindCount++;
+            return true;
+        }
+        catch
+        {
+            replacement?.Dispose();
+            return false;
         }
     }
 }
