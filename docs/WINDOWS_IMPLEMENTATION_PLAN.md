@@ -1,25 +1,58 @@
 # Witness для Windows — план реализации
 
-Дата: 2026-09-27. Статус: план, реализация Windows ещё не начата.
+Дата: 2026-09-27. Обновлено: 2026-10-08. Статус: W0–W8 реализованы
+до unsigned internal beta; запланирован W9 для догоняющего обновления до
+продуктового baseline Witness 0.6.14.
 
-Цель следующего треда — довести отдельный Windows-клиент до устанавливаемой закрытой беты с функциональностью текущего Witness, включая ручные подписанные обновления. Разработчик работает на Mac, локальную Windows/виртуальную машину не устанавливает. Сборка и автоматические проверки выполняются на Windows в CI; проверку настоящих микрофонов, скорости и совместимости пользователь закажет после получения беты.
+Текущая цель — сохранить уже реализованный отдельный Windows-клиент и довести
+его до функционального соответствия Witness 0.6.14, не выдавая перенос
+macOS-специфичного кода за Windows-проверку. После W9 остаются прежние внешние
+гейты подписанной закрытой беты: реальные credentials, legal review, code
+signing и физическая Windows 11 QA. Разработчик работает на Mac, локальную
+Windows/виртуальную машину не устанавливает. Сборка и автоматические проверки
+выполняются на Windows в CI; проверку настоящих микрофонов, скорости и
+совместимости пользователь закажет после получения подписанной беты.
 
 **Готовность к передаче тестировщикам и готовность к продаже — разные контрольные точки.** Непроверенные на физических Windows-компьютерах свойства должны оставаться явно непроверенными. Этот документ не подтверждает качество распознавания или совместимость ещё не существующей сборки.
 
 ## 1. От какой версии переносим
 
-**Подтверждённая последняя опубликованная версия — [Witness 0.6.8](https://github.com/igskak/localdictation/releases/tag/v0.6.8), build 9**, опубликована 2026-09-24 в 18:18:12 UTC. GitHub Releases API помечает её `isLatest: true`; tag API указывает на commit `c073a8fbad5fe1cca7ef6dcf06fc7c19c2c89b77`. Версия и build дополнительно сверены с Xcode-проектом этого commit. Проверка выполнена 2026-09-27.
+Первоначальная Windows-реализация корректно начиналась с опубликованного
+Witness 0.6.8, build 9, commit
+`c073a8fbad5fe1cca7ef6dcf06fc7c19c2c89b77`. Этот commit остаётся историческим
+общим предком и объясняет существующие parity-тесты, но больше не является
+целевой версией продукта.
 
-Первый вариант этого плана ошибочно принимал локальное рабочее дерево за актуальную продуктовую основу. Оно отстаёт от опубликованного релиза:
+**Новый подтверждённый target — Witness 0.6.14, build 15, tag `v0.6.14`, commit
+`e5954f7e4d4d75c1c5ab0e7bebe21495d4437221`**, выпущенный 2026-10-07.
+Проверка выполнена 2026-10-08 по локальным Git objects, tag и `origin/main`;
+версия/build сверены с Xcode-проектом этого commit. На момент аудита Windows
+head `5be4a72` и `v0.6.14` имеют общий предок `v0.6.8`: после него Windows-линия
+содержит 81 собственный commit, а продуктовая линия — 29. Поэтому обновление
+делается интеграцией двух линий и повторной проверкой контрактов, а не заменой
+Windows-кода содержимым `main`.
+
+Windows beta пока сохраняет независимую версию `0.1.0`, build 1. Обновление
+product parity baseline до 0.6.14 само по себе не разрешает переименовывать
+Windows-пакет: общая или независимая нумерация должна быть принята отдельно,
+потому что version/build участвуют в updater и licensing contracts.
+
+Первый вариант этого плана ошибочно принимал тогдашнее локальное рабочее дерево
+за актуальную продуктовую основу. Исторический контекст:
 
 - Локальный `HEAD`: `f66081e59839c8af6bcfcddec64c8992fb0ad391` (`Ship German as 0.5.0`).
 - Локальные незакоммиченные файлы показывают `0.6.2`, build `3`; это **не** последняя версия продукта.
-- Основной baseline переноса: **исходники commit `c073a8fbad5fe1cca7ef6dcf06fc7c19c2c89b77` / release `v0.6.8`**, уже доступные в локальной Git object database. Читать через `git show <commit>:<path>`, не заменяя чужое рабочее дерево. Отсутствие локального тега `v0.6.8` не означает отсутствие опубликованной версии.
+- Исходный baseline переноса: **исходники commit `c073a8fbad5fe1cca7ef6dcf06fc7c19c2c89b77` / release `v0.6.8`**. Он не заменяется задним числом: W9 явно обновляет его до 0.6.14.
 - Новые локальные правки учитывать отдельно, только после сравнения с release baseline: нельзя подменить ими более новые реализованные функции и исправления.
 - WhisperKit закреплён на `1.1.0`, Sparkle — на `2.10.0`; наличие Windows solution/CI повторно проверять в выбранной ветке перед стартом.
 - Проверены metadata опубликованного релиза и его исходники; сам DMG здесь не запускался, работа deployed activation service не проверялась.
 
-Перед реализацией снова проверить latest published release, точный tag commit и локальные изменения; обновить baseline, если вышла новая версия. Не начинать перенос только из текущего `HEAD` или локального `project.pbxproj`. Не выполнять reset/stash/очистку и не коммитить чужие изменения вместе с Windows-кодом. Таблица ниже описывает поведение релиза 0.6.8; пути относятся к этому commit, даже если часть файлов отсутствует в текущем checkout.
+Перед каждым новым catch-up снова проверить latest published release, точный tag
+commit и локальные изменения; обновить target, если вышла новая версия. Не
+выполнять reset/stash/очистку и не коммитить чужие изменения вместе с
+Windows-кодом. Таблица ниже описывает исходное поведение релиза 0.6.8, уже
+перенесённое в W0–W8; следующий подраздел фиксирует обязательную дельту до
+0.6.14.
 
 | Область | Текущее поведение, которое переносим | Основной источник |
 | --- | --- | --- |
@@ -56,6 +89,22 @@
 - В release-исходниках добавлены `Tools/make_leading_silence_corpus.py`, `EncoderOutputReuseTests.swift`, `EncoderReuseParityTests.swift` и результаты в `docs/PHASE_2_BENCHMARK.md`. Приведённые там 120 synthetic samples и ускорение примерно на 0.45 s относятся к Mac/M1 и опубликованному отчёту, а не к измерениям Windows или новому запуску тестов в этом треде.
 - В актуальном UI исправлены высота раскрываемой истории и перехват кликов декоративной рамкой (`allowsHitTesting(false)`). В WPF явная высота/ограничение viewport и отсутствие hit testing у декоративных overlays входят в regression checklist.
 - Общий сервер брать из актуальной ветки release, не заменять локальной старой копией `Service/`: она не содержит новой server analytics и связанных тестов. Факт наличия кода не доказывает, что секрет PostHog настроен в deployment.
+
+### Обязательная дельта 0.6.9–0.6.14
+
+| Release | Продуктовое изменение | Windows gap перед W9 |
+| --- | --- | --- |
+| 0.6.9 | Input-only capture, продолжение одной фразы после route/format/device change, channel-0 handling для многоканального входа, нормализованная проверка тихой речи | WASAPI capture уже input-only, но invalidation завершает фразу; route monitor/rebind отсутствуют; 3+ каналов сейчас усредняются; live VAD может отбросить тихую запись |
+| 0.6.10 | Прогресс модели по байтам, оставшийся размер и консервативный ETA | Точные completed/total bytes уже есть; UI показывает только процент, rate/remaining/ETA отсутствуют |
+| 0.6.11 | Обнаружение Bluetooth input, который отдаёт bit-exact zeros, fallback или более сильный platform-specific claim | Bluetooth-классификация, digital-silence watchdog и Windows-specific recovery отсутствуют |
+| 0.6.12 | Checkout через product site и понятный promo-code copy | Намеренно не переносится в закрытую Windows beta до решения commercial terms |
+| 0.6.13 | Шесть setup funnel events в дополнение к трём licensing events; once-per-install milestones; payment/refund service fixes | Windows знает только три события и пять полей license record; актуальный `Service/` ещё не интегрирован в Windows-линию |
+| 0.6.14 | Не начинать следующую запись с недавно доказанно немой гарнитуры; forwarding product events и promo attribution на service side | Session-only silent-input memory отсутствует; server changes должны прийти из актуальной product line, без дублирования в Windows client |
+
+Критический путь W9 — Windows-specific audio resilience. Поведение macOS задаёт
+пользовательский контракт, но AUHAL/VoiceProcessingIO не копируются в Windows.
+Нужно воспроизвести случаи на WASAPI/Core Audio Windows, оставить аппаратные
+утверждения pending до физического теста и не ослаблять privacy/content lifetime.
 
 ## 2. Решения для первой Windows-версии
 
@@ -186,7 +235,20 @@ Windows device ID: отдельная namespace-соль, нормализова
 
 Коммерческое предложение для Windows ещё не определено. Предлагаемый минимум для публичного запуска — одна лицензия с общим лимитом 2 компьютера Mac/Windows, без новой модели биллинга; **это предложение, не уже обещанное право покупателей**. До подтверждения условий beta не открывает существующие Mac-only payment links. Полностью реализовать paywall/consent/browser checkout за конфигурацией, проверить на stub URL. Изменения mailer, checkout-текстов и сайта подготовить отдельно до продаж, не публиковать как часть технического переноса.
 
-Клиентскую телеметрию реализовать теми же тремя событиями с тем же opt-out, не добавлять usage/content/performance analytics. У beta транспорт по умолчанию local-only, чтобы не смешивать тесты с Mac-воронкой. Для public Windows — сначала раскрыть Windows-значения `system_version` и получателя/retention в документах; OS-family различать явно согласованным значением, например `windows-10.0`, совместимым с нынешним validator, а не скрыто добавленным шестым полем. Остальные клиентские события остаются локальными. Уже существующие серверные `trial_issued`, `license_purchased`, `license_renewed`, `license_refunded` идут отдельным путём в PostHog EU при наличии конфигурации; сохранить их allowlist, отсутствие email/device/IP и запрет person profiles, не вызывать этот путь из Windows-клиента. Beta не использует production activation для повседневных тестов, иначе серверные события загрязнят аналитику даже при выключенных клиентских. Если контракт сервера всё-таки меняется — `npm test` в актуальном `Service/`, а при изменении выдачи ключей также `npm run fixture` и Swift/C# parity suites.
+В W6 клиентская телеметрия была реализована с исходными тремя событиями и тем
+же opt-out. W9 расширяет fixed enum до девяти передаваемых событий 0.6.14,
+добавляя только `installed`, `model_download_started`, `model_ready`,
+`model_failed`, `dictation_blocked_by_model` и `microphone_denied`. Не добавлять
+usage/content/performance analytics. Setup milestones отправляются не чаще
+одного раза на install и сохраняются в существующем allowlisted license record,
+а не в новом usage-log файле. У beta транспорт по умолчанию local-only, чтобы не
+смешивать тесты с production-воронкой. Для любой реальной отправки сначала
+раскрыть Windows-значения `system_version`, получателя/retention и PostHog
+processing в документах. Уже существующие server-side purchase/refund events
+идут отдельным путём и не дублируются Windows-клиентом. Consent читается перед
+каждой отправкой; нет очереди, retry-файла или content-derived полей. Изменения
+`Service/` требуют `npm test`, а изменение выдаваемых ключей — также
+`npm run fixture` и Swift/C# parity suites.
 
 ## 4. Ручные подписанные обновления — обязательная часть беты
 
@@ -270,7 +332,7 @@ Windows device ID: отдельная namespace-соль, нормализова
 
 - LD1 verifier и Service fixture parity; Windows identity; 3+10-day policies, annual/lifetime, warning/paywall, consent, release slot, restart/offline.
 - Production-compatible HTTP adapters + тестовые endpoints через dependency injection; release-конфигурация не принимает произвольный URL через пользовательские настройки.
-- Три события, opt-out, beta local-only; точные allowlists сетевых полей и запрет content во всех network bodies/URLs/logs.
+- Исходные три события, opt-out, beta local-only; точные allowlists сетевых полей и запрет content во всех network bodies/URLs/logs. Расширение до девяти событий 0.6.14 выполняется отдельно в W9.
 - Windows privacy/terms changes подготовлены как черновик, отличия Mac-only commercial wording обозначены.
 
 **Выход:** тесты проходят без production-вызовов; beta имеет контролируемый механизм тестовой лицензии. Ожидание коммерческого решения не блокирует разработку.
@@ -293,7 +355,117 @@ Windows device ID: отдельная namespace-соль, нормализова
 
 **Выход:** комплект, с которым пользователь может заказать тестирование без дополнительной разработки тестового инструментария. Контакт с исполнителями и заказ тестирования — последующее действие пользователя.
 
-Зависимости фаз: W0 → W1 → W2 → W3 → W4 → W5 → W6 → W7 → W8. Технический spike обновлений делается в W0, чтобы не обнаружить несовместимый installer в конце. Это этапы одного проекта; завершение прототипа W3 не означает выполнение всего запроса.
+### W9 — догоняющее обновление до Witness 0.6.14
+
+W9 выполняется последовательными рабочими срезами. Каждый срез заканчивается
+детерминированными тестами, clean build и обновлением implementation status.
+
+#### W9.0 — интегрировать продуктовую линию и закрепить новый baseline
+
+- Интегрировать `v0.6.14`/актуальный `main` с Windows-линией, сохранив весь
+  Windows implementation и не возвращая старые Mac/Service файлы.
+- Разобрать каждый конфликт по контракту, а не выбором одной стороны целиком.
+- Обновить Mac baseline metadata/hashes до 0.6.14 build 15 только после
+  успешной интеграции. Windows beta version `0.1.0` не менять без отдельного
+  решения о versioning.
+- Прогнать `npm test` для пришедшего `Service/`; `npm run fixture` нужен только
+  если интеграция меняет то, что сервис выдаёт в license fixture.
+
+**Выход:** одна собираемая линия содержит актуальные Mac/Service исходники и
+Windows client; baseline 0.6.14 подтверждён точными Git metadata и hashes.
+
+#### W9.1 — многоканальный вход и честная тихая речь
+
+- Для 3+ interleaved каналов не усреднять все каналы без измерения: закрепить
+  channel-0 policy тестами с сигналом только в channel 0 и только в остальных
+  каналах; mono/stereo поведение не менять без доказанной причины.
+- Сохранять bounded PCM до окончательной оценки; если live VAD не нашёл речь,
+  выполнить off-audio-thread gain-normalized VAD pass с жёстким gain cap.
+  Нормализация отвечает только на вопрос «была ли речь» и не должна тихо
+  переписывать samples, поданные в STT, без отдельного corpus measurement.
+- Добавить deterministic conversion/VAD tests для тишины, очень тихой речи,
+  multi-channel phase cancellation и maximum-duration bounds.
+
+**Выход:** тихая реальная речь не превращается автоматически в `NoSpeech`, а
+многоканальный input не обнуляется усреднением каналов.
+
+#### W9.2 — продолжение одной фразы при изменении аудиомаршрута
+
+- Разделить lifetime фразы (PCM buffer, VAD, generation) и lifetime одного
+  WASAPI input segment (endpoint, client, format, worker).
+- Добавить Core Audio notification adapter для default endpoint/list changes,
+  обработку device invalidation/format change и watchdog отсутствующих packets.
+- Debounce bursts; re-resolve selection; stop/drain старый segment и открыть
+  новый в ту же фразу. Использовать bounded retry budget и завершать с
+  interruption только когда вход не восстановился.
+- Смена default следует новому endpoint только для `SystemDefault`; specific и
+  built-in selection не должны флапать обратно посреди фразы.
+- Не выполнять COM/reopen работу в real-time callback и не блокировать WPF
+  Dispatcher.
+
+**Выход:** synthetic segment-splice и race tests доказывают одну фразу, один
+VAD/buffer и отсутствие stale callback после rebind; MSVC/Windows CI проходит.
+
+#### W9.3 — silent Bluetooth headset и защита первого слова
+
+- Расширить capability adapter проверяемой Windows-классификацией Bluetooth,
+  не угадывая по friendly name.
+- Для Bluetooth segment отслеживать «с открытия были только exact zeros» и
+  после измеренного порога переходить на доступный fallback microphone.
+- Если другого входа нет, сначала исследовать на физическом Windows 11
+  platform-specific communication-mode recovery; macOS VoiceProcessingIO не
+  считать готовым Windows-решением.
+- Запомнить доказанно немой endpoint только в RAM примерно на 30 минут. Снять
+  verdict при исчезновении/reconnect endpoint, смене default или expiry. Новая
+  запись сразу выбирает fallback, чтобы не терять первое слово повторно.
+
+**Выход:** pure policy tests покрывают remember/avoid/expiry/reconnect; CI не
+делает hardware claim, а physical QA отдельно проверяет PC+phone headset case.
+
+#### W9.4 — прогресс подготовки модели
+
+- Переиспользовать уже имеющиеся точные completed/total bytes; не добавлять
+  новый metadata request.
+- Добавить clock-injected smoothed transfer rate, warm-up и stall floor;
+  показывать оставшийся размер и округлённый ETA только когда он достоверен.
+- Сохранить cancel/retry/hash/atomic commit и EN/DE resource parity.
+
+**Выход:** UI показывает процент, остаток и консервативное время либо честно не
+показывает ETA; rate tests не зависят от сети и времени машины.
+
+#### W9.5 — setup funnel и актуальный service contract
+
+- Расширить typed telemetry allowlist с трёх до девяти передаваемых событий,
+  сохранив те же пять wire fields и fixed qualifiers.
+- Подключить call sites к install, model download/ready/failure, press during
+  model wait и microphone denial. Классифицировать model failure только как
+  `network`, `storage` или `other`, не парся пользовательский текст ошибки.
+- Добавить backward-compatible `reportedMilestones` в существующий atomic
+  license record. Сначала сохранять milestone, затем делать одну best-effort
+  отправку; без retry queue и отдельного usage log.
+- Beta transport остаётся local-only, пока не заполнены privacy/legal recipient,
+  retention, region и PostHog disclosure. Checkout остаётся disabled.
+
+**Выход:** Core/platform/privacy tests доказывают once-per-install, consent,
+точный event/qualifier allowlist, миграцию старого record и отсутствие content.
+
+#### W9.6 — закрыть parity и обновить beta evidence
+
+- Обновить EN/DE strings, release notes, known issues, tester guide, QA checklist,
+  privacy inventory, build info и W8 kit expectations.
+- Добавить QA cases: default-device switch mid-sentence, unplug/reconnect,
+  format change, stalled callback, shared Bluetooth headset with phone, two
+  consecutive presses after digital silence, quiet multi-channel input, model
+  ETA и once-per-install events.
+- Прогнать полный Windows CI, package/privacy checks и новый A→B preservation
+  сценарий. Затем повторить физическую microphone/accessibility/performance QA.
+
+**Выход:** Windows status честно говорит «parity baseline 0.6.14» только после
+всех автоматических гейтов; hardware claims появляются только из физического QA.
+
+Зависимости фаз: W0 → W1 → W2 → W3 → W4 → W5 → W6 → W7 → W8 → W9.
+W9 можно реализовывать до закрытия внешних signing/legal/hardware гейтов W5–W8,
+но после W9 соответствующие CI/package и физические проверки выполняются заново.
 
 ## 6. Проверки без своей Windows
 
@@ -321,9 +493,9 @@ Synthetic speech доказывает исправность pipeline, но не
 
 ## 7. Критерии завершения и пакет для тестировщиков
 
-**Beta-ready (конец следующего треда):**
+**Beta-ready после W9 и закрытия внешних гейтов:**
 
-- [ ] Текущая функциональность из таблицы реализована либо имеет явно названное platform-ограничение, без потерянных обязательных функций.
+- [ ] Функциональность baseline 0.6.14 и обязательная дельта W9 реализованы либо имеют явно названное platform-ограничение, без потерянных обязательных функций.
 - [ ] Есть прошедший Windows build/test run и устанавливаемый self-contained x64 artifact, SHA-256 и точный source revision.
 - [ ] CPU путь запускается без GPU SDK; реальные CPU/GPU performance ещё не заявляются.
 - [ ] Доказаны RAM-only lifecycle, ограниченные буферы, отсутствие content в persistence/network/logs, запрет Windows clipboard sync/history.
@@ -348,7 +520,7 @@ Windows/IMPLEMENTATION_STATUS.md
 Внешняя QA-матрица после реализации:
 
 - Intel + integrated graphics, AMD + integrated graphics, NVIDIA laptop/desktop; 16 GB основной набор, 8 GB отдельная проверка ограничений. Не обещать полный hardware coverage по трём машинам.
-- Встроенный/USB/Bluetooth микрофон; denied access, unplug mid-sentence, sleep/wake, смена default device, повторные короткие и 5-минутные диктовки.
+- Встроенный/USB/Bluetooth микрофон; denied access, unplug/reconnect и смена default device mid-sentence, format/session invalidation, stalled input, тихий многоканальный input, гарнитура одновременно с телефоном, два последовательных старта после digital silence, sleep/wake, повторные короткие и 5-минутные диктовки.
 - Notepad, Word, Chrome/Edge textarea и contenteditable, VS Code, desktop messenger; password, elevated app, смена окна, удерживаемые modifiers, clipboard contention и повторная диктовка до конца paste.
 - EN/DE/RU/UK, короткие фразы, смешанный набор языков, числа/даты/отрицания/имена, временный pin; нативные носители языка там, где оценивается качество.
 - Чистая установка, offline после model setup, uninstall/reinstall, A→B, отмена update, launch с pending package, сохранность лицензии/модели/микрофона/shortcut и доказанное отсутствие persisted session glossary.
@@ -370,4 +542,9 @@ Windows/IMPLEMENTATION_STATUS.md
 
 ## 9. Передача в следующий тред
 
-Готовый текст задания: [WINDOWS_IMPLEMENTATION_PROMPT.md](WINDOWS_IMPLEMENTATION_PROMPT.md). Он запускает реализацию W0–W8 и требует честно разделить выполненные проверки и оставшийся hardware QA. Этот план сам по себе не запускает другой тред, не публикует приложение и не заказывает тестирование.
+Следующая реализация начинается с W9.0, затем идёт по W9.1–W9.6 без
+перепрыгивания через проверяемые выходы. Старый
+[WINDOWS_IMPLEMENTATION_PROMPT.md](WINDOWS_IMPLEMENTATION_PROMPT.md) остаётся
+историческим заданием W0–W8 и не является актуальным prompt для догоняющего
+обновления. Этот план сам по себе не публикует приложение, не включает
+production endpoints и не заказывает тестирование.

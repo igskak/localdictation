@@ -1,6 +1,6 @@
 # Witness for Windows — implementation status
 
-Last updated: 2026-09-30
+Last updated: 2026-10-08
 
 This file is the source of truth for the Windows port. A phase is complete only
 after its required Windows CI and artifact checks have run successfully. Local
@@ -8,10 +8,22 @@ cross-targeting on macOS is not reported as Windows validation.
 
 ## Baseline
 
-- Product baseline: Witness `0.6.8` (build 9), Git commit
-  `c073a8fbad5fe1cca7ef6dcf06fc7c19c2c89b77`.
-- GitHub release status rechecked on 2026-09-27: `v0.6.8` was the latest
-  published release, published 2026-09-24 18:18:12 UTC.
+- Original implemented product baseline: Witness `0.6.8` (build 9), Git commit
+  `c073a8fbad5fe1cca7ef6dcf06fc7c19c2c89b77`. The existing
+  `config/mac-release-baseline.sha256`, `ProductMetadata` values and build
+  metadata still describe this completed baseline and must not be changed until
+  the catch-up integration passes.
+- Catch-up target confirmed on 2026-10-08 from the local tag, Git object and
+  `origin/main`: Witness `0.6.14` (build 15), tag `v0.6.14`, commit
+  `e5954f7e4d4d75c1c5ab0e7bebe21495d4437221`, released 2026-10-07.
+- The Windows head at the catch-up audit was `5be4a72`. It and `v0.6.14` share
+  `v0.6.8` as their merge base; after that point the Windows line contains 81
+  commits and the product line 29. Catch-up therefore requires integrating both
+  lines, not replacing the Windows tree with `main`.
+- The Windows package remains the independent beta version `0.1.0` (build 1).
+  Updating the parity baseline does not decide whether Windows should later use
+  the Mac release number; updater and licensing version contracts make that a
+  separate decision.
 - The local checkout started at `f66081e59839c8af6bcfcddec64c8992fb0ad391`
   and contains unrelated user changes. The release source was inspected
   read-only through Git objects and an external temporary extraction; no Mac or
@@ -32,6 +44,7 @@ cross-targeting on macOS is not reported as Windows validation.
 | W6 | **In progress** | Pure entitlement timing/major policy; offline LD1 verifier and Service fixture parity; atomic local record; SMBIOS-derived Windows identity; fixed activation/release adapter; full License screen and pre-microphone entitlement gate; first-success trial start; local/remote removal; three-event consent/local-only telemetry; build-time isolated beta authority/endpoint inputs; bundled Windows beta terms/privacy drafts; successful Windows CI | Provision the separate beta authority/service and protected build values; replace legal placeholders and obtain review before external distribution |
 | W7 | **In progress** | Manual updater state machine and Settings UX; build-time isolated feed trust; exact manifest/package re-verification; signed-manifest production tool/workflow; local-data/uninstall policy; deterministic tests and a successful hosted A→B/uninstall/reinstall preservation job | Configure the real feed/signing credentials and Windows code signing before external distribution |
 | W8 | **In progress** | Deterministic repeated-session RAM-bound stress test; EN release notes, known issues, tester guide, checklist, synthetic DE/EN/RU/UK phrase set and privacy-safe bug template; canonical internal kit with exact source/build/model metadata, all-file checksums and restored-runtime license notices; successful Windows CI kit assembly/validation | Complete W5-W7 external gates, legal placeholders and Windows code signing; then run the signed two-version physical QA matrix and 30-minute soak |
+| W9 | **Planned** | Audited the complete `0.6.8` → `0.6.14` product delta and split it into baseline integration, audio/VAD, route rebind, silent-headset, model-progress, setup-funnel and closure slices | Implement W9.0–W9.6 from `docs/WINDOWS_IMPLEMENTATION_PLAN.md`; rerun Windows CI/package evidence and physical QA before claiming 0.6.14 parity |
 
 ## Implemented contracts and checks
 
@@ -266,6 +279,55 @@ cross-targeting on macOS is not reported as Windows validation.
   CPU-only backend, and uploads the raw update feed separately. The resulting
   artifact is not approved for external QA until signing, legal, activation and
   feed gates are actually satisfied.
+
+### W9 catch-up audit for Witness 0.6.14
+
+The audit is complete; implementation has not started. The detailed order and
+acceptance criteria are in `docs/WINDOWS_IMPLEMENTATION_PLAN.md`, W9.0–W9.6.
+
+- **W9.0, baseline integration:** integrate the 29 product-line commits through
+  `v0.6.14` with the 81 Windows-line commits after their common `v0.6.8` base.
+  Preserve current Windows work and take current Mac/Service source from the
+  product line. Only after build/test success update `ProductMetadata`,
+  `config/build-metadata.json` and `config/mac-release-baseline.sha256` from
+  0.6.8/build 9 to 0.6.14/build 15. Keep Windows beta `0.1.0` unless versioning
+  is explicitly changed.
+- **W9.1, audio conversion and VAD:** the native converter currently averages
+  every channel. Add measured channel-0 behavior for 3+ channel inputs while
+  preserving mono/stereo behavior. Keep bounded samples long enough to run a
+  conservative, capped, normalized completed-audio VAD pass when live VAD found
+  no speech; do not normalize STT input without corpus evidence.
+- **W9.2, route resilience:** the current native capture reports interruption
+  and ends the phrase when the WASAPI client fails or is invalidated. Split
+  phrase and input-segment lifetimes, monitor default/list/format/invalidation
+  changes, debounce bursts and rebind into the same PCM buffer/VAD with a
+  bounded retry budget. COM/reopen work stays off the callback and Dispatcher.
+- **W9.3, silent headset recovery:** add non-name-based Bluetooth capability,
+  exact-zero monitoring, fallback to another microphone and RAM-only
+  approximately 30-minute memory so the next press avoids an endpoint already
+  proven silent. A stronger Windows communication-mode claim requires physical
+  investigation; macOS VoiceProcessingIO is not Windows evidence.
+- **W9.4, model UX:** the Windows model manager already publishes exact
+  completed and total bytes. Add clock-injected smoothed rate, remaining size,
+  warm-up/stall rules and a rounded ETA; no extra model metadata endpoint is
+  needed.
+- **W9.5, setup funnel:** expand the typed transmitted allowlist from three to
+  nine events by adding `installed`, `model_download_started`, `model_ready`,
+  `model_failed`, `dictation_blocked_by_model` and `microphone_denied`. Persist
+  content-free once-per-install milestones backward-compatibly in the existing
+  atomic license record. Keep five wire fields, consent-at-send, no queue and
+  beta local-only transport until updated privacy/legal review permits sending.
+- **W9.6, closure:** update EN/DE resources, endpoint/privacy inventory, release
+  and QA documents, package metadata and synthetic tests. Rerun the full Windows
+  CI, package/privacy gates and A-to-B preservation before recording parity.
+  Physical Windows 11 must then cover route changes, quiet multichannel inputs,
+  a Bluetooth headset shared with a phone and two consecutive recordings after
+  digital silence.
+
+The 0.6.12 checkout/promo-code UI remains intentionally outside the closed beta
+until Windows commercial terms are approved. Current payment/refund, PostHog
+and promotion-attribution changes belong to the integrated `Service/`; the
+Windows client must not duplicate those server-side events.
 
 ### W4 safe insertion boundary
 
@@ -634,13 +696,20 @@ unrepresentative Ukrainian eSpeak test voice and are never shipped.
 
 ## Next step
 
-Merge or otherwise place the package workflow on the default branch, then
-dispatch its unsigned mode to retain the standalone W8 kit artifact without
-treating it as distributable. In parallel, provision the isolated beta
+Start W9.0 by integrating the product line through exact tag `v0.6.14` while
+preserving the current Windows implementation. Resolve conflicts by contract,
+then run the managed suites and `Service` tests before changing any recorded
+baseline hash or version metadata. Continue with W9.1 conversion/VAD and W9.2
+route rebind before the Bluetooth-specific W9.3 slice; those foundations make
+the silent-headset policy testable without burying it in the current
+single-segment capture lifecycle.
+
+In parallel, the existing external-release work remains valid: place the
+package workflow on the default branch, provision the isolated beta
 authority/service, complete and legally review every policy placeholder,
 configure the real update feed/manifest authority, and add Windows executable
-signing. Only after those gates pass should the workflow emit a
-`code-signed-beta` kit for the documented two-version physical Windows 11 QA
-matrix and 30-minute soak. GPU packaging/performance, accessibility,
+signing. Do not emit or distribute a `code-signed-beta` kit until W9 has rerun
+the complete CI/package evidence and the documented two-version physical
+Windows 11 QA matrix and 30-minute soak. GPU performance, accessibility,
 microphones and ordinary-user Word/browser/VS Code behavior remain pending
 physical evidence.
