@@ -63,6 +63,19 @@ int main() {
     const std::array<float, 2> float_expected{0.0F, 0.125F};
     expect_decode(float_bytes, 2, 2, WITNESS_AUDIO_FLOAT32_LE, float_expected.data());
 
+    // A 3+ channel endpoint is an ordered array, not a surround mix. Keeping
+    // channel 0 avoids phase cancellation and ignores signal in other slots.
+    std::array<float, 6> three_channel_values{0.5F, -0.25F, -0.25F, 0.0F, 0.5F, 0.5F};
+    std::array<uint8_t, sizeof(three_channel_values)> three_channel_bytes{};
+    std::memcpy(three_channel_bytes.data(), three_channel_values.data(), three_channel_bytes.size());
+    const std::array<float, 2> three_channel_expected{0.5F, 0.0F};
+    expect_decode(
+        three_channel_bytes,
+        2,
+        3,
+        WITNESS_AUDIO_FLOAT32_LE,
+        three_channel_expected.data());
+
     std::array<float, 2> output{};
     size_t written = 7;
     assert(witness_audio_decode_to_mono(

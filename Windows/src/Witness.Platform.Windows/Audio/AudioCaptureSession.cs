@@ -105,6 +105,28 @@ public sealed class AudioCaptureSession(
         var detector = vad ?? throw new InvalidOperationException("The voice activity detector was not created.");
         var observation = detector.Observation;
         var hasSpeech = observation.SpeechStart is not null;
+        if (!hasSpeech && captured.FrameCount > 0)
+        {
+            // This runs after the packet worker has stopped, off the dispatcher,
+            // against the bounded buffer. It intentionally does not modify the
+            // PCM later handed to the resampler and local STT engine.
+            var completedSamples = captured.MakeSamples();
+            NormalizedVoiceActivityResult normalizedActivity;
+            try
+            {
+                normalizedActivity = await Task.Run(() => NormalizedVoiceActivity.Analyze(
+                    completedSamples,
+                    vadConfiguration,
+                    format.SampleRate)).ConfigureAwait(false);
+            }
+            finally
+            {
+                Array.Clear(completedSamples);
+            }
+            hasSpeech = normalizedActivity.HasSpeech;
+            if (hasSpeech)
+                observation = observation with { SpeechStart = normalizedActivity.SpeechStartSeconds };
+        }
         var normalized = hasSpeech
             ? processor.ResampleTo16Khz(captured.Samples, format.SampleRate)
             : [];

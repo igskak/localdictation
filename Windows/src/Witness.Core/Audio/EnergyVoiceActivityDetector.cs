@@ -92,7 +92,18 @@ public sealed class EnergyVoiceActivityDetector
     }
 
     public VoiceActivityObservation Ingest(ReadOnlySpan<float> frames)
+        => Ingest(frames, 1F);
+
+    /// <summary>
+    /// Evaluates a bounded audio buffer at a gain used solely for VAD. The
+    /// caller retains the original samples for transcription.
+    /// </summary>
+    public VoiceActivityObservation IngestScaled(ReadOnlySpan<float> frames, float gain)
+        => Ingest(frames, gain);
+
+    private VoiceActivityObservation Ingest(ReadOnlySpan<float> frames, float gain)
     {
+        if (!float.IsFinite(gain) || gain <= 0) throw new ArgumentOutOfRangeException(nameof(gain));
         var index = 0;
         while (index < frames.Length)
         {
@@ -100,7 +111,7 @@ public sealed class EnergyVoiceActivityDetector
             var sum = _squaredSum;
             for (var offset = 0; offset < take; offset++)
             {
-                var sample = frames[index + offset];
+                var sample = Math.Clamp(frames[index + offset] * gain, -1F, 1F);
                 sum += sample * sample;
             }
             _squaredSum = sum;

@@ -58,6 +58,28 @@ public sealed class AudioPolicyTests
     }
 
     [TestMethod]
+    public void NormalizedVadFindsQuietSpeechWithoutChangingTheInput()
+    {
+        var configuration = new VoiceActivityConfiguration(0.02, 0.02F, 0.012F, 3, 0.1, 1);
+        var samples = Enumerable.Repeat(0.005F, 80).ToArray();
+
+        var result = NormalizedVoiceActivity.Analyze(samples, configuration, sampleRate: 1000);
+
+        Assert.IsTrue(result.HasSpeech);
+        Assert.AreEqual(0, result.SpeechStartSeconds!.Value, 0.0001);
+        Assert.AreEqual(0.005F, samples[0], 0.000001F);
+    }
+
+    [TestMethod]
+    public void NormalizedVadKeepsDigitalSilenceAndSubCapSignalsSilent()
+    {
+        var configuration = new VoiceActivityConfiguration(0.02, 0.02F, 0.012F, 3, 0.1, 1);
+
+        Assert.IsFalse(NormalizedVoiceActivity.Analyze(new float[80], configuration, 1000).HasSpeech);
+        Assert.IsFalse(NormalizedVoiceActivity.Analyze(Enumerable.Repeat(0.002F, 80).ToArray(), configuration, 1000).HasSpeech);
+    }
+
+    [TestMethod]
     public void VoiceActivityConfigurationClampsToSafeBounds()
     {
         var configuration = new VoiceActivityConfiguration(0, -1, 10, 0, 0, 0).Validated();

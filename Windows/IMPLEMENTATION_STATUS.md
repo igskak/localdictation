@@ -40,7 +40,7 @@ cross-targeting on macOS is not reported as Windows validation.
 | W6 | **In progress** | Pure entitlement timing/major policy; offline LD1 verifier and Service fixture parity; atomic local record; SMBIOS-derived Windows identity; fixed activation/release adapter; full License screen and pre-microphone entitlement gate; first-success trial start; local/remote removal; three-event consent/local-only telemetry; build-time isolated beta authority/endpoint inputs; bundled Windows beta terms/privacy drafts; successful Windows CI | Provision the separate beta authority/service and protected build values; replace legal placeholders and obtain review before external distribution |
 | W7 | **In progress** | Manual updater state machine and Settings UX; build-time isolated feed trust; exact manifest/package re-verification; signed-manifest production tool/workflow; local-data/uninstall policy; deterministic tests and a successful hosted A→B/uninstall/reinstall preservation job | Configure the real feed/signing credentials and Windows code signing before external distribution |
 | W8 | **In progress** | Deterministic repeated-session RAM-bound stress test; EN release notes, known issues, tester guide, checklist, synthetic DE/EN/RU/UK phrase set and privacy-safe bug template; canonical internal kit with exact source/build/model metadata, all-file checksums and restored-runtime license notices; successful Windows CI kit assembly/validation | Complete W5-W7 external gates, legal placeholders and Windows code signing; then run the signed two-version physical QA matrix and 30-minute soak |
-| W9 | **In progress** | W9.0 merged current Mac/Service source through `v0.6.14`, updated the verified baseline metadata and hashes, and passed Service plus macOS tests | Implement W9.1–W9.6; rerun Windows CI/package evidence and physical QA before claiming 0.6.14 parity |
+| W9 | **In progress** | W9.0 merged current Mac/Service source through `v0.6.14`; W9.1 adds 3+ channel-0 decoding and bounded quiet-speech VAD without modifying STT PCM | Implement W9.2–W9.6; run the added Windows/native tests in CI and complete package evidence plus physical QA before claiming 0.6.14 parity |
 
 ## Implemented contracts and checks
 
@@ -289,10 +289,14 @@ W9.0 is complete. The remaining order and acceptance criteria are in
   `config/mac-release-baseline.sha256` now identify 0.6.14/build 15. Windows
   beta remains `0.1.0`; no versioning decision was made.
 - **W9.1, audio conversion and VAD:** the native converter currently averages
-  every channel. Add measured channel-0 behavior for 3+ channel inputs while
-  preserving mono/stereo behavior. Keep bounded samples long enough to run a
-  conservative, capped, normalized completed-audio VAD pass when live VAD found
-  no speech; do not normalize STT input without corpus evidence.
+  every channel. **Implemented locally:** 3+ channel inputs now use channel 0,
+  while mono/stereo still mix down; native tests cover phase cancellation and
+  speech only in other channels. When live VAD finds no speech, the completed
+  bounded buffer receives an off-worker, capped ×8 VAD-only pass; the temporary
+  copy is cleared and the original STT PCM is never normalized. Core and
+  platform deterministic tests cover silence, sub-cap signals, quiet speech and
+  maximum-duration bounds. Windows/native CI execution remains pending because
+  this checkout has no .NET SDK or Windows toolchain.
 - **W9.2, route resilience:** the current native capture reports interruption
   and ends the phrase when the WASAPI client fails or is invalidated. Split
   phrase and input-segment lifetimes, monitor default/list/format/invalidation

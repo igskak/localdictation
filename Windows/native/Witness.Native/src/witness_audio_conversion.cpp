@@ -96,6 +96,14 @@ extern "C" enum witness_status witness_audio_decode_to_mono(
 
     const auto * bytes = static_cast<const uint8_t *>(input);
     for (size_t frame = 0; frame < frame_count; ++frame) {
+        // WASAPI's 3+ channel capture formats are device-specific arrays, not a
+        // surround mix. Averaging them can cancel the only speech channel. The
+        // measured policy is channel 0 for those arrays; mono and stereo retain
+        // the existing mixdown behavior.
+        if (channel_count >= 3) {
+            output[frame] = decode_sample(bytes + frame * channel_count * sample_width, format);
+            continue;
+        }
         double sum = 0.0;
         for (uint32_t channel = 0; channel < channel_count; ++channel) {
             const size_t sample_index = frame * channel_count + channel;

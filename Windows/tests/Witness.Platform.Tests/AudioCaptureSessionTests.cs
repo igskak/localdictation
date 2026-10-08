@@ -42,6 +42,22 @@ public sealed class AudioCaptureSessionTests
     }
 
     [TestMethod]
+    public async Task QuietSpeechUsesNormalizedVadButPreservesOriginalPcm()
+    {
+        using var source = new FakePacketSource();
+        var processor = new FakeProcessor();
+        using var session = new AudioCaptureSession(source, processor, TestConfiguration());
+        session.Start();
+        source.Enqueue(Enumerable.Repeat(0.005F, 3_000).ToArray());
+
+        var result = await session.StopAsync();
+
+        Assert.AreEqual(AudioCaptureCompletionKind.Speech, result.Kind);
+        Assert.AreEqual(1, processor.ResampleCalls);
+        Assert.AreEqual(0.005F, result.Pcm16KhzMono[0], 0.000001F);
+    }
+
+    [TestMethod]
     public async Task DiscontinuityIsReportedAlongsideTheRecoveredPhrase()
     {
         using var source = new FakePacketSource();
