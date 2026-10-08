@@ -14,16 +14,19 @@ internal sealed class DictationCaptureController(
     Func<long>? beginOperation = null,
     Func<AudioCaptureResult, InsertionTarget?, long, Task<bool>>? completedCaptureProcessor = null,
     Func<bool>? canBeginRecording = null,
-    Action? recordingBlocked = null) : IDisposable
+    Action? recordingBlocked = null,
+    SilentBluetoothEndpointMemory? silentBluetoothMemory = null) : IDisposable
 {
     private readonly SemaphoreSlim operationGate = new(1, 1);
     private AudioInputSelection audioInputSelection = AudioInputSelection.SystemDefault;
     private VoiceActivityConfiguration voiceConfiguration = VoiceActivityConfiguration.Default;
     private AudioCaptureSession? session;
+    private AudioInputDevice? activeInputDevice;
     private InsertionTarget? capturedTarget;
     private long operationGeneration;
     private bool disposed;
     private int statusGeneration;
+    private readonly SilentBluetoothEndpointMemory silentBluetooth = silentBluetoothMemory ?? new();
 
     internal bool IsBusy => Volatile.Read(ref session) is not null || operationGate.CurrentCount == 0;
 
@@ -82,22 +85,23 @@ internal sealed class DictationCaptureController(
             if (disposed || session is not null) return;
             operationGeneration = generation;
             capturedTarget = target;
+            activeInputDevice = null;
             await ShowResourceAsync(ActivityVisualState.Processing, "OpeningMicrophone").ConfigureAwait(false);
             var selection = Volatile.Read(ref audioInputSelection);
             var configuration = Volatile.Read(ref voiceConfiguration);
             string? endpointId = null;
             AudioInputResolution? resolution = null;
-            if (selection.Kind != AudioInputSelectionKind.SystemDefault)
+            var devices = NativeAudioDeviceEnumerator.GetActiveInputs();
+            resolution = SilentBluetoothFallbackPolicy.Resolve(selection, devices, silentBluetooth);
+            if (resolution.Device is null)
             {
-                resolution = AudioInputSelectionPolicy.Resolve(selection, NativeAudioDeviceEnumerator.GetActiveInputs());
-                if (resolution.Device is null)
-                {
-                    throw new NativeAudioException(
-                        NativeAudioStatus.AudioDeviceUnavailable,
-                        "No active Windows microphone is available.");
-                }
-                endpointId = resolution.Device.Id;
+                throw new NativeAudioException(
+                    NativeAudioStatus.AudioDeviceUnavailable,
+                    "No active Windows microphone is available.");
             }
+            if (selection.Kind != AudioInputSelectionKind.SystemDefault || !resolution.Device.IsSystemDefault)
+                endpointId = resolution.Device.Id;
+            activeInputDevice = resolution.Device;
             var routeMonitor = selection.Kind == AudioInputSelectionKind.SystemDefault
                 ? new AudioEndpointNotificationMonitor()
                 : null;
@@ -128,11 +132,13 @@ internal sealed class DictationCaptureController(
         catch (NativeAudioException error)
         {
             capturedTarget = null;
+            activeInputDevice = null;
             await ShowCaptureErrorAsync(error).ConfigureAwait(false);
         }
         catch (Exception error)
         {
             capturedTarget = null;
+            activeInputDevice = null;
             await ShowResourceAsync(ActivityVisualState.Error, "NoAudioLeftPc").ConfigureAwait(false);
             await SetMainStatusResourceAsync("MicrophoneCaptureFailed", error.Message).ConfigureAwait(false);
         }
@@ -151,8 +157,10 @@ internal sealed class DictationCaptureController(
             if (disposed || active is null) return;
             session = null;
             var target = capturedTarget;
+            var inputDevice = activeInputDevice;
             var generation = operationGeneration;
             capturedTarget = null;
+            activeInputDevice = null;
             active.AutomaticStopRequested -= AutomaticStopRequested;
             await ShowResourceAsync(ActivityVisualState.Processing, "FinishingPhrase").ConfigureAwait(false);
             try
@@ -160,6 +168,8 @@ internal sealed class DictationCaptureController(
                 var result = await active.StopAsync().ConfigureAwait(false);
                 try
                 {
+                    if (result.DeliveredOnlyExactZero && inputDevice is not null)
+                        silentBluetooth.RememberSilent(inputDevice);
                     var handled = completedCaptureProcessor is not null
                         && await completedCaptureProcessor(result, target, generation).ConfigureAwait(false);
                     if (!handled)

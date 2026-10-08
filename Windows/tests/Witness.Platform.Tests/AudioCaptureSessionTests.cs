@@ -37,6 +37,7 @@ public sealed class AudioCaptureSessionTests
         var result = await session.StopAsync();
 
         Assert.AreEqual(AudioCaptureCompletionKind.NoSpeech, result.Kind);
+        Assert.IsTrue(result.DeliveredOnlyExactZero);
         Assert.HasCount(0, result.Pcm16KhzMono);
         Assert.AreEqual(0, processor.ResampleCalls);
     }

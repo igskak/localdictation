@@ -418,6 +418,10 @@ VAD/buffer и отсутствие stale callback после rebind; MSVC/Window
 
 #### W9.3 — silent Bluetooth headset и защита первого слова
 
+**Статус: policy реализована локально 2026-10-08; physical QA pending.**
+Доказанный exact-zero Bluetooth endpoint хранится только в RAM 30 минут и
+избегается при следующей фразе; reconnect/default change очищают verdict.
+
 - Расширить capability adapter проверяемой Windows-классификацией Bluetooth,
   не угадывая по friendly name.
 - Для Bluetooth segment отслеживать «с открытия были только exact zeros» и

@@ -133,6 +133,34 @@ public sealed class AudioPolicyTests
     }
 
     [TestMethod]
+    public void SilentBluetoothMemoryAvoidsOnlyTheProvenEndpointAndExpires()
+    {
+        var now = DateTimeOffset.Parse("2026-10-08T12:00:00Z");
+        var clock = new FakeTimeProvider(now);
+        var memory = new SilentBluetoothEndpointMemory(clock);
+        var headset = new AudioInputDevice("headset", "Headset", true, false, true, IsBluetooth: true);
+        var fallback = new AudioInputDevice("built-in", "Microphone Array", true, true, false);
+
+        memory.RememberSilent(headset);
+        Assert.AreEqual("built-in", SilentBluetoothFallbackPolicy.Resolve(AudioInputSelection.SystemDefault, new[] { headset, fallback }, memory).Device?.Id);
+        clock.Advance(TimeSpan.FromMinutes(31));
+        Assert.AreEqual("headset", SilentBluetoothFallbackPolicy.Resolve(AudioInputSelection.SystemDefault, new[] { headset, fallback }, memory).Device?.Id);
+    }
+
+    [TestMethod]
+    public void SilentBluetoothMemoryClearsWhenEndpointReconnectsOrDefaultChanges()
+    {
+        var headset = new AudioInputDevice("headset", "Headset", true, false, true, IsBluetooth: true);
+        var memory = new SilentBluetoothEndpointMemory(new FakeTimeProvider(DateTimeOffset.UnixEpoch));
+        memory.RememberSilent(headset);
+        memory.EndpointReconnected("headset");
+        Assert.IsFalse(memory.ShouldAvoid(headset));
+        memory.RememberSilent(headset);
+        memory.DefaultChanged();
+        Assert.IsFalse(memory.ShouldAvoid(headset));
+    }
+
+    [TestMethod]
     [DataRow(true, 10, CaptureInterruptionOutcome.TranscribeBufferedAudioAndReportInterruption)]
     [DataRow(false, 10, CaptureInterruptionOutcome.NoSpeech)]
     [DataRow(true, 0, CaptureInterruptionOutcome.NoSpeech)]
@@ -143,5 +171,12 @@ public sealed class AudioPolicyTests
     {
         var count = (int)Math.Round(duration * sampleRate);
         return Enumerable.Repeat(level, count);
+    }
+
+    private sealed class FakeTimeProvider(DateTimeOffset now) : TimeProvider
+    {
+        private DateTimeOffset current = now;
+        public override DateTimeOffset GetUtcNow() => current;
+        public void Advance(TimeSpan duration) => current += duration;
     }
 }

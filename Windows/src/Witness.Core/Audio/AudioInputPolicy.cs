@@ -17,7 +17,13 @@ public sealed record AudioInputSelection(AudioInputSelectionKind Kind, string? D
             : deviceId);
 }
 
-public sealed record AudioInputDevice(string Id, string DisplayName, bool IsActive, bool IsBuiltIn, bool IsSystemDefault);
+public sealed record AudioInputDevice(
+    string Id,
+    string DisplayName,
+    bool IsActive,
+    bool IsBuiltIn,
+    bool IsSystemDefault,
+    bool IsBluetooth = false);
 
 public enum AudioInputResolutionReason
 {
@@ -52,6 +58,47 @@ public static class AudioInputSelectionPolicy
                 : new(system, AudioInputResolutionReason.SpecificDeviceUnavailable),
             _ => throw new ArgumentOutOfRangeException(nameof(selection)),
         };
+    }
+}
+
+/// <summary>RAM-only avoidance for an endpoint proven to deliver digital zero.</summary>
+public sealed class SilentBluetoothEndpointMemory(TimeProvider? timeProvider = null)
+{
+    private static readonly TimeSpan Lifetime = TimeSpan.FromMinutes(30);
+    private readonly TimeProvider clock = timeProvider ?? TimeProvider.System;
+    private readonly Dictionary<string, DateTimeOffset> silentUntil = new(StringComparer.Ordinal);
+
+    public void RememberSilent(AudioInputDevice device)
+    {
+        if (device.IsBluetooth)
+            silentUntil[device.Id] = clock.GetUtcNow().Add(Lifetime);
+    }
+
+    public bool ShouldAvoid(AudioInputDevice device)
+    {
+        if (!device.IsBluetooth || !silentUntil.TryGetValue(device.Id, out var expiry)) return false;
+        if (expiry > clock.GetUtcNow()) return true;
+        silentUntil.Remove(device.Id);
+        return false;
+    }
+
+    public void EndpointReconnected(string endpointId) => silentUntil.Remove(endpointId);
+    public void DefaultChanged() => silentUntil.Clear();
+}
+
+public static class SilentBluetoothFallbackPolicy
+{
+    public static AudioInputResolution Resolve(
+        AudioInputSelection selection,
+        IReadOnlyList<AudioInputDevice> devices,
+        SilentBluetoothEndpointMemory memory)
+    {
+        var selected = AudioInputSelectionPolicy.Resolve(selection, devices);
+        if (selected.Device is not AudioInputDevice device || !memory.ShouldAvoid(device)) return selected;
+        var fallback = devices.FirstOrDefault(candidate => candidate.IsActive && !memory.ShouldAvoid(candidate));
+        return fallback is null
+            ? selected
+            : new AudioInputResolution(fallback, AudioInputResolutionReason.SpecificDeviceUnavailable);
     }
 }
 

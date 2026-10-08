@@ -50,7 +50,8 @@ public sealed record AudioCaptureResult(
     bool BufferOverflowed,
     uint SourceSampleRate,
     double? SpeechStartSeconds = null,
-    int RouteRebindCount = 0);
+    int RouteRebindCount = 0,
+    bool DeliveredOnlyExactZero = false);
 
 /// <summary>
 /// Drains native packets on a worker, normalizes into a bounded mono buffer,
@@ -81,6 +82,8 @@ public sealed class AudioCaptureSession(
     private volatile bool routeRebindRequested;
     private int routeRebindCount;
     private long droppedPacketCount;
+    private bool receivedFrames;
+    private bool deliveredOnlyExactZero = true;
 
     public event EventHandler<VoiceActivityObservation>? ActivityChanged;
     public event EventHandler? AutomaticStopRequested;
@@ -170,7 +173,8 @@ public sealed class AudioCaptureSession(
             bufferOverflowed,
             format.SampleRate,
             observation.SpeechStart,
-            routeRebindCount);
+            routeRebindCount,
+            receivedFrames && deliveredOnlyExactZero);
     }
 
     public void Dispose()
@@ -233,6 +237,11 @@ public sealed class AudioCaptureSession(
                         format.ChannelCount,
                         format.SampleFormat,
                         mono);
+                    if (written > 0)
+                    {
+                        receivedFrames = true;
+                        if (ContainsNonZero(mono.AsSpan(0, written))) deliveredOnlyExactZero = false;
+                    }
                     var append = buffer!.Append(mono.AsSpan(0, written));
                     if (append.DroppedFrames > 0) bufferOverflowed = true;
                     var observation = vad!.Ingest(mono.AsSpan(0, append.AcceptedFrames));
@@ -288,5 +297,14 @@ public sealed class AudioCaptureSession(
             replacement?.Dispose();
             return false;
         }
+    }
+
+    private static bool ContainsNonZero(ReadOnlySpan<float> samples)
+    {
+        foreach (var sample in samples)
+        {
+            if (sample != 0F) return true;
+        }
+        return false;
     }
 }
