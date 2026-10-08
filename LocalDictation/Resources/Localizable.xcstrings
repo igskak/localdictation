@@ -2865,6 +2865,8 @@
     "OK": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"OK"}}}},
     "Getting the speech model": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sprachmodell wird geladen"}}}},
     "Removing…": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Wird entfernt …"}}}},
+    "Open Witness when I log in": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Witness beim Anmelden öffnen"}}}},
+    "The hotkey only works while Witness is running, and it has no Dock icon. Without this, a restart leaves the hotkey silent until you open the app again.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Hotkey funktioniert nur, solange Witness läuft, und die App hat kein Dock-Symbol. Ohne diese Option bleibt der Hotkey nach einem Neustart stumm, bis du die App erneut öffnest."}}}},
     "Remove from this Mac": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Von diesem Mac entfernen"}}}}
   },
   "version": "1.0"

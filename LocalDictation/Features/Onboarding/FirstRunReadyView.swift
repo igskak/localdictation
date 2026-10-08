@@ -28,7 +28,20 @@ import SwiftUI
 /// the thing the user is looking at.
 struct FirstRunReadyView: View {
     @ObservedObject var coordinator: DictationCoordinator
+    @Binding var opensAtLogin: Bool
     let finish: () -> Void
+
+    /// `opensAtLogin` defaults to a constant so a view that has no window
+    /// around it, like the layout tests, does not have to invent one.
+    init(
+        coordinator: DictationCoordinator,
+        opensAtLogin: Binding<Bool> = .constant(true),
+        finish: @escaping () -> Void
+    ) {
+        self.coordinator = coordinator
+        _opensAtLogin = opensAtLogin
+        self.finish = finish
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -85,6 +98,21 @@ struct FirstRunReadyView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(.top, 14)
+            }
+
+            // Above the footer and on by default. The hotkey belongs to a running
+            // app, and Witness has no Dock icon to bring it back: after the
+            // first restart a person who did not switch this on has a shortcut
+            // that does nothing and no reminder that an app was ever there.
+            VStack(alignment: .leading, spacing: 4) {
+                Toggle(isOn: $opensAtLogin) {
+                    Text(verbatim: L10n.string("Open Witness when I log in"))
+                        .font(.callout.weight(.medium))
+                }
+                Text(verbatim: L10n.string("The hotkey only works while Witness is running, and it has no Dock icon. Without this, a restart leaves the hotkey silent until you open the app again."))
+                    .font(.caption)
+                    .foregroundStyle(WitnessStyle.muted)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             HStack {

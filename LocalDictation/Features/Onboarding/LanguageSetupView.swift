@@ -20,6 +20,10 @@ final class LanguageSetupModel: ObservableObject {
 
     @Published var selection: LanguageProfile
     @Published var step: Step = .languages
+    /// Whether the app should open itself at login, as the second screen shows
+    /// it. On by default, and decided when the window closes rather than when
+    /// the switch is flipped: see `LanguageSetupWindowController`.
+    @Published var opensAtLogin = true
 
     init(selection: LanguageProfile) {
         self.selection = selection
@@ -95,7 +99,7 @@ struct FirstRunView: View {
         case .languages:
             LanguageSetupView(model: model, confirm: confirm)
         case .ready:
-            FirstRunReadyView(coordinator: coordinator, finish: finish)
+            FirstRunReadyView(coordinator: coordinator, opensAtLogin: $model.opensAtLogin, finish: finish)
         }
     }
 }

@@ -22,6 +22,7 @@ import SwiftUI
 final class LanguageSetupWindowController: NSObject, NSWindowDelegate {
     private let coordinator: DictationCoordinator
     private let model: LanguageSetupModel
+    private let loginItem: any LoginItemService
     /// Internal so the tests that drive this can close it the way a user does,
     /// rather than hunting for it in `NSApp.windows`.
     private(set) var window: NSWindow?
@@ -29,8 +30,12 @@ final class LanguageSetupWindowController: NSObject, NSWindowDelegate {
     /// is not mistaken for the question going unanswered.
     private var isAnswered = false
 
-    init(coordinator: DictationCoordinator) {
+    /// The login item is passed in rather than made here: the real one writes to
+    /// the machine's login items, and a test that closed this window would
+    /// register the test host.
+    init(coordinator: DictationCoordinator, loginItem: any LoginItemService) {
         self.coordinator = coordinator
+        self.loginItem = loginItem
         model = LanguageSetupModel(selection: coordinator.languageProfile)
         super.init()
     }
@@ -103,6 +108,10 @@ final class LanguageSetupWindowController: NSObject, NSWindowDelegate {
         window?.close()
     }
 
+    /// Flips the second screen's switch the way a click does, for tests that
+    /// have no way to click it.
+    func setOpensAtLoginForTesting(_ opens: Bool) { model.opensAtLogin = opens }
+
     /// Whether the question is on screen. The second screen is not a question,
     /// so it does not count as asking one.
     var isAsking: Bool { window?.isVisible == true && model.step == .languages }
@@ -112,10 +121,35 @@ final class LanguageSetupWindowController: NSObject, NSWindowDelegate {
 
     func windowWillClose(_ notification: Notification) {
         window = nil
-        guard !isAnswered else { return }
+        guard !isAnswered else {
+            applyLoginChoice()
+            return
+        }
         // Nothing is recorded, so `needsLanguageSetup` stays true and the next
         // launch asks again. Logged because "why am I being asked twice" and
         // "why was I never asked" are the same question from opposite sides.
         Log.application.notice("Language question closed without an answer; it will be asked again")
+    }
+
+    /// Opens the app at login, unless the person switched that off on the
+    /// second screen.
+    ///
+    /// Here and not when the question is answered, so the switch on the second
+    /// screen is a choice that has not happened yet rather than something to
+    /// undo, and macOS's own "background item added" notice does not land on top
+    /// of the microphone and Accessibility prompts.
+    ///
+    /// Only from `.disabled`. An item the user already switched off in System
+    /// Settings (`.requiresApproval`) is an answer, and registering again would
+    /// overrule it; one that is already `.enabled` needs nothing; `.unavailable`
+    /// is a build macOS will not register, which Settings explains. A refusal is
+    /// not shown here, because the second screen has already closed.
+    ///
+    /// This is a first-run default only. A Mac that has answered the language
+    /// question never reaches it, so nobody who installed before is changed.
+    private func applyLoginChoice() {
+        guard model.opensAtLogin, loginItem.state == .disabled else { return }
+        let result = loginItem.setEnabled(true)
+        Log.application.info("Open at login offered at first run: \(String(describing: result), privacy: .public)")
     }
 }

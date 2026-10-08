@@ -63,7 +63,7 @@ final class LanguageSetupTests: XCTestCase {
 
     func testTheWindowOpensOnlyWhileTheQuestionIsUnanswered() async throws {
         let coordinator = makeCoordinator(InMemoryPreferencesStore())
-        let controller = LanguageSetupWindowController(coordinator: coordinator)
+        let controller = LanguageSetupWindowController(coordinator: coordinator, loginItem: FakeLoginItemService())
 
         controller.presentIfNeeded()
         try await settle()
@@ -87,7 +87,7 @@ final class LanguageSetupTests: XCTestCase {
     func testClosingTheWindowAnswersNothing() async throws {
         let store = InMemoryPreferencesStore()
         let coordinator = makeCoordinator(store)
-        let controller = LanguageSetupWindowController(coordinator: coordinator)
+        let controller = LanguageSetupWindowController(coordinator: coordinator, loginItem: FakeLoginItemService())
         controller.presentIfNeeded()
         try await settle()
 
@@ -102,7 +102,7 @@ final class LanguageSetupTests: XCTestCase {
     func testContinueIsWhatRecordsTheAnswer() async throws {
         let store = InMemoryPreferencesStore()
         let coordinator = makeCoordinator(store)
-        let controller = LanguageSetupWindowController(coordinator: coordinator)
+        let controller = LanguageSetupWindowController(coordinator: coordinator, loginItem: FakeLoginItemService())
         controller.presentIfNeeded()
         try await settle()
 
@@ -137,7 +137,7 @@ final class LanguageSetupTests: XCTestCase {
     func testClosingAfterTheAnswerDoesNotReopenTheQuestion() async throws {
         let store = InMemoryPreferencesStore()
         let coordinator = makeCoordinator(store)
-        let controller = LanguageSetupWindowController(coordinator: coordinator)
+        let controller = LanguageSetupWindowController(coordinator: coordinator, loginItem: FakeLoginItemService())
         controller.presentIfNeeded()
         try await settle()
 
@@ -154,7 +154,7 @@ final class LanguageSetupTests: XCTestCase {
     func testAnsweringThenClosingRecordsOnce() async throws {
         let store = InMemoryPreferencesStore()
         let coordinator = makeCoordinator(store)
-        let controller = LanguageSetupWindowController(coordinator: coordinator)
+        let controller = LanguageSetupWindowController(coordinator: coordinator, loginItem: FakeLoginItemService())
         controller.presentIfNeeded()
         try await settle()
 
@@ -166,11 +166,108 @@ final class LanguageSetupTests: XCTestCase {
         XCTAssertFalse(coordinator.needsLanguageSetup)
     }
 
+    // MARK: - Opening at login
+
+    /// The reason the switch exists: the hotkey belongs to a running app, and a
+    /// restart leaves a menu bar app with no Dock icon not running.
+    func testTheFirstRunOpensTheAppAtLoginUnlessTheSwitchIsOff() async throws {
+        let loginItem = FakeLoginItemService(.disabled)
+        let controller = LanguageSetupWindowController(coordinator: makeCoordinator(InMemoryPreferencesStore()), loginItem: loginItem)
+        controller.presentIfNeeded()
+        try await settle()
+
+        controller.confirmSelection()
+        XCTAssertEqual(loginItem.calls, [], "nothing is registered while the choice is still on screen")
+
+        controller.window?.close()
+        try await settle()
+
+        XCTAssertEqual(loginItem.calls, [true])
+        XCTAssertTrue(loginItem.state.isEnabled)
+    }
+
+    func testSwitchingItOffOnTheSecondScreenIsHonoured() async throws {
+        let loginItem = FakeLoginItemService(.disabled)
+        let controller = LanguageSetupWindowController(coordinator: makeCoordinator(InMemoryPreferencesStore()), loginItem: loginItem)
+        controller.presentIfNeeded()
+        try await settle()
+
+        controller.confirmSelection()
+        controller.setOpensAtLoginForTesting(false)
+        controller.window?.close()
+        try await settle()
+
+        XCTAssertEqual(loginItem.calls, [])
+    }
+
+    /// Closing the language question without answering it is "not now": no
+    /// language is recorded and nothing is registered either.
+    func testClosingTheQuestionUnansweredRegistersNothing() async throws {
+        let loginItem = FakeLoginItemService(.disabled)
+        let controller = LanguageSetupWindowController(coordinator: makeCoordinator(InMemoryPreferencesStore()), loginItem: loginItem)
+        controller.presentIfNeeded()
+        try await settle()
+
+        controller.window?.close()
+        try await settle()
+
+        XCTAssertEqual(loginItem.calls, [])
+    }
+
+    /// An item the person switched off in System Settings is an answer, and so
+    /// is one that is already on.
+    func testItNeverOverrulesAnAnswerMacOSAlreadyHolds() async throws {
+        for state in [LoginItemState.requiresApproval, .enabled, .unavailable("moved")] {
+            let loginItem = FakeLoginItemService(state)
+            let controller = LanguageSetupWindowController(coordinator: makeCoordinator(InMemoryPreferencesStore()), loginItem: loginItem)
+            controller.presentIfNeeded()
+            try await settle()
+
+            controller.confirmSelection()
+            controller.window?.close()
+            try await settle()
+
+            XCTAssertEqual(loginItem.calls, [], "\(state)")
+        }
+    }
+
+    /// A Mac that has already answered the language question is an existing
+    /// install, and the first-run default does not reach it.
+    func testAnExistingInstallIsNotChanged() async throws {
+        var stored = Preferences.default
+        stored.hasChosenLanguages = true
+        let loginItem = FakeLoginItemService(.disabled)
+        let controller = LanguageSetupWindowController(coordinator: makeCoordinator(InMemoryPreferencesStore(stored)), loginItem: loginItem)
+
+        controller.presentIfNeeded()
+        try await settle()
+
+        XCTAssertNil(controller.window)
+        XCTAssertEqual(loginItem.calls, [])
+    }
+
+    func testTheSecondScreenLaysOutWithTheLoginSwitchOnIt() {
+        let coordinator = makeCoordinator(InMemoryPreferencesStore())
+        let size = render(FirstRunReadyView(coordinator: coordinator, opensAtLogin: .constant(true)) {})
+
+        XCTAssertGreaterThan(size.height, 0)
+    }
+
+    func testTheLoginSwitchCopyHasGermanAndTheSwitchStartsOn() throws {
+        XCTAssertTrue(LanguageSetupModel(selection: .default).opensAtLogin)
+
+        let path = try XCTUnwrap(L10n.bundle.path(forResource: "de", ofType: "lproj"))
+        let german = try XCTUnwrap(Bundle(path: path))
+        for key in ["Open Witness when I log in", "The hotkey only works while Witness is running, and it has no Dock icon. Without this, a restart leaves the hotkey silent until you open the app again."] {
+            XCTAssertNotEqual(german.localizedString(forKey: key, value: nil, table: nil), key)
+        }
+    }
+
     func testAnAnsweredQuestionIsNotAskedAgain() async throws {
         var stored = Preferences.default
         stored.hasChosenLanguages = true
         let coordinator = makeCoordinator(InMemoryPreferencesStore(stored))
-        let controller = LanguageSetupWindowController(coordinator: coordinator)
+        let controller = LanguageSetupWindowController(coordinator: coordinator, loginItem: FakeLoginItemService())
 
         controller.presentIfNeeded()
         try await settle()

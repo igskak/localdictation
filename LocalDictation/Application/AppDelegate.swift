@@ -49,7 +49,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // question has been answered is a fact from disk, not an assumption
         // about how new this installation is.
         if let coordinator = Self.coordinator, coordinator.needsLanguageSetup {
-            let setup = LanguageSetupWindowController(coordinator: coordinator)
+            let setup = LanguageSetupWindowController(coordinator: coordinator, loginItem: SMAppServiceLoginItem())
             languageSetup = setup
             setup.presentIfNeeded()
         }
