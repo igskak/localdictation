@@ -4,8 +4,9 @@ import Foundation
 ///
 /// This is the whole of the second file the app writes, and it is deliberately
 /// small enough to read in one breath: an install identifier, four facts about
-/// time and use, and the key the user entered. A test asserts the encoded form holds nothing else,
-/// the way `GlossaryTests` does for the dictionary.
+/// time and use, the key the user entered, and the list of once-per-install
+/// facts that have already been reported. A test asserts the encoded form holds
+/// nothing else, the way `GlossaryTests` does for the dictionary.
 struct UsageRecord: Codable, Sendable, Equatable {
     var installedAt: Date
     /// A random value made once, at install. It identifies this copy of the app
@@ -25,6 +26,14 @@ struct UsageRecord: Codable, Sendable, Equatable {
     /// The signed token exactly as the user entered it. Re-verified on every
     /// launch rather than trusted because it is on disk.
     var licenseToken: String?
+    /// Which of the once-per-install facts have already been reported, by the
+    /// raw values of `TelemetryMilestone` and nothing else.
+    ///
+    /// It is here rather than in a file of its own because `docs/PRIVACY.md`
+    /// enumerates the files this app writes and a fourth one would be a
+    /// different promise. Sorted on insert so the encoded record is the same
+    /// bytes for the same state.
+    var reportedMilestones: [String] = []
 
     static func new(at now: Date) -> UsageRecord {
         UsageRecord(
@@ -32,8 +41,53 @@ struct UsageRecord: Codable, Sendable, Equatable {
             installID: UUID().uuidString,
             firstDictationAt: nil,
             furthestSeenAt: now,
-            licenseToken: nil
+            licenseToken: nil,
+            reportedMilestones: []
         )
+    }
+
+    /// Records a milestone and says whether this was the first time.
+    ///
+    /// The caller sends the event only on `true`, which is the whole of the
+    /// once-per-install rule: there is no second place that decides it and no
+    /// call site that can forget it and produce a usage log instead of a
+    /// funnel.
+    mutating func markReported(_ milestone: TelemetryMilestone) -> Bool {
+        guard !reportedMilestones.contains(milestone.rawValue) else { return false }
+        reportedMilestones.append(milestone.rawValue)
+        reportedMilestones.sort()
+        return true
+    }
+
+    /// Written by hand for one key. Everything synthesized decoding does for
+    /// the other five is what it did before; `reportedMilestones` has to be
+    /// allowed to be missing, because every record already on a Mac was
+    /// written without it and a record that fails to decode is a trial that
+    /// starts again.
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        installedAt = try container.decode(Date.self, forKey: .installedAt)
+        installID = try container.decode(String.self, forKey: .installID)
+        firstDictationAt = try container.decodeIfPresent(Date.self, forKey: .firstDictationAt)
+        furthestSeenAt = try container.decode(Date.self, forKey: .furthestSeenAt)
+        licenseToken = try container.decodeIfPresent(String.self, forKey: .licenseToken)
+        reportedMilestones = try container.decodeIfPresent([String].self, forKey: .reportedMilestones) ?? []
+    }
+
+    init(
+        installedAt: Date,
+        installID: String,
+        firstDictationAt: Date?,
+        furthestSeenAt: Date,
+        licenseToken: String?,
+        reportedMilestones: [String] = []
+    ) {
+        self.installedAt = installedAt
+        self.installID = installID
+        self.firstDictationAt = firstDictationAt
+        self.furthestSeenAt = furthestSeenAt
+        self.licenseToken = licenseToken
+        self.reportedMilestones = reportedMilestones
     }
 
     /// Advances the tamper guard. Always call before evaluating.

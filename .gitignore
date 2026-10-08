@@ -75,3 +75,7 @@ Service/.dev.vars
 # one moment, and against production it holds real signed keys — the committed
 # fixture beside it is the one that belongs in the repository.
 Service/fixtures/live.json
+
+# Agent session state, and the worktrees the agents check out inside the
+# repository. Local to one machine, and one .bak of it reached a commit.
+/.claude/

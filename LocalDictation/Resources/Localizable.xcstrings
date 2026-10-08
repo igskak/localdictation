@@ -1,6 +1,14 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Have a promo code? Enter it on the payment page. If you opened a partner’s link in this browser, it is filled in already.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Du hast einen Rabattcode? Gib ihn auf der Bezahlseite ein. Hast du den Link eines Partners in diesem Browser geöffnet, ist er schon eingetragen."}}}},
+    "The speech model has not been downloaded yet (about %@)": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Sprachmodell wurde noch nicht geladen (etwa %@)"}}}},
+    "less than a minute": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"weniger als eine Minute"}}}},
+    "about %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"etwa %@"}}}},
+    " — %lld%%, %@ left": {"localizations":{"de":{"stringUnit":{"state":"translated","value":" – %lld %%, noch %@"}}}},
+    " — %lld%%, %@ left, %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":" – %lld %%, noch %@, %@"}}}},
+    "Downloading the speech model… %lld%%. %@ left.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sprachmodell wird geladen … %lld %%. Noch %@."}}}},
+    "Downloading the speech model… %lld%%. %@ left, %@.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sprachmodell wird geladen … %lld %%. Noch %@, %@."}}}},
     "Updates": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Updates"}}}},
     "Installed version": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Installierte Version"}}}},
     "Check for updates…": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Auf Updates prüfen …"}}}},
@@ -505,12 +513,12 @@
         }
       }
     },
-    "Send three events about the trial": {
+    "Send nine events about setup and the trial": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Drei Ereignisse zur Testphase senden"
+            "value": "Neun Ereignisse zur Einrichtung und zur Testphase senden"
           }
         }
       }
@@ -1145,12 +1153,12 @@
         }
       }
     },
-    "Nothing you dictate ever leaves this Mac. Three events about the trial itself do — when it starts, when it asks for an email, and when it shows the offers — with no more than an app version, a macOS version, and a random number made at install. Settings → Privacy turns them off.": {
+    "Nothing you dictate ever leaves this Mac. Nine events about setting it up and about the trial do — the install, the speech model arriving or failing to, a press that finds it still arriving, a refused microphone, the trial starting, the email ask, and the offers — with no more than an app version, a macOS version, and a random number made at install. Settings → Privacy turns them off.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nichts von dem, was du diktierst, verlässt diesen Mac. Nur drei Ereignisse zur Testphase werden gesendet: ihr Start, die Abfrage der E-Mail-Adresse und das Anzeigen der Angebote – jeweils nur mit App-Version, macOS-Version und einer bei der Installation erzeugten Zufallsnummer. Unter Einstellungen → Datenschutz kannst du dies deaktivieren."
+            "value": "Nichts von dem, was du diktierst, verlässt diesen Mac. Gesendet werden neun Ereignisse zur Einrichtung und zur Testphase: die Installation, das Eintreffen des Sprachmodells oder dessen Scheitern, ein Tastendruck, der noch darauf trifft, ein abgelehntes Mikrofon, der Start der Testphase, die Abfrage der E-Mail-Adresse und das Anzeigen der Angebote – jeweils nur mit App-Version, macOS-Version und einer bei der Installation erzeugten Zufallsnummer. Unter Einstellungen → Datenschutz kannst du dies deaktivieren."
           }
         }
       }
@@ -1195,26 +1203,8 @@
         }
       }
     },
-    "%@ It is about 600 MB and needs a connection once; everything after that is offline.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ Es ist etwa 600 MB groß und benötigt einmalig eine Verbindung; danach funktioniert alles offline."
-          }
-        }
-      }
-    },
-    "About 600 MB, fetched once, usually within five minutes. It started on its own when the app launched — you can close this window and it keeps going. Afterwards recognition runs on this Mac with no network at all.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Etwa 600 MB, einmalig geladen, normalerweise in weniger als fünf Minuten. Der Download begann beim App-Start automatisch und läuft weiter, wenn du dieses Fenster schließt. Danach erfolgt die Erkennung vollständig offline auf diesem Mac."
-          }
-        }
-      }
-    },
+    "%@ It is about %@ and needs a connection once; everything after that is offline.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%@ Es ist etwa %@ groß und benötigt einmalig eine Verbindung; danach funktioniert alles offline."}}}},
+    "About %@, fetched once. It started on its own when the app launched — you can close this window and it keeps going. Afterwards recognition runs on this Mac with no network at all.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Etwa %@, einmalig geladen. Der Download begann beim App-Start automatisch und läuft weiter, wenn du dieses Fenster schließt. Danach erfolgt die Erkennung vollständig offline auf diesem Mac."}}}},
     "No language here is called “%@”.": {
       "localizations": {
         "de": {
@@ -2794,7 +2784,7 @@
     "This address or this Mac has already had the free trial. A license keeps it dictating: €99 once, or €49 a year, both covering two Macs.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Für diese Adresse oder diesen Mac wurde die Testphase bereits genutzt. Eine Lizenz kostet einmalig 99 € oder 49 € pro Jahr und gilt für zwei Macs."}}}},
     "the shortcut is already used by macOS or another app": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"das Tastenkürzel wird bereits von macOS oder einer anderen App verwendet"}}}},
     "the previous application": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"die vorherige App"}}}},
-    " — %lld%% of about 600 MB": {"localizations":{"de":{"stringUnit":{"state":"translated","value":" – %lld %% von etwa 600 MB"}}}},
+    " — %lld%% of about %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":" – %lld %% von etwa %@"}}}},
     "%1$@ of speech came back empty, so nothing was inserted. Say it again, or check that the language profile — %2$@ — is the one you spoke.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die Erkennung für %1$@ ergab keinen Text. Sprich erneut oder prüfe, ob das Profil „%2$@“ deiner Sprache entspricht."}}}},
     "A copy of the key is also on its way to that address. You do not need it now — it is for when you reinstall Witness or replace this Mac. If it never arrives, press the button again: the same key comes back here and the mail is retried.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Eine Kopie des Schlüssels wird auch an diese Adresse gesendet. Du brauchst sie nur nach einer Neuinstallation oder beim Austausch dieses Macs. Falls sie nicht ankommt, drücke die Taste erneut."}}}},
     "A license keeps it after that, on this Mac and one more.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Mit einer Lizenz kannst du danach auf diesem und einem weiteren Mac weiterarbeiten."}}}},
@@ -2806,16 +2796,16 @@
     "The trial ran out on %@. Your dictionary and settings are untouched and come straight back with a license.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Test ist am %@ abgelaufen. Wörterbuch und Einstellungen bleiben unverändert und sind mit einer Lizenz sofort wieder verfügbar."}}}},
     "It ran out %@. Renewing unlocks dictation again; nothing on this Mac was touched.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sie ist am %@ abgelaufen. Eine Verlängerung schaltet das Diktieren wieder frei; lokale Daten wurden nicht verändert."}}}},
     "It ran out on %@. Renewing unlocks dictation again on this Mac; nothing local was removed.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sie ist am %@ abgelaufen. Eine Verlängerung schaltet das Diktieren wieder frei; lokale Daten wurden nicht entfernt."}}}},
-    "It runs out on %@. A license keeps this Mac dictating; your dictionary and settings stay exactly as they are either way.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sie läuft am %@ ab. Mit einer Lizenz kannst du weiter diktieren; Wörterbuch und Einstellungen bleiben unverändert."}}}},
+    "It runs out on %@. A license keeps this Mac dictating; your dictionary and settings stay exactly as they are either way. Have a promo code? It goes in on the payment page.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sie läuft am %@ ab. Mit einer Lizenz kannst du weiter diktieren; Wörterbuch und Einstellungen bleiben unverändert. Einen Rabattcode gibst du auf der Bezahlseite ein."}}}},
     "It runs out on %@. Renewing before then means dictation never stops; nothing local is touched either way.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sie läuft am %@ ab. Bei rechtzeitiger Verlängerung kannst du ohne Unterbrechung weiter diktieren; lokale Daten bleiben unverändert."}}}},
     "Licensed to %1$@. This Mac needs nothing further — no renewal, and no connection. It covers version %2$lld and every update to it.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Lizenziert für %1$@. Dieser Mac benötigt weder Verlängerung noch Verbindung. Abgedeckt sind Version %2$lld und alle zugehörigen Updates."}}}},
     "Licensed to %@.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Lizenziert für %@."}}}},
     "Nothing was inserted: %@ has secure input enabled, which blocks dictation everywhere until it stops. Switching to it and clicking into an ordinary field usually clears it; quitting it always does. The text is here and was not copied.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Nichts wurde eingefügt: %@ hat die sichere Eingabe aktiviert. Wechsle dorthin und klicke in ein normales Feld oder beende die App. Der Text wurde nicht kopiert."}}}},
     "Nothing was inserted: an application has secure input enabled, which blocks dictation everywhere until it stops. The text is here and was not copied.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Nichts wurde eingefügt: Eine App hat die sichere Eingabe aktiviert und blockiert damit das Diktieren. Der Text wurde nicht kopiert."}}}},
-    "Nothing was recorded yet — Witness is downloading the speech model%@. It happens once, usually within five minutes, and afterwards recognition runs entirely on this Mac. Hold %@ again when it is here; Witness will say so.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch nichts aufgenommen – Witness lädt das Sprachmodell%@. Dies geschieht einmalig und dauert meist weniger als fünf Minuten. Danach läuft die Erkennung vollständig auf diesem Mac. Halte %@ erneut gedrückt, sobald es bereit ist."}}}},
+    "Nothing was recorded yet — Witness is downloading the speech model%@. It happens once, and afterwards recognition runs entirely on this Mac. Hold %@ again when it is here; Witness will say so.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch nichts aufgenommen – Witness lädt das Sprachmodell%@. Dies geschieht einmalig, danach läuft die Erkennung vollständig auf diesem Mac. Halte %@ erneut gedrückt, sobald es bereit ist."}}}},
     "Nothing was recorded yet — macOS is preparing the speech model for this Mac. It happens once per macOS version and takes a few minutes. Hold %@ again when it is here; Witness will say so.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch nichts aufgenommen – macOS bereitet das Sprachmodell für diesen Mac vor. Dies geschieht einmal pro macOS-Version und dauert einige Minuten. Halte %@ danach erneut gedrückt."}}}},
     "Nothing was recorded yet — the speech model is loading. That takes seconds. Hold %@ again in a moment.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch nichts aufgenommen – das Sprachmodell wird geladen. Das dauert nur Sekunden. Halte %@ gleich erneut gedrückt."}}}},
-    "Nothing was recorded yet — the speech model is not on this Mac. The download has just started: about 600 MB, once, usually within five minutes. Hold %@ again when it is here; Witness will say so.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch nichts aufgenommen – das Sprachmodell fehlt auf diesem Mac. Der einmalige Download von etwa 600 MB wurde gestartet und dauert meist weniger als fünf Minuten. Halte %@ danach erneut gedrückt."}}}},
+    "Nothing was recorded yet — the speech model is not on this Mac. The download has just started: about %@, once. The menu bar shows how far it has got and how long is left. Hold %@ again when it is here; Witness will say so.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch nichts aufgenommen – das Sprachmodell fehlt auf diesem Mac. Der einmalige Download von etwa %@ wurde gestartet. Die Menüleiste zeigt, wie weit er ist und wie lange es noch dauert. Halte %@ danach erneut gedrückt."}}}},
     "Nothing was recorded — the speech model is not ready. %@ Witness is trying again; the menu bar icon shows how it is going.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Nichts aufgenommen – das Sprachmodell ist nicht bereit. %@ Witness versucht es erneut; den Fortschritt siehst du in der Menüleiste."}}}},
     "That key did not verify, so nothing was changed.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Schlüssel konnte nicht bestätigt werden. Es wurde nichts geändert."}}}},
     "That key was issued for a different Mac, so nothing was changed.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Schlüssel wurde für einen anderen Mac ausgestellt. Es wurde nichts geändert."}}}},
@@ -2848,7 +2838,7 @@
     "the event handler could not be installed (OSStatus %d)": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"der Ereignishandler konnte nicht installiert werden (OSStatus %d)"}}}},
     "the reply was not an HTTP response": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"die Antwort war keine HTTP-Antwort"}}}},
     "Audio stays in memory on this Mac. Nothing is written to disk during normal capture, and nothing you dictate is ever sent anywhere. A recording is discarded as soon as the app decides no review is needed, and otherwise when the review ends.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Audio bleibt im Arbeitsspeicher dieses Macs. Bei einer normalen Aufnahme wird nichts auf die Festplatte geschrieben und keine Diktatinhalte werden versendet. Die Aufnahme wird gelöscht, sobald keine Überprüfung nötig ist – andernfalls nach Abschluss der Überprüfung."}}}},
-    "On, the app says when a trial starts, when it asks for an email, and when it puts the offers on screen — with the app version, the macOS version, and a random number made at install that is not derived from this Mac. That is the whole message; there is no fourth field and nothing about what you said. Off, it sends none of them and nothing else changes.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Wenn aktiviert, meldet die App den Start der Testphase, die Abfrage der E-Mail-Adresse und das Anzeigen der Angebote – zusammen mit App-Version, macOS-Version und einer zufälligen Installationskennung. Weitere Felder oder Diktatinhalte werden nicht gesendet. Wenn deaktiviert, werden auch diese Ereignisse nicht gesendet."}}}},
+    "On, the app says when it was installed, when the speech model starts arriving and whether it arrived, when a press finds it still arriving, when the microphone is refused, when a trial starts, when it asks for an email, and when it puts the offers on screen — with the app version, the macOS version, and a random number made at install that is not derived from this Mac. The six about setup are sent once for this installation and never again. That is the whole message, and nothing in it is about what you said. Off, it sends none of them and nothing else changes.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Wenn aktiviert, meldet die App die Installation, den Beginn des Sprachmodell-Downloads und ob er geklappt hat, einen Tastendruck, der noch auf das Warten trifft, ein abgelehntes Mikrofon, den Start der Testphase, die Abfrage der E-Mail-Adresse und das Anzeigen der Angebote – zusammen mit App-Version, macOS-Version und einer zufälligen Installationskennung. Die sechs Ereignisse zur Einrichtung werden pro Installation genau einmal gesendet. Weitere Felder oder Diktatinhalte werden nicht gesendet. Wenn deaktiviert, werden auch diese Ereignisse nicht gesendet."}}}},
     "On, a result with nothing worth checking goes straight into the application you were typing in. Off, it waits in this menu for an explicit insert. A result that does need review always waits for you either way.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Wenn aktiviert, wird ein Ergebnis ohne Prüfhinweise direkt in die zuvor verwendete App eingefügt. Wenn deaktiviert, wartet es in diesem Menü auf dein Einfügen. Ergebnisse mit Prüfhinweisen warten immer auf dich."}}}},
     "Without Accessibility access the text is copied to the clipboard instead. A development build loses this permission on every rebuild, because macOS keys it to the code signature.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Ohne Bedienungshilfen-Zugriff wird der Text stattdessen in die Zwischenablage kopiert. Eine Entwicklungs-Version verliert diese Berechtigung nach jeder neuen Signatur."}}}},
     "The review step appears only when a fragment is worth checking — an amount, a date, a name, a dictionary near-miss, or a word the app removed. When nothing is marked, the text is simply ready and the recording is discarded immediately.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die Überprüfung erscheint nur für Stellen, die du prüfen solltest – etwa Beträge, Daten, Namen, ähnliche Wörterbucheinträge oder entfernte Wörter. Wenn nichts markiert ist, ist der Text sofort fertig und die Aufnahme wird verworfen."}}}},

@@ -162,7 +162,7 @@ What this does *not* put at risk is a paid copy. Nothing in the checking path
 calls the service: a licence is a signature, verified on the Mac. A build whose
 endpoint has gone stale still accepts a pasted key and still works on a plane.
 
-### 6. WhisperKit's 600 MB, and what a release changes about it
+### 6. WhisperKit's 1.64 GB, and what a release changes about it
 
 The model download lands in Application Support, and that does not change. What
 does is who starts it: since `docs/REFINEMENTS.md` the app fetches the weights

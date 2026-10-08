@@ -30,11 +30,18 @@ final class TelemetryBoundaryTests: XCTestCase {
             "notConfigured", "invalidEmail", "unreachable", "rejected", "deviceLimitReached",
             "malformed", "unsupportedVersion", "noAuthority", "badSignature", "wrongDevice",
             "inconsistentDates", "trial", "annual", "lifetime",
-            "activationRequired", "trialExpired", "licenseExpired"
+            "activationRequired", "trialExpired", "licenseExpired",
+            "underOneMinute", "underFiveMinutes", "underFifteenMinutes", "overFifteenMinutes",
+            "network", "storage", "other"
         ]
 
         let events: [TelemetryEvent] = [
             .installed,
+            .modelDownloadStarted,
+            .modelReady(.underFiveMinutes),
+            .modelFailed(.storage),
+            .dictationBlockedByModel,
+            .microphoneDenied,
             .trialStarted,
             .activationRequested,
             .activationSucceeded,
@@ -63,12 +70,21 @@ final class TelemetryBoundaryTests: XCTestCase {
     /// The gate, on the event rather than on the call site. A transport that
     /// decides per caller is a transport that sends the eighth event the day
     /// somebody adds a call in the wrong place.
-    func testOnlyTheThreeFunnelEventsAreTransmitted() {
+    func testOnlyTheNineFunnelEventsAreTransmitted() {
         XCTAssertTrue(TelemetryEvent.trialStarted.isTransmitted)
         XCTAssertTrue(TelemetryEvent.activationRequested.isTransmitted)
         XCTAssertTrue(TelemetryEvent.paywallShown(.trialExpired).isTransmitted)
 
-        XCTAssertFalse(TelemetryEvent.installed.isTransmitted)
+        // The six that say what happens between a download and a first
+        // dictation. `installed` is the denominator all of them are read
+        // against, which is why it moved onto the wire with them.
+        XCTAssertTrue(TelemetryEvent.installed.isTransmitted)
+        XCTAssertTrue(TelemetryEvent.modelDownloadStarted.isTransmitted)
+        XCTAssertTrue(TelemetryEvent.modelReady(.underOneMinute).isTransmitted)
+        XCTAssertTrue(TelemetryEvent.modelFailed(.network).isTransmitted)
+        XCTAssertTrue(TelemetryEvent.dictationBlockedByModel.isTransmitted)
+        XCTAssertTrue(TelemetryEvent.microphoneDenied.isTransmitted)
+
         XCTAssertFalse(TelemetryEvent.activationSucceeded.isTransmitted)
         XCTAssertFalse(TelemetryEvent.licenseAccepted(.lifetime).isTransmitted)
         XCTAssertFalse(TelemetryEvent.checkoutOpened(.annual).isTransmitted)
@@ -130,15 +146,17 @@ final class TelemetryBoundaryTests: XCTestCase {
         telemetry.send(.trialStarted)
         telemetry.send(.activationRequested)
         telemetry.send(.paywallShown(.trialExpired))
-        XCTAssertEqual(sent.count, 1, "the switch was off and three events still left")
+        telemetry.send(.modelReady(.underOneMinute))
+        telemetry.send(.microphoneDenied)
+        XCTAssertEqual(sent.count, 1, "the switch was off and five events still left")
 
         consent.isAllowed = true
         telemetry.send(.activationRequested)
         XCTAssertEqual(sent.count, 2, "the switch takes effect on the next event, not the next launch")
     }
 
-    /// The other seven never reach the transport, switch or no switch.
-    func testTheSevenLocalEventsNeverReachTheWire() throws {
+    /// The other six never reach the transport, switch or no switch.
+    func testTheSixLocalEventsNeverReachTheWire() throws {
         let endpoint = try XCTUnwrap(URL(string: "https://api.example.com/v1/events"))
         let sent = Sent()
         let telemetry = HTTPProductTelemetryService(
@@ -148,7 +166,6 @@ final class TelemetryBoundaryTests: XCTestCase {
             transmit: { sent.append($0) }
         )
 
-        telemetry.send(.installed)
         telemetry.send(.activationSucceeded)
         telemetry.send(.activationFailed(.unreachable))
         telemetry.send(.licenseAccepted(.lifetime))

@@ -23,7 +23,7 @@ src/
   release.js    POST /v1/devices/release: the key is the proof
   webhook.js    POST /v1/purchases/webhook: money becoming an entitlement
   events.js     POST /v1/events: three funnel events, and no address anywhere
-  analytics.js  trials, sales, renewals and refunds, reported to PostHog EU
+  analytics.js  trials, sales, renewals and refunds, and the nine app events, reported to PostHog EU
   providers.js  Paddle and Stripe, behind one shape
   token.js      the frozen payload, byte for byte
   signing.js    Ed25519, and the check that the secret matches the shipped app
@@ -32,6 +32,7 @@ src/
   mailer.js     Resend or Postmark, behind one method
   http.js       JSON answers, bounded requests
 schema.sql      the whole of what is stored
+migrations/     what a database that already exists runs instead
 test/           node:test, over the real schema in an in-memory SQLite
 ```
 
@@ -125,6 +126,23 @@ npx wrangler secret put WEBHOOK_SECRET
 
 npx wrangler deploy
 ```
+
+### Changing a table that already exists
+
+`schema.sql` is written for a database that does not exist yet: every statement
+in it is `CREATE TABLE IF NOT EXISTS`, so running it again against the live D1
+changes nothing at all. Anything that has to change a table that is already
+there is a file in `migrations/`, run by hand, oldest first:
+
+```bash
+npx wrangler d1 execute localdictation-licenses --remote \
+  --file migrations/001-setup-funnel-events.sql
+```
+
+`001-setup-funnel-events.sql` widens the `CHECK` on `product_events` to the six
+setup events. **Run it before deploying the worker that accepts those names**:
+a route that accepts an event the table refuses answers `202` to the app and
+loses the row, which is the one failure here nobody would see.
 
 Then set `MAIL_PROVIDER`, `MAIL_FROM` and, if the provider needs it,
 `MAIL_STREAM` in `wrangler.toml`.
@@ -222,7 +240,9 @@ are. `docs/PRIVACY.md` prints the row shape and the retention period.
 In the dashboard, once:
 
 1. One product with two prices — €99 one-off and €49 yearly.
-2. A Payment Link for each. Copy the two URLs into `StoreFront` in the app, and
+2. A Payment Link for each, with **Allow promotion codes** on. Copy the two URLs
+   into `website/app/_data/partnerOffers.ts` (the app's Buy buttons open
+   `witnessmac.com/buy`, which redirects there and prefills a partner's code), and
    the two `plink_…` ids into `PAYMENT_LINK_LIFETIME` and `PAYMENT_LINK_ANNUAL`
    — a Payment Link checkout sends **no line items** on the webhook, so the
    link id is the only thing in that payload that says which offer was bought.
@@ -276,8 +296,16 @@ Select exactly these events:
 | --- | --- |
 | `checkout.session.completed` | Creates or extends the licence on the buyer's address |
 | `invoice.paid` | Extends an annual on renewal, a year later |
+| `invoice_payment.paid` | Records which payment intent and charge paid which invoice, so a refund can find the licence |
 | `charge.refunded` | Marks the licence dead for future issuance |
 | `charge.dispute.created` | The same |
+
+`invoice_payment.paid` is not optional on an API version from 2025 on: a refund's
+charge no longer names its invoice and a subscription checkout carries no payment
+intent, so without this event a refund or a dispute of an annual licence matches
+nothing and the licence stays live. It races the checkout session; what arrives
+first waits in `held_refs` and is collected by the purchase. Apply `schema.sql`
+to the remote database once when this event is first selected.
 
 `invoice.payment_succeeded` fires for the same money as `invoice.paid` and
 carries a different event id, so idempotency cannot stop both from being acted

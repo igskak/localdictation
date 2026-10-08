@@ -79,7 +79,7 @@ struct FirstRunReadyView: View {
                     Image(systemName: "shield.checkered")
                         .foregroundStyle(WitnessStyle.success)
                         .accessibilityHidden(true)
-                    Text(verbatim: L10n.string("Nothing you dictate ever leaves this Mac. Three events about the trial itself do — when it starts, when it asks for an email, and when it shows the offers — with no more than an app version, a macOS version, and a random number made at install. Settings → Privacy turns them off."))
+                    Text(verbatim: L10n.string("Nothing you dictate ever leaves this Mac. Nine events about setting it up and about the trial do — the install, the speech model arriving or failing to, a press that finds it still arriving, a refused microphone, the trial starting, the email ask, and the offers — with no more than an app version, a macOS version, and a random number made at install. Settings → Privacy turns them off."))
                         .font(.caption)
                         .foregroundStyle(WitnessStyle.muted)
                         .fixedSize(horizontal: false, vertical: true)
@@ -193,17 +193,22 @@ struct FirstRunReadyView: View {
                 }
                 .controlSize(.small)
             case let .preparing(preparation):
-                HStack(spacing: 6) {
+                // Stacked rather than side by side since the label grew into a
+                // size and a time: beside a bar it had to be short, and short is
+                // what left the first run with a percentage and no idea how long
+                // the wait was.
+                VStack(alignment: .leading, spacing: 4) {
                     if let progress = preparation.progress {
                         ProgressView(value: progress)
                             .controlSize(.small)
-                            .frame(width: 120)
+                            .frame(maxWidth: 280)
                     } else {
                         ProgressView().controlSize(.small)
                     }
                     Text(coordinator.transcriptionModelState.label)
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             case .ready:
                 EmptyView()
@@ -232,9 +237,16 @@ struct FirstRunReadyView: View {
         case .ready:
             L10n.string("Recognition runs on this Mac, with no network and no account.")
         case let .failed(detail):
-            L10n.format("%@ It is about 600 MB and needs a connection once; everything after that is offline.", detail)
+            L10n.format(
+                "%@ It is about %@ and needs a connection once; everything after that is offline.",
+                detail,
+                SpeechModelDownloadSize.pinnedVariantSizeText
+            )
         case .preparing, .unavailable:
-            L10n.string("About 600 MB, fetched once, usually within five minutes. It started on its own when the app launched — you can close this window and it keeps going. Afterwards recognition runs on this Mac with no network at all.")
+            L10n.format(
+                "About %@, fetched once. It started on its own when the app launched — you can close this window and it keeps going. Afterwards recognition runs on this Mac with no network at all.",
+                SpeechModelDownloadSize.pinnedVariantSizeText
+            )
         }
     }
 

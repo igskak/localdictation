@@ -389,6 +389,66 @@ final class EntitlementServiceTests: XCTestCase {
         )
     }
 
+    // MARK: - The setup funnel
+
+    /// Each setup fact is reported once for the life of the install, and the
+    /// memory of it is on disk rather than in this object.
+    ///
+    /// The second half is what matters: the model is loaded at every launch, so
+    /// a milestone remembered only in memory would send `model_ready` every
+    /// time the app starts, and the table on the server would stop being a
+    /// funnel and become a record of when this Mac is used.
+    func testASetupFactIsReportedOnceForTheLifeOfTheInstall() throws {
+        let clock = Clock(origin)
+        let store = InMemoryEntitlementStore()
+        let telemetry = RecordingTelemetryService()
+        let service = makeService(store: store, telemetry: telemetry, clock: clock)
+
+        service.noteModelDownloadStarted()
+        service.noteModelReady(after: 240)
+        service.noteModelReady(after: 9)
+        service.noteDictationBlockedByModel()
+        service.noteDictationBlockedByModel()
+
+        XCTAssertEqual(
+            telemetry.names,
+            ["installed", "model_download_started", "model_ready", "dictation_blocked_by_model"]
+        )
+
+        // A relaunch: a second service over the same file, which is what the
+        // next launch of the app actually is.
+        let relaunchTelemetry = RecordingTelemetryService()
+        let relaunched = makeService(store: store, telemetry: relaunchTelemetry, clock: clock)
+        relaunched.noteModelReady(after: 9)
+        relaunched.noteModelDownloadStarted()
+        relaunched.noteMicrophoneDenied()
+
+        XCTAssertEqual(relaunchTelemetry.names, ["microphone_denied"], "a milestone was reported twice")
+    }
+
+    /// The wait is sent as one of four buckets, never as a number of seconds.
+    func testTheModelWaitIsReportedAsABucket() throws {
+        let clock = Clock(origin)
+        let telemetry = RecordingTelemetryService()
+        let service = makeService(telemetry: telemetry, clock: clock)
+
+        service.noteModelReady(after: 212)
+
+        XCTAssertEqual(telemetry.recorded.last, .modelReady(.underFiveMinutes))
+        XCTAssertEqual(telemetry.recorded.last?.qualifier, "underFiveMinutes")
+    }
+
+    func testEveryWaitFallsInABucketAndTheBoundariesAreWhereTheyAreDocumented() {
+        XCTAssertEqual(TelemetryEvent.ModelWait(seconds: 0), .underOneMinute)
+        XCTAssertEqual(TelemetryEvent.ModelWait(seconds: 59.9), .underOneMinute)
+        XCTAssertEqual(TelemetryEvent.ModelWait(seconds: 60), .underFiveMinutes)
+        XCTAssertEqual(TelemetryEvent.ModelWait(seconds: 299), .underFiveMinutes)
+        XCTAssertEqual(TelemetryEvent.ModelWait(seconds: 300), .underFifteenMinutes)
+        XCTAssertEqual(TelemetryEvent.ModelWait(seconds: 899), .underFifteenMinutes)
+        XCTAssertEqual(TelemetryEvent.ModelWait(seconds: 900), .overFifteenMinutes)
+        XCTAssertEqual(TelemetryEvent.ModelWait(seconds: 86_400), .overFifteenMinutes)
+    }
+
     /// Nobody is shown a price on a Mac that is working, whoever asks.
     func testAPaywallIsNotReportedOnAMacThatIsNotLocked() throws {
         let clock = Clock(origin)

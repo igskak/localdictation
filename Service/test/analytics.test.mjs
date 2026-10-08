@@ -69,7 +69,7 @@ async function harness(overrides = {}) {
       handleEvent({
         event,
         provider: stripe,
-        env,
+        env: { ...env, ...overrides },
         store,
         now,
         mailer: { async send() { return true; } },
@@ -80,7 +80,7 @@ async function harness(overrides = {}) {
   };
 }
 
-const checkout = (link, { id = "evt_buy", session = "cs_1", subscription, amount = 9900 } = {}) => ({
+const checkout = (link, { id = "evt_buy", session = "cs_1", subscription, amount = 9900, discounts, discounted = 0 } = {}) => ({
   id,
   type: "checkout.session.completed",
   data: {
@@ -91,6 +91,8 @@ const checkout = (link, { id = "evt_buy", session = "cs_1", subscription, amount
       payment_link: link,
       amount_total: amount,
       currency: "eur",
+      discounts,
+      total_details: { amount_discount: discounted },
       customer_details: { email: EMAIL },
     },
   },
@@ -144,12 +146,15 @@ test("an event carries the licence id, the allowlisted properties, and no addres
   assert.equal(JSON.stringify(body).includes(MAC), false, "a device identifier reached PostHog");
 });
 
-test("only the four named events can be sent", async () => {
+test("only the four business events and the nine app events can be sent", async () => {
   const { analytics, sent } = recorder();
   await analytics.capture("identify", "lic_1", {});
   await analytics.capture("$pageview", "lic_1", {});
   assert.equal(sent.length, 0);
-  assert.deepEqual(ALLOWED_PROPERTIES.sort(), ["currency", "kind", "provider", "revenue", "upgrade"]);
+  assert.deepEqual(
+    [...ALLOWED_PROPERTIES].sort(),
+    ["app_version", "currency", "kind", "promo", "provider", "qualifier", "revenue", "system_version", "upgrade"],
+  );
 });
 
 test("a failure to reach PostHog is swallowed, never thrown into a purchase", async () => {
@@ -200,6 +205,59 @@ test("a purchase is counted with what was paid, and a redelivery is not counted 
   assert.equal(properties.currency, "EUR");
   assert.equal(properties.provider, "stripe");
   assert.equal(properties.upgrade, false);
+});
+
+// MARK: - The promotion code
+
+const PROMO = { PROMO_CODES: "UWYM1LLF=TAMARA30, promo_abc=PARTNER2" };
+
+test("a sale made with a listed coupon carries that code's label, and only the label", async () => {
+  const h = await harness(PROMO);
+
+  await h.deliver(checkout("plink_annual", { subscription: "sub_1", amount: 3430, discounted: 1470, discounts: [{ coupon: "UWYM1LLF", promotion_code: "promo_xyz" }] }));
+
+  const { properties } = h.sent[0].body;
+  assert.equal(properties.promo, "TAMARA30");
+  assert.equal(properties.revenue, 34.3);
+  assert.ok(!JSON.stringify(h.sent[0].body).includes("UWYM1LLF"), "a Stripe id must not leave");
+  assert.ok(!JSON.stringify(h.sent[0].body).includes("promo_xyz"), "a Stripe id must not leave");
+});
+
+test("the promotion code's own id is matched too, and expanded objects are read", async () => {
+  const h = await harness(PROMO);
+
+  await h.deliver(checkout("plink_lifetime", { discounted: 500, discounts: [{ promotion_code: { id: "promo_abc", code: "whatever-the-buyer-typed" } }] }));
+
+  assert.equal(h.sent[0].body.properties.promo, "PARTNER2");
+  assert.ok(!JSON.stringify(h.sent[0].body).includes("whatever-the-buyer-typed"));
+});
+
+test("a discounted sale whose code is not on the list is counted as other", async () => {
+  const h = await harness(PROMO);
+
+  await h.deliver(checkout("plink_lifetime", { discounted: 990, discounts: [{ coupon: "SOMETHING_ELSE" }] }));
+  assert.equal(h.sent[0].body.properties.promo, "other");
+});
+
+test("money off with no discount id at all is still counted as other, not as a full-price sale", async () => {
+  const h = await harness(PROMO);
+
+  await h.deliver(checkout("plink_lifetime", { discounted: 990 }));
+  assert.equal(h.sent[0].body.properties.promo, "other");
+});
+
+test("a full-price sale carries no promo property", async () => {
+  const h = await harness(PROMO);
+
+  await h.deliver(checkout("plink_lifetime"));
+  assert.ok(!("promo" in h.sent[0].body.properties));
+});
+
+test("a label that is not a short upper-case word is never sent", async () => {
+  const h = await harness({ PROMO_CODES: "UWYM1LLF=buyer@example.com" });
+
+  await h.deliver(checkout("plink_lifetime", { discounted: 990, discounts: [{ coupon: "UWYM1LLF" }] }));
+  assert.equal(h.sent[0].body.properties.promo, "other");
 });
 
 test("fetching the key a purchase paid for is not a trial", async () => {

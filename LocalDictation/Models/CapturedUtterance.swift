@@ -19,6 +19,10 @@ struct CapturedUtterance: Sendable, Equatable {
     let droppedFrameCount: Int
     let voiceActivity: VoiceActivityObservation
     let endReason: UtteranceEndReason
+    /// How many times capture moved to another input segment while this was
+    /// being said. Non-zero means the route changed and the sentence survived
+    /// it; the user was told nothing, so the diagnostics are where it shows.
+    var rebindCount: Int = 0
 
     var frameCount: Int { samples.count }
     var duration: TimeInterval { sampleRate > 0 ? Double(samples.count) / sampleRate : 0 }
@@ -35,8 +39,17 @@ struct UtteranceSummary: Sendable, Equatable {
     let speechStart: TimeInterval?
     let trailingSilence: TimeInterval
     let endReason: UtteranceEndReason
+    let rebindCount: Int
+    /// Whether this Mac heard speech at all, which is a different question
+    /// from whether the engine recognized any. The live detector runs at the
+    /// level the samples arrived at, so a recording from a raw microphone
+    /// array is answered on a normalized copy instead — see
+    /// `NormalizedVoiceActivity`.
+    let heardSpeech: Bool
 
-    init(_ utterance: CapturedUtterance) {
+    /// `heardSpeech` defaults to the live detector's own answer. The dictation
+    /// path passes the normalized one.
+    init(_ utterance: CapturedUtterance, heardSpeech: Bool? = nil) {
         duration = utterance.duration
         frameCount = utterance.frameCount
         sampleRate = utterance.sampleRate
@@ -45,5 +58,7 @@ struct UtteranceSummary: Sendable, Equatable {
         speechStart = utterance.voiceActivity.speechStart
         trailingSilence = utterance.voiceActivity.trailingSilence
         endReason = utterance.endReason
+        rebindCount = utterance.rebindCount
+        self.heardSpeech = heardSpeech ?? (utterance.voiceActivity.speechStart != nil)
     }
 }

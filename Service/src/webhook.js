@@ -10,7 +10,7 @@
 
 import { ANNUAL_SECONDS } from "./providers.js";
 import { purchaseMail, renewalMail } from "./mailer.js";
-import { EVENTS, money } from "./analytics.js";
+import { EVENTS, money, promoLabel } from "./analytics.js";
 
 export async function handleEvent({
   event,
@@ -36,6 +36,28 @@ export async function handleEvent({
 
   if (!parsed.id) {
     return { status: 400, body: { error: "missing_event_id" } };
+  }
+
+  // The payment behind an invoice. It names the invoice it paid and the payment
+  // intent and charge a refund will later name, so it is what lets a refund
+  // find the licence. It races the checkout session that creates the licence:
+  // when the licence is not there yet the identifiers are held under the
+  // invoice, and the purchase collects them.
+  if (parsed.effect === "attach") {
+    if (!(await store.claimEvent(parsed.id, now))) {
+      return { status: 200, body: { received: true, applied: false } };
+    }
+    const license = await store.licenseByRef(parsed.lookup ?? []);
+    if (license) {
+      await store.recordRefs(license.id, parsed.refs ?? [], now);
+      log("payment identifiers recorded", { license: license.id });
+      return { status: 200, body: { received: true, applied: true } };
+    }
+    for (const anchor of (parsed.lookup ?? []).filter(Boolean)) {
+      await store.holdRefs(anchor, parsed.refs ?? [], now);
+    }
+    log("payment identifiers held for a licence not yet created", { provider: provider.name });
+    return { status: 200, body: { received: true, applied: false } };
   }
 
   // Every provider re-delivers, and a second delivery must not create a second
@@ -101,6 +123,7 @@ export async function handleEvent({
     // Almost always another product on the same account, which is why this is
     // an acknowledgement and not an error.
     log("refund for nothing this service issued", { provider: provider.name });
+    await store.releaseEvent(parsed.id);
     return { status: 200, body: { received: true, applied: false } };
   }
 
@@ -122,6 +145,7 @@ export async function handleEvent({
       providerOrderID: renewed.provider_order_id,
     });
     await store.recordRefs(license.id, parsed.refs ?? [], now);
+    await store.recordRefs(license.id, await store.takeHeldRefs(parsed.refs ?? [], now), now);
     log("license renewed", { license: license.id, kind: license.kind });
     analytics.capture(
       EVENTS.license_renewed,
@@ -173,6 +197,7 @@ export async function handleEvent({
   // Every identifier this purchase carries, so a refund or a renewal a year
   // from now can be matched to it without guessing.
   await store.recordRefs(license.id, parsed.refs ?? [], now);
+  await store.recordRefs(license.id, await store.takeHeldRefs(parsed.refs ?? [], now), now);
 
   log("license from a purchase", { license: license.id, kind: license.kind });
   // `kind` is what was bought, not what the licence became: a lifetime bought on
@@ -185,6 +210,7 @@ export async function handleEvent({
       kind: parsed.kind,
       provider: provider.name,
       upgrade: Boolean(existing && existing.kind !== "trial"),
+      promo: promoLabel(parsed.promo, env),
       ...money(parsed.amount, parsed.currency),
     },
     now,

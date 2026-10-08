@@ -10,7 +10,7 @@ public static class ProductMetadata
     public const string Version = "0.1.0";
     public const int Build = 1;
     public const string MinimumWindowsVersion = "10.0.26100.0";
-    public const string MacBaselineVersion = "0.6.8";
-    public const int MacBaselineBuild = 9;
-    public const string MacBaselineCommit = "c073a8fbad5fe1cca7ef6dcf06fc7c19c2c89b77";
+    public const string MacBaselineVersion = "0.6.14";
+    public const int MacBaselineBuild = 15;
+    public const string MacBaselineCommit = "e5954f7e4d4d75c1c5ab0e7bebe21495d4437221";
 }

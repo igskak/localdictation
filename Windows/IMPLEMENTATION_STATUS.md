@@ -8,18 +8,14 @@ cross-targeting on macOS is not reported as Windows validation.
 
 ## Baseline
 
-- Original implemented product baseline: Witness `0.6.8` (build 9), Git commit
-  `c073a8fbad5fe1cca7ef6dcf06fc7c19c2c89b77`. The existing
-  `config/mac-release-baseline.sha256`, `ProductMetadata` values and build
-  metadata still describe this completed baseline and must not be changed until
-  the catch-up integration passes.
-- Catch-up target confirmed on 2026-10-08 from the local tag, Git object and
-  `origin/main`: Witness `0.6.14` (build 15), tag `v0.6.14`, commit
-  `e5954f7e4d4d75c1c5ab0e7bebe21495d4437221`, released 2026-10-07.
-- The Windows head at the catch-up audit was `5be4a72`. It and `v0.6.14` share
-  `v0.6.8` as their merge base; after that point the Windows line contains 81
-  commits and the product line 29. Catch-up therefore requires integrating both
-  lines, not replacing the Windows tree with `main`.
+- Integrated product baseline: Witness `0.6.14` (build 15), tag `v0.6.14`, Git
+  commit `e5954f7e4d4d75c1c5ab0e7bebe21495d4437221`, released 2026-10-07.
+  `config/mac-release-baseline.sha256`, `ProductMetadata` and build metadata
+  are checked against that exact Git object.
+- W9.0 merged the 29 product-line commits through `v0.6.14` with the 81
+  Windows-line commits after their common `v0.6.8` base. The three Mac-only
+  conflicts were resolved to the current release source; no Windows client code
+  was replaced or discarded.
 - The Windows package remains the independent beta version `0.1.0` (build 1).
   Updating the parity baseline does not decide whether Windows should later use
   the Mac release number; updater and licensing version contracts make that a
@@ -44,7 +40,7 @@ cross-targeting on macOS is not reported as Windows validation.
 | W6 | **In progress** | Pure entitlement timing/major policy; offline LD1 verifier and Service fixture parity; atomic local record; SMBIOS-derived Windows identity; fixed activation/release adapter; full License screen and pre-microphone entitlement gate; first-success trial start; local/remote removal; three-event consent/local-only telemetry; build-time isolated beta authority/endpoint inputs; bundled Windows beta terms/privacy drafts; successful Windows CI | Provision the separate beta authority/service and protected build values; replace legal placeholders and obtain review before external distribution |
 | W7 | **In progress** | Manual updater state machine and Settings UX; build-time isolated feed trust; exact manifest/package re-verification; signed-manifest production tool/workflow; local-data/uninstall policy; deterministic tests and a successful hosted A→B/uninstall/reinstall preservation job | Configure the real feed/signing credentials and Windows code signing before external distribution |
 | W8 | **In progress** | Deterministic repeated-session RAM-bound stress test; EN release notes, known issues, tester guide, checklist, synthetic DE/EN/RU/UK phrase set and privacy-safe bug template; canonical internal kit with exact source/build/model metadata, all-file checksums and restored-runtime license notices; successful Windows CI kit assembly/validation | Complete W5-W7 external gates, legal placeholders and Windows code signing; then run the signed two-version physical QA matrix and 30-minute soak |
-| W9 | **Planned** | Audited the complete `0.6.8` → `0.6.14` product delta and split it into baseline integration, audio/VAD, route rebind, silent-headset, model-progress, setup-funnel and closure slices | Implement W9.0–W9.6 from `docs/WINDOWS_IMPLEMENTATION_PLAN.md`; rerun Windows CI/package evidence and physical QA before claiming 0.6.14 parity |
+| W9 | **In progress** | W9.0 merged current Mac/Service source through `v0.6.14`, updated the verified baseline metadata and hashes, and passed Service plus macOS tests | Implement W9.1–W9.6; rerun Windows CI/package evidence and physical QA before claiming 0.6.14 parity |
 
 ## Implemented contracts and checks
 
@@ -282,16 +278,16 @@ cross-targeting on macOS is not reported as Windows validation.
 
 ### W9 catch-up audit for Witness 0.6.14
 
-The audit is complete; implementation has not started. The detailed order and
-acceptance criteria are in `docs/WINDOWS_IMPLEMENTATION_PLAN.md`, W9.0–W9.6.
+W9.0 is complete. The remaining order and acceptance criteria are in
+`docs/WINDOWS_IMPLEMENTATION_PLAN.md`, W9.1–W9.6.
 
-- **W9.0, baseline integration:** integrate the 29 product-line commits through
-  `v0.6.14` with the 81 Windows-line commits after their common `v0.6.8` base.
-  Preserve current Windows work and take current Mac/Service source from the
-  product line. Only after build/test success update `ProductMetadata`,
-  `config/build-metadata.json` and `config/mac-release-baseline.sha256` from
-  0.6.8/build 9 to 0.6.14/build 15. Keep Windows beta `0.1.0` unless versioning
-  is explicitly changed.
+- **W9.0, baseline integration — complete:** merged the 29 product-line commits
+  through `v0.6.14` with the 81 Windows-line commits after their common
+  `v0.6.8` base. `npm test` passed 122/122 and `xcodebuild test` passed after
+  resolving the three Mac-only conflicts to the release contract.
+  `ProductMetadata`, `config/build-metadata.json` and
+  `config/mac-release-baseline.sha256` now identify 0.6.14/build 15. Windows
+  beta remains `0.1.0`; no versioning decision was made.
 - **W9.1, audio conversion and VAD:** the native converter currently averages
   every channel. Add measured channel-0 behavior for 3+ channel inputs while
   preserving mono/stereo behavior. Keep bounded samples long enough to run a

@@ -10,6 +10,21 @@ import Foundation
 /// editing this file means editing the privacy policy, which is the point.
 enum TelemetryEvent: Sendable, Equatable {
     case installed
+    /// The 1.6 GB fetch started. Sent once per install, from the launch that
+    /// starts it rather than from every launch that finds it done.
+    case modelDownloadStarted
+    /// The model became usable for the first time on this install, with how
+    /// long the preparation that produced it ran for.
+    case modelReady(ModelWait)
+    /// It did not, and which of the three reasons it was.
+    case modelFailed(ModelPreparationFailure)
+    /// Somebody held the hotkey while the model was still on its way. The one
+    /// event here that is about a person rather than about a machine, and the
+    /// only way to see the wait being suffered rather than inferred.
+    case dictationBlockedByModel
+    /// macOS asked, and the answer was no. Without the microphone there is no
+    /// product, so this is an install that ends where it starts.
+    case microphoneDenied
     case trialStarted
     case activationRequested
     case activationSucceeded
@@ -50,10 +65,39 @@ enum TelemetryEvent: Sendable, Equatable {
         case annual
     }
 
+    /// How long the first successful preparation of the model took, in four
+    /// buckets rather than in seconds.
+    ///
+    /// A duration is a number about one Mac on one connection; a bucket is the
+    /// only shape of this fact a funnel needs, and it cannot be narrowed down
+    /// to a person the way "743 seconds" can. Fifteen minutes is the last
+    /// boundary because past it the difference stops mattering: nobody is
+    /// still watching.
+    enum ModelWait: String, Sendable, Equatable {
+        case underOneMinute
+        case underFiveMinutes
+        case underFifteenMinutes
+        case overFifteenMinutes
+
+        init(seconds: TimeInterval) {
+            switch seconds {
+            case ..<60: self = .underOneMinute
+            case ..<300: self = .underFiveMinutes
+            case ..<900: self = .underFifteenMinutes
+            default: self = .overFifteenMinutes
+            }
+        }
+    }
+
     /// The wire name. Stable, because a renamed event is a broken funnel.
     var name: String {
         switch self {
         case .installed: "installed"
+        case .modelDownloadStarted: "model_download_started"
+        case .modelReady: "model_ready"
+        case .modelFailed: "model_failed"
+        case .dictationBlockedByModel: "dictation_blocked_by_model"
+        case .microphoneDenied: "microphone_denied"
         case .trialStarted: "trial_started"
         case .activationRequested: "activation_requested"
         case .activationSucceeded: "activation_succeeded"
@@ -75,7 +119,10 @@ enum TelemetryEvent: Sendable, Equatable {
         case let .entitlementLapsed(kind): kind.rawValue
         case let .paywallShown(trigger): trigger.rawValue
         case let .checkoutOpened(offer): offer.rawValue
-        case .installed, .trialStarted, .activationRequested, .activationSucceeded: nil
+        case let .modelReady(wait): wait.rawValue
+        case let .modelFailed(reason): reason.rawValue
+        case .installed, .trialStarted, .activationRequested, .activationSucceeded,
+             .modelDownloadStarted, .dictationBlockedByModel, .microphoneDenied: nil
         }
     }
 }
@@ -150,24 +197,70 @@ struct LocalOnlyTelemetryService: ProductTelemetryService {
 // MARK: - What may leave, and what may not
 
 extension TelemetryEvent {
-    /// The three events that answer the question this transport exists for.
+    /// The nine events that answer the two questions this transport exists for.
     ///
-    /// `docs/PHASE_8_DECISIONS.md` D7 shipped the first release transmitting
-    /// nothing, and the reason to reverse it is one measurement: how many
-    /// people reach the wall at the fifth dictation and how many get past it.
-    /// That is `trial_started` as the denominator, `paywall_shown` as the
-    /// refusal, and `activation_requested` as the way out.
+    /// The first question was the wall: how many people reach it and how many
+    /// get past it. That is `trial_started` as the denominator, `paywall_shown`
+    /// as the refusal, and `activation_requested` as the way out, and it is
+    /// what `docs/REFINEMENTS.md` recorded reversing `docs/PHASE_8_DECISIONS.md`
+    /// D7 for.
     ///
-    /// The other seven stay local. Not because they are more sensitive — every
+    /// The second question is older and was never measurable: **what happens
+    /// between the download and the first dictation.** Eight genuine downloads
+    /// had produced no `trial_started` at all, and there was no way to tell
+    /// whether the app had ever launched, whether the 1.6 GB had ever arrived,
+    /// or whether people were pressing the key into a wait. The six events that
+    /// answer it are `installed` as the denominator, `model_download_started`,
+    /// `model_ready` or `model_failed` as the two ends of the wait,
+    /// `dictation_blocked_by_model` as the wait being suffered, and
+    /// `microphone_denied` as the other way a first run ends.
+    ///
+    /// Each of the five new ones is sent **once per install** — see
+    /// `TelemetryMilestone` for why that is a privacy property and not an
+    /// optimization.
+    ///
+    /// The other six stay local. Not because they are more sensitive — every
     /// event in this type carries the same five fields — but because a list
     /// that grows to "all of them" is a list nobody reads, and this one is
     /// printed in the privacy policy where a person can hold it against the
     /// app. `activation_succeeded` and `license_accepted` are also already
     /// known to the service from the calls that cause them, so sending them
     /// again would buy nothing and lengthen the list.
-    static let transmitted: Set<String> = ["trial_started", "activation_requested", "paywall_shown"]
+    static let transmitted: Set<String> = [
+        "installed",
+        "model_download_started",
+        "model_ready",
+        "model_failed",
+        "dictation_blocked_by_model",
+        "microphone_denied",
+        "trial_started",
+        "activation_requested",
+        "paywall_shown"
+    ]
 
     var isTransmitted: Bool { Self.transmitted.contains(name) }
+}
+
+/// The facts about setup that are reported once for each install, ever.
+///
+/// This is a privacy property before it is anything else. The model is loaded
+/// at every launch, so an event sent whenever it becomes ready would not be a
+/// funnel step at all: it would be a record of when this Mac opens the app, on
+/// a server, for ninety days. The same goes for a denied microphone, which is
+/// re-read every time the app comes forward, and for a press into the wait.
+///
+/// So each of them is remembered in `UsageRecord` — the file that already knows
+/// when this install happened and when it first produced text — and a second
+/// occurrence sends nothing. It also makes the numbers mean what a reader will
+/// assume they mean: `model_ready` divided by `installed` is the share of
+/// installs that ever got a working model, not an average of how often people
+/// relaunch.
+enum TelemetryMilestone: String, Sendable, CaseIterable {
+    case modelDownloadStarted
+    case modelReady
+    case modelFailed
+    case dictationBlockedByModel
+    case microphoneDenied
 }
 
 /// The wire body, so the field list is a type rather than a habit.
@@ -246,14 +339,16 @@ enum TelemetryEndpoint {
     }
 }
 
-/// Sends the three transmitted events, once, and forgets about them.
+/// Sends the nine transmitted events, once, and forgets about them.
 ///
 /// Everything about this is deliberately smaller than it could be:
 ///
 /// - **One attempt, no queue.** A retry queue is a fourth file this app writes
 ///   to disk, and `docs/PRIVACY.md` enumerates three. An event lost to a closed
 ///   laptop is a missing row in a funnel, which is a rounding error; a new file
-///   holding a record of what the user did is a different product.
+///   holding a record of what the user did is a different product. A milestone
+///   that was marked and whose event was lost is the same rounding error, and
+///   deliberately not retried for the same reason.
 /// - **No answer is read.** The service replies `202` and the app does not care
 ///   whether it did. Nothing here can fail in a way the user should be told
 ///   about, so nothing here has a way to tell them.

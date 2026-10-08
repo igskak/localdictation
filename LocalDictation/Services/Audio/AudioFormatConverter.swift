@@ -2,6 +2,12 @@ import AVFoundation
 
 /// Converts device input buffers to mono Float32 PCM at 16 kHz.
 ///
+/// Mono and stereo input goes straight through `AVAudioConverter` with its own
+/// downmix. Input with more channels does not: a discrete multi-channel layout
+/// (what the built-in microphone reports while another app runs voice
+/// processing) makes `downmix` produce exact zeros, so such input has channel 0
+/// copied into a mono scratch buffer first and only then resampled.
+///
 /// One converter and one output buffer are allocated up front and reused, so the
 /// audio callback performs no allocation in the common case.
 ///
@@ -15,6 +21,9 @@ final class AudioFormatConverter: @unchecked Sendable {
 
     private let converter: AVAudioConverter
     private var outputBuffer: AVAudioPCMBuffer
+    /// Non-nil when channel 0 has to be copied out before conversion. Allocated in
+    /// `init` so the audio callback does not allocate in the common case.
+    private var channelZeroBuffer: AVAudioPCMBuffer?
     /// Handed to the converter's input block during a single `convert` call.
     private var pendingInput: AVAudioPCMBuffer?
 
@@ -36,7 +45,29 @@ final class AudioFormatConverter: @unchecked Sendable {
             throw AudioCaptureError.converterUnavailable("target format could not be created")
         }
 
-        guard let converter = AVAudioConverter(from: inputFormat, to: output) else {
+        // `AVAudioConverter.downmix` is only trustworthy for layouts it recognises.
+        // A discrete 3- or 7-channel microphone silences it completely, so those
+        // formats are reduced to channel 0 by hand before the converter sees them.
+        let extractsChannelZero = inputFormat.channelCount > 2 && inputFormat.commonFormat == .pcmFormatFloat32
+        var channelZeroBuffer: AVAudioPCMBuffer?
+        var sourceFormat = inputFormat
+        if extractsChannelZero {
+            guard let mono = AVAudioFormat(
+                commonFormat: .pcmFormatFloat32,
+                sampleRate: inputFormat.sampleRate,
+                channels: 1,
+                interleaved: false
+            ) else {
+                throw AudioCaptureError.converterUnavailable("mono input format could not be created")
+            }
+            guard let buffer = AVAudioPCMBuffer(pcmFormat: mono, frameCapacity: max(maximumInputFrames, 1)) else {
+                throw AudioCaptureError.converterUnavailable("channel buffer could not be allocated")
+            }
+            sourceFormat = mono
+            channelZeroBuffer = buffer
+        }
+
+        guard let converter = AVAudioConverter(from: sourceFormat, to: output) else {
             throw AudioCaptureError.converterUnavailable("no conversion path from the input format")
         }
         converter.downmix = true
@@ -51,6 +82,7 @@ final class AudioFormatConverter: @unchecked Sendable {
         self.outputFormat = output
         self.converter = converter
         self.outputBuffer = buffer
+        self.channelZeroBuffer = channelZeroBuffer
     }
 
     /// Converts one input buffer. The returned pointer is owned by the converter
@@ -58,8 +90,10 @@ final class AudioFormatConverter: @unchecked Sendable {
     func convert(_ input: AVAudioPCMBuffer) throws -> UnsafeBufferPointer<Float> {
         guard input.frameLength > 0 else { return UnsafeBufferPointer(start: nil, count: 0) }
 
+        let source = channelZeroBuffer == nil ? input : try channelZero(of: input)
+
         let ratio = outputFormat.sampleRate / inputFormat.sampleRate
-        let required = AVAudioFrameCount((Double(input.frameLength) * ratio).rounded(.up)) + 1024
+        let required = AVAudioFrameCount((Double(source.frameLength) * ratio).rounded(.up)) + 1024
         if outputBuffer.frameCapacity < required {
             // Only happens if the driver hands us larger buffers than expected.
             guard let grown = AVAudioPCMBuffer(pcmFormat: outputFormat, frameCapacity: required) else {
@@ -69,7 +103,7 @@ final class AudioFormatConverter: @unchecked Sendable {
         }
 
         outputBuffer.frameLength = 0
-        pendingInput = input
+        pendingInput = source
         var conversionError: NSError?
         let status = converter.convert(to: outputBuffer, error: &conversionError) { [self] _, inputStatus in
             guard let buffer = pendingInput else {
@@ -95,6 +129,37 @@ final class AudioFormatConverter: @unchecked Sendable {
             throw AudioCaptureError.conversionFailed("output buffer has no float channel data")
         }
         return UnsafeBufferPointer(start: channelData[0], count: Int(outputBuffer.frameLength))
+    }
+
+    /// Copies channel 0 of a multi-channel buffer into the preallocated mono
+    /// scratch buffer. Runs on the audio callback thread, so it only allocates on
+    /// the same "driver handed us more frames than expected" path as `convert`.
+    private func channelZero(of input: AVAudioPCMBuffer) throws -> AVAudioPCMBuffer {
+        guard var scratch = channelZeroBuffer else { return input }
+
+        let frames = input.frameLength
+        if scratch.frameCapacity < frames {
+            guard let grown = AVAudioPCMBuffer(pcmFormat: scratch.format, frameCapacity: frames) else {
+                throw AudioCaptureError.converterUnavailable("channel buffer could not be resized")
+            }
+            scratch = grown
+            channelZeroBuffer = grown
+        }
+
+        guard let source = input.floatChannelData, let destination = scratch.floatChannelData else {
+            throw AudioCaptureError.conversionFailed("input buffer has no float channel data")
+        }
+
+        // `stride` is 1 for non-interleaved input and the channel count otherwise,
+        // so the same loop covers both layouts.
+        let stride = input.stride
+        let channel = source[0]
+        let target = destination[0]
+        for frame in 0..<Int(frames) {
+            target[frame] = channel[frame * stride]
+        }
+        scratch.frameLength = frames
+        return scratch
     }
 
     /// Flushes the sample-rate converter's internal latency.

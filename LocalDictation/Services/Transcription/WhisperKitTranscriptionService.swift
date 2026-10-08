@@ -1,3 +1,4 @@
+import CoreML
 import Foundation
 import WhisperKit
 
@@ -29,6 +30,18 @@ actor WhisperKitTranscriptionService: TranscriptionService {
 
     private var engine: WhisperKit?
 
+    /// The encoder WhisperKit is built with when the second pass over the
+    /// first window is skipped. See `EncoderOutputReuse` for why this cannot
+    /// change what the language detector or the decoder see. Nil runs
+    /// WhisperKit's own encoder, which the parity check compares against.
+    private let encoder: ReusingAudioEncoder?
+
+    /// When the previous inference finished, so the log can say how long the
+    /// engine sat idle before this one. A first press after a long pause
+    /// looks slower than a warm one, and without this the two cannot be told
+    /// apart in a log.
+    private var lastInferenceEndedAt: Date?
+
     /// The one load in flight, shared by every caller.
     ///
     /// Actor isolation alone does not make loading single-flight. The actor is
@@ -54,6 +67,10 @@ actor WhisperKitTranscriptionService: TranscriptionService {
 
     /// What the in-flight load is doing, for `modelState`. Nil when idle.
     private var preparation: ModelPreparation?
+    /// Measures the download in flight. Nil whenever there is none, and also
+    /// when the total could not be learned: a bar with an invented total is
+    /// worse than the spinner it replaces.
+    private var meter: ModelDownloadMeter?
     /// When the current load started, so a load that outruns
     /// `longLoadThreshold` can be reported as the one-time compilation it is.
     private var loadStartedAt: Date?
@@ -65,8 +82,16 @@ actor WhisperKitTranscriptionService: TranscriptionService {
 
     private static let modelRepo = "argmaxinc/whisperkit-coreml"
 
-    init(modelVariant: String = "openai_whisper-large-v3-v20240930_turbo") {
+    /// The variant this app ships against, and the one
+    /// `SpeechModelDownloadSize.pinnedVariantBytes` was measured for.
+    static let defaultModelVariant = "openai_whisper-large-v3-v20240930_turbo"
+
+    init(
+        modelVariant: String = WhisperKitTranscriptionService.defaultModelVariant,
+        reusesEncoderOutput: Bool = true
+    ) {
         self.modelVariant = modelVariant
+        encoder = reusesEncoderOutput ? ReusingAudioEncoder() : nil
     }
 
     /// Whisper is multilingual across every language this app can name.
@@ -87,7 +112,7 @@ actor WhisperKitTranscriptionService: TranscriptionService {
         // instead puts the fetch button back in front of a user who is already
         // waiting on one, and every extra press used to start another load.
         if let preparation {
-            return .preparing(elapsedAdjusted(preparation))
+            return .preparing(measured(preparation))
         }
         // The task exists a moment before it has said what it is doing. Without
         // this the button would flash back for that moment.
@@ -100,7 +125,28 @@ actor WhisperKitTranscriptionService: TranscriptionService {
         }
         return Self.installedModelFolder(variant: modelVariant) != nil
             ? .unavailable("Speech model is installed but not loaded yet", needsUserAction: false)
-            : .unavailable("The speech model has not been downloaded yet (about 600 MB)", needsUserAction: true)
+            : .unavailable(
+                L10n.format(
+                    "The speech model has not been downloaded yet (about %@)",
+                    SpeechModelDownloadSize.pinnedVariantSizeText
+                ),
+                needsUserAction: true
+            )
+    }
+
+    /// Fills in what only the disk and the clock can say, which is everything
+    /// the user reads while they wait: how far a download has got, and whether a
+    /// load has been running long enough to be a compilation.
+    ///
+    /// It belongs here rather than in the download's own callback because a
+    /// stalled transfer produces no callbacks at all, and a bar whose last
+    /// estimate was taken before the stall goes on promising four minutes. The
+    /// menu asks for this state every 400 ms; the meter samples the disk twice a
+    /// second and answers the rest from what it already measured.
+    private func measured(_ preparation: ModelPreparation) -> ModelPreparation {
+        guard preparation.phase == .downloading else { return elapsedAdjusted(preparation) }
+        guard let progress = meter?.progress() else { return preparation }
+        return ModelPreparation(phase: .downloading, download: progress)
     }
 
     /// Promotes a long-running load to the phase that explains itself. Nothing
@@ -177,6 +223,7 @@ actor WhisperKitTranscriptionService: TranscriptionService {
                     model: variant,
                     downloadBase: downloadBase,
                     modelFolder: folder.path,
+                    audioEncoder: encoder,
                     verbose: false,
                     logLevel: .error,
                     prewarm: true,
@@ -192,8 +239,14 @@ actor WhisperKitTranscriptionService: TranscriptionService {
                 throw error
             } catch {
                 // Wrapped inside the task so joiners and the originating caller
-                // receive the same error.
-                throw TranscriptionError.modelUnavailable(error.localizedDescription)
+                // receive the same error — and classified here, where the real
+                // `URLError` or `ENOSPC` is still in hand. One line further up
+                // the stack there is only a localized sentence, and reading a
+                // cause out of a sentence is how a funnel starts lying.
+                throw TranscriptionError.modelPreparationFailed(
+                    ModelPreparationFailure(error),
+                    detail: error.localizedDescription
+                )
             }
         }
     }
@@ -207,6 +260,8 @@ actor WhisperKitTranscriptionService: TranscriptionService {
 
         preparation = ModelPreparation(phase: .downloading)
         try FileManager.default.createDirectory(at: downloadBase, withIntermediateDirectories: true)
+        meter = await Self.makeMeter(variant: variant, downloadBase: downloadBase)
+        defer { meter = nil }
         return try await WhisperKit.download(
             variant: variant,
             downloadBase: downloadBase,
@@ -219,8 +274,87 @@ actor WhisperKitTranscriptionService: TranscriptionService {
         )
     }
 
+    /// A meter for this variant, or nil when there is no total to measure
+    /// against.
+    ///
+    /// The size is asked for before the transfer starts rather than derived from
+    /// it: WhisperKit's own progress counts files, and this model is one 1.27 GB
+    /// file among twenty-three small ones, so its fraction says almost nothing
+    /// about the bytes. The request is short and its failure costs only the
+    /// numbers, never the download.
+    private static func makeMeter(variant: String, downloadBase: URL) async -> ModelDownloadMeter? {
+        let listed = await SpeechModelDownloadSize.bytes(repo: modelRepo, variant: variant)
+        // The measured constant stands in only for the variant it was measured
+        // for. Any other variant gets no bar rather than the wrong one.
+        let total = listed ?? (variant == defaultModelVariant ? SpeechModelDownloadSize.pinnedVariantBytes : nil)
+        guard let total, total > 0 else {
+            Log.transcription.info("Downloading the speech model without a total: no size to measure against")
+            return nil
+        }
+        Log.transcription.info(
+            "Speech model download: \(total, privacy: .public) bytes expected, \(listed == nil ? "measured constant" : "listed by the repository", privacy: .public)"
+        )
+        return ModelDownloadMeter(totalBytes: total) {
+            downloadedByteCount(variant: variant, downloadBase: downloadBase)
+        }
+    }
+
+    /// Internal rather than private so `ModelDownloadMeterTests` can hold the one
+    /// assumption in here that no unit test can derive: that these are the paths
+    /// WhisperKit's downloader actually writes into.
+    static func downloadedByteCount(variant: String, downloadBase: URL) -> Int64 {
+        downloadFolders(variant: variant, downloadBase: downloadBase).reduce(0) { $0 + byteCount(of: $1) }
+    }
+
+    /// The two places this variant's bytes land: the model folder, for the files
+    /// that have arrived, and the Hub's own download cache, for the one still
+    /// being written into a `.incomplete` file. Counted per variant rather than
+    /// per repository, so weights for another variant on the same Mac cannot
+    /// fill the bar.
+    ///
+    /// Matched the way WhisperKit matches them, by suffix: its glob is
+    /// `*<variant>/*`, so a short variant name can legitimately resolve to a
+    /// longer folder. Assuming the folder is named exactly what was asked for
+    /// would leave the bar at 0% for a whole download in that case, which is
+    /// worse than the spinner it replaced.
+    private static func downloadFolders(variant: String, downloadBase: URL) -> [URL] {
+        let repoFolder = downloadBase
+            .appendingPathComponent("models", isDirectory: true)
+            .appendingPathComponent(modelRepo, isDirectory: true)
+        let parents = [
+            repoFolder,
+            repoFolder
+                .appendingPathComponent(".cache", isDirectory: true)
+                .appendingPathComponent("huggingface", isDirectory: true)
+                .appendingPathComponent("download", isDirectory: true)
+        ]
+        return parents
+            .flatMap { parent in
+                (try? FileManager.default.contentsOfDirectory(at: parent, includingPropertiesForKeys: nil)) ?? []
+            }
+            .filter { $0.lastPathComponent.hasSuffix(variant) }
+    }
+
+    private static func byteCount(of folder: URL) -> Int64 {
+        let keys: [URLResourceKey] = [.fileSizeKey, .isRegularFileKey]
+        guard let enumerator = FileManager.default.enumerator(at: folder, includingPropertiesForKeys: keys) else {
+            return 0
+        }
+        var total: Int64 = 0
+        for case let url as URL in enumerator {
+            guard let values = try? url.resourceValues(forKeys: Set(keys)),
+                  values.isRegularFile == true,
+                  let size = values.fileSize
+            else { continue }
+            total += Int64(size)
+        }
+        return total
+    }
+
+    /// WhisperKit's own count of finished files, which is only read when there is
+    /// no meter: with one, `measured` answers from the bytes instead.
     private func report(downloadProgress: Double) {
-        guard preparation?.phase == .downloading else { return }
+        guard preparation?.phase == .downloading, meter == nil else { return }
         preparation = ModelPreparation(phase: .downloading, progress: downloadProgress)
     }
 
@@ -234,7 +368,7 @@ actor WhisperKitTranscriptionService: TranscriptionService {
 
         // Dictation never starts a download from inside a recording. The fetch
         // belongs to launch and to the menu, where it can report progress and
-        // be waited for; starting one here would tie a 600 MB download to a
+        // be waited for; starting one here would tie a 1.6 GB download to a
         // recording the user expects back in seconds. Joining a load that is
         // already running is fine, and beats failing a recording they just
         // made — and since the coordinator answers a press the model is not
@@ -247,6 +381,14 @@ actor WhisperKitTranscriptionService: TranscriptionService {
 
         try Task.checkCancellation()
         let started = Date()
+        let idle = lastInferenceEndedAt.map { started.timeIntervalSince($0) }
+        defer { lastInferenceEndedAt = Date() }
+
+        // Only a mixed profile encodes the first window twice: once for the
+        // language, once in the decode. A single language never asks for the
+        // language, so there is nothing to remember and nothing is held.
+        if profile.isMixed { encoder?.reuse.beginUtterance() }
+        defer { encoder?.reuse.endUtterance() }
 
         // Decided before the decode rather than corrected after one. The old
         // path decoded with free detection, noticed afterwards when Whisper had
@@ -265,14 +407,21 @@ actor WhisperKitTranscriptionService: TranscriptionService {
             using: engine
         )
         let decodedAt = Date()
+        let reusedPasses = encoder?.reuse.endUtterance() ?? 0
+        let fallbacks = results.reduce(0) { $0 + Int($1.timings.totalDecodingFallbacks) }
 
         try Task.checkCancellation()
         lastDecodedLanguage = (language, Date())
 
-        // Local timing only: these two durations reveal whether language
-        // selection or decoding dominates, without recording any speech data.
+        // Local timing only: counts and durations, no speech data. The two
+        // durations say whether language selection or decoding dominates;
+        // `reused` says whether the decode was spared its encoder pass;
+        // `fallbacks` counts the decodes WhisperKit silently repeated at a
+        // higher temperature, which is what makes the same phrase take one
+        // second once and four the next; `idle` separates a cold first press
+        // from a warm one.
         Log.transcription.info(
-            "Inference stages: language \(String(format: "%.2f", languageReadyAt.timeIntervalSince(started)), privacy: .public) s, decode \(String(format: "%.2f", decodedAt.timeIntervalSince(languageReadyAt)), privacy: .public) s"
+            "Inference stages: language \(String(format: "%.2f", languageReadyAt.timeIntervalSince(started)), privacy: .public) s, decode \(String(format: "%.2f", decodedAt.timeIntervalSince(languageReadyAt)), privacy: .public) s, encoder passes reused \(reusedPasses, privacy: .public), fallbacks \(fallbacks, privacy: .public), idle \(idle.map { String(format: "%.0f s", $0) } ?? "first", privacy: .public)"
         )
 
         let processingDuration = Date().timeIntervalSince(started)
@@ -436,5 +585,35 @@ actor WhisperKitTranscriptionService: TranscriptionService {
     /// survive updates and stay visible to the user.
     static func modelDirectory() -> URL? {
         ApplicationSupportDirectory.subdirectory("Models")
+    }
+}
+
+/// WhisperKit's side of `EncoderOutputReuse`.
+///
+/// Built by composition because WhisperKit's `AudioEncoder` is `public`
+/// rather than `open`. Loading goes through `WhisperMLModel`'s own default
+/// implementation, which assigns `model`; forwarding that property is what
+/// puts the loaded weights into the real encoder underneath, so the compute
+/// units, the prewarm and the Neural Engine compilation are exactly
+/// WhisperKit's.
+private final class ReusingAudioEncoder: AudioEncoding, WhisperMLModel, @unchecked Sendable {
+    let reuse = EncoderOutputReuse()
+    private let base = AudioEncoder()
+
+    var model: MLModel? {
+        get { base.model }
+        set { base.model = newValue }
+    }
+
+    var embedSize: Int? { base.embedSize }
+
+    func encodeFeatures(_ features: any FeatureExtractorOutputType) async throws -> (any AudioEncoderOutputType)? {
+        guard let mel = features as? MLMultiArray else {
+            return try await base.encodeFeatures(features)
+        }
+        if let reused = reuse.reusedOutput(for: mel) { return reused }
+        let output = try await base.encodeFeatures(mel)
+        if let output { reuse.remember(output, for: mel) }
+        return output
     }
 }

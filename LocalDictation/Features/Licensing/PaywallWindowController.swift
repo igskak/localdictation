@@ -262,6 +262,16 @@ struct PaywallView: View {
                 isBuyable: StoreFront.annualCheckout != nil && coordinator.hasCheckoutConsent
             ) { coordinator.openCheckout(.annual) }
 
+            // A partner's code is typed on Stripe's page, not here: the app
+            // never learns it. `/buy` prefills it when the partner's link was
+            // opened in the same browser; this line is for everybody else.
+            if StoreFront.isOpen {
+                Text("Have a promo code? Enter it on the payment page. If you opened a partner’s link in this browser, it is filled in already.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
             if !StoreFront.isOpen {
                 Text("Checkout is not open yet. When it is, these buttons hand the purchase to Stripe in your browser — the app never sees a card number.")
                     .font(.caption)

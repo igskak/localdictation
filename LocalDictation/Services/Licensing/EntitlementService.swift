@@ -263,6 +263,66 @@ final class EntitlementService {
         telemetry.send(.paywallShown(lock.paywallTrigger))
     }
 
+    // MARK: - The setup funnel
+
+    /// The five facts about getting the app working, each sent at most once for
+    /// the life of this install.
+    ///
+    /// They live here rather than in the coordinator for the reason every other
+    /// event does: this is the one object that holds the transport, the consent
+    /// box and the record, so there is a single place where "has this already
+    /// been sent" is answered and a single file it is answered from. A caller
+    /// says what happened; whether that is news is not its business.
+    ///
+    /// `TelemetryMilestone` says why once-per-install is the rule. In short: the
+    /// model loads at every launch, and an event per launch would be a log of
+    /// when this Mac is used rather than a funnel.
+
+    /// The 1.6 GB fetch has begun. Sent from the launch that starts it.
+    func noteModelDownloadStarted() {
+        report(.modelDownloadStarted, as: .modelDownloadStarted)
+    }
+
+    /// The model is usable, and `wait` is how long the preparation that got it
+    /// there ran for.
+    ///
+    /// On the ordinary first run that is the whole wait: download, then Core ML
+    /// compiling for this Mac, in one go. On a Mac that was closed halfway
+    /// through and finished the job on a later launch it is only that launch's
+    /// share, which reads as a shorter wait than the person actually had. The
+    /// bucket is coarse enough for that to be the rarer error, and the funnel
+    /// question — did this install ever get a working model — is answered
+    /// either way.
+    func noteModelReady(after wait: TimeInterval) {
+        report(.modelReady(TelemetryEvent.ModelWait(seconds: wait)), as: .modelReady)
+    }
+
+    /// It failed, and `reason` is the coarse why: a connection, a full disk, or
+    /// something nobody has seen yet.
+    func noteModelFailed(_ reason: ModelPreparationFailure) {
+        report(.modelFailed(reason), as: .modelFailed)
+    }
+
+    /// Somebody held the hotkey while the model was still on its way.
+    func noteDictationBlockedByModel() {
+        report(.dictationBlockedByModel, as: .dictationBlockedByModel)
+    }
+
+    /// macOS asked for the microphone and the answer was no.
+    func noteMicrophoneDenied() {
+        report(.microphoneDenied, as: .microphoneDenied)
+    }
+
+    /// Persists the milestone first, then sends. That order is what survives a
+    /// crash between the two: a saved milestone and no event is a missing row
+    /// in a funnel, an event and no saved milestone is the same event again at
+    /// every launch for the life of the install.
+    private func report(_ event: TelemetryEvent, as milestone: TelemetryMilestone) {
+        guard record.markReported(milestone) else { return }
+        persist()
+        telemetry.send(event)
+    }
+
     private func persist() {
         do {
             try store.save(record)

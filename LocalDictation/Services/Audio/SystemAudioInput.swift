@@ -12,6 +12,12 @@ enum SystemAudioInput {
         let nominalSampleRate: Double?
 
         var isBuiltIn: Bool { transportType == kAudioDeviceTransportTypeBuiltIn }
+        /// A headset on the far side of a radio link, which may be shared with
+        /// another host and may answer us without its microphone.
+        var isBluetooth: Bool {
+            transportType == kAudioDeviceTransportTypeBluetooth
+                || transportType == kAudioDeviceTransportTypeBluetoothLE
+        }
     }
 
     struct Resolution: Sendable, Equatable {
@@ -98,6 +104,28 @@ enum SystemAudioInput {
         return id
     }
 
+    /// Channels the device currently reports on its input scope.
+    ///
+    /// Not a fixed property of the hardware: the built-in microphone reports 1
+    /// channel normally and 3 raw array channels while another app runs Apple
+    /// voice processing, and the change arrives as a property notification.
+    static func inputChannelCount(of id: AudioDeviceID) -> Int? {
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyStreamConfiguration,
+            mScope: kAudioDevicePropertyScopeInput,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        var size: UInt32 = 0
+        guard AudioObjectGetPropertyDataSize(id, &address, 0, nil, &size) == noErr, size > 0 else { return nil }
+
+        let storage = UnsafeMutableRawPointer.allocate(byteCount: Int(size), alignment: MemoryLayout<AudioBufferList>.alignment)
+        defer { storage.deallocate() }
+        guard AudioObjectGetPropertyData(id, &address, 0, nil, &size, storage) == noErr else { return nil }
+
+        let list = UnsafeMutableAudioBufferListPointer(storage.assumingMemoryBound(to: AudioBufferList.self))
+        return list.reduce(0) { $0 + Int($1.mNumberChannels) }
+    }
+
     private static func hasInputStreams(_ id: AudioDeviceID) -> Bool {
         var address = AudioObjectPropertyAddress(
             mSelector: kAudioDevicePropertyStreams,
@@ -109,7 +137,7 @@ enum SystemAudioInput {
             && size >= MemoryLayout<AudioStreamID>.stride
     }
 
-    private static func isAlive(_ id: AudioDeviceID) -> Bool {
+    static func isAlive(_ id: AudioDeviceID) -> Bool {
         scalarProperty(kAudioDevicePropertyDeviceIsAlive, of: id) == 1
     }
 
@@ -140,7 +168,7 @@ enum SystemAudioInput {
         return value as String?
     }
 
-    private static func nominalSampleRate(of id: AudioDeviceID) -> Double? {
+    static func nominalSampleRate(of id: AudioDeviceID) -> Double? {
         var address = AudioObjectPropertyAddress(
             mSelector: kAudioDevicePropertyNominalSampleRate,
             mScope: kAudioObjectPropertyScopeGlobal,

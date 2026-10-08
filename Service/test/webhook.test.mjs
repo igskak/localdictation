@@ -299,6 +299,39 @@ test("a Payment Link purchase is identified by the link, because Stripe sends no
   assert.equal(license.provider_order_id, "pi_1", "the payment intent is what a refund names");
 });
 
+// Leaving Managed Payments means new links, because a link's Managed Payments
+// state is fixed when it is created, and every installed build still opens the
+// old ones. Both sell until the old ones are deactivated.
+test("a link variable can name the old link and its replacement, and both sell", async () => {
+  const h = await harness();
+  const twoLinks = { ...env, PAYMENT_LINK_LIFETIME: "plink_old_lifetime, plink_new_lifetime" };
+  const sale = (eventID, session, link, email) =>
+    handleEvent({
+      event: {
+        id: eventID,
+        type: "checkout.session.completed",
+        data: { object: { id: session, payment_intent: `pi_${session}`, payment_link: link, customer_details: { email } } },
+      },
+      provider: stripe,
+      env: twoLinks,
+      store: h.store,
+      now: NOW,
+      mailer: { async send() { return true; } },
+      log: () => {},
+      uuid: () => `00000000-0000-4000-8000-00000000000${session.at(-1)}`,
+    });
+
+  assert.equal((await sale("evt_old", "cs_1", "plink_old_lifetime", "old@example.com")).body.applied, true);
+  assert.equal((await sale("evt_new", "cs_2", "plink_new_lifetime", "new@example.com")).body.applied, true);
+  assert.equal((await h.store.strongestLicense("old@example.com", NOW)).kind, "lifetime");
+  assert.equal((await h.store.strongestLicense("new@example.com", NOW)).kind, "lifetime");
+
+  // A list is not a prefix match: a third link on the account sells nothing here.
+  const other = await sale("evt_other", "cs_3", "plink_new", "other@example.com");
+  assert.notEqual(other.body.applied, true);
+  assert.equal(await h.store.strongestLicense("other@example.com", NOW), null);
+});
+
 test("a subscription renewal a year later extends the licence", async () => {
   const h = await harness();
   await h.deliver(
@@ -401,6 +434,100 @@ test("the first invoice of a subscription is left to the checkout session", asyn
 
   assert.equal(result.body.applied, false);
   assert.equal((await h.store.all("SELECT id FROM licenses")).length, 0, "or the address gets two licences for one sale");
+});
+
+// In API versions from 2025 on, a refund's charge no longer names its invoice,
+// and neither an invoice nor a subscription checkout session carries the payment
+// intent. `invoice_payment.paid` is the one event that says which payment paid
+// which invoice, so it is what lets a refund find the licence.
+const invoicePaid = (overrides = {}) => ({
+  id: "evt_payment",
+  type: "invoice_payment.paid",
+  data: { object: { id: "inpay_1", invoice: "in_0", payment: { type: "payment_intent", payment_intent: "pi_1" }, ...overrides } },
+});
+
+const annualSession = {
+  id: "evt_session",
+  type: "checkout.session.completed",
+  data: {
+    object: { id: "cs_1", subscription: "sub_1", invoice: "in_0", payment_link: "plink_annual", customer_details: { email: EMAIL } },
+  },
+};
+
+const chargeRefunded = {
+  id: "evt_refund",
+  type: "charge.refunded",
+  data: { object: { id: "ch_1", payment_intent: "pi_1", amount_refunded: 4900, currency: "eur" } },
+};
+
+test("a refund of a subscription's first payment finds the licence through its invoice payment", async () => {
+  const h = await harness();
+  await h.deliver(annualSession, { provider: stripe });
+  const attached = await h.deliver(invoicePaid(), { provider: stripe });
+  assert.equal(attached.body.applied, true);
+
+  const refunded = await h.deliver(chargeRefunded, { provider: stripe });
+  assert.equal(refunded.body.applied, true);
+  assert.equal(await h.store.strongestLicense(EMAIL, NOW), null, "the licence is dead for future issuance");
+});
+
+test("the payment arriving before its checkout session is held and collected by the purchase", async () => {
+  const h = await harness();
+  const early = await h.deliver(invoicePaid(), { provider: stripe });
+  assert.equal(early.status, 200);
+  assert.equal(early.body.applied, false);
+
+  await h.deliver(annualSession, { provider: stripe });
+  assert.equal((await h.deliver(chargeRefunded, { provider: stripe })).body.applied, true);
+  assert.equal((await h.store.all("SELECT * FROM held_refs")).length, 0, "what was held is not kept");
+});
+
+test("another product's invoice payment is acknowledged and never attached to a licence", async () => {
+  const h = await harness();
+  await h.deliver(annualSession, { provider: stripe });
+  await h.deliver(invoicePaid({ invoice: "in_other", payment: { type: "payment_intent", payment_intent: "pi_other" } }), {
+    provider: stripe,
+  });
+  const refund = await h.deliver(
+    { id: "evt_other_refund", type: "charge.refunded", data: { object: { id: "ch_o", payment_intent: "pi_other" } } },
+    { provider: stripe },
+  );
+  assert.equal(refund.body.applied, false);
+  assert.ok(await h.store.strongestLicense(EMAIL, NOW), "this product's licence is untouched");
+});
+
+test("a renewal's payment is attached through the renewal invoice", async () => {
+  const h = await harness();
+  await h.deliver(annualSession, { provider: stripe });
+  const renewalAt = NOW + 360 * 86400;
+  await h.deliver(
+    {
+      id: "evt_renewal",
+      type: "invoice.paid",
+      data: { object: { id: "in_1", subscription: "sub_1", billing_reason: "subscription_cycle", customer_email: EMAIL } },
+    },
+    { provider: stripe, now: renewalAt },
+  );
+  await h.deliver(
+    invoicePaid({ id: "inpay_2", invoice: "in_1", payment: { type: "payment_intent", payment_intent: "pi_2" } }),
+    { provider: stripe, now: renewalAt },
+  );
+  const refund = await h.deliver(
+    { id: "evt_refund_2", type: "charge.refunded", data: { object: { id: "ch_2", payment_intent: "pi_2" } } },
+    { provider: stripe, now: renewalAt },
+  );
+  assert.equal(refund.body.applied, true);
+});
+
+test("a refund that matched nothing can be sent again once the licence has its identifiers", async () => {
+  const h = await harness();
+  await h.deliver(annualSession, { provider: stripe });
+  const early = await h.deliver(chargeRefunded, { provider: stripe });
+  assert.equal(early.body.applied, false);
+
+  await h.deliver(invoicePaid(), { provider: stripe });
+  const again = await h.deliver(chargeRefunded, { provider: stripe });
+  assert.equal(again.body.applied, true);
 });
 
 /// Both invoice events fire for the same money and carry different event ids,

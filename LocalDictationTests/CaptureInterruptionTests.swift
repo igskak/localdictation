@@ -1,12 +1,12 @@
 import XCTest
 @testable import Witness
 
-/// What an input device changing mid-sentence costs.
+/// What losing the microphone mid-sentence costs.
 ///
-/// AirPods connecting, a dock being plugged in, a headset going to sleep: all
-/// of them can raise `AVAudioEngineConfigurationChange` while the user is
-/// speaking. Capture first checks whether the selected input actually changed;
-/// these tests cover the case where it did. The recording used to end in
+/// AirPods connecting, a dock being plugged in, a headset going to sleep no
+/// longer end a recording: capture rebinds and the sentence continues, which
+/// `InputRoutePolicyTests` covers. What still ends one is an input that cannot
+/// be resolved at all, and these tests cover that. The recording used to end in
 /// `.failed` with the captured audio discarded,
 /// which is the app taking back words that had already been said —
 /// `docs/PHASE_6.md` spends a section refusing to do exactly that for a trial
@@ -44,12 +44,12 @@ final class CaptureInterruptionTests: XCTestCase {
 
     // MARK: - The sentence is not taken back
 
-    func testADeviceChangeMidSentenceStillDeliversWhatWasSaid() async throws {
+    func testLosingTheMicrophoneMidSentenceStillDeliversWhatWasSaid() async throws {
         let harness = makeHarness(transcript: Self.spoken)
         harness.hotkey.emit(.pressed)
         try await waitUntil("recording starts") { harness.coordinator.state == .recording }
 
-        harness.capture.triggerInterruption(.inputDeviceChanged)
+        harness.capture.triggerInterruption(.noInputDevice)
 
         try await waitUntil("the text is delivered") { harness.coordinator.lastInsertion != nil }
         XCTAssertEqual(harness.insertion.insertedText, "Der termin steht.")
@@ -60,7 +60,7 @@ final class CaptureInterruptionTests: XCTestCase {
         harness.hotkey.emit(.pressed)
         try await waitUntil("recording starts") { harness.coordinator.state == .recording }
 
-        harness.capture.triggerInterruption(.inputDeviceChanged)
+        harness.capture.triggerInterruption(.noInputDevice)
 
         try await waitUntil("the app settles") { harness.coordinator.state == .ready }
         if case .failed = harness.coordinator.state {
@@ -73,11 +73,11 @@ final class CaptureInterruptionTests: XCTestCase {
         harness.hotkey.emit(.pressed)
         try await waitUntil("recording starts") { harness.coordinator.state == .recording }
 
-        harness.capture.triggerInterruption(.inputDeviceChanged)
+        harness.capture.triggerInterruption(.noInputDevice)
         try await waitUntil("the notice appears") { harness.coordinator.captureInterruption != nil }
 
         let message = try XCTUnwrap(harness.coordinator.captureInterruptionMessage)
-        XCTAssertTrue(message.contains("microphone changed"))
+        XCTAssertTrue(message.contains("microphone went away"))
         XCTAssertTrue(message.contains("already said was kept"))
     }
 
@@ -89,7 +89,7 @@ final class CaptureInterruptionTests: XCTestCase {
         try await waitUntil("recording starts") { harness.coordinator.state == .recording }
 
         harness.hotkey.emit(.released)
-        harness.capture.triggerInterruption(.inputDeviceChanged)
+        harness.capture.triggerInterruption(.noInputDevice)
 
         try await waitUntil("the app settles") { harness.coordinator.state == .ready }
         XCTAssertNil(harness.coordinator.captureInterruption)
@@ -100,8 +100,8 @@ final class CaptureInterruptionTests: XCTestCase {
         harness.hotkey.emit(.pressed)
         try await waitUntil("recording starts") { harness.coordinator.state == .recording }
 
-        harness.capture.triggerInterruption(.inputDeviceChanged)
-        harness.capture.triggerInterruption(.inputDeviceChanged)
+        harness.capture.triggerInterruption(.noInputDevice)
+        harness.capture.triggerInterruption(.noInputDevice)
 
         try await waitUntil("the app settles") { harness.coordinator.state == .ready }
         XCTAssertEqual(harness.capture.stopReasons, [.interrupted])
@@ -133,7 +133,7 @@ final class CaptureInterruptionTests: XCTestCase {
         harness.hotkey.emit(.pressed)
         try await waitUntil("recording starts") { harness.coordinator.state == .recording }
 
-        harness.capture.triggerInterruption(.inputDeviceChanged)
+        harness.capture.triggerInterruption(.noInputDevice)
         try await waitUntil("the app settles") { harness.coordinator.state == .ready }
 
         XCTAssertNotNil(harness.coordinator.captureInterruption)
@@ -147,7 +147,7 @@ final class CaptureInterruptionTests: XCTestCase {
         let harness = makeHarness(transcript: Self.spoken)
         harness.hotkey.emit(.pressed)
         try await waitUntil("recording starts") { harness.coordinator.state == .recording }
-        harness.capture.triggerInterruption(.inputDeviceChanged)
+        harness.capture.triggerInterruption(.noInputDevice)
         try await waitUntil("the notice appears") { harness.coordinator.captureInterruption != nil }
         // The interrupted utterance is still transcribed — its words were
         // already said — and a press while that is in flight is not a next
@@ -168,7 +168,7 @@ final class CaptureInterruptionTests: XCTestCase {
         let presentation = StatusPresentation(
             state: .ready,
             binding: .optionSpace,
-            captureInterruption: AudioCaptureError.inputDeviceChanged.interruptionMessage
+            captureInterruption: AudioCaptureError.noInputDevice.interruptionMessage
         )
 
         XCTAssertEqual(presentation.title, "Recording ended early")
@@ -180,7 +180,7 @@ final class CaptureInterruptionTests: XCTestCase {
             state: .ready,
             binding: .optionSpace,
             attentionIsPending: true,
-            captureInterruption: AudioCaptureError.inputDeviceChanged.interruptionMessage
+            captureInterruption: AudioCaptureError.noInputDevice.interruptionMessage
         )
 
         XCTAssertEqual(presentation.title, "Worth a look")
