@@ -134,7 +134,7 @@ Read these files before continuing implementation:
 9. Optionally add names and terms you dictate often under **Settings → Dictionary**. A word that comes out close to one of them, but not equal to it, gets marked.
 10. The first three days from the first dictation need no email and no key. After that, **Settings → License** is where a key is entered. Issue yourself one with `swift Tools/licensekit.swift issue --device <id> --email you@example.com --kind lifetime`, taking the identifier from **Settings → License → This Mac**. Signing requires the private key in `~/.localdictation/`; the public half is already compiled in, so any build of this repository accepts keys issued against it.
 
-The app is an agent-style menu bar utility (`LSUIElement = true`), so it does not show a Dock icon.
+The app is a menu bar utility that sets the `.accessory` activation policy at launch, so it shows no Dock icon. It is deliberately not marked `LSUIElement`: Launchpad leaves out agent apps, and opening the app from Launchpad or Finder while it runs opens Settings.
 
 ## Build and test from the command line
 

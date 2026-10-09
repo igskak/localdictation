@@ -74,6 +74,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// Launchpad, Finder, and Spotlight all re-open a running app through this.
+    /// The bundle is not marked `LSUIElement` because Launchpad leaves out
+    /// agent apps; the Dock icon is kept away by the `.accessory` policy set at
+    /// launch. A running app with no window has nothing to show for that click,
+    /// so it opens Settings, or the first-run question while it is unanswered.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if let languageSetup, Self.coordinator?.needsLanguageSetup == true {
+            languageSetup.presentIfNeeded()
+        } else {
+            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        return false
+    }
+
     func applicationDidBecomeActive(_ notification: Notification) {
         // Also how the app notices Accessibility trust: it is granted in System
         // Settings, out of band, and macOS sends no notification when it

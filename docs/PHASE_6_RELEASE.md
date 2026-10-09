@@ -57,8 +57,9 @@ version number is a guess.
 - `ENABLE_HARDENED_RUNTIME = YES` in Release, `NO` in Debug. Debug needs it off
   so the debugger can attach; Release needs it on because notarization refuses
   a bundle without it.
-- `LSUIElement = true`. The app is an agent, so there is no Dock icon and no
-  main window to make a first-run experience out of.
+- No `LSUIElement`. The app is an agent by `.accessory` activation policy at
+  launch, so there is no Dock icon and no main window, but Launchpad lists it
+  and a second open brings up Settings.
 - No App Sandbox, per `AGENTS.md`. Accessibility insertion into other
   applications cannot work inside the sandbox, which is the reason direct
   distribution was chosen over the Mac App Store in the first place.
