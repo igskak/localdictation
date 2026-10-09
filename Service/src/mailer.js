@@ -17,7 +17,10 @@ export function createMailer(env, log = () => {}) {
   if (!PROVIDERS.includes(provider)) throw new Error(`MAIL_PROVIDER must be one of ${PROVIDERS.join(", ")}`);
 
   const from = env.MAIL_FROM ?? "Witness <keys@witnessmac.com>";
-  const replyTo = env.MAIL_REPLY_TO ?? null;
+  // `??` alone would let `MAIL_REPLY_TO = ""` through, and an empty Reply-To is
+  // a header the provider rejects rather than ignores. Unset and set to nothing
+  // have to mean the same thing.
+  const replyTo = env.MAIL_REPLY_TO?.trim() || null;
 
   if (provider === "none") {
     return {

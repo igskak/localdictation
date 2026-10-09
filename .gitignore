@@ -43,6 +43,10 @@ AuthKey_*
 /docs/MODEL_V2.md
 /docs/ICP_B2B.md
 /docs/EU_EXPANSION.md
+/docs/WINDOWS.md
+/docs/PRODUCT_HUNT.md
+/docs/product-hunt/
+/Tools/promo_code.sh
 
 # Release artefacts from docs/PHASE_6_RELEASE.md — archives, exports, and the
 # signed disk image are build output and are never committed.
