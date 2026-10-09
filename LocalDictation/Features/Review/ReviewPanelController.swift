@@ -36,6 +36,11 @@ final class ReviewPanelController {
     /// to a press that did nothing visible. Ten seconds is how long it takes to
     /// read it and decide to wait.
     private static let modelNoticeDuration = Duration.seconds(10)
+    /// "The model is ready" has no time limit. The person it is for started a
+    /// download and walked away, and a panel that fades after ten seconds
+    /// reaches nobody. It goes when they press OK or hold the hotkey, which
+    /// is the thing it is telling them they can do.
+    private static let modelReadyDuration: Duration? = nil
 
     private let coordinator: DictationCoordinator
     private var panel: NSPanel?
@@ -215,7 +220,7 @@ final class ReviewPanelController {
                 message: notice.message,
                 symbol: notice.systemImage,
                 flaggedCount: 0,
-                duration: Self.modelNoticeDuration
+                duration: notice.isReady ? Self.modelReadyDuration : Self.modelNoticeDuration
             )
             return
         }
@@ -255,7 +260,7 @@ final class ReviewPanelController {
     /// Everything that reaches this panel goes through here, so there is one
     /// place that builds it, sizes it, shows it, and schedules its dismissal —
     /// and adding a new kind of notice cannot forget one of the four.
-    private func showNotice(message: String?, symbol: String, flaggedCount: Int, duration: Duration) {
+    private func showNotice(message: String?, symbol: String, flaggedCount: Int, duration: Duration?) {
         let panel = noticePanel ?? makeNoticePanel()
         noticePanel = panel
         noticeHostingView?.rootView = makeAftermathView(
@@ -267,6 +272,10 @@ final class ReviewPanelController {
         position(panel)
         panel.orderFrontRegardless()
 
+        guard let duration else {
+            noticeDismissal = nil
+            return
+        }
         noticeDismissal = Task { [weak self] in
             try? await Task.sleep(for: duration)
             guard !Task.isCancelled else { return }

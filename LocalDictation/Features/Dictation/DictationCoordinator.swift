@@ -224,10 +224,17 @@ final class DictationCoordinator: ObservableObject {
     /// would refuse them for the first turn of the run loop on a Mac where the
     /// model has been ready for months.
     private var hasReadModelState = false
-    /// Whether somebody pressed the key while the model was still arriving, so
-    /// the end of the wait is announced to the person who was waiting and to
-    /// nobody else.
-    private var pressedWhileModelWasArriving = false
+    /// Whether this run of preparation was a wait worth announcing the end of:
+    /// a download or a Core ML compilation, minutes rather than seconds, or a
+    /// press that was answered because of one.
+    ///
+    /// It used to be only the press. But a person who installs the app and
+    /// goes to make coffee never presses anything, and comes back to a menu bar
+    /// icon that has been ready for twenty minutes and a first impression that
+    /// has already gone cold. The wait is what earns the announcement, not
+    /// whether somebody happened to be pressing during it. A warm load of
+    /// weights already on disk is nine seconds and stays silent.
+    private var modelWaitWasLong = false
     /// Whether the first-run screen has already asked macOS for the two
     /// permissions. Once per launch: the prompts are the system's to show, and
     /// asking twice in one session shows nothing the second time anyway.
@@ -936,7 +943,7 @@ final class DictationCoordinator: ObservableObject {
             notice = .failed(detail)
             startModelPreparation()
         }
-        pressedWhileModelWasArriving = true
+        modelWaitWasLong = true
         speechModelNotice = notice
         entitlementService?.noteDictationBlockedByModel()
         Log.transcription.info("Press answered while the model was arriving: \(notice.logLabel, privacy: .public)")
@@ -988,6 +995,7 @@ final class DictationCoordinator: ObservableObject {
         guard let transcriptionService else { return }
         let profile = effectiveProfile
         transcriptionModelState = .preparing(ModelPreparation(phase: phase))
+        if phase != .loading { modelWaitWasLong = true }
         // Logged on both ends. Preparing a cold model runs for minutes, and
         // without a start and a finish there is no way to tell a slow load from
         // a stuck one.
@@ -1035,16 +1043,18 @@ final class DictationCoordinator: ObservableObject {
         return reason
     }
 
-    /// Tells the person who pressed during the wait that the wait is over.
+    /// Tells the user that a long wait is over and that they can dictate now.
     ///
-    /// Only them. A model that finishes loading while nobody has asked for
-    /// anything is the app working, and announcing it would be a panel opening
-    /// over somebody's document to report that nothing is wrong.
+    /// Only after a wait that was long. A warm load of weights already on disk
+    /// finishes in seconds, and a panel opening over somebody's document to
+    /// report that nothing was wrong would be noise. A download or a
+    /// compilation is the opposite: the first run is where the app is judged,
+    /// and the person who started it has usually gone elsewhere.
     private func announceModelIsReady() {
-        guard pressedWhileModelWasArriving, transcriptionModelState.isReady else { return }
-        pressedWhileModelWasArriving = false
+        guard modelWaitWasLong, transcriptionModelState.isReady else { return }
+        modelWaitWasLong = false
         speechModelNotice = .ready(hotkey: binding.displayString)
-        Log.transcription.info("Told the user the model is ready after they pressed during the wait")
+        Log.transcription.info("Told the user the model is ready after a long wait")
     }
 
     /// Mirrors the engine's preparation phase into the published state until
@@ -1060,6 +1070,7 @@ final class DictationCoordinator: ObservableObject {
                 guard !Task.isCancelled else { return }
                 let state = await service.modelState(for: profile)
                 guard let self, state.isPreparing, self.transcriptionModelState.isPreparing else { return }
+                if state.isLongWait { self.modelWaitWasLong = true }
                 self.transcriptionModelState = state
             }
         }

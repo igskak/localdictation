@@ -32,6 +32,13 @@ enum SpeechModelNotice: Sendable, Equatable {
     /// The wait is over, said to the person who pressed during it.
     case ready(hotkey: String)
 
+    /// The one notice that is good news, and the one nobody is waiting to
+    /// dismiss: it stays up until they do.
+    var isReady: Bool {
+        if case .ready = self { return true }
+        return false
+    }
+
     var title: String {
         switch self {
         case .preparing, .starting: L10n.string("The speech model is still arriving")

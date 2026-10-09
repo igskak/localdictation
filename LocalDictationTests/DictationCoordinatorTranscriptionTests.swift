@@ -286,11 +286,30 @@ final class DictationCoordinatorTranscriptionTests: XCTestCase {
         }
     }
 
-    /// Nobody pressed, so nobody is waiting, and a panel opening over somebody's
-    /// document to report that nothing is wrong is noise.
-    func testAModelThatArrivesUnaskedSaysNothing() async throws {
+    /// Nobody pressed, but the model came down over the network: a wait of
+    /// minutes that the person has probably walked away from. The end of it is
+    /// announced to them anyway, or they come back to a first impression that
+    /// went cold while the app sat ready.
+    func testADownloadThatEndsIsAnnouncedEvenIfNobodyPressed() async throws {
         let engine = FakeTranscriptionService()
         engine.setModelState(.unavailable("not downloaded yet", needsUserAction: true))
+        let gate = engine.blockNextPreparation()
+        let (coordinator, _, _) = makeCoordinator(transcription: engine)
+
+        try await waitUntil("the launch download is running") { coordinator.transcriptionModelState.isPreparing }
+        XCTAssertNil(coordinator.speechModelNotice)
+
+        gate.open()
+        try await waitUntil("the ready notice arrives") {
+            coordinator.speechModelNotice == .ready(hotkey: coordinator.binding.displayString)
+        }
+    }
+
+    /// A warm load of weights already on disk is seconds, and a panel opening
+    /// over somebody's document to report that nothing is wrong is noise.
+    func testAWarmLoadSaysNothing() async throws {
+        let engine = FakeTranscriptionService()
+        engine.setModelState(.unavailable("on disk", needsUserAction: false))
         let (coordinator, _, _) = makeCoordinator(transcription: engine)
 
         try await waitUntil("the model is ready") { coordinator.transcriptionModelState.isReady }
