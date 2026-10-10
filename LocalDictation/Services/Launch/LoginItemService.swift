@@ -69,7 +69,12 @@ final class SMAppServiceLoginItem: LoginItemService {
         case .requiresApproval:
             .requiresApproval
         case .notFound:
-            .unavailable(L10n.string("macOS cannot find this copy of the app to start it. Move Witness to your Applications folder and try again."))
+            // Reported on a copy in /Applications that has simply never been
+            // registered, so it is not evidence of anything wrong: refusing the
+            // switch on it made the one action that could settle the question
+            // impossible. `register()` is the test, and `setEnabled` reports its
+            // real error if it fails.
+            .disabled
         @unknown default:
             .unavailable(L10n.string("macOS gave an answer this app does not recognize."))
         }

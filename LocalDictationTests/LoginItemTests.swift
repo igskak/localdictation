@@ -14,9 +14,10 @@ final class LoginItemTests: XCTestCase {
         XCTAssertEqual(SMAppServiceLoginItem.state(for: .enabled), .enabled)
         XCTAssertEqual(SMAppServiceLoginItem.state(for: .notRegistered), .disabled)
         XCTAssertEqual(SMAppServiceLoginItem.state(for: .requiresApproval), .requiresApproval)
-        guard case .unavailable = SMAppServiceLoginItem.state(for: .notFound) else {
-            return XCTFail("A copy macOS cannot find is not the same as one the user switched off")
-        }
+        // `notFound` is what an unregistered copy in /Applications reports on
+        // some macOS versions; the switch has to stay usable so registering can
+        // be tried, rather than stopping on a state that is not an error.
+        XCTAssertEqual(SMAppServiceLoginItem.state(for: .notFound), .disabled)
     }
 
     /// The two states the app cannot change are the two that have to explain
