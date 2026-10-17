@@ -1,10 +1,23 @@
 import XCTest
 @testable import Witness
 
+private final class CleanupLevelRecordingService: CleanupService, @unchecked Sendable {
+    private let lock = NSLock()
+    private var recordedLevels: [CleanupLevel] = []
+
+    var levels: [CleanupLevel] { lock.withLock { recordedLevels } }
+
+    func clean(_ raw: String, language: SpeechLanguage, options: CleanupOptions) -> CleanupResult {
+        lock.withLock { recordedLevels.append(options.level) }
+        return .unchanged(raw, language: language)
+    }
+}
+
 @MainActor
 final class DictationCoordinatorTranscriptionTests: XCTestCase {
     private func makeCoordinator(
-        transcription: FakeTranscriptionService
+        transcription: FakeTranscriptionService,
+        cleanup: any CleanupService = AdaptiveCleanupService()
     ) -> (DictationCoordinator, FakeHotkeyService, FakeAudioCaptureService) {
         let hotkey = FakeHotkeyService()
         let capture = FakeAudioCaptureService()
@@ -12,7 +25,8 @@ final class DictationCoordinatorTranscriptionTests: XCTestCase {
             permissionService: FakeMicrophonePermissionService(authorization: .authorized),
             hotkeyService: hotkey,
             captureService: capture,
-            transcriptionService: transcription
+            transcriptionService: transcription,
+            cleanupService: cleanup
         )
         coordinator.activate()
         return (coordinator, hotkey, capture)
@@ -63,6 +77,23 @@ final class DictationCoordinatorTranscriptionTests: XCTestCase {
 
         try await waitUntil("coordinator returns to ready") { coordinator.state == .ready }
         XCTAssertEqual(coordinator.transcript?.text, "hello")
+    }
+
+    func testCleanupLevelIsSnapshottedWhenRecordingBegins() async throws {
+        let engine = FakeTranscriptionService()
+        engine.setResult(.fixture(words: [("hello", 0.9)]))
+        let gate = engine.blockNextTranscription()
+        let cleanup = CleanupLevelRecordingService()
+        let (coordinator, hotkey, _) = makeCoordinator(transcription: engine, cleanup: cleanup)
+        coordinator.cleanupLevel = .verbatim
+
+        recordOneUtterance(hotkey)
+        try await waitUntil("transcription is in flight") { coordinator.state == .transcribing }
+        coordinator.cleanupLevel = .clean
+        gate.open()
+
+        try await waitUntil("cleanup ran") { cleanup.levels.count == 1 }
+        XCTAssertEqual(cleanup.levels, [.verbatim])
     }
 
     func testDiagnosticsRecordNonContentTranscriptFacts() async throws {

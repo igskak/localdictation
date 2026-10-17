@@ -77,6 +77,32 @@ struct SettingsView: View {
                 LaunchAtLoginRow()
             }
 
+            Section("Cleanup") {
+                Picker("Level", selection: cleanupLevelBinding) {
+                    ForEach(CleanupLevel.allCases) { level in
+                        Text(level.displayName).tag(level)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .accessibilityLabel("Cleanup level")
+
+                Text(coordinator.cleanupLevel.explanation)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                LabeledContent("Example") {
+                    Text(coordinator.cleanupLevel.example)
+                        .font(.callout.monospaced())
+                        .multilineTextAlignment(.trailing)
+                }
+
+                Text("All cleanup runs on this Mac. Raw recognized text remains available in review.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
             Section("Updates") {
                 LabeledContent("Installed version", value: AppVersion.short)
                 Button("Check for updates…") { updater.checkForUpdates() }
@@ -195,6 +221,13 @@ struct SettingsView: View {
         Binding(
             get: { coordinator.audioInputSelection },
             set: { coordinator.setAudioInputSelection($0) }
+        )
+    }
+
+    private var cleanupLevelBinding: Binding<CleanupLevel> {
+        Binding(
+            get: { coordinator.cleanupLevel },
+            set: { coordinator.cleanupLevel = $0 }
         )
     }
 

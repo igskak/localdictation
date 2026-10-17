@@ -122,6 +122,8 @@ final class DictationCoordinator: ObservableObject {
     /// and the words are in the document. Off is for users who want the
     /// keystroke to be theirs.
     @Published var insertsAutomatically = true { didSet { persistPreferences() } }
+    /// The cleanup contract chosen for the next utterance.
+    @Published var cleanupLevel: CleanupLevel = .conservative { didSet { persistPreferences() } }
     /// Whether the three licensing-funnel events may leave this Mac.
     ///
     /// On by default and turned off in one click. It is written to the
@@ -191,6 +193,9 @@ final class DictationCoordinator: ObservableObject {
     private let captureService: any AudioCaptureService
     private let transcriptionService: (any TranscriptionService)?
     private let cleanupService: any CleanupService
+    /// Snapshotted when recording begins. Settings changed while Whisper is
+    /// working apply to the next utterance, never to one already in flight.
+    private var activeCleanupLevel: CleanupLevel = .conservative
     private let riskEngine: RiskEngine
     private let reviewPolicy: ReviewPolicy
     private let glossaryStore: (any GlossaryStore)?
@@ -278,7 +283,7 @@ final class DictationCoordinator: ObservableObject {
         hotkeyService: any HotkeyService,
         captureService: any AudioCaptureService,
         transcriptionService: (any TranscriptionService)? = nil,
-        cleanupService: any CleanupService = ConservativeCleanupService(),
+        cleanupService: any CleanupService = AdaptiveCleanupService(),
         riskEngine: RiskEngine = .standard(),
         reviewPolicy: ReviewPolicy = .default,
         glossaryStore: (any GlossaryStore)? = nil,
@@ -692,6 +697,7 @@ final class DictationCoordinator: ObservableObject {
         }
 
         guard apply(.hotkeyPressed) else { return }
+        activeCleanupLevel = cleanupLevel
 
         // A new utterance supersedes whatever is still being transcribed or
         // reviewed, and clears the previous result so the copy action is never
@@ -1499,6 +1505,8 @@ final class DictationCoordinator: ObservableObject {
         activation = preferences.activation
         languageProfile = preferences.languageProfile
         insertsAutomatically = preferences.insertsAutomatically
+        cleanupLevel = preferences.cleanupLevel
+        activeCleanupLevel = preferences.cleanupLevel
         configuration.inputSelection = preferences.audioInput
         hasChosenLanguages = preferences.hasChosenLanguages
         sharesProductEvents = preferences.sharesProductEvents
@@ -1533,6 +1541,7 @@ final class DictationCoordinator: ObservableObject {
             activation: activation,
             languageProfile: languageProfile,
             insertsAutomatically: insertsAutomatically,
+            cleanupLevel: cleanupLevel,
             hasChosenLanguages: hasChosenLanguages,
             sharesProductEvents: sharesProductEvents,
             audioInput: configuration.inputSelection
@@ -1705,7 +1714,11 @@ final class DictationCoordinator: ObservableObject {
     /// the same three stages run inside the measurement harness with no app.
     private func analyze(_ transcript: Transcript) -> DictationResult {
         let language = Self.cleanupLanguage(for: transcript)
-        let cleanup = cleanupService.clean(transcript.text, language: language)
+        let cleanup = cleanupService.clean(
+            transcript.text,
+            language: language,
+            options: CleanupOptions(level: activeCleanupLevel)
+        )
         let spans = riskEngine.analyze(
             cleanup: cleanup,
             tokens: transcript.tokens,
@@ -1873,7 +1886,7 @@ extension DictationCoordinator {
             // which Phase 3 requires. `AppleSpeechTranscriptionService` stays in
             // the codebase as the comparison the benchmark scores it against.
             transcriptionService: WhisperKitTranscriptionService(),
-            cleanupService: ConservativeCleanupService(),
+            cleanupService: AdaptiveCleanupService(),
             // The live engine gets the system dictionaries; the benchmark does
             // not. See `RiskEngine.standard(weights:lexicon:)` for why the
             // measurement deliberately runs without them.

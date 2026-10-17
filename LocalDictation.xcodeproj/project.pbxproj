@@ -68,8 +68,11 @@
 		D502A1301AE1566F9F9EB2D8 /* PCMCaptureSink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74D9006BDE5043751A8F9A71 /* PCMCaptureSink.swift */; };
 		A3043B657BF6B4571A4FF297 /* SystemAudioInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFB77510B295EE931F424815 /* SystemAudioInput.swift */; };
 		AD2AA1C60B08E03D34D8527D /* WAVEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FAED8ECCACC0E1A5333BE40 /* WAVEncoder.swift */; };
+		925324006164BA4F68CE3E6D /* AdaptiveCleanupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07B4857B1CFBFF850A2D4268 /* AdaptiveCleanupService.swift */; };
 		4B798B4E97AF4A293818E71B /* CleanupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27DF10798AECF9DB089EB913 /* CleanupService.swift */; };
 		9506325497705DE359C70CE8 /* ConservativeCleanupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 663B6E706FBC4E180BA9FB33 /* ConservativeCleanupService.swift */; };
+		C88B2AFEB86EF2F8BC3FF474 /* EditMapComposition.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2D21F18BD19C9009D2FC680 /* EditMapComposition.swift */; };
+		9E3437D505D7A526B4970700 /* ProtectedSpanDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBB68CED40F6A6CCF7175669 /* ProtectedSpanDetector.swift */; };
 		0873D931AA6B88380BD9630B /* GlossaryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A22ED38B417B37D308CBEB4 /* GlossaryStore.swift */; };
 		29EEF5A90E4E67D79D5869C3 /* CarbonHotkeyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF301E512B826DE4F6212804 /* CarbonHotkeyService.swift */; };
 		E02EC72C937E9304745B580F /* HotkeyKeyLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E4C015DD96F121468489381 /* HotkeyKeyLabel.swift */; };
@@ -129,6 +132,7 @@
 		C937D4ED9D4E903CB5486478 /* AXTextInsertionServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEBB6912DC8B4D653A074834 /* AXTextInsertionServiceTests.swift */; };
 		D116B761BB9FC7C2C9CFE737 /* ActivationServiceParityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020F188C581182E5BA5B5E8C /* ActivationServiceParityTests.swift */; };
 		28A2A21BE7AEB61852B2B81D /* AdaptiveCleanupBenchmarkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE473996DF1D368732F4C1D9 /* AdaptiveCleanupBenchmarkTests.swift */; };
+		DF2A4ADB61CC0C9B7BF6ED78 /* AdaptiveCleanupFoundationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D645E121C0822E14D2F4C18 /* AdaptiveCleanupFoundationTests.swift */; };
 		0E91A18B48A3D839F69FA867 /* ApplicationSupportDirectoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 212E3A0E3F2C267713E461B3 /* ApplicationSupportDirectoryTests.swift */; };
 		3C6766FB84D9FB7521A6A7AF /* AudioFormatConverterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E724DC5B9AB291F8DE43FC73 /* AudioFormatConverterTests.swift */; };
 		15CED33DBC5D93E4502DB6E9 /* BenchmarkRunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DF1EB70F3CC77FC666095A7 /* BenchmarkRunnerTests.swift */; };
@@ -143,6 +147,7 @@
 		E09D06AD2518F4283E232FDA /* DictationCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE77549EDCDBB3A8A516C930 /* DictationCoordinatorTests.swift */; };
 		6107D8AC73D3117D65122993 /* DictationCoordinatorTranscriptionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E743B10AAD5CCCBC339A49A8 /* DictationCoordinatorTranscriptionTests.swift */; };
 		7EC813C32A7A3D8C5E5C4D06 /* EditDistanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA55DD319759EE740CA8EB19 /* EditDistanceTests.swift */; };
+		50C65222FFF2269A9926FBEA /* EditMapCompositionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66613358199A8F23016BAEF2 /* EditMapCompositionTests.swift */; };
 		0A4E88B7CBB462923E817D0E /* EditMapTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7FB57FDEB8E1AD4E6838B64 /* EditMapTests.swift */; };
 		7148795906A4049B2127FC14 /* EncoderOutputReuseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8CF52FC9EDDFFB352E50D29 /* EncoderOutputReuseTests.swift */; };
 		97729B7136CE8B700B275084 /* EncoderReuseParityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19C091F4817E89949C68E69A /* EncoderReuseParityTests.swift */; };
@@ -282,8 +287,11 @@
 		74D9006BDE5043751A8F9A71 /* PCMCaptureSink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PCMCaptureSink.swift; sourceTree = "<group>"; };
 		DFB77510B295EE931F424815 /* SystemAudioInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemAudioInput.swift; sourceTree = "<group>"; };
 		0FAED8ECCACC0E1A5333BE40 /* WAVEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WAVEncoder.swift; sourceTree = "<group>"; };
+		07B4857B1CFBFF850A2D4268 /* AdaptiveCleanupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveCleanupService.swift; sourceTree = "<group>"; };
 		27DF10798AECF9DB089EB913 /* CleanupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupService.swift; sourceTree = "<group>"; };
 		663B6E706FBC4E180BA9FB33 /* ConservativeCleanupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConservativeCleanupService.swift; sourceTree = "<group>"; };
+		A2D21F18BD19C9009D2FC680 /* EditMapComposition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditMapComposition.swift; sourceTree = "<group>"; };
+		CBB68CED40F6A6CCF7175669 /* ProtectedSpanDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProtectedSpanDetector.swift; sourceTree = "<group>"; };
 		6A22ED38B417B37D308CBEB4 /* GlossaryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlossaryStore.swift; sourceTree = "<group>"; };
 		BF301E512B826DE4F6212804 /* CarbonHotkeyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarbonHotkeyService.swift; sourceTree = "<group>"; };
 		3E4C015DD96F121468489381 /* HotkeyKeyLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyKeyLabel.swift; sourceTree = "<group>"; };
@@ -348,6 +356,7 @@
 		BEBB6912DC8B4D653A074834 /* AXTextInsertionServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AXTextInsertionServiceTests.swift; sourceTree = "<group>"; };
 		020F188C581182E5BA5B5E8C /* ActivationServiceParityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivationServiceParityTests.swift; sourceTree = "<group>"; };
 		AE473996DF1D368732F4C1D9 /* AdaptiveCleanupBenchmarkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveCleanupBenchmarkTests.swift; sourceTree = "<group>"; };
+		6D645E121C0822E14D2F4C18 /* AdaptiveCleanupFoundationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveCleanupFoundationTests.swift; sourceTree = "<group>"; };
 		212E3A0E3F2C267713E461B3 /* ApplicationSupportDirectoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplicationSupportDirectoryTests.swift; sourceTree = "<group>"; };
 		E724DC5B9AB291F8DE43FC73 /* AudioFormatConverterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFormatConverterTests.swift; sourceTree = "<group>"; };
 		3DF1EB70F3CC77FC666095A7 /* BenchmarkRunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BenchmarkRunnerTests.swift; sourceTree = "<group>"; };
@@ -362,6 +371,7 @@
 		DE77549EDCDBB3A8A516C930 /* DictationCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationCoordinatorTests.swift; sourceTree = "<group>"; };
 		E743B10AAD5CCCBC339A49A8 /* DictationCoordinatorTranscriptionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationCoordinatorTranscriptionTests.swift; sourceTree = "<group>"; };
 		AA55DD319759EE740CA8EB19 /* EditDistanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditDistanceTests.swift; sourceTree = "<group>"; };
+		66613358199A8F23016BAEF2 /* EditMapCompositionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditMapCompositionTests.swift; sourceTree = "<group>"; };
 		A7FB57FDEB8E1AD4E6838B64 /* EditMapTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditMapTests.swift; sourceTree = "<group>"; };
 		E8CF52FC9EDDFFB352E50D29 /* EncoderOutputReuseTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncoderOutputReuseTests.swift; sourceTree = "<group>"; };
 		19C091F4817E89949C68E69A /* EncoderReuseParityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncoderReuseParityTests.swift; sourceTree = "<group>"; };
@@ -614,8 +624,11 @@
 		F25D1AAFD80958011126B1F2 /* Cleanup */ = {
 			isa = PBXGroup;
 			children = (
+				07B4857B1CFBFF850A2D4268 /* AdaptiveCleanupService.swift */,
 				27DF10798AECF9DB089EB913 /* CleanupService.swift */,
 				663B6E706FBC4E180BA9FB33 /* ConservativeCleanupService.swift */,
+				A2D21F18BD19C9009D2FC680 /* EditMapComposition.swift */,
+				CBB68CED40F6A6CCF7175669 /* ProtectedSpanDetector.swift */,
 			);
 			path = Cleanup;
 			sourceTree = "<group>";
@@ -834,6 +847,7 @@
 				BEBB6912DC8B4D653A074834 /* AXTextInsertionServiceTests.swift */,
 				020F188C581182E5BA5B5E8C /* ActivationServiceParityTests.swift */,
 				AE473996DF1D368732F4C1D9 /* AdaptiveCleanupBenchmarkTests.swift */,
+				6D645E121C0822E14D2F4C18 /* AdaptiveCleanupFoundationTests.swift */,
 				212E3A0E3F2C267713E461B3 /* ApplicationSupportDirectoryTests.swift */,
 				E724DC5B9AB291F8DE43FC73 /* AudioFormatConverterTests.swift */,
 				3DF1EB70F3CC77FC666095A7 /* BenchmarkRunnerTests.swift */,
@@ -848,6 +862,7 @@
 				DE77549EDCDBB3A8A516C930 /* DictationCoordinatorTests.swift */,
 				E743B10AAD5CCCBC339A49A8 /* DictationCoordinatorTranscriptionTests.swift */,
 				AA55DD319759EE740CA8EB19 /* EditDistanceTests.swift */,
+				66613358199A8F23016BAEF2 /* EditMapCompositionTests.swift */,
 				A7FB57FDEB8E1AD4E6838B64 /* EditMapTests.swift */,
 				E8CF52FC9EDDFFB352E50D29 /* EncoderOutputReuseTests.swift */,
 				19C091F4817E89949C68E69A /* EncoderReuseParityTests.swift */,
@@ -1101,8 +1116,11 @@
 				D502A1301AE1566F9F9EB2D8 /* PCMCaptureSink.swift in Sources */,
 				A3043B657BF6B4571A4FF297 /* SystemAudioInput.swift in Sources */,
 				AD2AA1C60B08E03D34D8527D /* WAVEncoder.swift in Sources */,
+				925324006164BA4F68CE3E6D /* AdaptiveCleanupService.swift in Sources */,
 				4B798B4E97AF4A293818E71B /* CleanupService.swift in Sources */,
 				9506325497705DE359C70CE8 /* ConservativeCleanupService.swift in Sources */,
+				C88B2AFEB86EF2F8BC3FF474 /* EditMapComposition.swift in Sources */,
+				9E3437D505D7A526B4970700 /* ProtectedSpanDetector.swift in Sources */,
 				0873D931AA6B88380BD9630B /* GlossaryStore.swift in Sources */,
 				29EEF5A90E4E67D79D5869C3 /* CarbonHotkeyService.swift in Sources */,
 				E02EC72C937E9304745B580F /* HotkeyKeyLabel.swift in Sources */,
@@ -1169,6 +1187,7 @@
 				C937D4ED9D4E903CB5486478 /* AXTextInsertionServiceTests.swift in Sources */,
 				D116B761BB9FC7C2C9CFE737 /* ActivationServiceParityTests.swift in Sources */,
 				28A2A21BE7AEB61852B2B81D /* AdaptiveCleanupBenchmarkTests.swift in Sources */,
+				DF2A4ADB61CC0C9B7BF6ED78 /* AdaptiveCleanupFoundationTests.swift in Sources */,
 				0E91A18B48A3D839F69FA867 /* ApplicationSupportDirectoryTests.swift in Sources */,
 				3C6766FB84D9FB7521A6A7AF /* AudioFormatConverterTests.swift in Sources */,
 				15CED33DBC5D93E4502DB6E9 /* BenchmarkRunnerTests.swift in Sources */,
@@ -1183,6 +1202,7 @@
 				E09D06AD2518F4283E232FDA /* DictationCoordinatorTests.swift in Sources */,
 				6107D8AC73D3117D65122993 /* DictationCoordinatorTranscriptionTests.swift in Sources */,
 				7EC813C32A7A3D8C5E5C4D06 /* EditDistanceTests.swift in Sources */,
+				50C65222FFF2269A9926FBEA /* EditMapCompositionTests.swift in Sources */,
 				0A4E88B7CBB462923E817D0E /* EditMapTests.swift in Sources */,
 				7148795906A4049B2127FC14 /* EncoderOutputReuseTests.swift in Sources */,
 				97729B7136CE8B700B275084 /* EncoderReuseParityTests.swift in Sources */,

@@ -55,6 +55,27 @@ struct EditMap: Sendable, Equatable {
     let segments: [Segment]
     let rawLength: Int
     let cleanedLength: Int
+    private let stages: [Stage]
+
+    private struct Stage: Sendable, Equatable {
+        let segments: [Segment]
+        let rawLength: Int
+        let cleanedLength: Int
+    }
+
+    init(segments: [Segment], rawLength: Int, cleanedLength: Int) {
+        self.segments = segments
+        self.rawLength = rawLength
+        self.cleanedLength = cleanedLength
+        self.stages = [Stage(segments: segments, rawLength: rawLength, cleanedLength: cleanedLength)]
+    }
+
+    private init(stages: [Stage], rawLength: Int, cleanedLength: Int) {
+        self.segments = stages.count == 1 ? stages[0].segments : []
+        self.rawLength = rawLength
+        self.cleanedLength = cleanedLength
+        self.stages = stages
+    }
 
     static func identity(length: Int) -> EditMap {
         EditMap(
@@ -64,7 +85,19 @@ struct EditMap: Sendable, Equatable {
         )
     }
 
-    var hasEdits: Bool { segments.contains { $0.isEdit } }
+    var hasEdits: Bool { stages.contains { $0.segments.contains(where: \.isEdit) } }
+
+    /// Exact composition without reconstructing either text or diffing it.
+    /// Each stage keeps its own coordinate system; projections simply walk
+    /// the chain forward or backward.
+    func composed(with next: EditMap) -> EditMap? {
+        guard cleanedLength == next.rawLength else { return nil }
+        return EditMap(
+            stages: stages + next.stages,
+            rawLength: rawLength,
+            cleanedLength: next.cleanedLength
+        )
+    }
 
     // MARK: - Raw to cleaned
 
@@ -77,26 +110,22 @@ struct EditMap: Sendable, Equatable {
     /// Where a raw offset begins in the cleaned text. An offset that lands
     /// inside a replaced region collapses to the start of that replacement.
     func cleanedStart(forRaw offset: Int) -> Int {
-        let offset = min(max(offset, 0), rawLength)
-        for segment in segments where segment.raw.upperBound > offset {
-            guard segment.raw.lowerBound <= offset else { return segment.cleaned.lowerBound }
-            if segment.isEdit { return segment.cleaned.lowerBound }
-            return segment.cleaned.lowerBound + (offset - segment.raw.lowerBound)
+        var value = min(max(offset, 0), rawLength)
+        for stage in stages {
+            value = Self.cleanedStart(value, in: stage)
         }
-        return cleanedLength
+        return value
     }
 
     /// Where a raw offset ends in the cleaned text. An offset that lands inside
     /// a replaced region expands to the end of that replacement, so a span that
     /// touches an edit still covers the whole of it.
     func cleanedEnd(forRaw offset: Int) -> Int {
-        let offset = min(max(offset, 0), rawLength)
-        guard offset > 0 else { return 0 }
-        for segment in segments.reversed() where segment.raw.lowerBound < offset {
-            if segment.isEdit { return segment.cleaned.upperBound }
-            return min(segment.cleaned.lowerBound + (offset - segment.raw.lowerBound), segment.cleaned.upperBound)
+        var value = min(max(offset, 0), rawLength)
+        for stage in stages {
+            value = Self.cleanedEnd(value, in: stage)
         }
-        return 0
+        return value
     }
 
     // MARK: - Cleaned to raw
@@ -108,19 +137,55 @@ struct EditMap: Sendable, Equatable {
     }
 
     func rawStart(forCleaned offset: Int) -> Int {
-        let offset = min(max(offset, 0), cleanedLength)
-        for segment in segments where segment.cleaned.upperBound > offset {
+        var value = min(max(offset, 0), cleanedLength)
+        for stage in stages.reversed() {
+            value = Self.rawStart(value, in: stage)
+        }
+        return value
+    }
+
+    func rawEnd(forCleaned offset: Int) -> Int {
+        var value = min(max(offset, 0), cleanedLength)
+        for stage in stages.reversed() {
+            value = Self.rawEnd(value, in: stage)
+        }
+        return value
+    }
+
+    private static func cleanedStart(_ offset: Int, in stage: Stage) -> Int {
+        let offset = min(max(offset, 0), stage.rawLength)
+        for segment in stage.segments where segment.raw.upperBound > offset {
+            guard segment.raw.lowerBound <= offset else { return segment.cleaned.lowerBound }
+            if segment.isEdit { return segment.cleaned.lowerBound }
+            return segment.cleaned.lowerBound + (offset - segment.raw.lowerBound)
+        }
+        return stage.cleanedLength
+    }
+
+    private static func cleanedEnd(_ offset: Int, in stage: Stage) -> Int {
+        let offset = min(max(offset, 0), stage.rawLength)
+        guard offset > 0 else { return 0 }
+        for segment in stage.segments.reversed() where segment.raw.lowerBound < offset {
+            if segment.isEdit { return segment.cleaned.upperBound }
+            return min(segment.cleaned.lowerBound + (offset - segment.raw.lowerBound), segment.cleaned.upperBound)
+        }
+        return 0
+    }
+
+    private static func rawStart(_ offset: Int, in stage: Stage) -> Int {
+        let offset = min(max(offset, 0), stage.cleanedLength)
+        for segment in stage.segments where segment.cleaned.upperBound > offset {
             guard segment.cleaned.lowerBound <= offset else { return segment.raw.lowerBound }
             if segment.isEdit { return segment.raw.lowerBound }
             return segment.raw.lowerBound + (offset - segment.cleaned.lowerBound)
         }
-        return rawLength
+        return stage.rawLength
     }
 
-    func rawEnd(forCleaned offset: Int) -> Int {
-        let offset = min(max(offset, 0), cleanedLength)
+    private static func rawEnd(_ offset: Int, in stage: Stage) -> Int {
+        let offset = min(max(offset, 0), stage.cleanedLength)
         guard offset > 0 else { return 0 }
-        for segment in segments.reversed() where segment.cleaned.lowerBound < offset {
+        for segment in stage.segments.reversed() where segment.cleaned.lowerBound < offset {
             if segment.isEdit { return segment.raw.upperBound }
             return min(segment.raw.lowerBound + (offset - segment.cleaned.lowerBound), segment.raw.upperBound)
         }

@@ -4,6 +4,7 @@ import Foundation
 /// can exercise a single rule, and so a rule that turns out to be wrong for a
 /// language can be turned off there instead of being deleted everywhere.
 struct CleanupOptions: Sendable, Equatable {
+    var level: CleanupLevel = .conservative
     var collapsesWhitespace: Bool = true
     var fixesPunctuationSpacing: Bool = true
     var removesFillers: Bool = true
@@ -12,6 +13,7 @@ struct CleanupOptions: Sendable, Equatable {
 
     static let `default` = CleanupOptions()
     static let none = CleanupOptions(
+        level: .conservative,
         collapsesWhitespace: false,
         fixesPunctuationSpacing: false,
         removesFillers: false,

@@ -42,6 +42,7 @@ final class PreferencesStoreTests: XCTestCase {
                 "activation",
                 "languageProfile",
                 "insertsAutomatically",
+                "cleanupLevel",
                 "audioInput",
                 "hasChosenLanguages",
                 "sharesProductEvents",
@@ -79,6 +80,7 @@ final class PreferencesStoreTests: XCTestCase {
         // build asks on the first-run screen before the first event can happen.
         XCTAssertTrue(loaded.sharesProductEvents)
         XCTAssertEqual(loaded.audioInput, .builtIn)
+        XCTAssertEqual(loaded.cleanupLevel, .conservative)
     }
 
     /// The switch survives a reload like every other choice in this file. A
@@ -119,10 +121,19 @@ final class PreferencesStoreTests: XCTestCase {
         preferences.activation = .toggle
         preferences.languageProfile = .ukrainianEnglish
         preferences.insertsAutomatically = false
+        preferences.cleanupLevel = .verbatim
 
         try store.save(preferences)
 
         XCTAssertEqual(try store.load(), preferences)
+    }
+
+    func testCleanupLevelSurvivesAReload() throws {
+        let store = store()
+        var preferences = Preferences.default
+        preferences.cleanupLevel = .clean
+        try store.save(preferences)
+        XCTAssertEqual(try store.load().cleanupLevel, .clean)
     }
 
     func testAMissingFileIsAFirstRunAndNotAFailure() throws {
@@ -200,6 +211,15 @@ final class CoordinatorPreferencesTests: XCTestCase {
         coordinator.languageProfile = .ukrainianEnglish
 
         XCTAssertEqual(store.stored.languageProfile, .ukrainianEnglish)
+    }
+
+    func testChangingCleanupLevelIsRemembered() {
+        let store = InMemoryPreferencesStore()
+        let (coordinator, _) = makeCoordinator(store)
+
+        coordinator.cleanupLevel = .verbatim
+
+        XCTAssertEqual(store.stored.cleanupLevel, .verbatim)
     }
 
     /// The picker appears once. Saving the answer without the flag would put

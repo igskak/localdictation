@@ -1,5 +1,40 @@
 import Foundation
 
+enum CleanupLevel: String, Sendable, Equatable, Codable, CaseIterable, Identifiable {
+    case verbatim
+    case conservative
+    case clean
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .verbatim: L10n.string("Verbatim")
+        case .conservative: L10n.string("Conservative")
+        case .clean: L10n.string("Clean")
+        }
+    }
+
+    var explanation: String {
+        switch self {
+        case .verbatim:
+            L10n.string("Exactly what the speech engine recognized, with no cleanup.")
+        case .conservative:
+            L10n.string("Fixes spacing, capitalization, punctuation, and unambiguous fillers.")
+        case .clean:
+            L10n.string("Also follows spoken commands and explicit corrections, formats lists and values, and adapts the join to the current field.")
+        }
+    }
+
+    var example: String {
+        switch self {
+        case .verbatim: "hello comma new line world"
+        case .conservative: "Hello comma new line world."
+        case .clean: "Hello,\nworld."
+        }
+    }
+}
+
 /// How the hotkey starts and ends a recording.
 ///
 /// `docs/PRODUCT_SCOPE.md` has listed both modes in the MVP since the first
@@ -56,6 +91,7 @@ struct Preferences: Sendable, Equatable, Codable {
     var activation: RecordingActivation
     var languageProfile: LanguageProfile
     var insertsAutomatically: Bool
+    var cleanupLevel: CleanupLevel
     /// The app's own microphone choice; it never changes the macOS default.
     var audioInput: AudioInputSelection
     /// Whether the user has ever been asked which languages they speak.
@@ -88,6 +124,7 @@ struct Preferences: Sendable, Equatable, Codable {
         activation: .pushToTalk,
         languageProfile: .default,
         insertsAutomatically: true,
+        cleanupLevel: .conservative,
         hasChosenLanguages: false,
         sharesProductEvents: true,
         audioInput: .builtIn
@@ -106,6 +143,8 @@ struct Preferences: Sendable, Equatable, Codable {
         activation = try container.decode(RecordingActivation.self, forKey: .activation)
         languageProfile = try container.decode(LanguageProfile.self, forKey: .languageProfile)
         insertsAutomatically = try container.decode(Bool.self, forKey: .insertsAutomatically)
+        // A pre-Phase-9 user explicitly keeps the behavior they installed.
+        cleanupLevel = try container.decodeIfPresent(CleanupLevel.self, forKey: .cleanupLevel) ?? .conservative
         audioInput = try container.decodeIfPresent(AudioInputSelection.self, forKey: .audioInput) ?? .builtIn
         hasChosenLanguages = try container.decodeIfPresent(Bool.self, forKey: .hasChosenLanguages) ?? false
         // Absent on a file written by a build that had nothing to transmit.
@@ -122,6 +161,7 @@ struct Preferences: Sendable, Equatable, Codable {
         activation: RecordingActivation,
         languageProfile: LanguageProfile,
         insertsAutomatically: Bool,
+        cleanupLevel: CleanupLevel = .conservative,
         hasChosenLanguages: Bool,
         sharesProductEvents: Bool = true,
         audioInput: AudioInputSelection = .builtIn
@@ -132,6 +172,7 @@ struct Preferences: Sendable, Equatable, Codable {
         self.activation = activation
         self.languageProfile = languageProfile
         self.insertsAutomatically = insertsAutomatically
+        self.cleanupLevel = cleanupLevel
         self.audioInput = audioInput
         self.hasChosenLanguages = hasChosenLanguages
         self.sharesProductEvents = sharesProductEvents
