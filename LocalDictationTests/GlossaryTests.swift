@@ -22,6 +22,15 @@ final class GlossaryTests: XCTestCase {
         XCTAssertEqual(glossary.entries.count, 2)
     }
 
+    func testCorrectionsValidateLengthsAndConflictingTriggers() {
+        var glossary = Glossary()
+        XCTAssertTrue(glossary.add("Acme Cloud", replacement: "ack me cloud", language: .english))
+        XCTAssertFalse(glossary.add("Another", replacement: "ACK ME CLOUD", language: .english))
+        XCTAssertTrue(glossary.add("Another", replacement: "ack me cloud", language: .german))
+        XCTAssertFalse(glossary.add(String(repeating: "x", count: 121), language: .english))
+        XCTAssertFalse(glossary.add("valid", replacement: String(repeating: "x", count: 121), language: .english))
+    }
+
     func testRemovalReportsWhetherAnythingChanged() {
         var glossary = Glossary()
         glossary.add("Müller", language: .german)
@@ -63,6 +72,21 @@ final class FileGlossaryStoreTests: XCTestCase {
 
         XCTAssertEqual(reloaded, glossary)
         XCTAssertEqual(reloaded.entries(for: SpeechLanguage.ukrainian).map(\.term), ["з'їзд"])
+    }
+
+    func testOldEntriesDecodeAndExplicitCorrectionsPersist() throws {
+        let legacy = """
+        {"entries":[{"id":"00000000-0000-0000-0000-000000000001","term":"Müller","language":"de"}]}
+        """
+        try Data(legacy.utf8).write(to: directory.appendingPathComponent("glossary.json"))
+        let old = try store().load()
+        XCTAssertNil(old.entries[0].replacement)
+
+        var glossary = old
+        XCTAssertTrue(glossary.add("Acme Cloud", replacement: "ack me cloud", language: .english))
+        try store().save(glossary)
+        let reloaded = try store().load()
+        XCTAssertEqual(reloaded.entries.last?.replacement, "ack me cloud")
     }
 
     func testAMissingFileIsAnEmptyDictionaryRatherThanAnError() throws {

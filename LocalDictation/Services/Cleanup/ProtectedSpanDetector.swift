@@ -57,9 +57,12 @@ struct ProtectedSpanDetector: Sendable {
         }
 
         for entry in glossary where entry.language == language {
-            candidates.append(contentsOf: Self.exactMatches(of: entry.normalizedTerm, in: text).map {
+            let phrases = [entry.normalizedTerm] + (entry.normalizedReplacement.map { [$0] } ?? [])
+            for phrase in phrases {
+                candidates.append(contentsOf: Self.exactMatches(of: phrase, in: text).map {
                 ProtectedSpan(range: $0, category: .glossary, text: String(Array(text)[$0]))
-            })
+                })
+            }
         }
 
         return Self.nonOverlapping(candidates)

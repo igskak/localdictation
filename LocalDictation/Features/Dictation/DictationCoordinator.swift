@@ -1574,9 +1574,9 @@ final class DictationCoordinator: ObservableObject {
     }
 
     @discardableResult
-    func addGlossaryTerm(_ term: String, language: SpeechLanguage) -> Bool {
+    func addGlossaryTerm(_ term: String, replacement: String? = nil, language: SpeechLanguage) -> Bool {
         var updated = glossary
-        guard updated.add(term, language: language) else { return false }
+        guard updated.add(term, replacement: replacement, language: language) else { return false }
         glossary = updated
         persistGlossary()
         return true
@@ -1717,7 +1717,10 @@ final class DictationCoordinator: ObservableObject {
         let cleanup = cleanupService.clean(
             transcript.text,
             language: language,
-            options: CleanupOptions(level: activeCleanupLevel)
+            options: CleanupOptions(
+                level: activeCleanupLevel,
+                glossary: glossary.entries(for: language)
+            )
         )
         let spans = riskEngine.analyze(
             cleanup: cleanup,

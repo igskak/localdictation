@@ -12,6 +12,22 @@ struct TextEdit: Sendable, Equatable {
         case punctuation
         case capitalization
         case fillerRemoval
+        case spokenPunctuation
+        case lineBreak
+        case paragraphBreak
+        case explicitCorrection
+        case repetitionRemoval
+        case listFormatting
+        case numberFormatting
+        case dateFormatting
+        case timeFormatting
+        case currencyFormatting
+        case percentageFormatting
+        case unitFormatting
+        case contextSpacing
+        case contextCapitalization
+        case contextPunctuation
+        case dictionaryCorrection
 
         var label: String {
             switch self {
@@ -19,6 +35,22 @@ struct TextEdit: Sendable, Equatable {
             case .punctuation: L10n.string("Punctuation")
             case .capitalization: L10n.string("Capitalization")
             case .fillerRemoval: L10n.string("Filler removed")
+            case .spokenPunctuation: L10n.string("Spoken punctuation")
+            case .lineBreak: L10n.string("Line break")
+            case .paragraphBreak: L10n.string("Paragraph break")
+            case .explicitCorrection: L10n.string("Explicit correction")
+            case .repetitionRemoval: L10n.string("Repeated words removed")
+            case .listFormatting: L10n.string("List formatting")
+            case .numberFormatting: L10n.string("Number formatting")
+            case .dateFormatting: L10n.string("Date formatting")
+            case .timeFormatting: L10n.string("Time formatting")
+            case .currencyFormatting: L10n.string("Currency formatting")
+            case .percentageFormatting: L10n.string("Percentage formatting")
+            case .unitFormatting: L10n.string("Unit formatting")
+            case .contextSpacing: L10n.string("Context spacing")
+            case .contextCapitalization: L10n.string("Context capitalization")
+            case .contextPunctuation: L10n.string("Context punctuation")
+            case .dictionaryCorrection: L10n.string("Dictionary correction")
             }
         }
 
@@ -27,7 +59,12 @@ struct TextEdit: Sendable, Equatable {
         /// Only filler removal does. That distinction is what keeps the review
         /// step from firing on every utterance: adding a closing period is not
         /// the same event as deleting a word.
-        var removesSpokenWords: Bool { self == .fillerRemoval }
+        var removesSpokenWords: Bool {
+            switch self {
+            case .fillerRemoval, .explicitCorrection, .repetitionRemoval: true
+            default: false
+            }
+        }
     }
 
     let kind: Kind

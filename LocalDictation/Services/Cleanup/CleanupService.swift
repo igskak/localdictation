@@ -5,6 +5,7 @@ import Foundation
 /// language can be turned off there instead of being deleted everywhere.
 struct CleanupOptions: Sendable, Equatable {
     var level: CleanupLevel = .conservative
+    var glossary: [GlossaryEntry] = []
     var collapsesWhitespace: Bool = true
     var fixesPunctuationSpacing: Bool = true
     var removesFillers: Bool = true

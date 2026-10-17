@@ -134,6 +134,14 @@ struct RiskWeights: Sendable, Equatable {
             case .punctuation: cleanupPunctuation
             case .capitalization: cleanupCapitalization
             case .spacing: cleanupSpacing
+            case .spokenPunctuation, .lineBreak, .paragraphBreak, .listFormatting,
+                 .contextSpacing, .contextCapitalization, .contextPunctuation:
+                cleanupPunctuation
+            case .dictionaryCorrection, .explicitCorrection, .repetitionRemoval:
+                cleanupFillerRemoval
+            case .numberFormatting, .dateFormatting, .timeFormatting, .currencyFormatting,
+                 .percentageFormatting, .unitFormatting:
+                0.3
             }
         case let .languageSwitch(language):
             profile.contains(language) ? languageSecondaryOfProfile : languageOutsideProfile

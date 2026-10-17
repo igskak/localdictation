@@ -2,16 +2,21 @@ import Foundation
 
 /// One term the user wants the app to watch for.
 struct GlossaryEntry: Sendable, Equatable, Codable, Identifiable {
+    static let maximumTermLength = 120
+
     let id: UUID
     var term: String
+    /// Optional phrase Whisper tends to produce instead of `term`.
+    var replacement: String?
     /// Terms are scoped by language, per `docs/PRODUCT_SCOPE.md`: a German
     /// customer name is not a Russian one, and a dictionary that ignored the
     /// distinction would fire in the wrong profile.
     var language: SpeechLanguage
 
-    init(id: UUID = UUID(), term: String, language: SpeechLanguage) {
+    init(id: UUID = UUID(), term: String, replacement: String? = nil, language: SpeechLanguage) {
         self.id = id
         self.term = term
+        self.replacement = replacement
         self.language = language
     }
 
@@ -19,7 +24,18 @@ struct GlossaryEntry: Sendable, Equatable, Codable, Identifiable {
         term.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    var isValid: Bool { !normalizedTerm.isEmpty }
+    var normalizedReplacement: String? {
+        guard let value = replacement?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else {
+            return nil
+        }
+        return value
+    }
+
+    var isValid: Bool {
+        !normalizedTerm.isEmpty
+            && normalizedTerm.count <= Self.maximumTermLength
+            && (normalizedReplacement?.count ?? 0) <= Self.maximumTermLength
+    }
 }
 
 /// The user's vocabulary.
@@ -47,14 +63,24 @@ struct Glossary: Sendable, Equatable, Codable {
     /// Adds a term, ignoring blanks and case-insensitive duplicates within the
     /// same language. Returns whether anything changed.
     @discardableResult
-    mutating func add(_ term: String, language: SpeechLanguage) -> Bool {
+    mutating func add(_ term: String, replacement: String? = nil, language: SpeechLanguage) -> Bool {
         let trimmed = term.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return false }
+        let trigger = replacement?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedTrigger = trigger.flatMap { $0.isEmpty ? nil : $0 }
+        guard !trimmed.isEmpty,
+              trimmed.count <= GlossaryEntry.maximumTermLength,
+              (normalizedTrigger?.count ?? 0) <= GlossaryEntry.maximumTermLength
+        else { return false }
         let exists = entries.contains {
-            $0.language == language && $0.normalizedTerm.lowercased() == trimmed.lowercased()
+            guard $0.language == language else { return false }
+            if let normalizedTrigger {
+                return $0.normalizedReplacement?.localizedCaseInsensitiveCompare(normalizedTrigger) == .orderedSame
+            }
+            return $0.normalizedReplacement == nil
+                && $0.normalizedTerm.localizedCaseInsensitiveCompare(trimmed) == .orderedSame
         }
         guard !exists else { return false }
-        entries.append(GlossaryEntry(term: trimmed, language: language))
+        entries.append(GlossaryEntry(term: trimmed, replacement: normalizedTrigger, language: language))
         return true
     }
 

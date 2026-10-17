@@ -456,16 +456,26 @@ struct GlossaryView: View {
     @EnvironmentObject private var coordinator: DictationCoordinator
 
     @State private var term = ""
+    @State private var replacement = ""
     /// Nil until the user picks one, which is what lets the picker follow the
     /// preferred language instead of a hardcoded German.
     @State private var language: SpeechLanguage?
 
     var body: some View {
         Form {
-            Section("Add a term") {
-                HStack {
-                    TextField("Name, product, or term", text: $term)
+            Section("Add a term or correction") {
+                VStack(alignment: .leading, spacing: 8) {
+                    TextField("Preferred spelling or phrase", text: $term)
                         .onSubmit(add)
+                    TextField("Optional: when Witness writes…", text: $replacement)
+                        .onSubmit(add)
+                    HStack {
+                        Text(replacement.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                             ? "Watch this term"
+                             : "Replace the second phrase with the preferred spelling")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Spacer()
                     Picker("", selection: chosenLanguage) {
                         // The languages the user speaks, not a fixed four. A
                         // term is scoped by language, so offering a language
@@ -479,9 +489,10 @@ struct GlossaryView: View {
                     .frame(width: 70)
                     Button("Add", action: add)
                         .disabled(term.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
                 }
 
-                Text("A word that comes out close to one of your terms, but not equal to it, is marked for review. An exact match is not: it came out right.")
+                Text("Corrections are explicit and stay on this Mac. A watched term without a correction is only used to mark near misses for review.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -495,7 +506,14 @@ struct GlossaryView: View {
                     Section(language.displayName) {
                         ForEach(entries) { entry in
                             HStack {
-                                Text(entry.term)
+                                VStack(alignment: .leading) {
+                                    Text(entry.term)
+                                    if let trigger = entry.normalizedReplacement {
+                                        Text("When Witness writes “\(trigger)”, replace it with “\(entry.normalizedTerm)”.")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
                                 Spacer()
                                 Button {
                                     coordinator.removeGlossaryTerm(id: entry.id)
@@ -564,8 +582,13 @@ struct GlossaryView: View {
     }
 
     private func add() {
-        guard coordinator.addGlossaryTerm(term, language: chosenLanguage.wrappedValue) else { return }
+        guard coordinator.addGlossaryTerm(
+            term,
+            replacement: replacement,
+            language: chosenLanguage.wrappedValue
+        ) else { return }
         term = ""
+        replacement = ""
     }
 }
 

@@ -23,11 +23,11 @@ final class AdaptiveCleanupFoundationTests: XCTestCase {
         }
     }
 
-    func testCleanBeginsAsConservativeUntilMeasuredRulesLand() {
-        let raw = "hello comma world"
+    func testCleanRetainsConservativeBehaviorWithoutAnAdaptiveTrigger() {
+        let raw = "hello world"
         XCTAssertEqual(
-            service.clean(raw, language: .english, options: CleanupOptions(level: .clean)),
-            service.clean(raw, language: .english, options: CleanupOptions(level: .conservative))
+            service.clean(raw, language: .english, options: CleanupOptions(level: .clean)).cleaned,
+            service.clean(raw, language: .english, options: CleanupOptions(level: .conservative)).cleaned
         )
     }
 
