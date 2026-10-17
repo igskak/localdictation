@@ -74,7 +74,9 @@
 		9506325497705DE359C70CE8 /* ConservativeCleanupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 663B6E706FBC4E180BA9FB33 /* ConservativeCleanupService.swift */; };
 		F909B660E6F6687C24AF70C3 /* DictionaryCorrectionTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F438789C4FAF9A4F53ED298A /* DictionaryCorrectionTransformer.swift */; };
 		C88B2AFEB86EF2F8BC3FF474 /* EditMapComposition.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2D21F18BD19C9009D2FC680 /* EditMapComposition.swift */; };
+		81034892BB1C55A0FE753AE4 /* ExplicitCorrectionTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9007BD65069CCDF450A9C382 /* ExplicitCorrectionTransformer.swift */; };
 		9E3437D505D7A526B4970700 /* ProtectedSpanDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBB68CED40F6A6CCF7175669 /* ProtectedSpanDetector.swift */; };
+		9406142C82C8138D10B070E6 /* RepetitionTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EA49ACB6185609F326C0364 /* RepetitionTransformer.swift */; };
 		3DE0E50E1814C5DB24F27F56 /* SpokenCommandTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E904654C7C10FF6C887356A7 /* SpokenCommandTransformer.swift */; };
 		5B7C328DCA493AA374586BB9 /* VerifiedLanguageCleanupRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5814841F90BC85AD66DDCC6A /* VerifiedLanguageCleanupRules.swift */; };
 		0873D931AA6B88380BD9630B /* GlossaryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A22ED38B417B37D308CBEB4 /* GlossaryStore.swift */; };
@@ -137,6 +139,7 @@
 		D116B761BB9FC7C2C9CFE737 /* ActivationServiceParityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 020F188C581182E5BA5B5E8C /* ActivationServiceParityTests.swift */; };
 		28A2A21BE7AEB61852B2B81D /* AdaptiveCleanupBenchmarkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE473996DF1D368732F4C1D9 /* AdaptiveCleanupBenchmarkTests.swift */; };
 		6A85AA5E116248A1B864A605 /* AdaptiveCleanupCommandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8AA35B02677BABBE8E16DBB /* AdaptiveCleanupCommandTests.swift */; };
+		6360747651BDA0948A7E583C /* AdaptiveCleanupDisfluencyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E627EC7426D6B2306B9692F /* AdaptiveCleanupDisfluencyTests.swift */; };
 		DF2A4ADB61CC0C9B7BF6ED78 /* AdaptiveCleanupFoundationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D645E121C0822E14D2F4C18 /* AdaptiveCleanupFoundationTests.swift */; };
 		0E91A18B48A3D839F69FA867 /* ApplicationSupportDirectoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 212E3A0E3F2C267713E461B3 /* ApplicationSupportDirectoryTests.swift */; };
 		3C6766FB84D9FB7521A6A7AF /* AudioFormatConverterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E724DC5B9AB291F8DE43FC73 /* AudioFormatConverterTests.swift */; };
@@ -298,7 +301,9 @@
 		663B6E706FBC4E180BA9FB33 /* ConservativeCleanupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConservativeCleanupService.swift; sourceTree = "<group>"; };
 		F438789C4FAF9A4F53ED298A /* DictionaryCorrectionTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryCorrectionTransformer.swift; sourceTree = "<group>"; };
 		A2D21F18BD19C9009D2FC680 /* EditMapComposition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditMapComposition.swift; sourceTree = "<group>"; };
+		9007BD65069CCDF450A9C382 /* ExplicitCorrectionTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExplicitCorrectionTransformer.swift; sourceTree = "<group>"; };
 		CBB68CED40F6A6CCF7175669 /* ProtectedSpanDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProtectedSpanDetector.swift; sourceTree = "<group>"; };
+		6EA49ACB6185609F326C0364 /* RepetitionTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepetitionTransformer.swift; sourceTree = "<group>"; };
 		E904654C7C10FF6C887356A7 /* SpokenCommandTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpokenCommandTransformer.swift; sourceTree = "<group>"; };
 		5814841F90BC85AD66DDCC6A /* VerifiedLanguageCleanupRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerifiedLanguageCleanupRules.swift; sourceTree = "<group>"; };
 		6A22ED38B417B37D308CBEB4 /* GlossaryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlossaryStore.swift; sourceTree = "<group>"; };
@@ -366,6 +371,7 @@
 		020F188C581182E5BA5B5E8C /* ActivationServiceParityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivationServiceParityTests.swift; sourceTree = "<group>"; };
 		AE473996DF1D368732F4C1D9 /* AdaptiveCleanupBenchmarkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveCleanupBenchmarkTests.swift; sourceTree = "<group>"; };
 		A8AA35B02677BABBE8E16DBB /* AdaptiveCleanupCommandTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveCleanupCommandTests.swift; sourceTree = "<group>"; };
+		2E627EC7426D6B2306B9692F /* AdaptiveCleanupDisfluencyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveCleanupDisfluencyTests.swift; sourceTree = "<group>"; };
 		6D645E121C0822E14D2F4C18 /* AdaptiveCleanupFoundationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveCleanupFoundationTests.swift; sourceTree = "<group>"; };
 		212E3A0E3F2C267713E461B3 /* ApplicationSupportDirectoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplicationSupportDirectoryTests.swift; sourceTree = "<group>"; };
 		E724DC5B9AB291F8DE43FC73 /* AudioFormatConverterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFormatConverterTests.swift; sourceTree = "<group>"; };
@@ -640,7 +646,9 @@
 				663B6E706FBC4E180BA9FB33 /* ConservativeCleanupService.swift */,
 				F438789C4FAF9A4F53ED298A /* DictionaryCorrectionTransformer.swift */,
 				A2D21F18BD19C9009D2FC680 /* EditMapComposition.swift */,
+				9007BD65069CCDF450A9C382 /* ExplicitCorrectionTransformer.swift */,
 				CBB68CED40F6A6CCF7175669 /* ProtectedSpanDetector.swift */,
+				6EA49ACB6185609F326C0364 /* RepetitionTransformer.swift */,
 				E904654C7C10FF6C887356A7 /* SpokenCommandTransformer.swift */,
 				5814841F90BC85AD66DDCC6A /* VerifiedLanguageCleanupRules.swift */,
 			);
@@ -862,6 +870,7 @@
 				020F188C581182E5BA5B5E8C /* ActivationServiceParityTests.swift */,
 				AE473996DF1D368732F4C1D9 /* AdaptiveCleanupBenchmarkTests.swift */,
 				A8AA35B02677BABBE8E16DBB /* AdaptiveCleanupCommandTests.swift */,
+				2E627EC7426D6B2306B9692F /* AdaptiveCleanupDisfluencyTests.swift */,
 				6D645E121C0822E14D2F4C18 /* AdaptiveCleanupFoundationTests.swift */,
 				212E3A0E3F2C267713E461B3 /* ApplicationSupportDirectoryTests.swift */,
 				E724DC5B9AB291F8DE43FC73 /* AudioFormatConverterTests.swift */,
@@ -1137,7 +1146,9 @@
 				9506325497705DE359C70CE8 /* ConservativeCleanupService.swift in Sources */,
 				F909B660E6F6687C24AF70C3 /* DictionaryCorrectionTransformer.swift in Sources */,
 				C88B2AFEB86EF2F8BC3FF474 /* EditMapComposition.swift in Sources */,
+				81034892BB1C55A0FE753AE4 /* ExplicitCorrectionTransformer.swift in Sources */,
 				9E3437D505D7A526B4970700 /* ProtectedSpanDetector.swift in Sources */,
+				9406142C82C8138D10B070E6 /* RepetitionTransformer.swift in Sources */,
 				3DE0E50E1814C5DB24F27F56 /* SpokenCommandTransformer.swift in Sources */,
 				5B7C328DCA493AA374586BB9 /* VerifiedLanguageCleanupRules.swift in Sources */,
 				0873D931AA6B88380BD9630B /* GlossaryStore.swift in Sources */,
@@ -1207,6 +1218,7 @@
 				D116B761BB9FC7C2C9CFE737 /* ActivationServiceParityTests.swift in Sources */,
 				28A2A21BE7AEB61852B2B81D /* AdaptiveCleanupBenchmarkTests.swift in Sources */,
 				6A85AA5E116248A1B864A605 /* AdaptiveCleanupCommandTests.swift in Sources */,
+				6360747651BDA0948A7E583C /* AdaptiveCleanupDisfluencyTests.swift in Sources */,
 				DF2A4ADB61CC0C9B7BF6ED78 /* AdaptiveCleanupFoundationTests.swift in Sources */,
 				0E91A18B48A3D839F69FA867 /* ApplicationSupportDirectoryTests.swift in Sources */,
 				3C6766FB84D9FB7521A6A7AF /* AudioFormatConverterTests.swift in Sources */,

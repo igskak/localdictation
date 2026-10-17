@@ -7,6 +7,8 @@ struct AdaptiveCleanupService: CleanupService {
     private let conservative = ConservativeCleanupService()
     private let commands = SpokenCommandTransformer()
     private let dictionary = DictionaryCorrectionTransformer()
+    private let corrections = ExplicitCorrectionTransformer()
+    private let repetitions = RepetitionTransformer()
 
     func clean(_ raw: String, language: SpeechLanguage, options: CleanupOptions) -> CleanupResult {
         switch options.level {
@@ -45,6 +47,30 @@ struct AdaptiveCleanupService: CleanupService {
                     result.cleaned,
                     language: language,
                     glossary: options.glossary,
+                    protected: ProtectedSpanDetector().detect(
+                        in: result.cleaned,
+                        language: language,
+                        glossary: options.glossary
+                    )
+                ),
+                to: result
+            )
+            result = append(
+                corrections.transform(
+                    result.cleaned,
+                    language: language,
+                    protected: ProtectedSpanDetector().detect(
+                        in: result.cleaned,
+                        language: language,
+                        glossary: options.glossary
+                    )
+                ),
+                to: result
+            )
+            result = append(
+                repetitions.transform(
+                    result.cleaned,
+                    language: language,
                     protected: ProtectedSpanDetector().detect(
                         in: result.cleaned,
                         language: language,
