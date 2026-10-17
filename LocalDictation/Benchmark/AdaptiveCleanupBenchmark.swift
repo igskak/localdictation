@@ -1,0 +1,101 @@
+#if DEBUG
+import Foundation
+
+/// A text-only cleanup fixture. Real recordings remain in the private,
+/// consented corpus outside the repository; this manifest is safe to commit
+/// because it contains only deliberately authored test phrases.
+struct AdaptiveCleanupSample: Sendable, Codable, Equatable {
+    struct Context: Sendable, Codable, Equatable {
+        let category: String
+        let textBeforeCaret: String
+        let textAfterCaret: String
+        let hasSelection: Bool
+    }
+
+    let identifier: String
+    let language: SpeechLanguage
+    let profile: String?
+    let raw: String
+    let ideal: String
+    let context: Context?
+    let protectedValues: [String]
+    let allowedEditKinds: [String]
+
+    var languageProfile: LanguageProfile {
+        profile.flatMap(LanguageProfile.profile(id:)) ?? LanguageProfile(language)
+    }
+}
+
+struct AdaptiveCleanupManifest: Sendable, Codable, Equatable {
+    let name: String
+    let samples: [AdaptiveCleanupSample]
+
+    static let manifestName = "flow-light.json"
+
+    static func load(from directory: URL) throws -> AdaptiveCleanupManifest {
+        let url = directory.appendingPathComponent(manifestName)
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            throw BenchmarkCorpusError.manifestMissing(url.path)
+        }
+        return try JSONDecoder().decode(Self.self, from: Data(contentsOf: url))
+    }
+}
+
+struct AdaptiveCleanupSampleResult: Sendable, Equatable {
+    let identifier: String
+    let language: SpeechLanguage
+    let raw: String
+    let ideal: String
+    let output: String
+    let editPrecision: Double
+    let editRecall: Double
+    let protectedValuesPreserved: Bool
+    let punctuationF1: Double
+    let lineBreakF1: Double
+    let correctionEffort: Int
+    let processingDuration: TimeInterval
+    let unexpectedEditKinds: [String]
+}
+
+struct AdaptiveCleanupReport: Sendable, Equatable {
+    let name: String
+    let results: [AdaptiveCleanupSampleResult]
+
+    var byLanguage: [SpeechLanguage: [AdaptiveCleanupSampleResult]] {
+        Dictionary(grouping: results, by: \.language)
+    }
+
+    var p50Duration: TimeInterval { percentile(0.50) }
+    var p95Duration: TimeInterval { percentile(0.95) }
+
+    private func percentile(_ fraction: Double) -> TimeInterval {
+        let values = results.map(\.processingDuration).sorted()
+        guard !values.isEmpty else { return 0 }
+        let index = Int((Double(values.count - 1) * fraction).rounded(.up))
+        return values[min(index, values.count - 1)]
+    }
+}
+
+enum AdaptiveCleanupBenchmark {
+    static func run(
+        manifest: AdaptiveCleanupManifest,
+        service: any CleanupService
+    ) -> AdaptiveCleanupReport {
+        let clock = ContinuousClock()
+        let results = manifest.samples.map { sample in
+            let start = clock.now
+            let cleanup = service.clean(sample.raw, language: sample.language)
+            let duration = start.duration(to: clock.now).timeInterval
+            return AdaptiveCleanupScorer.score(sample: sample, cleanup: cleanup, duration: duration)
+        }
+        return AdaptiveCleanupReport(name: manifest.name, results: results)
+    }
+}
+
+private extension Duration {
+    var timeInterval: TimeInterval {
+        let parts = components
+        return Double(parts.seconds) + Double(parts.attoseconds) / 1e18
+    }
+}
+#endif
