@@ -15,7 +15,8 @@ enum EditMapComposition {
                 rawRange: edit.rawRange,
                 cleanedRange: stage.map.cleanedRange(forRaw: edit.cleanedRange),
                 rawText: edit.rawText,
-                cleanedText: slice(stage.cleaned, stage.map.cleanedRange(forRaw: edit.cleanedRange))
+                cleanedText: slice(stage.cleaned, stage.map.cleanedRange(forRaw: edit.cleanedRange)),
+                typedValue: edit.typedValue
             )
         }
         let introduced = stage.edits.map { edit in
@@ -24,7 +25,8 @@ enum EditMapComposition {
                 rawRange: accumulated.map.rawRange(forCleaned: edit.rawRange),
                 cleanedRange: edit.cleanedRange,
                 rawText: slice(accumulated.raw, accumulated.map.rawRange(forCleaned: edit.rawRange)),
-                cleanedText: edit.cleanedText
+                cleanedText: edit.cleanedText,
+                typedValue: edit.typedValue
             )
         }
 

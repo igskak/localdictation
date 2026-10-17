@@ -4,6 +4,7 @@ struct CleanupReplacement: Sendable, Equatable {
     let range: Range<Int>
     let text: String
     let kind: TextEdit.Kind
+    var typedValue: TypedValueRecord? = nil
 }
 
 enum CleanupTransformation {
@@ -51,7 +52,8 @@ enum CleanupTransformation {
                     rawRange: replacement.range,
                     cleanedRange: cleanRange,
                     rawText: String(source[replacement.range]),
-                    cleanedText: replacement.text
+                    cleanedText: replacement.text,
+                    typedValue: replacement.typedValue
                 )
             )
             rawCursor = replacement.range.upperBound

@@ -1,5 +1,15 @@
 import Foundation
 
+struct TypedValueRecord: Sendable, Equatable {
+    enum Category: String, Sendable, Equatable {
+        case number, date, time, currency, percentage, unit
+    }
+
+    let category: Category
+    /// Locale-independent value used by round-trip and review tests.
+    let canonicalValue: String
+}
+
 /// One conservative edit cleanup made to the raw transcript.
 ///
 /// The kinds are a closed set on purpose. Phase 3 cleanup may not change
@@ -74,6 +84,23 @@ struct TextEdit: Sendable, Equatable {
     let cleanedRange: Range<Int>
     let rawText: String
     let cleanedText: String
+    let typedValue: TypedValueRecord?
+
+    init(
+        kind: Kind,
+        rawRange: Range<Int>,
+        cleanedRange: Range<Int>,
+        rawText: String,
+        cleanedText: String,
+        typedValue: TypedValueRecord? = nil
+    ) {
+        self.kind = kind
+        self.rawRange = rawRange
+        self.cleanedRange = cleanedRange
+        self.rawText = rawText
+        self.cleanedText = cleanedText
+        self.typedValue = typedValue
+    }
 }
 
 /// Translates character ranges between the raw transcript and the cleaned text.
