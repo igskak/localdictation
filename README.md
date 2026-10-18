@@ -26,6 +26,15 @@ German, English, Russian, and Ukrainian remain the verified tier — the rest ar
 recognized, and the rules calibrated per language stay off rather than guess.
 See `docs/PHASE_7.md`.
 
+Phase 9 (Flow-Light-like adaptive cleanup) is implemented behind a three-level
+setting. Clean is a deterministic local pipeline for spoken commands, explicit
+corrections, adjacent repetitions, lists, typed values, dictionary corrections,
+and bounded presentation-only field context; it does not use a generative model.
+The raw transcript, Conservative intermediate, final text, and exact edit
+provenance remain available. Clean is intentionally not the fresh-install
+default until the private real-speech, manual compatibility, blinded preference,
+soak, and latency gates pass; see `docs/PHASE_9_RELEASE_GATE.md`.
+
 After Phase 6, a round of refinements closed the gaps between what the app
 promised and what it did. The app now says something when a dictation comes back
 empty, names the application holding secure input, keeps the words when a
@@ -59,7 +68,7 @@ Six refinement decisions are worth knowing before reading the code:
   paragraph. Nobody holds a key for four minutes.
 - **Settings that do not survive a launch are not settings.** So there is a
   third file in Application Support beside the dictionary and the licensing
-  record. It is JSON, readable, six fields, and a test asserts the list.
+  record. It is JSON, readable, and a test asserts its exact field list.
 - **A locked Mac no longer opens the microphone, and the press is where the
   price is named.** `.locked -> .locked` read as a successful transition, so a
   press after the trial ended started a recording nothing could stop. The
@@ -110,6 +119,8 @@ Read these files before continuing implementation:
 - `docs/PHASE_5.md` — why the review stopped interrupting, and what it cost.
 - `docs/PHASE_6.md` — the trial, the key format, and what is deliberately not built yet.
 - `docs/PHASE_8.md` — the activation service, the checkout, and the release, as one specification with the wire contract frozen.
+- `docs/PHASE_9_FLOW_LIGHT.md` — the adaptive cleanup contract and release thresholds.
+- `docs/PHASE_9_RELEASE_GATE.md` — which automated evidence exists and which private/manual gates still block Clean-by-default.
 - `docs/PHASE_6_RELEASE.md` — signing, notarization, and publishing signed updates. A Developer ID release and end-to-end update from a preceding installed version remain to be run.
 - `docs/REFINEMENTS.md` — what the app now says when a dictation produces nothing, who is named when insertion is refused, and the three settings that reach disk.
 - `AGENTS.md` — repository-level engineering constraints.
@@ -178,6 +189,7 @@ LocalDictation/
   Services/Transcription/ TranscriptionService boundary and engine adapters
   Services/Text/          word scanning, edit distance, language evidence
   Services/Cleanup/       conservative cleanup and the edit map
+  Services/Context/       bounded, ephemeral AX context and presentation-only composition
   Services/Risk/          the six risk signals and the engine combining them
   Services/Review/        the review policy and decision
   Services/Glossary/      the user dictionary and its persistence
@@ -211,7 +223,7 @@ Audio stays in memory. Normal capture performs no file writes, and a test assert
 
 A recording's lifetime is bounded by the review decision, not by the end of the interaction: it is released the instant the app decides no review is needed, and otherwise when the review is accepted, dismissed, or superseded. Tests assert both. Replay reads those samples straight out of memory — no file and no URL is involved.
 
-Three files in `~/Library/Application Support/Witness/` are the only things written to disk. `glossary.json` holds terms and their language; `license.json` holds an install identifier, when the first dictation happened, the furthest date the app has seen, the license key if there is one, and which of the once-per-install setup events have already been reported; `preferences.json` holds the shortcut's key code, modifiers, and label, the recording mode, the languages the user speaks, whether insertion is automatic, and whether the first-run language question has been answered. A test asserts the exact field list of each.
+Three files in `~/Library/Application Support/Witness/` are the only things written to disk. `glossary.json` holds user-entered terms, optional explicit replacement phrases, and their language; `license.json` holds an install identifier, when the first dictation happened, the furthest date the app has seen, the license key if there is one, and which of the once-per-install setup events have already been reported; `preferences.json` holds the shortcut, recording mode, languages, insertion choice, cleanup level, microphone choice, first-run answer, and product-event consent. A test asserts the exact field list of each.
 
 Nothing in `preferences.json` is derived from anything that was said. It is a settings file rather than a `UserDefaults` domain on purpose: everything this app writes belongs in one directory the user can open, and a preference the app will not show its owner is a preference the app is keeping from them.
 

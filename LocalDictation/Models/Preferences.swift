@@ -124,7 +124,7 @@ struct Preferences: Sendable, Equatable, Codable {
         activation: .pushToTalk,
         languageProfile: .default,
         insertsAutomatically: true,
-        cleanupLevel: .conservative,
+        cleanupLevel: AdaptiveCleanupReleaseGate.defaultLevel(for: nil),
         hasChosenLanguages: false,
         sharesProductEvents: true,
         audioInput: .builtIn

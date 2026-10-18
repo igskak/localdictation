@@ -34,13 +34,20 @@ The selection is explicit and ordered: the first language is preferred, and it d
 - Global push-to-talk and toggle recording modes.
 - Local microphone capture and VAD.
 - Local STT.
-- Raw transcript and conservative cleanup.
+- Raw transcript plus selectable Verbatim, Conservative, and deterministic
+  Clean modes. Clean adds explicit spoken commands and corrections, adjacent
+  repetition removal, plain-text lists, typed values, and presentation-only
+  field joins; it does not paraphrase or use a generative model.
 - Risk detection for low-confidence fragments, numbers, dates, currency, names, malformed words, negations, and glossary terms.
 - Review UI that never stands between the user and their text. Insertion is unconditional; when something is worth checking the app lights an indicator, and the review opens only if the user asks for it.
 - Raw transcript recovery.
 - Ephemeral replay of a risky audio fragment.
 - Accessibility insertion with clipboard fallback.
-- User dictionaries scoped by language.
+- User dictionaries scoped by language, including explicit user-authored
+  “when Witness writes … replace with …” corrections.
+- Optional bounded local field context for spacing, casing, and terminal
+  punctuation. It is read only for the captured current application, is never
+  stored or logged, and is unavailable for secure fields.
 - Email-key activation for up to two Macs without a product account. Download is never gated, but email activation is required after three days from the first successful dictation to continue the trial.
 
 ## Deliberately after MVP
@@ -67,3 +74,8 @@ The selection is explicit and ordered: the first language is preferred, and it d
 - Limited non-content product and marketing events may be sent for activation, funnel measurement, licensing, checkout, and updates. The allowed event names and payload fields must be enumerated before implementation.
 - General diagnostics remain local unless the user explicitly chooses to share them.
 - The privacy policy, first-run disclosure, and relevant product terms must identify every transmitted field, purpose, recipient, and retention period.
+
+Clean is opt-in while the Phase 9 real-speech, manual compatibility, blind
+preference, soak, and latency gates remain unrecorded. A fresh install and an
+upgraded pre-Phase-9 preferences file both use Conservative; see
+`docs/PHASE_9_RELEASE_GATE.md`.

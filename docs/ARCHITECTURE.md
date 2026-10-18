@@ -11,8 +11,12 @@ Global hotkey
      ending the utterance)
   -> voice activity detection
   -> local STT with token metadata and timestamps
-  -> language-aware risk engine
-  -> conservative cleanup with an auditable edit diff
+  -> protected-span detection
+  -> adaptive local cleanup (raw -> Conservative -> Clean)
+       -> commands / explicit corrections / repetitions / lists / typed values
+  -> optional bounded Accessibility context (64 UTF-16 before, 32 after)
+       -> spacing / casing / terminal punctuation only
+  -> language-aware risk engine over raw evidence and every named edit
   -> map risky source spans onto the cleaned transcript
   -> Accessibility insertion
   -> clipboard fallback
@@ -34,7 +38,14 @@ Global hotkey
 - `TranscriptionService`: returns text plus token-level timing and confidence metadata.
 - `RiskEngine`: combines model confidence, language switching, entities, numbers, glossary matches, malformed words, and cleanup edits.
 - `LexiconChecking`: answers whether a word exists in a language, behind a protocol so the signals stay pure and the measurement stays machine-independent.
-- `CleanupService`: performs conservative, reversible editing and returns an edit map.
+- `CleanupService`: selects Verbatim, the unchanged Conservative implementation,
+  or the deterministic Clean transformer chain and returns an exactly composed
+  edit map with raw, Conservative, and final text.
+- `TextContextService`: returns an ephemeral bounded slice only when the captured
+  target is still current and non-secure. Missing, stale, secure, or timed-out
+  context is `.unavailable` and cleanup continues unchanged.
+- `ContextCompositor`: uses context only for boundary spacing, first-letter
+  casing, and category-configured terminal punctuation; it cannot rewrite words.
 - `ReviewCoordinator`: prices a result's marks against two thresholds — one that decides whether the app points at anything, one that decides what the review draws once opened. Insertion never waits for it.
 - `TextInsertionService`: uses Accessibility first and clipboard as a fallback.
 - `EntitlementPolicy`: the commercial rules as a pure function of a usage record, a verified license, and a date — the ungated five-dictation/24-hour window, the fourteen-day trial, and the expiry of a dated license. No clock, no disk, no network.

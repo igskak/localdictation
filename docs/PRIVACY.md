@@ -55,8 +55,23 @@ Audio is held in memory for the length of an utterance and released when the
 next one begins or when you close the review; it is never written to disk, and
 `AGENTS.md` forbids adding a feature that writes it without an explicit opt-in.
 
-The dictionary, the risk warnings, the cleanup, and the review are all local
-computation over local text. They have no network code in them at all.
+The dictionary (including explicit replacement phrases), the risk warnings,
+the cleanup, and the review are all local computation over local text. They
+have no network code in them at all.
+
+Clean may read a small slice of the focused field immediately before it joins
+the result to the destination: at most 64 UTF-16 code units before the caret and
+32 after it. The read happens only when the application captured at the start
+of the dictation is still frontmost. Secure input, secure fields, missing trust,
+a changed target, and an Accessibility timeout produce no context object and
+fall back to context-free cleanup. The slice is consumed synchronously for
+spacing, first-letter casing, and terminal punctuation, then released. It is
+not placed in the result, recent dictations, preferences, the dictionary,
+diagnostics, telemetry, crash metadata, or a log line.
+
+Dictionary corrections are saved only when the user explicitly writes both
+the preferred term and its optional misrecognition in Settings. Witness does
+not learn corrections from dictations or from text in other applications.
 
 ## The activation request, field by field
 
