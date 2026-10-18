@@ -36,6 +36,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         #endif
+        #if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+        if let index = arguments.firstIndex(of: "--notetaker-audio-spike"),
+           arguments.count > index + 2,
+           let processID = pid_t(arguments[index + 1]), processID > 0,
+           let seconds = Int(arguments[index + 2]), seconds > 0, seconds <= 7200 {
+            Task.detached {
+                let succeeded = DebugSystemAudioProbe.run(processID: processID, durationSeconds: seconds, exercisePause: arguments.contains("--notetaker-spike-pause"))
+                await MainActor.run { exit(succeeded ? 0 : 1) }
+            }
+            return
+        }
+        #endif
         Log.application.info("Witness launched as a menu bar utility")
         if let coordinator = Self.coordinator {
             reviewPanel = ReviewPanelController(coordinator: coordinator)
