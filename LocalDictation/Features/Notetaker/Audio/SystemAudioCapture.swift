@@ -30,6 +30,7 @@ enum SystemAudioCaptureError: Error, Equatable {
     case processNotFound
     case unsupportedFormat
     case invalidState
+    case discontinuity
     case coreAudio(OSStatus)
 }
 

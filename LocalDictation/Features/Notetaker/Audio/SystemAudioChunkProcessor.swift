@@ -2,7 +2,7 @@ import AVFoundation
 import CoreAudio
 import Foundation
 
-enum MeetingAudioSource: Sendable, Equatable { case microphone, system }
+enum MeetingAudioSource: Sendable, Hashable { case microphone, system }
 
 struct MeetingAudioChunk: Sendable {
     let source: MeetingAudioSource
@@ -17,17 +17,21 @@ struct MeetingAudioChunk: Sendable {
 /// conversion and allocation never occur in the Core Audio callback.
 final class SystemAudioChunkProcessor {
     private let buffer: MeetingAudioBuffer
+    private let source: MeetingAudioSource
     private let originHostTime: UInt64
     private let converter: AudioFormatConverter
     private var nextFrame: Int64 = 0
     private var nextSequence: UInt64 = 0
+    private var previousSequence: UInt64?
+    private var expectedInputEndNanos: UInt64?
     private var finished = false
 
-    init(buffer: MeetingAudioBuffer, inputSampleRate: Double, originHostTime: UInt64) throws {
+    init(buffer: MeetingAudioBuffer, inputSampleRate: Double, originHostTime: UInt64, source: MeetingAudioSource = .system) throws {
         guard let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: inputSampleRate, channels: 1, interleaved: false) else {
             throw SystemAudioCaptureError.unsupportedFormat
         }
         self.buffer = buffer
+        self.source = source
         self.originHostTime = originHostTime
         self.converter = try AudioFormatConverter(inputFormat: format)
     }
@@ -41,11 +45,20 @@ final class SystemAudioChunkProcessor {
         chunk.samples.withUnsafeBufferPointer { values in
             if let source = values.baseAddress { channel.update(from: source, count: values.count) }
         }
+        let hostNanos = AudioConvertHostTimeToNanos(chunk.hostTime)
+        if let previousSequence, chunk.sequence != previousSequence + 1 { throw SystemAudioCaptureError.discontinuity }
+        if let expected = expectedInputEndNanos {
+            let delta = hostNanos >= expected ? hostNanos - expected : expected - hostNanos
+            let tolerance = UInt64((2e9 / chunk.sampleRate).rounded(.up))
+            guard delta <= tolerance else { throw SystemAudioCaptureError.discontinuity }
+        }
+        let start = previousSequence == nil ? Self.frame(hostTime: chunk.hostTime, originHostTime: originHostTime) : nextFrame
         let frames = try converter.convert(input)
-        let start = Self.frame(hostTime: chunk.hostTime, originHostTime: originHostTime)
         nextFrame = start + Int64(frames.count)
         nextSequence = chunk.sequence + 1
-        return MeetingAudioChunk(source: .system, sequence: chunk.sequence, startFrame: start,
+        previousSequence = chunk.sequence
+        expectedInputEndNanos = hostNanos + UInt64((Double(chunk.samples.count) / chunk.sampleRate * 1e9).rounded())
+        return MeetingAudioChunk(source: source, sequence: chunk.sequence, startFrame: start,
                                  sampleRate: converter.outputFormat.sampleRate, samples: Array(frames), isFinal: false)
     }
 
@@ -54,7 +67,7 @@ final class SystemAudioChunkProcessor {
         guard !finished, buffer.snapshot().queuedChunks == 0 else { throw SystemAudioCaptureError.invalidState }
         finished = true
         let tail = try converter.drain()
-        return MeetingAudioChunk(source: .system, sequence: nextSequence, startFrame: nextFrame,
+        return MeetingAudioChunk(source: source, sequence: nextSequence, startFrame: nextFrame,
                                  sampleRate: converter.outputFormat.sampleRate, samples: Array(tail), isFinal: true)
     }
 

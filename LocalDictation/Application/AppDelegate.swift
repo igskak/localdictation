@@ -23,6 +23,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// another application, and there is no menu bar window open to host the
     /// answer.
     private var paywall: PaywallWindowController?
+    #if DEBUG
+    private var debugMeetingWindow: DebugMeetingWindowController?
+    #endif
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -38,6 +41,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #endif
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("--notetaker-meeting-harness") {
+            let controller = DebugMeetingWindowController()
+            debugMeetingWindow = controller
+            controller.show()
+            return
+        }
         if arguments.contains("--notetaker-audio-processes") {
             Task.detached {
                 let succeeded = DebugSystemAudioProbe.printProcessInventory()

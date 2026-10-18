@@ -27,6 +27,7 @@ actor WhisperKitTranscriptionService: TranscriptionService {
     /// return a distil-whisper build, which is far weaker outside English and
     /// would quietly wreck German, Russian, and Ukrainian.
     private let modelVariant: String
+    private let logsInference: Bool
 
     private var engine: WhisperKit?
 
@@ -88,9 +89,11 @@ actor WhisperKitTranscriptionService: TranscriptionService {
 
     init(
         modelVariant: String = WhisperKitTranscriptionService.defaultModelVariant,
-        reusesEncoderOutput: Bool = true
+        reusesEncoderOutput: Bool = true,
+        logsInference: Bool = true
     ) {
         self.modelVariant = modelVariant
+        self.logsInference = logsInference
         encoder = reusesEncoderOutput ? ReusingAudioEncoder() : nil
     }
 
@@ -420,9 +423,11 @@ actor WhisperKitTranscriptionService: TranscriptionService {
         // higher temperature, which is what makes the same phrase take one
         // second once and four the next; `idle` separates a cold first press
         // from a warm one.
-        Log.transcription.info(
-            "Inference stages: language \(String(format: "%.2f", languageReadyAt.timeIntervalSince(started)), privacy: .public) s, decode \(String(format: "%.2f", decodedAt.timeIntervalSince(languageReadyAt)), privacy: .public) s, encoder passes reused \(reusedPasses, privacy: .public), fallbacks \(fallbacks, privacy: .public), idle \(idle.map { String(format: "%.0f s", $0) } ?? "first", privacy: .public)"
-        )
+        if logsInference {
+            Log.transcription.info(
+                "Inference stages: language \(String(format: "%.2f", languageReadyAt.timeIntervalSince(started)), privacy: .public) s, decode \(String(format: "%.2f", decodedAt.timeIntervalSince(languageReadyAt)), privacy: .public) s, encoder passes reused \(reusedPasses, privacy: .public), fallbacks \(fallbacks, privacy: .public), idle \(idle.map { String(format: "%.0f s", $0) } ?? "first", privacy: .public)"
+            )
+        }
 
         let processingDuration = Date().timeIntervalSince(started)
         let segments = results.flatMap(\.segments)
@@ -474,9 +479,11 @@ actor WhisperKitTranscriptionService: TranscriptionService {
         // and is part of the public API.
         guard let probabilities = try? await engine.detectLangauge(audioArray: samples).langProbs else {
             let fallback = recentLanguage(in: profile) ?? profile.primary
-            Log.transcription.notice(
-                "Language detection unavailable; decoding \(profile.shortLabel, privacy: .public) as \(fallback.rawValue, privacy: .public)"
-            )
+            if logsInference {
+                Log.transcription.notice(
+                    "Language detection unavailable; decoding \(profile.shortLabel, privacy: .public) as \(fallback.rawValue, privacy: .public)"
+                )
+            }
             return fallback
         }
 
@@ -487,9 +494,11 @@ actor WhisperKitTranscriptionService: TranscriptionService {
         )
         // Logged for every mixed utterance, because "why is this Russian" is a
         // question the user will ask and the answer is a rule, not a mood.
-        Log.transcription.info(
-            "\(profile.shortLabel, privacy: .public) decoded as \(decision.language.rawValue, privacy: .public) (\(decision.reason.rawValue, privacy: .public))"
-        )
+        if logsInference {
+            Log.transcription.info(
+                "\(profile.shortLabel, privacy: .public) decoded as \(decision.language.rawValue, privacy: .public) (\(decision.reason.rawValue, privacy: .public))"
+            )
+        }
         return decision.language
     }
 

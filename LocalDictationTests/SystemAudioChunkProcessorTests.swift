@@ -3,6 +3,20 @@ import XCTest
 @testable import Witness
 
 final class SystemAudioChunkProcessorTests: XCTestCase {
+    func testDroppedCallbackBecomesAnExplicitDiscontinuity() throws {
+        let origin = AudioGetCurrentHostTime()
+        let queue = MeetingAudioBuffer(capacity: 1, maximumFrames: 512, sampleRate: 16_000)
+        let processor = try SystemAudioChunkProcessor(buffer: queue, inputSampleRate: 16_000, originHostTime: origin)
+        let frames = [Float](repeating: 0.5, count: 128)
+        frames.withUnsafeBufferPointer { queue.ingest($0, hostTime: origin) }
+        frames.withUnsafeBufferPointer { queue.ingest($0, hostTime: origin) }
+        _ = try processor.take()
+        frames.withUnsafeBufferPointer { queue.ingest($0, hostTime: origin) }
+        XCTAssertThrowsError(try processor.take()) {
+            XCTAssertEqual($0 as? SystemAudioCaptureError, .discontinuity)
+        }
+    }
+
     func testFinalizationRequiresDrainingAndIsOnlyPerformedOnce() throws {
         let origin = AudioGetCurrentHostTime()
         let queue = MeetingAudioBuffer(capacity: 2, maximumFrames: 512, sampleRate: 16_000)
