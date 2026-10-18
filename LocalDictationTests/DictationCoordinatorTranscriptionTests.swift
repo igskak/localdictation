@@ -3,13 +3,29 @@ import XCTest
 
 private final class CleanupLevelRecordingService: CleanupService, @unchecked Sendable {
     private let lock = NSLock()
-    private var recordedLevels: [CleanupLevel] = []
+    private var recordedOptions: [CleanupOptions] = []
 
-    var levels: [CleanupLevel] { lock.withLock { recordedLevels } }
+    var levels: [CleanupLevel] { lock.withLock { recordedOptions.map(\.level) } }
+    var contexts: [DictationTextContext?] { lock.withLock { recordedOptions.map(\.context) } }
 
     func clean(_ raw: String, language: SpeechLanguage, options: CleanupOptions) -> CleanupResult {
-        lock.withLock { recordedLevels.append(options.level) }
+        lock.withLock { recordedOptions.append(options) }
         return .unchanged(raw, language: language)
+    }
+}
+
+@MainActor
+private final class FakeTextContextService: TextContextService {
+    let availability: TextContextAvailability
+    private(set) var targets: [InsertionTarget?] = []
+
+    init(_ availability: TextContextAvailability) {
+        self.availability = availability
+    }
+
+    func context(for target: InsertionTarget?) -> TextContextAvailability {
+        targets.append(target)
+        return availability
     }
 }
 
@@ -17,7 +33,9 @@ private final class CleanupLevelRecordingService: CleanupService, @unchecked Sen
 final class DictationCoordinatorTranscriptionTests: XCTestCase {
     private func makeCoordinator(
         transcription: FakeTranscriptionService,
-        cleanup: any CleanupService = AdaptiveCleanupService()
+        cleanup: any CleanupService = AdaptiveCleanupService(),
+        textContext: (any TextContextService)? = nil,
+        insertion: (any TextInsertionService)? = nil
     ) -> (DictationCoordinator, FakeHotkeyService, FakeAudioCaptureService) {
         let hotkey = FakeHotkeyService()
         let capture = FakeAudioCaptureService()
@@ -26,7 +44,9 @@ final class DictationCoordinatorTranscriptionTests: XCTestCase {
             hotkeyService: hotkey,
             captureService: capture,
             transcriptionService: transcription,
-            cleanupService: cleanup
+            cleanupService: cleanup,
+            textContextService: textContext,
+            insertionService: insertion
         )
         coordinator.activate()
         return (coordinator, hotkey, capture)
@@ -94,6 +114,34 @@ final class DictationCoordinatorTranscriptionTests: XCTestCase {
 
         try await waitUntil("cleanup ran") { cleanup.levels.count == 1 }
         XCTAssertEqual(cleanup.levels, [.verbatim])
+    }
+
+    func testCleanCollectsEphemeralContextForTheCapturedTarget() async throws {
+        let engine = FakeTranscriptionService()
+        engine.setResult(.fixture(words: [("hello", 0.9)]))
+        let cleanup = CleanupLevelRecordingService()
+        let insertion = FakeTextInsertionService()
+        let expected = DictationTextContext(
+            category: .workMessaging,
+            fieldRole: .editableText,
+            textBeforeCaret: "Earlier text",
+            textAfterCaret: "",
+            hasSelection: false
+        )
+        let context = FakeTextContextService(.available(expected))
+        let (coordinator, hotkey, _) = makeCoordinator(
+            transcription: engine,
+            cleanup: cleanup,
+            textContext: context,
+            insertion: insertion
+        )
+        coordinator.cleanupLevel = .clean
+
+        recordOneUtterance(hotkey)
+        try await waitUntil("cleanup receives context") { !cleanup.contexts.isEmpty }
+
+        XCTAssertEqual(cleanup.contexts.last!, expected)
+        XCTAssertEqual(context.targets.last!, insertion.targetToCapture)
     }
 
     func testDiagnosticsRecordNonContentTranscriptFacts() async throws {

@@ -11,6 +11,7 @@ struct AdaptiveCleanupService: CleanupService {
     private let repetitions = RepetitionTransformer()
     private let lists = ListTransformer()
     private let typedValues = TypedValueFormatter()
+    private let contextCompositor = ContextCompositor()
 
     func clean(_ raw: String, language: SpeechLanguage, options: CleanupOptions) -> CleanupResult {
         switch options.level {
@@ -22,6 +23,11 @@ struct AdaptiveCleanupService: CleanupService {
             guard language.isVerified else {
                 return conservative.clean(raw, language: language, options: options)
             }
+            let conservativeText = conservative.clean(
+                raw,
+                language: language,
+                options: CleanupOptions(level: .conservative, glossary: options.glossary)
+            ).cleaned
             var result = conservative.clean(
                 raw,
                 language: language,
@@ -115,7 +121,27 @@ struct AdaptiveCleanupService: CleanupService {
                     removesFillers: false
                 )
             )
-            return append(final, to: result)
+            result = append(final, to: result)
+            if let context = options.context {
+                result = append(
+                    contextCompositor.transform(
+                        result.cleaned,
+                        raw: raw,
+                        language: language,
+                        context: context,
+                        glossary: options.glossary
+                    ),
+                    to: result
+                )
+            }
+            return CleanupResult(
+                raw: result.raw,
+                conservativeText: conservativeText,
+                cleaned: result.cleaned,
+                edits: result.edits,
+                map: result.map,
+                language: result.language
+            )
         }
     }
 

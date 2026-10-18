@@ -261,12 +261,31 @@ struct EditMap: Sendable, Equatable {
 /// between them. The raw transcript is never mutated and stays recoverable.
 struct CleanupResult: Sendable, Equatable {
     let raw: String
+    /// The old cleanup contract retained for attribution and comparison.
+    /// Context is intentionally absent: this is transcript-derived text only.
+    let conservativeText: String?
     let cleaned: String
     let edits: [TextEdit]
     let map: EditMap
     /// The language whose rules were applied. German capitalizes nouns and
     /// Russian does not, so a rule set is only meaningful next to its language.
     let language: SpeechLanguage
+
+    init(
+        raw: String,
+        conservativeText: String? = nil,
+        cleaned: String,
+        edits: [TextEdit],
+        map: EditMap,
+        language: SpeechLanguage
+    ) {
+        self.raw = raw
+        self.conservativeText = conservativeText
+        self.cleaned = cleaned
+        self.edits = edits
+        self.map = map
+        self.language = language
+    }
 
     var didChangeText: Bool { raw != cleaned }
 
@@ -276,6 +295,7 @@ struct CleanupResult: Sendable, Equatable {
     static func unchanged(_ text: String, language: SpeechLanguage) -> CleanupResult {
         CleanupResult(
             raw: text,
+            conservativeText: nil,
             cleaned: text,
             edits: [],
             map: .identity(length: text.count),

@@ -6,6 +6,9 @@ import Foundation
 struct CleanupOptions: Sendable, Equatable {
     var level: CleanupLevel = .conservative
     var glossary: [GlossaryEntry] = []
+    /// Ephemeral and content-bearing. It is consumed synchronously by Clean
+    /// and must never be persisted, logged, or copied into diagnostics.
+    var context: DictationTextContext? = nil
     var collapsesWhitespace: Bool = true
     var fixesPunctuationSpacing: Bool = true
     var removesFillers: Bool = true
@@ -15,6 +18,7 @@ struct CleanupOptions: Sendable, Equatable {
     static let `default` = CleanupOptions()
     static let none = CleanupOptions(
         level: .conservative,
+        context: nil,
         collapsesWhitespace: false,
         fixesPunctuationSpacing: false,
         removesFillers: false,

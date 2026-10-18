@@ -32,6 +32,7 @@ enum EditMapComposition {
 
         return CleanupResult(
             raw: accumulated.raw,
+            conservativeText: accumulated.conservativeText ?? stage.conservativeText,
             cleaned: stage.cleaned,
             edits: carried + introduced,
             map: map,

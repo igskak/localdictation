@@ -193,6 +193,7 @@ final class DictationCoordinator: ObservableObject {
     private let captureService: any AudioCaptureService
     private let transcriptionService: (any TranscriptionService)?
     private let cleanupService: any CleanupService
+    private let textContextService: any TextContextService
     /// Snapshotted when recording begins. Settings changed while Whisper is
     /// working apply to the next utterance, never to one already in flight.
     private var activeCleanupLevel: CleanupLevel = .conservative
@@ -284,6 +285,7 @@ final class DictationCoordinator: ObservableObject {
         captureService: any AudioCaptureService,
         transcriptionService: (any TranscriptionService)? = nil,
         cleanupService: any CleanupService = AdaptiveCleanupService(),
+        textContextService: (any TextContextService)? = nil,
         riskEngine: RiskEngine = .standard(),
         reviewPolicy: ReviewPolicy = .default,
         glossaryStore: (any GlossaryStore)? = nil,
@@ -305,6 +307,7 @@ final class DictationCoordinator: ObservableObject {
         self.captureService = captureService
         self.transcriptionService = transcriptionService
         self.cleanupService = cleanupService
+        self.textContextService = textContextService ?? UnavailableTextContextService()
         self.riskEngine = riskEngine
         self.reviewPolicy = reviewPolicy
         self.glossaryStore = glossaryStore
@@ -1714,12 +1717,16 @@ final class DictationCoordinator: ObservableObject {
     /// the same three stages run inside the measurement harness with no app.
     private func analyze(_ transcript: Transcript) -> DictationResult {
         let language = Self.cleanupLanguage(for: transcript)
+        let context = activeCleanupLevel == .clean
+            ? textContextService.context(for: insertionTarget).context
+            : nil
         let cleanup = cleanupService.clean(
             transcript.text,
             language: language,
             options: CleanupOptions(
                 level: activeCleanupLevel,
-                glossary: glossary.entries(for: language)
+                glossary: glossary.entries(for: language),
+                context: context
             )
         )
         let spans = riskEngine.analyze(
@@ -1872,6 +1879,7 @@ extension DictationCoordinator {
         // same reason there is one trust reader: the menu warning and the
         // refusal must never disagree about which application is holding it.
         let secureInput = SystemSecureInput()
+        let frontmost = SystemFrontmostApplications()
         // One consent box, shared: the entitlement service's transport reads
         // it and the Settings toggle writes it. Two would let the switch and
         // the sender disagree about the answer the user gave.
@@ -1890,6 +1898,11 @@ extension DictationCoordinator {
             // the codebase as the comparison the benchmark scores it against.
             transcriptionService: WhisperKitTranscriptionService(),
             cleanupService: AdaptiveCleanupService(),
+            textContextService: AXTextContextService(
+                permissionService: accessibility,
+                frontmost: frontmost,
+                secureInput: secureInput
+            ),
             // The live engine gets the system dictionaries; the benchmark does
             // not. See `RiskEngine.standard(weights:lexicon:)` for why the
             // measurement deliberately runs without them.
@@ -1898,7 +1911,11 @@ extension DictationCoordinator {
             glossaryStore: FileGlossaryStore(),
             fragmentPlayer: AVAudioEngineFragmentPlayer(),
             accessibilityService: accessibility,
-            insertionService: AXTextInsertionService(permissionService: accessibility, secureInput: secureInput),
+            insertionService: AXTextInsertionService(
+                permissionService: accessibility,
+                frontmost: frontmost,
+                secureInput: secureInput
+            ),
             // The licensing state of this Mac, read from disk and from a
             // signature. The authority key is compiled in, so a key issued by
             // `Tools/licensekit.swift` verifies here; the activation service
