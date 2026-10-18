@@ -20,6 +20,20 @@ final class AdaptiveCleanupStructureTests: XCTestCase {
         XCTAssertFalse(clean("shopping colon first apples", .english).edits.contains { $0.kind == .listFormatting })
     }
 
+    func testUnorderedListsRequireAColonAndTwoExplicitMarkers() {
+        let fixtures: [(SpeechLanguage, String, String)] = [
+            (.english, "shopping colon bullet apples bullet pears", "Shopping:\n- apples\n- pears."),
+            (.german, "einkauf doppelpunkt aufzählungspunkt äpfel aufzählungspunkt birnen", "Einkauf:\n- äpfel\n- birnen."),
+            (.russian, "покупки двоеточие маркер яблоки маркер груши", "Покупки:\n- яблоки\n- груши."),
+            (.ukrainian, "покупки двокрапка маркер яблука маркер груші", "Покупки:\n- яблука\n- груші."),
+        ]
+        for (language, raw, expected) in fixtures {
+            XCTAssertEqual(clean(raw, language).cleaned, expected, language.rawValue)
+        }
+        XCTAssertFalse(clean("bullet apples bullet pears", .english).edits.contains { $0.kind == .listFormatting })
+        XCTAssertFalse(clean("shopping colon bullet apples", .english).edits.contains { $0.kind == .listFormatting })
+    }
+
     func testTypedValueFamiliesProduceRecords() {
         let fixtures: [(String, TextEdit.Kind, String)] = [
             ("twenty", .numberFormatting, "20."),
@@ -65,6 +79,24 @@ final class AdaptiveCleanupStructureTests: XCTestCase {
             let typed = try XCTUnwrap(edit.typedValue, phrase)
             let parsed = formatter.parseRendered(edit.cleanedText, category: typed.category)
             XCTAssertEqual(parsed, typed.canonicalValue, phrase)
+        }
+    }
+
+    func testEveryTypedValueGrammarRoundTripsInEveryVerifiedLanguage() throws {
+        let fixtures: [SpeechLanguage: [(String, TypedValueRecord.Category)]] = [
+            .english: [("twenty", .number), ("twenty percent", .percentage), ("twenty dollars", .currency), ("twenty kilometers", .unit), ("at twelve thirty", .time), ("April fifteen", .date)],
+            .german: [("zwanzig", .number), ("zwanzig prozent", .percentage), ("zwanzig euro", .currency), ("zwanzig kilometer", .unit), ("um zwölf dreißig", .time), ("fünfzehnte april", .date)],
+            .russian: [("двадцать", .number), ("двадцать процентов", .percentage), ("двадцать рублей", .currency), ("двадцать километров", .unit), ("в двенадцать тридцать", .time), ("пятнадцатое апреля", .date)],
+            .ukrainian: [("двадцять", .number), ("двадцять відсотків", .percentage), ("двадцять гривень", .currency), ("двадцять кілометрів", .unit), ("о дванадцять тридцять", .time), ("п'ятнадцяте квітня", .date)],
+        ]
+        let formatter = TypedValueFormatter()
+        for (language, languageFixtures) in fixtures {
+            for (phrase, category) in languageFixtures {
+                let result = clean(phrase, language)
+                let edit = try XCTUnwrap(result.edits.first { $0.typedValue?.category == category }, "\(language.rawValue): \(phrase)")
+                let typed = try XCTUnwrap(edit.typedValue)
+                XCTAssertEqual(formatter.parseRendered(edit.cleanedText, category: category), typed.canonicalValue, "\(language.rawValue): \(phrase)")
+            }
         }
     }
 
