@@ -4,6 +4,11 @@ import SwiftUI
 struct MenuBarView: View {
     @EnvironmentObject private var coordinator: DictationCoordinator
     @Environment(\.openSettings) private var openSettings
+    private let notetaker: any NotetakerFacade
+
+    init(notetaker: any NotetakerFacade = UnavailableNotetakerFacade()) {
+        self.notetaker = notetaker
+    }
 
     private var presentation: StatusPresentation {
         StatusPresentation(
@@ -28,6 +33,12 @@ struct MenuBarView: View {
             }
 
             header
+
+            if let item = notetaker.menuBarItem {
+                Button(action: item.action) {
+                    Label(item.title, systemImage: item.systemImage)
+                }
+            }
 
             if coordinator.state == .recording || coordinator.state == .finishing {
                 RecordingLevelView(snapshot: coordinator.diagnostics.snapshot)

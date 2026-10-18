@@ -5,6 +5,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Set by `LocalDictationApp` during scene construction so the delegate can
     /// drive launch, activation, and termination hooks.
     static weak var coordinator: DictationCoordinator?
+    static weak var notetaker: (any NotetakerFacade)?
 
     /// Owns the floating review panel for the lifetime of the app. It has to
     /// live somewhere outside the menu bar scene: the review has to be able to
@@ -45,6 +46,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             paywall = PaywallWindowController(coordinator: coordinator)
         }
         Self.coordinator?.activate()
+        Self.notetaker?.activate()
         // After `activate`, which is what reads the settings file: whether the
         // question has been answered is a fact from disk, not an assumption
         // about how new this installation is.
@@ -97,6 +99,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        Self.notetaker?.deactivate()
         Self.coordinator?.deactivate()
     }
 }

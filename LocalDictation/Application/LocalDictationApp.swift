@@ -169,22 +169,25 @@ extension View {
 struct LocalDictationApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var coordinator: DictationCoordinator
+    private let notetaker: any NotetakerFacade
 
     init() {
         // Before `makeLive`, which is what constructs the stores: the folder has
         // to have been carried across from the product's old name before
         // anything looks inside it for a licence.
         ApplicationSupportDirectory.prepare()
-        let coordinator = DictationCoordinator.makeLive()
-        _coordinator = StateObject(wrappedValue: coordinator)
+        let composition = ApplicationComposition.makeLive()
+        _coordinator = StateObject(wrappedValue: composition.dictationCoordinator)
+        notetaker = composition.notetaker
         // The delegate activates the coordinator once AppKit has finished
         // launching, so hotkey registration happens against a live event target.
-        AppDelegate.coordinator = coordinator
+        AppDelegate.coordinator = composition.dictationCoordinator
+        AppDelegate.notetaker = composition.notetaker
     }
 
     var body: some Scene {
         MenuBarExtra {
-            MenuBarView()
+            MenuBarView(notetaker: notetaker)
                 .environmentObject(coordinator)
         } label: {
             // The indicator lives here because this is the one place that is on
@@ -213,5 +216,41 @@ struct LocalDictationApp: App {
             SettingsView()
                 .environmentObject(coordinator)
         }
+    }
+}
+
+/// Live application composition. Dictation is constructed exactly as before;
+/// the Notetaker gate is resolved beside it without letting a disabled feature
+/// construct any of its future system-facing dependencies.
+@MainActor
+struct ApplicationComposition {
+    let dictationCoordinator: DictationCoordinator
+    let notetaker: any NotetakerFacade
+
+    static func make(
+        notetakerAvailability: NotetakerAvailability,
+        makeDictationCoordinator: () -> DictationCoordinator,
+        makeAvailableNotetaker: () -> any NotetakerFacade
+    ) -> ApplicationComposition {
+        ApplicationComposition(
+            dictationCoordinator: makeDictationCoordinator(),
+            notetaker: NotetakerCompositionRoot.make(
+                availability: notetakerAvailability,
+                buildAvailableSubsystem: makeAvailableNotetaker
+            )
+        )
+    }
+
+    static func makeLive(
+        notetakerAvailability: NotetakerAvailability = .liveDefault
+    ) -> ApplicationComposition {
+        make(
+            notetakerAvailability: notetakerAvailability,
+            makeDictationCoordinator: DictationCoordinator.makeLive,
+            // Slice 0 deliberately has no available implementation. This
+            // closure is never invoked by the live default and is replaced by
+            // the first gated implementation, rather than growing effects here.
+            makeAvailableNotetaker: UnavailableNotetakerFacade.init
+        )
     }
 }
