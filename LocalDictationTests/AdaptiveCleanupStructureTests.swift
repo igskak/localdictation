@@ -20,6 +20,21 @@ final class AdaptiveCleanupStructureTests: XCTestCase {
         XCTAssertFalse(clean("shopping colon first apples", .english).edits.contains { $0.kind == .listFormatting })
     }
 
+    func testCommasAroundOrderedMarkersAndLiteralCounterexamples() {
+        let fixtures: [(SpeechLanguage, String, String)] = [
+            (.english, "shopping: first, apples, second, pears", "Shopping:\n1. Apples\n2. Pears."),
+            (.german, "einkauf: erstens, äpfel, zweitens, birnen", "Einkauf:\n1. Äpfel\n2. Birnen."),
+            (.russian, "покупки: во - первых, яблоки, во - вторых, груши", "Покупки:\n1. Яблоки\n2. Груши."),
+            (.ukrainian, "покупки: по - перше, яблука, по - друге, груші", "Покупки:\n1. Яблука\n2. Груші."),
+        ]
+        for (language, raw, expected) in fixtures {
+            XCTAssertEqual(clean(raw, language).cleaned, expected, language.rawValue)
+        }
+        for raw in ["notes: the first version is ready second draft follows", "shopping: first apples third pears second oranges"] {
+            XCTAssertFalse(clean(raw, .english).edits.contains { $0.kind == .listFormatting }, raw)
+        }
+    }
+
     func testUnorderedListsRequireAColonAndTwoExplicitMarkers() {
         let fixtures: [(SpeechLanguage, String, String)] = [
             (.english, "shopping colon bullet apples bullet pears", "Shopping:\n- apples\n- pears."),

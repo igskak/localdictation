@@ -28,7 +28,8 @@ struct ListTransformer: Sendable {
         var orderedStarts: [(word: TextWord, order: Int)] = []
         for word in words {
             guard let order = languageMarkers.firstIndex(where: { $0.contains(word.lowercased) }) else { continue }
-            if orderedStarts.isEmpty || order == orderedStarts.count { orderedStarts.append((word, order)) }
+            guard order == orderedStarts.count else { return .unchanged(text, language: language) }
+            orderedStarts.append((word, order))
         }
         if orderedStarts.count >= 2, orderedStarts[0].order == 0 {
             return format(
@@ -52,6 +53,11 @@ struct ListTransformer: Sendable {
         language: SpeechLanguage
     ) -> CleanupResult {
         let source = Array(text)
+        // Formatting must never consume introductory words between the colon
+        // and the first marker.
+        guard source[(colon + 1)..<starts[0].range.lowerBound].allSatisfy({ $0.isWhitespace || $0 == "," }) else {
+            return .unchanged(text, language: language)
+        }
         var replacements: [CleanupReplacement] = []
         for index in starts.indices {
             let contentStart = starts[index].range.upperBound
@@ -59,9 +65,15 @@ struct ListTransformer: Sendable {
             let item = String(source[contentStart..<contentEnd]).trimmingCharacters(in: .whitespacesAndNewlines)
             guard !item.isEmpty else { return .unchanged(text, language: language) }
             var lower = index == 0 ? colon + 1 : starts[index].range.lowerBound
-            if index > 0, lower > 0, source[lower - 1].isWhitespace { lower -= 1 }
+            if index > 0 {
+                while lower > 0, source[lower - 1].isWhitespace { lower -= 1 }
+                if lower > 0, source[lower - 1] == "," { lower -= 1 }
+            }
+            var upper = starts[index].range.upperBound
+            if upper < source.count, source[upper] == "," { upper += 1 }
+            let separator = upper < source.count && !source[upper].isWhitespace ? " " : ""
             replacements.append(
-                .init(range: lower..<starts[index].range.upperBound, text: "\n\(marker(index))", kind: .listFormatting)
+                .init(range: lower..<upper, text: "\n\(marker(index))\(separator)", kind: .listFormatting)
             )
         }
         return CleanupTransformation.apply(replacements, to: text, language: language)
