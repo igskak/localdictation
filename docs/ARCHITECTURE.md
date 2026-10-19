@@ -38,9 +38,12 @@ Global hotkey
 - `TranscriptionService`: returns text plus token-level timing and confidence metadata.
 - `RiskEngine`: combines model confidence, language switching, entities, numbers, glossary matches, malformed words, and cleanup edits.
 - `LexiconChecking`: answers whether a word exists in a language, behind a protocol so the signals stay pure and the measurement stays machine-independent.
-- `CleanupService`: selects Verbatim, the unchanged Conservative implementation,
-  or the deterministic Clean transformer chain and returns an exactly composed
-  edit map with raw, Conservative, and final text.
+- `CleanupService`: selects Verbatim, the Conservative pipeline, or the
+  deterministic Clean transformer chain and returns an exactly composed edit
+  map with raw, Conservative, and final text. The Conservative pipeline adds
+  closed surface repairs to the existing cleanup. Validated token timings are
+  held only for the current cleanup operation; structural sentence, paragraph,
+  and implicit-list policies remain disabled pending per-language evidence.
 - `TextContextService`: returns an ephemeral bounded slice only when the captured
   target is still current and non-secure. Missing, stale, secure, or timed-out
   context is `.unavailable` and cleanup continues unchanged.

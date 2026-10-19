@@ -57,7 +57,9 @@ next one begins or when you close the review; it is never written to disk, and
 
 The dictionary (including explicit replacement phrases), the risk warnings,
 the cleanup, and the review are all local computation over local text. They
-have no network code in them at all.
+have no network code in them at all. Validated token timing evidence may be
+used transiently during cleanup; it is not saved in preferences, recent
+dictations, diagnostics, or telemetry.
 
 Clean may read a small slice of the focused field immediately before it joins
 the result to the destination: at most 64 UTF-16 code units before the caret and

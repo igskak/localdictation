@@ -37,7 +37,9 @@ The selection is explicit and ordered: the first language is preferred, and it d
 - Raw transcript plus selectable Verbatim, Conservative, and deterministic
   Clean modes. Clean adds explicit spoken commands and corrections, adjacent
   repetition removal, plain-text lists, typed values, and presentation-only
-  field joins; it does not paraphrase or use a generative model.
+  field joins; it does not paraphrase or use a generative model. Conservative
+  also repairs a small closed set of recognition surface artifacts. Automatic
+  pause-based structure remains disabled until its language-specific gates pass.
 - Risk detection for low-confidence fragments, numbers, dates, currency, names, malformed words, negations, and glossary terms.
 - Review UI that never stands between the user and their text. Insertion is unconditional; when something is worth checking the app lights an indicator, and the review opens only if the user asks for it.
 - Raw transcript recovery.
