@@ -25,6 +25,9 @@ struct ExplicitCorrectionTransformer: Sendable {
                 let prior = words[start - 1]
                 let replacement = words[start + marker.count]
                 var deletion = prior.range.lowerBound..<words[start + marker.count - 1].range.upperBound
+                if deletion.upperBound < source.count, source[deletion.upperBound] == "," {
+                    deletion = deletion.lowerBound..<(deletion.upperBound + 1)
+                }
                 while deletion.upperBound < source.count, source[deletion.upperBound].isWhitespace {
                     deletion = deletion.lowerBound..<(deletion.upperBound + 1)
                 }

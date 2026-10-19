@@ -18,6 +18,19 @@ final class AdaptiveCleanupDisfluencyTests: XCTestCase {
         }
     }
 
+    func testCommaAroundExplicitCorrectionMarker() {
+        let fixtures: [(SpeechLanguage, String, String)] = [
+            (.english, "send it Tuesday, correction, Thursday", "Send it Thursday."),
+            (.german, "schick es Dienstag, Korrektur, Donnerstag", "Schick es Donnerstag."),
+            (.russian, "отправь во вторник, поправка, четверг", "Отправь во четверг."),
+            (.ukrainian, "надішли у вівторок, виправлення, четвер", "Надішли у четвер."),
+        ]
+        for (language, raw, expected) in fixtures {
+            XCTAssertEqual(service.clean(raw, language: language, options: CleanupOptions(level: .clean)).cleaned,
+                           expected, language.rawValue)
+        }
+    }
+
     func testCorrectionRefusesToDeleteProtectedValueForOrdinaryReplacement() {
         let result = service.clean(
             "send 20 correction parcels",
