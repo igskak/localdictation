@@ -20,7 +20,7 @@ enum CleanupLevel: String, Sendable, Equatable, Codable, CaseIterable, Identifia
         case .verbatim:
             L10n.string("Exactly what the speech engine recognized, with no cleanup.")
         case .conservative:
-            L10n.string("Fixes spacing, capitalization, punctuation, and unambiguous fillers.")
+            L10n.string("Tidies spacing, capitalization, punctuation, and some recognized forms; removes unambiguous fillers.")
         case .clean:
             L10n.string("Also follows spoken commands and explicit corrections, formats lists and values, and adapts the join to the current field.")
         }

@@ -9,7 +9,7 @@
     "Conservative": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Konservativ"}}}},
     "Clean": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sauber"}}}},
     "Exactly what the speech engine recognized, with no cleanup.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Genau das, was die Spracherkennung erkannt hat, ohne Bereinigung."}}}},
-    "Fixes spacing, capitalization, punctuation, and unambiguous fillers.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Korrigiert Abstände, Großschreibung, Zeichensetzung und eindeutige Füllwörter."}}}},
+    "Tidies spacing, capitalization, punctuation, and some recognized forms; removes unambiguous fillers.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Korrigiert Abstände, Großschreibung, Zeichensetzung und einige erkannte Schreibweisen; entfernt eindeutige Füllwörter."}}}},
     "Also follows spoken commands and explicit corrections, formats lists and values, and adapts the join to the current field.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Befolgt zusätzlich gesprochene Befehle und explizite Korrekturen, formatiert Listen und Werte und passt den Anschluss an das aktuelle Feld an."}}}},
     "All cleanup runs on this Mac. Raw recognized text remains available in review.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die gesamte Bereinigung läuft auf diesem Mac. Der rohe erkannte Text bleibt in der Überprüfung verfügbar."}}}},
     "Add a term or correction": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Begriff oder Korrektur hinzufügen"}}}},
