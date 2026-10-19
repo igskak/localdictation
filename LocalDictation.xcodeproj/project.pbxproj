@@ -16,6 +16,7 @@
 		BA0119C5273BC5427F8B3105 /* BenchmarkCorpus.swift in Sources */ = {isa = PBXBuildFile; fileRef = F19D27E122F1FBF34B7B75F2 /* BenchmarkCorpus.swift */; };
 		B9D2789F59A8FFC22284812A /* BenchmarkRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63A8F3C2D273F46049CA8934 /* BenchmarkRunner.swift */; };
 		1001E7899ADF5414CEF2202A /* RiskBenchmark.swift in Sources */ = {isa = PBXBuildFile; fileRef = F52755165EDA3EE66EE4DE2B /* RiskBenchmark.swift */; };
+		9ECD5FCD79453B86C46B6D36 /* StructuralCleanupScorer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 266905ECCA8C778B7454A4E6 /* StructuralCleanupScorer.swift */; };
 		3953DF71AEFB05158FD8F7C0 /* TextNormalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B73126724269F2FCF8E43124 /* TextNormalizer.swift */; };
 		0A6936319B6C5D5454562E93 /* TranscriptionScorer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C606A05F36237CE4C778FDF7 /* TranscriptionScorer.swift */; };
 		A4CCD2D8804A8A8E8DE37B90 /* DictationActivityPanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 248D21DBBD49A3C7A238F518 /* DictationActivityPanelController.swift */; };
@@ -263,6 +264,7 @@
 		F19D27E122F1FBF34B7B75F2 /* BenchmarkCorpus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BenchmarkCorpus.swift; sourceTree = "<group>"; };
 		63A8F3C2D273F46049CA8934 /* BenchmarkRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BenchmarkRunner.swift; sourceTree = "<group>"; };
 		F52755165EDA3EE66EE4DE2B /* RiskBenchmark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiskBenchmark.swift; sourceTree = "<group>"; };
+		266905ECCA8C778B7454A4E6 /* StructuralCleanupScorer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StructuralCleanupScorer.swift; sourceTree = "<group>"; };
 		B73126724269F2FCF8E43124 /* TextNormalizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextNormalizer.swift; sourceTree = "<group>"; };
 		C606A05F36237CE4C778FDF7 /* TranscriptionScorer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionScorer.swift; sourceTree = "<group>"; };
 		248D21DBBD49A3C7A238F518 /* DictationActivityPanelController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationActivityPanelController.swift; sourceTree = "<group>"; };
@@ -532,6 +534,7 @@
 				F19D27E122F1FBF34B7B75F2 /* BenchmarkCorpus.swift */,
 				63A8F3C2D273F46049CA8934 /* BenchmarkRunner.swift */,
 				F52755165EDA3EE66EE4DE2B /* RiskBenchmark.swift */,
+				266905ECCA8C778B7454A4E6 /* StructuralCleanupScorer.swift */,
 				B73126724269F2FCF8E43124 /* TextNormalizer.swift */,
 				C606A05F36237CE4C778FDF7 /* TranscriptionScorer.swift */,
 			);
@@ -1156,6 +1159,7 @@
 				BA0119C5273BC5427F8B3105 /* BenchmarkCorpus.swift in Sources */,
 				B9D2789F59A8FFC22284812A /* BenchmarkRunner.swift in Sources */,
 				1001E7899ADF5414CEF2202A /* RiskBenchmark.swift in Sources */,
+				9ECD5FCD79453B86C46B6D36 /* StructuralCleanupScorer.swift in Sources */,
 				3953DF71AEFB05158FD8F7C0 /* TextNormalizer.swift in Sources */,
 				0A6936319B6C5D5454562E93 /* TranscriptionScorer.swift in Sources */,
 				A4CCD2D8804A8A8E8DE37B90 /* DictationActivityPanelController.swift in Sources */,

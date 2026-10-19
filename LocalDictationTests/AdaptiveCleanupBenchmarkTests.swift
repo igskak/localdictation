@@ -62,6 +62,17 @@ final class AdaptiveCleanupBenchmarkTests: XCTestCase {
         XCTAssertTrue(clean.results[0].output.contains("20%"))
     }
 
+    func testLexicalAndIdempotenceScoresDetectChangedFacts() {
+        let service = ConservativePipeline()
+        let raw = "um во - первых 20 %"
+        let result = service.clean(raw, language: .english, options: CleanupOptions())
+        XCTAssertTrue(StructuralCleanupScorer.conservativeLexicallyPreserved(result))
+        XCTAssertTrue(StructuralCleanupScorer.isIdempotent(result, service: service, options: CleanupOptions()))
+        let damaged = CleanupResult(raw: "amount 20", cleaned: "Amount 21.", edits: [],
+                                    map: .identity(length: 9), language: .english)
+        XCTAssertFalse(StructuralCleanupScorer.conservativeLexicallyPreserved(damaged))
+    }
+
     func testScorerReportsProtectedValueLossAndUnexpectedKinds() {
         let sample = manifest.samples[1]
         let cleanup = CleanupResult(
