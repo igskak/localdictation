@@ -27,6 +27,21 @@ struct RealWhisperCanonicalizer: Sendable {
                 replacements.append(.init(range: offsets, text: spelling, kind: .surfaceNormalization))
             }
         }
+        // Only complete 24-hour clock shapes qualify; identifiers, paths,
+        // decimals and glossary entries are fences around the complete span.
+        if let regex = try? NSRegularExpression(
+            pattern: #"(?<![\p{L}\p{N}_./:@-])(?:[01]?[0-9]|2[0-3]) +: +[0-5][0-9](?![\p{L}\p{N}_./:@-])"#
+        ) {
+            for match in regex.matches(in: raw, range: NSRange(raw.startIndex..., in: raw)) {
+                guard let range = Range(match.range, in: raw) else { continue }
+                let lower = raw.distance(from: raw.startIndex, to: range.lowerBound)
+                let upper = raw.distance(from: raw.startIndex, to: range.upperBound)
+                let offsets = lower..<upper
+                guard !protected.contains(where: { $0.category == .glossary && $0.range.overlaps(offsets) }) else { continue }
+                let compact = String(source[offsets]).replacingOccurrences(of: " ", with: "")
+                replacements.append(.init(range: offsets, text: compact, kind: .surfaceNormalization))
+            }
+        }
         return CleanupTransformation.apply(replacements, to: raw, language: language)
     }
 }

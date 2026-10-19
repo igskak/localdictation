@@ -25,6 +25,20 @@ final class RealWhisperCanonicalizerTests: XCTestCase {
         }
     }
 
+    func testCompleteSpacedClockAndIdentifierFences() {
+        let service = AdaptiveCleanupService()
+        for language in [SpeechLanguage.english, .german, .russian, .ukrainian] {
+            let result = service.clean("12 : 30", language: language, options: CleanupOptions(level: .conservative))
+            XCTAssertTrue(result.cleaned.contains("12:30"))
+            XCTAssertEqual(result.raw, "12 : 30")
+            XCTAssertEqual(result.edits.first?.kind, .surfaceNormalization)
+        }
+        let canonicalizer = RealWhisperCanonicalizer()
+        for raw in ["24 : 30", "12 : 99", "1/12 : 30", "12 : 30.4", "id12 : 30"] {
+            XCTAssertEqual(canonicalizer.transform(raw, language: .english, glossary: []).cleaned, raw)
+        }
+    }
+
     func testVerbatimRemainsExactAndConservativeDoesNotExecuteCommands() {
         let raw = "во - первых двоеточие"
         let service = AdaptiveCleanupService()
