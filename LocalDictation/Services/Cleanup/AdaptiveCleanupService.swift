@@ -26,7 +26,7 @@ struct AdaptiveCleanupService: CleanupService {
             let conservativeText = conservative.clean(
                 raw,
                 language: language,
-                options: CleanupOptions(level: .conservative, glossary: options.glossary)
+                options: CleanupOptions(level: .conservative, glossary: options.glossary, timing: options.timing)
             ).cleaned
             var result = conservative.clean(
                 raw,
@@ -34,6 +34,7 @@ struct AdaptiveCleanupService: CleanupService {
                 options: CleanupOptions(
                     level: .clean,
                     glossary: options.glossary,
+                    timing: options.timing,
                     capitalizesSentences: false,
                     addsTerminalPunctuation: false
                 )

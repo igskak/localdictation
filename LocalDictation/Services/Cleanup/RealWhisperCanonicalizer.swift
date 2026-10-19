@@ -7,7 +7,7 @@ struct RealWhisperCanonicalizer: Sendable {
         .ukrainian: [("по - перше", "по-перше"), ("по - друге", "по-друге"), ("по - третє", "по-третє")],
     ]
 
-    func transform(_ raw: String, language: SpeechLanguage, glossary: [GlossaryEntry]) -> CleanupResult {
+    func transform(_ raw: String, language: SpeechLanguage, glossary: [GlossaryEntry], timing: CleanupTimingEvidence? = nil) -> CleanupResult {
         guard language.isVerified else { return .unchanged(raw, language: language) }
         let protected = ProtectedSpanDetector().detect(in: raw, language: language, glossary: glossary)
         let source = Array(raw)
@@ -40,6 +40,22 @@ struct RealWhisperCanonicalizer: Sendable {
                 guard !protected.contains(where: { $0.category == .glossary && $0.range.overlaps(offsets) }) else { continue }
                 let compact = String(source[offsets]).replacingOccurrences(of: " ", with: "")
                 replacements.append(.init(range: offsets, text: compact, kind: .surfaceNormalization))
+            }
+        }
+        // Identical positive-duration intervals are the narrowest reliable
+        // segment-overlap evidence. A zero-duration timestamp proves nothing.
+        if let timing, CleanupTimingEvidence.validated(timing.tokens, raw: raw) != nil,
+           timing.tokens.count >= 2 {
+            for index in 1..<timing.tokens.count {
+                let left = timing.tokens[index - 1]
+                let right = timing.tokens[index]
+                guard left.start == right.start, left.end == right.end, left.end > left.start,
+                      source[left.rawRange.upperBound..<right.rawRange.lowerBound].allSatisfy(\.isWhitespace),
+                      String(source[left.rawRange]) == String(source[right.rawRange]),
+                      !protected.contains(where: { $0.range.overlaps(left.rawRange) || $0.range.overlaps(right.rawRange) })
+                else { continue }
+                replacements.append(.init(range: left.rawRange.upperBound..<right.rawRange.upperBound,
+                                          text: "", kind: .boundaryDuplicateRemoval))
             }
         }
         return CleanupTransformation.apply(replacements, to: raw, language: language)

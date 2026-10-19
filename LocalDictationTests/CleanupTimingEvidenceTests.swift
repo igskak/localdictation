@@ -36,6 +36,30 @@ final class CleanupTimingEvidenceTests: XCTestCase {
         XCTAssertNotNil(CleanupTimingEvidence.validated(transcript: good))
     }
 
+    func testOnlyIdenticalPositiveDurationOverlapCanRemoveAnExactDuplicate() throws {
+        let raw = "go go now"
+        let pipeline = ConservativePipeline()
+        let overlap = try XCTUnwrap(CleanupTimingEvidence.validated(
+            [token(0..<2, 0, 0.5), token(3..<5, 0, 0.5), token(6..<9, 0.6, 1)], raw: raw))
+        let options = CleanupOptions(timing: overlap)
+        let result = pipeline.clean(raw, language: .english, options: options)
+        XCTAssertEqual(result.cleaned, "Go now.")
+        XCTAssertEqual(result.raw, raw)
+        XCTAssertTrue(result.edits.contains { $0.kind == .boundaryDuplicateRemoval })
+        let clean = AdaptiveCleanupService().clean(raw, language: .english,
+                                                   options: CleanupOptions(level: .clean, timing: overlap))
+        XCTAssertTrue(clean.edits.contains { $0.kind == .boundaryDuplicateRemoval })
+        XCTAssertEqual(clean.raw, raw)
+        for evidence in [
+            [token(0..<2, 0, 0.5), token(3..<5, 0.4, 0.9), token(6..<9, 1, 2)],
+            [token(0..<2, 0, 0), token(3..<5, 0, 0), token(6..<9, 1, 2)],
+        ] {
+            let valid = try XCTUnwrap(CleanupTimingEvidence.validated(evidence, raw: raw))
+            let unchanged = pipeline.clean(raw, language: .english, options: CleanupOptions(timing: valid))
+            XCTAssertFalse(unchanged.edits.contains { $0.kind == .boundaryDuplicateRemoval })
+        }
+    }
+
     func testTimingDoesNotChangeCurrentTextOnlyCleanup() throws {
         let raw = "one two"
         let timing = try XCTUnwrap(CleanupTimingEvidence.validated([token(0..<3, 0, 0.5), token(4..<7, 2, 3)], raw: raw))

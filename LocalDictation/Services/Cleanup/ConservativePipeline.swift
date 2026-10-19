@@ -6,7 +6,7 @@ struct ConservativePipeline: CleanupService {
     private let primitive = ConservativeCleanupService()
 
     func clean(_ raw: String, language: SpeechLanguage, options: CleanupOptions) -> CleanupResult {
-        let canonical = canonicalizer.transform(raw, language: language, glossary: options.glossary)
+        let canonical = canonicalizer.transform(raw, language: language, glossary: options.glossary, timing: options.timing)
         guard canonical.didChangeText else {
             return primitive.clean(raw, language: language, options: options)
         }

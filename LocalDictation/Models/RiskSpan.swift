@@ -137,7 +137,7 @@ struct RiskWeights: Sendable, Equatable {
             case .spokenPunctuation, .lineBreak, .paragraphBreak, .listFormatting,
                  .contextSpacing, .contextCapitalization, .contextPunctuation:
                 cleanupPunctuation
-            case .dictionaryCorrection, .explicitCorrection, .repetitionRemoval:
+            case .dictionaryCorrection, .explicitCorrection, .repetitionRemoval, .boundaryDuplicateRemoval:
                 cleanupFillerRemoval
             case .numberFormatting, .dateFormatting, .timeFormatting, .currencyFormatting,
                  .percentageFormatting, .unitFormatting:

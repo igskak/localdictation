@@ -19,6 +19,7 @@ struct TypedValueRecord: Sendable, Equatable {
 struct TextEdit: Sendable, Equatable {
     enum Kind: String, Sendable, Equatable, CaseIterable {
         case surfaceNormalization
+        case boundaryDuplicateRemoval
         case spacing
         case punctuation
         case capitalization
@@ -43,6 +44,7 @@ struct TextEdit: Sendable, Equatable {
         var label: String {
             switch self {
             case .surfaceNormalization: L10n.string("Surface normalization")
+            case .boundaryDuplicateRemoval: L10n.string("Boundary duplicate removed")
             case .spacing: L10n.string("Spacing")
             case .punctuation: L10n.string("Punctuation")
             case .capitalization: L10n.string("Capitalization")
@@ -73,7 +75,7 @@ struct TextEdit: Sendable, Equatable {
         /// the same event as deleting a word.
         var removesSpokenWords: Bool {
             switch self {
-            case .fillerRemoval, .explicitCorrection, .repetitionRemoval: true
+            case .fillerRemoval, .explicitCorrection, .repetitionRemoval, .boundaryDuplicateRemoval: true
             default: false
             }
         }
