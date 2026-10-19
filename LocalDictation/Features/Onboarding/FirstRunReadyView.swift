@@ -1,34 +1,11 @@
 import SwiftUI
 
-/// The half of the first run that was missing.
-///
-/// The language question was the only thing this app ever asked, and when it
-/// closed, a person who had just installed a menu bar utility with no Dock icon
-/// and no window was left to work out on their own that there is a hotkey, that
-/// macOS will ask for a microphone, that six hundred megabytes have to arrive
-/// before anything is recognized, and that the fifth dictation is followed by a
-/// wall.
-///
-/// All four of those are findable — the menu says every one of them. But they
-/// are findable *after* the confusion, and the fourth one in particular is the
-/// difference between "this asked me for an email, fair enough" and "this
-/// stopped working". A person told about a limit before they reach it has been
-/// sold something; a person who discovers it has been surprised by it.
-///
-/// Since the first stranger installed it, this screen does the three things as
-/// well as describing them. It asks macOS for the microphone and for
-/// Accessibility as it appears — every other app on the Mac asks at launch, and
-/// leaving the two asks in a menu bar window meant a product that looked broken
-/// until they were found — and the speech model is already downloading behind
-/// it. What is left for the reader is the one thing no app can do for them:
-/// granting Accessibility in System Settings.
-///
-/// It is one screen, it is skippable by closing the window, and it appears
-/// exactly once — right after the question it follows, while the app is still
-/// the thing the user is looking at.
+/// Permissions and model preparation after the language selection.
 struct FirstRunReadyView: View {
     @ObservedObject var coordinator: DictationCoordinator
     @Binding var opensAtLogin: Bool
+    let notificationMessage: String
+    let notifyWhenReady: () -> Void
     let finish: () -> Void
 
     /// `opensAtLogin` defaults to a constant so a view that has no window
@@ -36,10 +13,14 @@ struct FirstRunReadyView: View {
     init(
         coordinator: DictationCoordinator,
         opensAtLogin: Binding<Bool> = .constant(true),
+        notificationMessage: String = "Get a macOS notification when the model is ready.",
+        notifyWhenReady: @escaping () -> Void = {},
         finish: @escaping () -> Void
     ) {
         self.coordinator = coordinator
         _opensAtLogin = opensAtLogin
+        self.notificationMessage = notificationMessage
+        self.notifyWhenReady = notifyWhenReady
         self.finish = finish
     }
 
@@ -55,10 +36,10 @@ struct FirstRunReadyView: View {
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                Text(verbatim: L10n.format("Hold %@ and speak", coordinator.binding.displayString))
+                Text("Let’s get Witness ready")
                     .font(.largeTitle.weight(.medium))
                     .tracking(-1.2)
-                Text(verbatim: L10n.string("Let go and the text arrives where your cursor is. That is the whole of it — there is no window to switch to and nothing to click."))
+                Text(verbatim: L10n.string("Allow access below, then we’ll prepare your private speech model."))
                 .font(.callout)
                 .foregroundStyle(WitnessStyle.muted)
                 .fixedSize(horizontal: false, vertical: true)
@@ -68,12 +49,12 @@ struct FirstRunReadyView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     microphoneStep
 
-                    if coordinator.hasTranscriptionEngine {
-                        modelStep
-                    }
-
                     if coordinator.canInsert {
                         accessibilityStep
+                    }
+
+                    if coordinator.hasTranscriptionEngine {
+                        modelStep
                     }
 
                     if coordinator.hasEntitlementService {
@@ -121,7 +102,7 @@ struct FirstRunReadyView: View {
                     .foregroundStyle(WitnessStyle.muted)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer()
-                Button("Start dictating", action: finish)
+                Button(coordinator.transcriptionModelState.isReady ? "Start dictating" : "Continue in background", action: finish)
                     .buttonStyle(WitnessPrimaryButtonStyle())
                     .keyboardShortcut(.defaultAction)
             }
@@ -131,15 +112,10 @@ struct FirstRunReadyView: View {
         .witnessWindow()
         .task {
             await coordinator.refreshTranscriptionModelState()
-            // The two system dialogs, in order, while this window is behind
-            // them saying what each one is for. The coordinator asks once per
-            // launch, so a view rebuilt for any reason cannot ask twice.
-            await coordinator.requestFirstRunPermissions()
         }
     }
 
-    /// The microphone. macOS answers this one from inside its own dialog, so on
-    /// the ordinary path the row is already ticked by the time it is read.
+    /// The microphone is requested only when the user selects the action.
     @ViewBuilder
     private var microphoneStep: some View {
         switch coordinator.microphoneAuthorization {
@@ -152,8 +128,8 @@ struct FirstRunReadyView: View {
         case .notDetermined:
             step(
                 symbol: "mic",
-                title: "The microphone, once",
-                detail: "macOS is asking now. Audio is held in memory while you speak and never written to disk."
+                title: "Allow microphone access",
+                detail: "Witness needs the microphone to hear you. Audio stays in memory and is never saved to disk."
             ) {
                 Button("Allow microphone…") {
                     Task { await coordinator.requestMicrophoneAccess() }
@@ -184,13 +160,11 @@ struct FirstRunReadyView: View {
         if coordinator.needsAccessibilityTrust {
             step(
                 symbol: "keyboard",
-                title: "Typing into other applications",
-                detail: "macOS is asking now. Open System Settings from its prompt and switch Witness on under "
-                    + "Accessibility — this window notices on its own. Without it the text goes to the "
-                    + "clipboard instead, and everything else still works."
+                title: "Allow typing into other apps",
+                detail: "Enable Witness in Privacy & Security → Accessibility to insert text where your cursor is. Without it, text goes to the clipboard."
             ) {
                 HStack {
-                    Button("Ask again") { coordinator.requestAccessibilityTrust() }
+                    Button("Allow access…") { coordinator.requestAccessibilityTrust() }
                     Button("Open Settings") { coordinator.openAccessibilitySettings() }
                 }
                 .controlSize(.small)
@@ -239,7 +213,18 @@ struct FirstRunReadyView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             case .ready:
-                EmptyView()
+                Text(verbatim: L10n.format("Hold %@ and say a few words to try dictation.", coordinator.binding.displayString))
+                    .font(.caption)
+                    .foregroundStyle(WitnessStyle.muted)
+            }
+            if !coordinator.transcriptionModelState.isReady {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(verbatim: L10n.string(notificationMessage))
+                        .font(.caption)
+                        .foregroundStyle(WitnessStyle.muted)
+                    Button("Notify me when ready", action: notifyWhenReady)
+                        .controlSize(.small)
+                }
             }
         }
     }
@@ -256,7 +241,9 @@ struct FirstRunReadyView: View {
         switch coordinator.transcriptionModelState {
         case .ready: L10n.string("The speech model is ready")
         case .failed: L10n.string("The speech model did not arrive")
-        case .preparing, .unavailable: L10n.string("The speech model is downloading")
+        case let .preparing(preparation):
+            preparation.phase == .downloading ? L10n.string("The speech model is downloading") : L10n.string("The speech model is preparing")
+        case .unavailable: L10n.string("The speech model is not ready")
         }
     }
 
@@ -270,9 +257,11 @@ struct FirstRunReadyView: View {
                 detail,
                 SpeechModelDownloadSize.pinnedVariantSizeText
             )
+        case let .preparing(preparation) where preparation.phase != .downloading:
+            L10n.string("The model is being prepared on this Mac. Keep Witness running until it is ready.")
         case .preparing, .unavailable:
             L10n.format(
-                "About %@, fetched once. It started on its own when the app launched — you can close this window and it keeps going. Afterwards recognition runs on this Mac with no network at all.",
+                "About %@, downloaded once. This can take 5–15 minutes depending on your connection and Mac. Keep Witness running; recognition then happens locally.",
                 SpeechModelDownloadSize.pinnedVariantSizeText
             )
         }

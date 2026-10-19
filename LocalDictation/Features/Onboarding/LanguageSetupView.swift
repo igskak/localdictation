@@ -24,6 +24,7 @@ final class LanguageSetupModel: ObservableObject {
     /// it. On by default, and decided when the window closes rather than when
     /// the switch is flipped: see `LanguageSetupWindowController`.
     @Published var opensAtLogin = true
+    @Published var notificationMessage = "Get a macOS notification when the model is ready."
 
     init(selection: LanguageProfile) {
         self.selection = selection
@@ -93,13 +94,14 @@ struct FirstRunView: View {
     @ObservedObject var coordinator: DictationCoordinator
     let confirm: () -> Void
     let finish: () -> Void
+    let notifyWhenReady: () -> Void
 
     var body: some View {
         switch model.step {
         case .languages:
             LanguageSetupView(model: model, confirm: confirm)
         case .ready:
-            FirstRunReadyView(coordinator: coordinator, opensAtLogin: $model.opensAtLogin, finish: finish)
+            FirstRunReadyView(coordinator: coordinator, opensAtLogin: $model.opensAtLogin, notificationMessage: model.notificationMessage, notifyWhenReady: notifyWhenReady, finish: finish)
         }
     }
 }

@@ -1,5 +1,28 @@
 import AppKit
 import SwiftUI
+import Combine
+import UserNotifications
+
+@MainActor
+protocol ModelReadyNotificationService {
+    func requestAuthorization() async throws -> Bool
+    func sendReady(hotkey: String) async throws
+}
+
+@MainActor
+struct SystemModelReadyNotificationService: ModelReadyNotificationService {
+    func requestAuthorization() async throws -> Bool {
+        try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
+    }
+
+    func sendReady(hotkey: String) async throws {
+        let content = UNMutableNotificationContent()
+        content.title = L10n.string("Witness is ready")
+        content.body = L10n.format("The local speech model is ready. Hold %@ and speak.", hotkey)
+        content.sound = .default
+        try await UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: "model-ready", content: content, trigger: nil))
+    }
+}
 
 /// The window that carries the first-run language question.
 ///
@@ -23,19 +46,24 @@ final class LanguageSetupWindowController: NSObject, NSWindowDelegate {
     private let coordinator: DictationCoordinator
     private let model: LanguageSetupModel
     private let loginItem: any LoginItemService
+    private let notificationService: any ModelReadyNotificationService
     /// Internal so the tests that drive this can close it the way a user does,
     /// rather than hunting for it in `NSApp.windows`.
     private(set) var window: NSWindow?
     /// Set the moment the answer is recorded, so closing the window afterwards
     /// is not mistaken for the question going unanswered.
     private var isAnswered = false
+    private var modelReadyObservation: AnyCancellable?
+    private var waitingForNotification = false
+    private var requestingNotificationPermission = false
 
     /// The login item is passed in rather than made here: the real one writes to
     /// the machine's login items, and a test that closed this window would
     /// register the test host.
-    init(coordinator: DictationCoordinator, loginItem: any LoginItemService) {
+    init(coordinator: DictationCoordinator, loginItem: any LoginItemService, notificationService: any ModelReadyNotificationService = SystemModelReadyNotificationService()) {
         self.coordinator = coordinator
         self.loginItem = loginItem
+        self.notificationService = notificationService
         model = LanguageSetupModel(selection: coordinator.languageProfile)
         super.init()
     }
@@ -67,7 +95,8 @@ final class LanguageSetupWindowController: NSObject, NSWindowDelegate {
                 model: model,
                 coordinator: coordinator,
                 confirm: { [weak self] in self?.confirmSelection() },
-                finish: { [weak self] in self?.finish() }
+                finish: { [weak self] in self?.finish() },
+                notifyWhenReady: { [weak self] in self?.requestModelReadyNotification() }
             )
         )
         window.delegate = self
@@ -99,6 +128,46 @@ final class LanguageSetupWindowController: NSObject, NSWindowDelegate {
         isAnswered = true
         coordinator.completeLanguageSetup(with: model.selection)
         model.step = .ready
+    }
+
+    /// Keep observing after the setup window closes; the controller lives with the app.
+    private func requestModelReadyNotification() {
+        guard !waitingForNotification, !requestingNotificationPermission else { return }
+        requestingNotificationPermission = true
+        Task { @MainActor in
+            defer { requestingNotificationPermission = false }
+            do {
+                let allowed = try await notificationService.requestAuthorization()
+                guard allowed else {
+                    model.notificationMessage = L10n.string("Notifications are off. You can enable them in System Settings → Notifications.")
+                    return
+                }
+                waitingForNotification = true
+                model.notificationMessage = L10n.string("We’ll notify you when the model is ready. Keep Witness running.")
+                observeModelReadiness()
+            } catch {
+                model.notificationMessage = L10n.string("Could not enable notifications. Check System Settings → Notifications.")
+            }
+        }
+    }
+
+    private func observeModelReadiness() {
+        modelReadyObservation = coordinator.$transcriptionModelState.sink { [weak self] state in
+            guard state.isReady else { return }
+            Task { @MainActor [weak self] in await self?.sendModelReadyNotification() }
+        }
+    }
+
+    private func sendModelReadyNotification() async {
+        guard waitingForNotification else { return }
+        waitingForNotification = false
+        modelReadyObservation = nil
+        do {
+            try await notificationService.sendReady(hotkey: coordinator.binding.displayString)
+            model.notificationMessage = L10n.string("The model is ready.")
+        } catch {
+            model.notificationMessage = L10n.string("The model is ready, but the notification could not be delivered.")
+        }
     }
 
     /// The end of the first run. Closing the window by hand does the same
