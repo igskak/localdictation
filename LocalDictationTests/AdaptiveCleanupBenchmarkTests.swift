@@ -75,6 +75,24 @@ final class AdaptiveCleanupBenchmarkTests: XCTestCase {
         XCTAssertTrue(current.results[0].output.contains("20%"))
     }
 
+    func testFrozenPhaseNineCleanMatchesRecordedSyntheticBaseline() {
+        let fixtures: [(SpeechLanguage, String, String)] = [
+            (.english, "shopping: first, apples, second, pears", "Shopping:\n1., Apples,\n2., Pears."),
+            (.german, "betrag 20 % und 25 €", "Betrag 20 % und 25 €"),
+            (.russian, "покупки: во - первых яблоки, во - вторых груши", "Покупки: во - первых яблоки, во - вторых груши."),
+            (.ukrainian, "покупки: по - перше яблука, по - друге груші", "Покупки: по - перше яблука, по - друге груші."),
+            (.english, "meet at 12 : 30", "Meet at 12: 30."),
+            (.english, "the first version arrives on Tuesday", "The first version arrives on Tuesday."),
+        ]
+        for (language, raw, expected) in fixtures {
+            let sample = AdaptiveCleanupSample(identifier: raw, language: language, profile: nil,
+                                               raw: raw, ideal: expected, context: nil,
+                                               protectedValues: [], allowedEditKinds: [])
+            let report = AdaptiveCleanupBenchmark.run(manifest: .init(name: "phase-nine", samples: [sample]), mode: .legacyClean)
+            XCTAssertEqual(report.results[0].output, expected, raw)
+        }
+    }
+
     func testBenchmarkPassesFixtureContextToCleanMode() {
         let context = AdaptiveCleanupSample.Context(category: "workMessaging", textBeforeCaret: "",
                                                     textAfterCaret: "", hasSelection: false)
