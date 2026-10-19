@@ -56,7 +56,11 @@ final class StructuralBoundaryPlannerTests: XCTestCase {
 
     func testProductionPoliciesRemainDisabledUntilMeasured() {
         for language in [SpeechLanguage.german, .english, .russian, .ukrainian] {
+#if WITNESS_PHASE_9_1_PREVIEW
+            XCTAssertNotNil(StructuralBoundaryPolicy.measuredPolicy(for: language))
+#else
             XCTAssertNil(StructuralBoundaryPolicy.measuredPolicy(for: language))
+#endif
         }
     }
 }

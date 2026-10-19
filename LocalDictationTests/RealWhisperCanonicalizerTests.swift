@@ -5,6 +5,10 @@ final class RealWhisperCanonicalizerTests: XCTestCase {
     func testClosedCompoundsAndRawMap() {
         for (language, raw, canonical) in [
             (SpeechLanguage.russian, "во - первых", "во-первых"),
+            (.russian, "Во -первых", "Во-первых"),
+            (.russian, "какой -то", "какой-то"),
+            (.russian, "когда -нибудь", "когда-нибудь"),
+            (.russian, "опять -таки", "опять-таки"),
             (.russian, "во - вторых", "во-вторых"),
             (.ukrainian, "по - перше", "по-перше"),
             (.ukrainian, "по - друге", "по-друге"),
@@ -20,7 +24,7 @@ final class RealWhisperCanonicalizerTests: XCTestCase {
     }
 
     func testLiteralDashesAndIdentifierFragmentsRemainLiteral() {
-        for raw in ["два - три", "x/во - первых", "во - первых@example.com"] {
+        for raw in ["два - три", "да - нет", "x/во - первых", "во - первых@example.com"] {
             XCTAssertEqual(RealWhisperCanonicalizer().transform(raw, language: .russian, glossary: []).cleaned, raw)
         }
     }

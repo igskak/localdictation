@@ -2,9 +2,19 @@ import Foundation
 
 /// Closed surface repairs; never interprets spoken commands or changes words.
 struct RealWhisperCanonicalizer: Sendable {
-    private static let compounds: [SpeechLanguage: [(String, String)]] = [
-        .russian: [("во - первых", "во-первых"), ("во - вторых", "во-вторых"), ("в - третьих", "в-третьих")],
-        .ukrainian: [("по - перше", "по-перше"), ("по - друге", "по-друге"), ("по - третє", "по-третє")],
+    /// Productive hyphen forms are described by their morphology rather than
+    /// by every word Whisper might put next to a detached hyphen.
+    private static let hyphenSuffixes: [SpeechLanguage: Set<String>] = [
+        .russian: ["то", "либо", "нибудь", "таки"],
+        .ukrainian: ["то", "небудь", "таки"],
+    ]
+    private static let hyphenPrefixes: [SpeechLanguage: Set<String>] = [
+        .russian: ["кое"],
+        .ukrainian: ["будь", "казна", "хтозна"],
+    ]
+    private static let ordinalCompounds: [SpeechLanguage: Set<String>] = [
+        .russian: ["во-первых", "во-вторых", "в-третьих"],
+        .ukrainian: ["по-перше", "по-друге", "по-третє"],
     ]
 
     func transform(_ raw: String, language: SpeechLanguage, glossary: [GlossaryEntry], timing: CleanupTimingEvidence? = nil) -> CleanupResult {
@@ -12,9 +22,9 @@ struct RealWhisperCanonicalizer: Sendable {
         let protected = ProtectedSpanDetector().detect(in: raw, language: language, glossary: glossary)
         let source = Array(raw)
         var replacements: [CleanupReplacement] = []
-        for (variant, canonical) in Self.compounds[language, default: []] {
-            let escaped = NSRegularExpression.escapedPattern(for: variant)
-            guard let regex = try? NSRegularExpression(pattern: "(?<![\\p{L}\\p{N}_/@.])" + escaped + "(?![\\p{L}\\p{N}_/@.])", options: [.caseInsensitive]) else { continue }
+        if let regex = try? NSRegularExpression(
+            pattern: #"(?<![\p{L}\p{N}_/@.])\p{L}+[ \t]*-[ \t]*\p{L}+(?![\p{L}\p{N}_/@.])"#
+        ) {
             for match in regex.matches(in: raw, range: NSRange(raw.startIndex..., in: raw)) {
                 guard let range = Range(match.range, in: raw) else { continue }
                 let lower = raw.distance(from: raw.startIndex, to: range.lowerBound)
@@ -22,9 +32,21 @@ struct RealWhisperCanonicalizer: Sendable {
                 let offsets = lower..<upper
                 guard ProtectedSpanDetector.allows(proposed: offsets, protected: protected),
                       !ProtectedSpanDetector.overlapsGlossary(offsets, in: raw, language: language, glossary: glossary) else { continue }
-                // Preserve the speaker's capitalization; only spaces around the hyphen change.
-                let spelling = String(source[offsets]).replacingOccurrences(of: " - ", with: "-")
-                guard spelling.lowercased() == canonical else { continue }
+                let original = String(source[offsets])
+                let parts = original.split(separator: "-", maxSplits: 1).map {
+                    $0.trimmingCharacters(in: .whitespacesAndNewlines)
+                }
+                guard parts.count == 2 else { continue }
+                let left = parts[0].lowercased()
+                let right = parts[1].lowercased()
+                let canonical = left + "-" + right
+                guard Self.hyphenSuffixes[language, default: []].contains(right)
+                        || Self.hyphenPrefixes[language, default: []].contains(left)
+                        || Self.ordinalCompounds[language, default: []].contains(canonical)
+                else { continue }
+                // Preserve capitalization; only whitespace around the hyphen changes.
+                let spelling = parts[0] + "-" + parts[1]
+                guard spelling != original else { continue }
                 replacements.append(.init(range: offsets, text: spelling, kind: .surfaceNormalization))
             }
         }

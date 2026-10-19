@@ -6,7 +6,20 @@ struct ImplicitListPolicy: Sendable {
     let pauseBeforeFirst: TimeInterval
     let pauseAfterList: TimeInterval
 
-    static func measuredPolicy(for language: SpeechLanguage) -> Self? { nil }
+    static func measuredPolicy(for language: SpeechLanguage) -> Self? {
+#if WITNESS_PHASE_9_1_PREVIEW
+        let introductions: [SpeechLanguage: Set<String>] = [
+            .english: ["items", "shopping", "steps", "tasks"],
+            .german: ["aufgaben", "einkauf", "punkte", "schritte"],
+            .russian: ["задачи", "покупки", "пункты", "шаги"],
+            .ukrainian: ["завдання", "покупки", "пункти", "кроки"],
+        ]
+        guard let words = introductions[language] else { return nil }
+        return Self(introductionWords: words, pauseBeforeFirst: 0.6, pauseAfterList: 0.9)
+#else
+        return nil
+#endif
+    }
 }
 
 /// A deliberately narrow two-item candidate: all anchors must survive prior

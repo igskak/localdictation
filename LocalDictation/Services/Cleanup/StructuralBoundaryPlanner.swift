@@ -19,8 +19,23 @@ struct StructuralBoundaryPolicy: Sendable {
     }
 
     static func measuredPolicy(for language: SpeechLanguage) -> StructuralBoundaryPolicy? {
+#if WITNESS_PHASE_9_1_PREVIEW
+        guard language.isVerified else { return nil }
+        // The preview uses deliberately long pauses and clause length rather
+        // than a vocabulary of permitted final words. This makes the rule
+        // useful for natural speech without pretending a short word list is a
+        // grammar model. The production build remains measurement-gated.
+        return StructuralBoundaryPolicy(
+            sentenceGap: 0.85,
+            minimumClauseTokens: 5,
+            allowedClauseEndings: [],
+            paragraphGap: 1.8,
+            minimumParagraphTokens: 4
+        )
+#else
         // No Phase 9.1 real-speech threshold has been measured yet.
-        nil
+        return nil
+#endif
     }
 }
 
@@ -52,7 +67,8 @@ struct StructuralBoundaryPlanner: Sendable {
                   source[right.rawRange].allSatisfy(\.isLetter),
                   source[left.rawRange.upperBound..<right.rawRange.lowerBound].allSatisfy(\.isWhitespace),
                   !protected.contains(where: { $0.range.overlaps(left.rawRange) || $0.range.overlaps(right.rawRange) }),
-                  policy.allowedClauseEndings.contains(String(source[left.rawRange]).lowercased()) else { continue }
+                  (policy.allowedClauseEndings.isEmpty
+                   || policy.allowedClauseEndings.contains(String(source[left.rawRange]).lowercased())) else { continue }
             let leftMapped = result.map.cleanedRange(forRaw: left.rawRange)
             let rightMapped = result.map.cleanedRange(forRaw: right.rawRange)
             guard leftMapped.upperBound <= current.count, rightMapped.upperBound <= current.count,

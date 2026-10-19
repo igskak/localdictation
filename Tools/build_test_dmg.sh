@@ -11,6 +11,7 @@ fi
 build_args=(-project LocalDictation.xcodeproj -scheme LocalDictation
     -configuration Release -destination 'platform=macOS,arch=arm64'
     ENABLE_HARDENED_RUNTIME=NO CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM=)
+build_args+=(SWIFT_ACTIVE_COMPILATION_CONDITIONS='$(inherited) WITNESS_PHASE_9_1_PREVIEW')
 
 xcodebuild "${build_args[@]}" ${package_args[@]+"${package_args[@]}"} build
 settings=$(xcodebuild "${build_args[@]}" ${package_args[@]+"${package_args[@]}"} -showBuildSettings)

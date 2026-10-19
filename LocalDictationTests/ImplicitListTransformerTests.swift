@@ -22,7 +22,11 @@ final class ImplicitListTransformerTests: XCTestCase {
                                             protected: [.init(range: timing.tokens[1].rawRange, category: .glossary, text: "first")])
         XCTAssertEqual(blocked.cleaned, transcript.text)
         for language in [SpeechLanguage.english, .german, .russian, .ukrainian] {
+#if WITNESS_PHASE_9_1_PREVIEW
+            XCTAssertNotNil(ImplicitListPolicy.measuredPolicy(for: language))
+#else
             XCTAssertNil(ImplicitListPolicy.measuredPolicy(for: language))
+#endif
         }
     }
 }

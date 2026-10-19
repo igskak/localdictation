@@ -31,6 +31,30 @@ final class AdaptiveCleanupFoundationTests: XCTestCase {
         )
     }
 
+#if WITNESS_PHASE_9_1_PREVIEW
+    func testPreviewKeepsThreeDistinctCleanupLevels() throws {
+        let transcript = Transcript.assemble(words: [
+            .init("Во", start: 0, end: 0.1), .init("-первых", start: 0.1, end: 0.2),
+            .init("это", start: 0.2, end: 0.3), .init("первый", start: 0.3, end: 0.45),
+            .init("длинный", start: 0.45, end: 0.6), .init("фрагмент", start: 0.6, end: 0.8),
+            .init("теперь", start: 1.8, end: 1.95), .init("начинается", start: 1.95, end: 2.1),
+            .init("второй", start: 2.1, end: 2.25), .init("длинный", start: 2.25, end: 2.4),
+            .init("фрагмент", start: 2.4, end: 2.6),
+        ], profile: .russian, audioDuration: 3, processingDuration: 1, engineIdentifier: "fixture")
+        let timing = try XCTUnwrap(CleanupTimingEvidence.validated(transcript: transcript))
+        let raw = transcript.text
+        XCTAssertEqual(service.clean(raw, language: .russian,
+                                     options: CleanupOptions(level: .verbatim, timing: timing)).cleaned,
+                       "Во -первых это первый длинный фрагмент теперь начинается второй длинный фрагмент")
+        XCTAssertEqual(service.clean(raw, language: .russian,
+                                     options: CleanupOptions(level: .conservative, timing: timing)).cleaned,
+                       "Во-первых это первый длинный фрагмент теперь начинается второй длинный фрагмент.")
+        XCTAssertEqual(service.clean(raw, language: .russian,
+                                     options: CleanupOptions(level: .clean, timing: timing)).cleaned,
+                       "Во-первых это первый длинный фрагмент. Теперь начинается второй длинный фрагмент.")
+    }
+#endif
+
     func testProtectedDetectorFindsFactsNegationGlossaryAndEntities() {
         let glossary = [GlossaryEntry(term: "Acme Cloud", language: .english)]
         let spans = ProtectedSpanDetector().detect(
