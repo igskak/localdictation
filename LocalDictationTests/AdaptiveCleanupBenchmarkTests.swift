@@ -72,6 +72,21 @@ final class AdaptiveCleanupBenchmarkTests: XCTestCase {
         XCTAssertEqual(report.results[0].output, "Hello there")
     }
 
+    func testBenchmarkPassesValidatedTimingAndRejectsMalformedTiming() {
+        var sample = AdaptiveCleanupSample(identifier: "duplicate", language: .english, profile: nil,
+                                           raw: "hello hello", ideal: "Hello.", context: nil,
+                                           protectedValues: [], allowedEditKinds: [])
+        sample.timings = [
+            .init(lowerBound: 0, upperBound: 5, start: 0, end: 1, confidence: 1),
+            .init(lowerBound: 6, upperBound: 11, start: 0, end: 1, confidence: 1),
+        ]
+        var report = AdaptiveCleanupBenchmark.run(manifest: .init(name: "timing", samples: [sample]), mode: .conservative)
+        XCTAssertEqual(report.results[0].output, "Hello.")
+        sample.timings?[1] = .init(lowerBound: 11, upperBound: 6, start: 0, end: 1, confidence: 1)
+        report = AdaptiveCleanupBenchmark.run(manifest: .init(name: "timing", samples: [sample]), mode: .conservative)
+        XCTAssertEqual(report.results[0].output, "Hello hello.")
+    }
+
     func testLexicalAndIdempotenceScoresDetectChangedFacts() {
         let service = ConservativePipeline()
         let raw = "um во - первых 20 %"

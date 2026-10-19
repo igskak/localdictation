@@ -12,6 +12,14 @@ struct AdaptiveCleanupSample: Sendable, Codable, Equatable {
         let hasSelection: Bool
     }
 
+    struct TokenTiming: Sendable, Codable, Equatable {
+        let lowerBound: Int
+        let upperBound: Int
+        let start: TimeInterval
+        let end: TimeInterval
+        let confidence: Double?
+    }
+
     let identifier: String
     let language: SpeechLanguage
     let profile: String?
@@ -20,6 +28,7 @@ struct AdaptiveCleanupSample: Sendable, Codable, Equatable {
     let context: Context?
     let protectedValues: [String]
     let allowedEditKinds: [String]
+    var timings: [TokenTiming]? = nil
 
     var languageProfile: LanguageProfile {
         profile.flatMap(LanguageProfile.profile(id:)) ?? LanguageProfile(language)
@@ -118,8 +127,16 @@ enum AdaptiveCleanupBenchmark {
                                             textAfterCaret: fixture.textAfterCaret,
                                             hasSelection: fixture.hasSelection)
             }
+            let tokens = sample.timings?.compactMap { timing -> CleanupTokenTiming? in
+                guard timing.lowerBound >= 0, timing.upperBound >= timing.lowerBound else { return nil }
+                return CleanupTokenTiming(rawRange: timing.lowerBound..<timing.upperBound,
+                                          start: timing.start, end: timing.end, confidence: timing.confidence)
+            }
+            let timing = tokens.flatMap { tokens in
+                tokens.count == sample.timings?.count ? CleanupTimingEvidence.validated(tokens, raw: sample.raw) : nil
+            }
             let cleanup = service.clean(sample.raw, language: sample.language,
-                                        options: CleanupOptions(context: context))
+                                        options: CleanupOptions(context: context, timing: timing))
             let duration = start.duration(to: clock.now).timeInterval
             return AdaptiveCleanupScorer.score(sample: sample, cleanup: cleanup, duration: duration)
         }
