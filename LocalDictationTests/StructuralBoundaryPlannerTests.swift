@@ -18,6 +18,11 @@ final class StructuralBoundaryPlannerTests: XCTestCase {
         let candidates = planner.sentences(raw: raw, result: result, evidence: evidence, policy: policy, protected: [])
         XCTAssertEqual(candidates.count, 1)
         XCTAssertEqual(candidates[0].rawAnchor, "we will leave tomorrow".count)
+        let stage = StructuralBoundaryTransformer().sentences(candidates, in: raw, language: .english)
+        let composed = try XCTUnwrap(EditMapComposition.append(stage, to: result))
+        XCTAssertEqual(composed.cleaned, "we will leave tomorrow. we return later")
+        XCTAssertEqual(composed.raw, raw)
+        XCTAssertEqual(composed.edits.map(\.kind), [.inferredPunctuation])
         XCTAssertTrue(planner.sentences(raw: raw, result: result, evidence: evidence, policy: policy,
                                        protected: [.init(range: 14..<22, category: .date, text: "tomorrow")]).isEmpty)
         let deleted = CleanupTransformation.apply([.init(range: 14..<22, text: "", kind: .explicitCorrection)],

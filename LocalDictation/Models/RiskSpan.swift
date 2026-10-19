@@ -135,6 +135,7 @@ struct RiskWeights: Sendable, Equatable {
             case .capitalization: cleanupCapitalization
             case .spacing, .surfaceNormalization: cleanupSpacing
             case .spokenPunctuation, .lineBreak, .paragraphBreak, .listFormatting,
+                 .inferredPunctuation, .inferredParagraphBreak,
                  .contextSpacing, .contextCapitalization, .contextPunctuation:
                 cleanupPunctuation
             case .dictionaryCorrection, .explicitCorrection, .repetitionRemoval, .boundaryDuplicateRemoval:

@@ -114,6 +114,15 @@ struct AdaptiveCleanupService: CleanupService {
                 ),
                 to: result
             )
+            if options.context?.category != .codeTerminal,
+               let timing = options.timing,
+               let policy = StructuralBoundaryPolicy.measuredPolicy(for: language) {
+                let candidates = StructuralBoundaryPlanner().sentences(
+                    raw: raw, result: result, evidence: timing, policy: policy,
+                    protected: ProtectedSpanDetector().detect(in: raw, language: language, glossary: options.glossary)
+                )
+                result = append(StructuralBoundaryTransformer().sentences(candidates, in: result.cleaned, language: language), to: result)
+            }
             let final = conservative.clean(
                 result.cleaned,
                 language: language,

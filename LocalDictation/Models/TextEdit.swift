@@ -20,6 +20,8 @@ struct TextEdit: Sendable, Equatable {
     enum Kind: String, Sendable, Equatable, CaseIterable {
         case surfaceNormalization
         case boundaryDuplicateRemoval
+        case inferredPunctuation
+        case inferredParagraphBreak
         case spacing
         case punctuation
         case capitalization
@@ -45,6 +47,8 @@ struct TextEdit: Sendable, Equatable {
             switch self {
             case .surfaceNormalization: L10n.string("Surface normalization")
             case .boundaryDuplicateRemoval: L10n.string("Boundary duplicate removed")
+            case .inferredPunctuation: L10n.string("Inferred punctuation")
+            case .inferredParagraphBreak: L10n.string("Inferred paragraph break")
             case .spacing: L10n.string("Spacing")
             case .punctuation: L10n.string("Punctuation")
             case .capitalization: L10n.string("Capitalization")

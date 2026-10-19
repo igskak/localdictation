@@ -57,3 +57,14 @@ struct StructuralBoundaryPlanner: Sendable {
         return candidates
     }
 }
+
+/// Materializes approved candidates as punctuation-only edits in the current
+/// representation. The caller composes this stage with the raw edit map.
+struct StructuralBoundaryTransformer: Sendable {
+    func sentences(_ candidates: [StructuralBoundaryCandidate], in text: String, language: SpeechLanguage) -> CleanupResult {
+        let replacements = candidates.map {
+            CleanupReplacement(range: $0.cleanedAnchor..<$0.cleanedAnchor, text: ".", kind: .inferredPunctuation)
+        }
+        return CleanupTransformation.apply(replacements, to: text, language: language)
+    }
+}
