@@ -64,12 +64,30 @@ enum AdaptiveCleanupScorer {
         return changed
     }
 
-    private static func punctuation(in text: [Character]) -> [Character] {
-        text.filter { $0.isPunctuation && $0 != "'" && $0 != "-" }
+    private struct BoundaryMark: Hashable {
+        let precedingWordCount: Int
+        let mark: Character
     }
 
-    private static func lineBreaks(in text: [Character]) -> [Character] {
-        text.filter(\.isNewline)
+    private static func punctuation(in text: [Character]) -> [BoundaryMark] {
+        boundaryMarks(in: text) { $0.isPunctuation && $0 != "'" && $0 != "-" }
+    }
+
+    private static func lineBreaks(in text: [Character]) -> [BoundaryMark] {
+        boundaryMarks(in: text) { $0.isNewline }
+    }
+
+    private static func boundaryMarks(in text: [Character], where matches: (Character) -> Bool) -> [BoundaryMark] {
+        let words = WordScanner.words(in: String(text))
+        var preceding = 0
+        var marks: [BoundaryMark] = []
+        for (index, character) in text.enumerated() where matches(character) {
+            while preceding < words.count, words[preceding].range.upperBound <= index {
+                preceding += 1
+            }
+            marks.append(BoundaryMark(precedingWordCount: preceding, mark: character))
+        }
+        return marks
     }
 
     private static func editDistance(_ source: [Character], _ target: [Character]) -> Int {

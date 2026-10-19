@@ -73,6 +73,17 @@ final class AdaptiveCleanupBenchmarkTests: XCTestCase {
         XCTAssertFalse(StructuralCleanupScorer.conservativeLexicallyPreserved(damaged))
     }
 
+    func testBoundaryScoresPenalizeMarksAtWrongWordBoundary() {
+        let sample = AdaptiveCleanupSample(identifier: "boundary", language: .english, profile: nil,
+                                           raw: "hello world", ideal: "hello,\nworld", context: nil,
+                                           protectedValues: [], allowedEditKinds: [])
+        let cleanup = CleanupResult(raw: sample.raw, cleaned: "hello world,\n", edits: [],
+                                    map: .identity(length: sample.raw.count), language: .english)
+        let result = AdaptiveCleanupScorer.score(sample: sample, cleanup: cleanup)
+        XCTAssertEqual(result.punctuationF1, 0)
+        XCTAssertEqual(result.lineBreakF1, 0)
+    }
+
     func testScorerReportsProtectedValueLossAndUnexpectedKinds() {
         let sample = manifest.samples[1]
         let cleanup = CleanupResult(
