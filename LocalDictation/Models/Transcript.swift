@@ -18,6 +18,8 @@ struct TranscriptToken: Sendable, Equatable, Codable {
     /// disqualifying property for this product, not a detail. Phase 3's risk
     /// engine has nothing to work with when this is always `nil`.
     let confidence: Double?
+    /// Present only when an engine supplied a segment boundary before this token.
+    var segmentBoundaryBefore: Bool? = nil
 
     var duration: TimeInterval { max(end - start, 0) }
 }
@@ -101,12 +103,15 @@ extension Transcript {
         let start: TimeInterval
         let end: TimeInterval
         let confidence: Double?
+        let segmentBoundaryBefore: Bool
 
-        init(_ text: String, start: TimeInterval, end: TimeInterval, confidence: Double? = nil) {
+        init(_ text: String, start: TimeInterval, end: TimeInterval, confidence: Double? = nil,
+             segmentBoundaryBefore: Bool = false) {
             self.text = text
             self.start = start
             self.end = end
             self.confidence = confidence
+            self.segmentBoundaryBefore = segmentBoundaryBefore
         }
     }
 
@@ -145,7 +150,8 @@ extension Transcript {
                     range: offset..<(offset + length),
                     start: word.start,
                     end: word.end,
-                    confidence: word.confidence
+                    confidence: word.confidence,
+                    segmentBoundaryBefore: word.segmentBoundaryBefore ? true : nil
                 )
             )
             offset += length

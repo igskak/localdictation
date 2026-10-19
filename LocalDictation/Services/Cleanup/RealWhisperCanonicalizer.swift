@@ -75,7 +75,8 @@ struct RealWhisperCanonicalizer: Sendable {
         }
         // Require explicit segment provenance as well as identical positive
         // intervals. Equal timestamps alone do not prove a duplicated token.
-        if let timing, CleanupTimingEvidence.validated(timing.tokens, raw: raw) != nil,
+        if let timing, timing.boundaryDuplicatePolicyEnabled,
+           CleanupTimingEvidence.validated(timing.tokens, raw: raw) != nil,
            timing.tokens.count >= 2 {
             for index in 1..<timing.tokens.count {
                 let left = timing.tokens[index - 1]

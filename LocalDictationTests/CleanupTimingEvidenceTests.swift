@@ -1,4 +1,5 @@
 import XCTest
+import WhisperKit
 @testable import Witness
 
 final class CleanupTimingEvidenceTests: XCTestCase {
@@ -46,7 +47,8 @@ final class CleanupTimingEvidenceTests: XCTestCase {
         var boundaryToken = token(3..<5, 0, 0.5)
         boundaryToken.segmentBoundaryBefore = true
         let overlap = try XCTUnwrap(CleanupTimingEvidence.validated(
-            [token(0..<2, 0, 0.5), boundaryToken, token(6..<9, 0.6, 1)], raw: raw))
+            [token(0..<2, 0, 0.5), boundaryToken, token(6..<9, 0.6, 1)], raw: raw,
+            boundaryDuplicatePolicyEnabled: true))
         let options = CleanupOptions(timing: overlap)
         let result = pipeline.clean(raw, language: .english, options: options)
         XCTAssertEqual(result.cleaned, "Go now.")
@@ -68,6 +70,21 @@ final class CleanupTimingEvidenceTests: XCTestCase {
             let unchanged = pipeline.clean(raw, language: .english, options: CleanupOptions(timing: valid))
             XCTAssertFalse(unchanged.edits.contains { $0.kind == .boundaryDuplicateRemoval })
         }
+    }
+
+    func testWhisperSegmentProvenanceSurvivesAssemblyButDoesNotEnableRemoval() throws {
+        let first = TranscriptionSegment(words: [.init(word: "go", tokens: [], start: 0, end: 0.5, probability: 1)])
+        let second = TranscriptionSegment(words: [.init(word: "go", tokens: [], start: 0, end: 0.5, probability: 1)])
+        let words = WhisperKitTranscriptionService.words(from: [first, second])
+        let transcript = Transcript.assemble(words: words, profile: .english, audioDuration: 1,
+                                             processingDuration: 0, engineIdentifier: "fixture")
+        XCTAssertEqual(transcript.tokens.map(\.segmentBoundaryBefore), [nil, true])
+        let timing = try XCTUnwrap(CleanupTimingEvidence.validated(transcript: transcript))
+        XCTAssertTrue(timing.tokens[1].segmentBoundaryBefore)
+        XCTAssertFalse(timing.boundaryDuplicatePolicyEnabled)
+        let result = ConservativePipeline().clean(transcript.text, language: .english,
+                                                   options: CleanupOptions(timing: timing))
+        XCTAssertFalse(result.edits.contains { $0.kind == .boundaryDuplicateRemoval })
     }
 
     func testTimingDoesNotChangeCurrentTextOnlyCleanup() throws {

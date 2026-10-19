@@ -30,6 +30,8 @@ struct AdaptiveCleanupSample: Sendable, Codable, Equatable {
     let protectedValues: [String]
     let allowedEditKinds: [String]
     var timings: [TokenTiming]? = nil
+    /// For controlled experiments only; nil matches the disabled production policy.
+    var enableBoundaryDuplicatePolicy: Bool? = nil
 
     var languageProfile: LanguageProfile {
         profile.flatMap(LanguageProfile.profile(id:)) ?? LanguageProfile(language)
@@ -143,7 +145,8 @@ enum AdaptiveCleanupBenchmark {
                                           segmentBoundaryBefore: timing.segmentBoundaryBefore == true)
             }
             let timing = tokens.flatMap { tokens in
-                tokens.count == sample.timings?.count ? CleanupTimingEvidence.validated(tokens, raw: sample.raw) : nil
+                tokens.count == sample.timings?.count ? CleanupTimingEvidence.validated(tokens, raw: sample.raw,
+                                                                               boundaryDuplicatePolicyEnabled: sample.enableBoundaryDuplicatePolicy == true) : nil
             }
             let options = CleanupOptions(context: context, timing: timing)
             let cleanup = service.clean(sample.raw, language: sample.language, options: options)

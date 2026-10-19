@@ -107,6 +107,7 @@ final class AdaptiveCleanupBenchmarkTests: XCTestCase {
         var sample = AdaptiveCleanupSample(identifier: "duplicate", language: .english, profile: nil,
                                            raw: "hello hello", ideal: "Hello.", context: nil,
                                            protectedValues: [], allowedEditKinds: [])
+        sample.enableBoundaryDuplicatePolicy = true
         sample.timings = [
             .init(lowerBound: 0, upperBound: 5, start: 0, end: 1, confidence: 1),
             .init(lowerBound: 6, upperBound: 11, start: 0, end: 1, confidence: 1, segmentBoundaryBefore: true),

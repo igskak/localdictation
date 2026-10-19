@@ -13,9 +13,12 @@ struct CleanupTokenTiming: Sendable, Equatable {
 
 struct CleanupTimingEvidence: Sendable, Equatable {
     let tokens: [CleanupTokenTiming]
+    /// Production remains off until segment-boundary precision is measured.
+    let boundaryDuplicatePolicyEnabled: Bool
 
     /// Reject the whole sequence if any anchor or timestamp is invalid.
-    static func validated(_ tokens: [CleanupTokenTiming], raw: String) -> Self? {
+    static func validated(_ tokens: [CleanupTokenTiming], raw: String,
+                          boundaryDuplicatePolicyEnabled: Bool = false) -> Self? {
         guard !tokens.isEmpty else { return nil }
         var previousEnd = 0
         var previousStartTime: TimeInterval = 0
@@ -34,7 +37,7 @@ struct CleanupTimingEvidence: Sendable, Equatable {
             previousStartTime = token.start
             previousEndTime = token.end
         }
-        return Self(tokens: tokens)
+        return Self(tokens: tokens, boundaryDuplicatePolicyEnabled: boundaryDuplicatePolicyEnabled)
     }
 
     static func validated(transcript: Transcript) -> Self? {
@@ -45,7 +48,8 @@ struct CleanupTimingEvidence: Sendable, Equatable {
                 && String(characters[token.range]) == token.text
         }) else { return nil }
         return validated(transcript.tokens.map {
-            CleanupTokenTiming(rawRange: $0.range, start: $0.start, end: $0.end, confidence: $0.confidence)
+            CleanupTokenTiming(rawRange: $0.range, start: $0.start, end: $0.end, confidence: $0.confidence,
+                               segmentBoundaryBefore: $0.segmentBoundaryBefore == true)
         }, raw: transcript.text)
     }
 }

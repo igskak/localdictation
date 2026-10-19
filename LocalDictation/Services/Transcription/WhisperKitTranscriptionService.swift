@@ -528,35 +528,34 @@ actor WhisperKitTranscriptionService: TranscriptionService {
 
     // MARK: - Result mapping
 
-    private static func words(from segments: [TranscriptionSegment]) -> [Transcript.Word] {
-        segments.flatMap { segment -> [Transcript.Word] in
+    static func words(from segments: [TranscriptionSegment]) -> [Transcript.Word] {
+        var result: [Transcript.Word] = []
+        for segment in segments {
+            let hasEarlierSegment = !result.isEmpty
             if let words = segment.words, !words.isEmpty {
-                return words.compactMap { timing in
+                var isFirstWord = true
+                for timing in words {
                     let text = timing.word.trimmingCharacters(in: .whitespaces)
-                    guard !text.isEmpty else { return nil }
-                    return Transcript.Word(
-                        text,
-                        start: TimeInterval(timing.start),
-                        end: TimeInterval(timing.end),
-                        confidence: Double(timing.probability)
-                    )
+                    guard !text.isEmpty else { continue }
+                    result.append(Transcript.Word(
+                        text, start: TimeInterval(timing.start), end: TimeInterval(timing.end),
+                        confidence: Double(timing.probability),
+                        segmentBoundaryBefore: hasEarlierSegment && isFirstWord
+                    ))
+                    isFirstWord = false
                 }
+                continue
             }
-
-            // Word timestamps can be unavailable for a segment. Falling back to
-            // the segment's mean log probability keeps a confidence signal
-            // rather than silently reporting none.
+            // A segment without word timing still contributes its text and
+            // segment-level confidence, as in the original adapter.
             let text = segment.text.trimmingCharacters(in: .whitespaces)
-            guard !text.isEmpty else { return [] }
-            return [
-                Transcript.Word(
-                    text,
-                    start: TimeInterval(segment.start),
-                    end: TimeInterval(segment.end),
-                    confidence: Double(exp(segment.avgLogprob))
-                )
-            ]
+            guard !text.isEmpty else { continue }
+            result.append(Transcript.Word(
+                text, start: TimeInterval(segment.start), end: TimeInterval(segment.end),
+                confidence: Double(exp(segment.avgLogprob)), segmentBoundaryBefore: hasEarlierSegment
+            ))
         }
+        return result
     }
 
     // MARK: - Storage
