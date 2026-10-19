@@ -42,6 +42,21 @@ struct RealWhisperCanonicalizer: Sendable {
                 replacements.append(.init(range: offsets, text: compact, kind: .surfaceNormalization))
             }
         }
+        // English percentage typography joins an already-rendered value and
+        // symbol. Other verified locales retain their conventional spacing.
+        if language == .english, let regex = try? NSRegularExpression(
+            pattern: #"(?<![\p{L}\p{N}_./:@-])[0-9]+(?:[.,][0-9]+)? +%(?![\p{L}\p{N}_./:@-])"#
+        ) {
+            for match in regex.matches(in: raw, range: NSRange(raw.startIndex..., in: raw)) {
+                guard let range = Range(match.range, in: raw) else { continue }
+                let lower = raw.distance(from: raw.startIndex, to: range.lowerBound)
+                let upper = raw.distance(from: raw.startIndex, to: range.upperBound)
+                let offsets = lower..<upper
+                guard !protected.contains(where: { $0.category == .glossary && $0.range.overlaps(offsets) }) else { continue }
+                replacements.append(.init(range: offsets, text: String(source[offsets]).replacingOccurrences(of: " ", with: ""),
+                                          kind: .surfaceNormalization))
+            }
+        }
         // Identical positive-duration intervals are the narrowest reliable
         // segment-overlap evidence. A zero-duration timestamp proves nothing.
         if let timing, CleanupTimingEvidence.validated(timing.tokens, raw: raw) != nil,

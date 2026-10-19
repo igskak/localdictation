@@ -39,6 +39,17 @@ final class RealWhisperCanonicalizerTests: XCTestCase {
         }
     }
 
+    func testPercentageSpacingUsesLocaleAndProtectsIdentifiers() {
+        let canonicalizer = RealWhisperCanonicalizer()
+        XCTAssertEqual(canonicalizer.transform("20 %", language: .english, glossary: []).cleaned, "20%")
+        for language in [SpeechLanguage.german, .russian, .ukrainian] {
+            XCTAssertEqual(canonicalizer.transform("20 %", language: language, glossary: []).cleaned, "20 %")
+        }
+        for raw in ["id20 %", "v/20 %", "20 %foo"] {
+            XCTAssertEqual(canonicalizer.transform(raw, language: .english, glossary: []).cleaned, raw)
+        }
+    }
+
     func testVerbatimRemainsExactAndConservativeDoesNotExecuteCommands() {
         let raw = "во - первых двоеточие"
         let service = AdaptiveCleanupService()
