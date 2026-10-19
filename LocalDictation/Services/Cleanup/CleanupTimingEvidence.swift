@@ -6,6 +6,9 @@ struct CleanupTokenTiming: Sendable, Equatable {
     let start: TimeInterval
     let end: TimeInterval
     let confidence: Double?
+    /// True only with explicit engine provenance that a segment boundary
+    /// precedes this token. Timestamps alone cannot establish that fact.
+    var segmentBoundaryBefore: Bool = false
 }
 
 struct CleanupTimingEvidence: Sendable, Equatable {

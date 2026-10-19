@@ -18,6 +18,7 @@ struct AdaptiveCleanupSample: Sendable, Codable, Equatable {
         let start: TimeInterval
         let end: TimeInterval
         let confidence: Double?
+        var segmentBoundaryBefore: Bool? = nil
     }
 
     let identifier: String
@@ -138,7 +139,8 @@ enum AdaptiveCleanupBenchmark {
             let tokens = sample.timings?.compactMap { timing -> CleanupTokenTiming? in
                 guard timing.lowerBound >= 0, timing.upperBound >= timing.lowerBound else { return nil }
                 return CleanupTokenTiming(rawRange: timing.lowerBound..<timing.upperBound,
-                                          start: timing.start, end: timing.end, confidence: timing.confidence)
+                                          start: timing.start, end: timing.end, confidence: timing.confidence,
+                                          segmentBoundaryBefore: timing.segmentBoundaryBefore == true)
             }
             let timing = tokens.flatMap { tokens in
                 tokens.count == sample.timings?.count ? CleanupTimingEvidence.validated(tokens, raw: sample.raw) : nil

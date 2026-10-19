@@ -91,7 +91,7 @@ final class AdaptiveCleanupBenchmarkTests: XCTestCase {
                                            protectedValues: [], allowedEditKinds: [])
         sample.timings = [
             .init(lowerBound: 0, upperBound: 5, start: 0, end: 1, confidence: 1),
-            .init(lowerBound: 6, upperBound: 11, start: 0, end: 1, confidence: 1),
+            .init(lowerBound: 6, upperBound: 11, start: 0, end: 1, confidence: 1, segmentBoundaryBefore: true),
         ]
         var report = AdaptiveCleanupBenchmark.run(manifest: .init(name: "timing", samples: [sample]), mode: .conservative)
         XCTAssertEqual(report.results[0].output, "Hello.")

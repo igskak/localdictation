@@ -73,14 +73,15 @@ struct RealWhisperCanonicalizer: Sendable {
                                           kind: .surfaceNormalization))
             }
         }
-        // Identical positive-duration intervals are the narrowest reliable
-        // segment-overlap evidence. A zero-duration timestamp proves nothing.
+        // Require explicit segment provenance as well as identical positive
+        // intervals. Equal timestamps alone do not prove a duplicated token.
         if let timing, CleanupTimingEvidence.validated(timing.tokens, raw: raw) != nil,
            timing.tokens.count >= 2 {
             for index in 1..<timing.tokens.count {
                 let left = timing.tokens[index - 1]
                 let right = timing.tokens[index]
-                guard left.start == right.start, left.end == right.end, left.end > left.start,
+                guard right.segmentBoundaryBefore,
+                      left.start == right.start, left.end == right.end, left.end > left.start,
                       left.rawRange.upperBound < right.rawRange.lowerBound,
                       source[left.rawRange.upperBound..<right.rawRange.lowerBound].allSatisfy(\.isWhitespace),
                       String(source[left.rawRange]) == String(source[right.rawRange]),
