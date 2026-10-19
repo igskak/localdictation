@@ -42,6 +42,8 @@ final class AdaptiveCleanupBenchmarkTests: XCTestCase {
         XCTAssertEqual(Set(report.byLanguage.keys), [.english, .german])
         XCTAssertTrue(report.results.allSatisfy(\.protectedValuesPreserved))
         XCTAssertTrue(report.results.allSatisfy { $0.correctionEffort == 0 })
+        XCTAssertTrue(report.results.allSatisfy { $0.conservativeLexicallyPreserved == true })
+        XCTAssertTrue(report.results.allSatisfy { $0.idempotent == true })
         XCTAssertGreaterThanOrEqual(report.p50Duration, 0)
         XCTAssertGreaterThanOrEqual(report.p95Duration, report.p50Duration)
     }

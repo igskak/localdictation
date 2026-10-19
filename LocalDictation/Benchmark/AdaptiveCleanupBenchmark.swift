@@ -64,6 +64,8 @@ struct AdaptiveCleanupSampleResult: Sendable, Equatable {
     let correctionEffort: Int
     let processingDuration: TimeInterval
     let unexpectedEditKinds: [String]
+    let conservativeLexicallyPreserved: Bool?
+    let idempotent: Bool?
 }
 
 struct AdaptiveCleanupReport: Sendable, Equatable {
@@ -135,10 +137,14 @@ enum AdaptiveCleanupBenchmark {
             let timing = tokens.flatMap { tokens in
                 tokens.count == sample.timings?.count ? CleanupTimingEvidence.validated(tokens, raw: sample.raw) : nil
             }
-            let cleanup = service.clean(sample.raw, language: sample.language,
-                                        options: CleanupOptions(context: context, timing: timing))
+            let options = CleanupOptions(context: context, timing: timing)
+            let cleanup = service.clean(sample.raw, language: sample.language, options: options)
             let duration = start.duration(to: clock.now).timeInterval
-            return AdaptiveCleanupScorer.score(sample: sample, cleanup: cleanup, duration: duration)
+            return AdaptiveCleanupScorer.score(
+                sample: sample, cleanup: cleanup, duration: duration,
+                conservativeLexicallyPreserved: StructuralCleanupScorer.conservativeLexicallyPreserved(cleanup),
+                idempotent: StructuralCleanupScorer.isIdempotent(cleanup, service: service, options: options)
+            )
         }
         return AdaptiveCleanupReport(name: manifest.name, results: results)
     }

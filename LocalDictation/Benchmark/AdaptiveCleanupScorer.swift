@@ -5,7 +5,9 @@ enum AdaptiveCleanupScorer {
     static func score(
         sample: AdaptiveCleanupSample,
         cleanup: CleanupResult,
-        duration: TimeInterval = 0
+        duration: TimeInterval = 0,
+        conservativeLexicallyPreserved: Bool? = nil,
+        idempotent: Bool? = nil
     ) -> AdaptiveCleanupSampleResult {
         let raw = Array(sample.raw)
         let ideal = Array(sample.ideal)
@@ -27,7 +29,9 @@ enum AdaptiveCleanupScorer {
             lineBreakF1: f1(expected: lineBreaks(in: ideal), actual: lineBreaks(in: output)),
             correctionEffort: editDistance(ideal, output),
             processingDuration: duration,
-            unexpectedEditKinds: cleanup.edits.map(\.kind.rawValue).filter { !sample.allowedEditKinds.contains($0) }
+            unexpectedEditKinds: cleanup.edits.map(\.kind.rawValue).filter { !sample.allowedEditKinds.contains($0) },
+            conservativeLexicallyPreserved: conservativeLexicallyPreserved,
+            idempotent: idempotent
         )
     }
 
