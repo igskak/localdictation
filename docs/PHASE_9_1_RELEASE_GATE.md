@@ -22,8 +22,9 @@ The implementation is incomplete: the remaining surface-equivalence and
 symbol rules, transcription adapter segment provenance and broader timing-proven
 duplicate handling, corpus-calibrated structural, paragraph, and implicit-list
 policies, broader correction and adversarial coverage, corpus benchmark runs,
-and settings explanations still need to be implemented and verified. The tests
-and Release builds recorded for individual commits do not establish the release
+and complete settings explanations still need to be implemented and verified.
+The Conservative setting has been updated for the implemented surface repairs.
+The tests and Release builds recorded for individual commits do not establish the release
 thresholds below.
 
 The private consented DE/EN/RU/UK corpus and per-language precision and recall
