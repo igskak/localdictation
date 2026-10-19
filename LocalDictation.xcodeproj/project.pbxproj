@@ -73,11 +73,13 @@
 		4B798B4E97AF4A293818E71B /* CleanupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27DF10798AECF9DB089EB913 /* CleanupService.swift */; };
 		5FB0CDC1587FBBF21AEB45A6 /* CleanupTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8830073AAEAE1457AED1C05 /* CleanupTransformer.swift */; };
 		9506325497705DE359C70CE8 /* ConservativeCleanupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 663B6E706FBC4E180BA9FB33 /* ConservativeCleanupService.swift */; };
+		2FCE34116489F34FCF160EB6 /* ConservativePipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = B36F2670414C0D6578038A5D /* ConservativePipeline.swift */; };
 		F909B660E6F6687C24AF70C3 /* DictionaryCorrectionTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F438789C4FAF9A4F53ED298A /* DictionaryCorrectionTransformer.swift */; };
 		C88B2AFEB86EF2F8BC3FF474 /* EditMapComposition.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2D21F18BD19C9009D2FC680 /* EditMapComposition.swift */; };
 		81034892BB1C55A0FE753AE4 /* ExplicitCorrectionTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9007BD65069CCDF450A9C382 /* ExplicitCorrectionTransformer.swift */; };
 		1867DDE5B01F8C4BECFB9883 /* ListTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93C59561810B911574D3B0C2 /* ListTransformer.swift */; };
 		9E3437D505D7A526B4970700 /* ProtectedSpanDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBB68CED40F6A6CCF7175669 /* ProtectedSpanDetector.swift */; };
+		90D66FE77E94B530A55B7E38 /* RealWhisperCanonicalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DE8EB8E4C2956F53523D75E /* RealWhisperCanonicalizer.swift */; };
 		9406142C82C8138D10B070E6 /* RepetitionTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EA49ACB6185609F326C0364 /* RepetitionTransformer.swift */; };
 		3DE0E50E1814C5DB24F27F56 /* SpokenCommandTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E904654C7C10FF6C887356A7 /* SpokenCommandTransformer.swift */; };
 		FC29A03E5D824B7D978CFCBE /* TypedValueFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1F890775CE0267E0EE85209 /* TypedValueFormatter.swift */; };
@@ -205,6 +207,7 @@
 		EB7E12D92F8F910F16964070 /* ProseWarningDensityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28E7ECECB058FBEC50218759 /* ProseWarningDensityTests.swift */; };
 		5C26F7B7B8AA3BBB2A6BAEB8 /* QuietInputBenchmarkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A94FA4993FABAE05B0CACBCD /* QuietInputBenchmarkTests.swift */; };
 		64331C2954D6E1FCF68BEC6D /* RealSpeechBaselineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EE0CF70F0390923A7AA65E5 /* RealSpeechBaselineTests.swift */; };
+		0CB416E1A960B2389154B93B /* RealWhisperCanonicalizerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 347F79E95B884C8987F9D165 /* RealWhisperCanonicalizerTests.swift */; };
 		8F3263F631DC1E71101897D5 /* RecordingActivationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 546A02B6F9F18EA622C2A0D0 /* RecordingActivationTests.swift */; };
 		BE3886F5BD1B22ECD9C054C2 /* RecordingStateMachineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20B3276C16F6A91CD52C83D1 /* RecordingStateMachineTests.swift */; };
 		BC3F2E64942B318D2D1375D7 /* RepeatedDictationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19ADBFA4FAE943354F3E7784 /* RepeatedDictationTests.swift */; };
@@ -311,11 +314,13 @@
 		27DF10798AECF9DB089EB913 /* CleanupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupService.swift; sourceTree = "<group>"; };
 		F8830073AAEAE1457AED1C05 /* CleanupTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupTransformer.swift; sourceTree = "<group>"; };
 		663B6E706FBC4E180BA9FB33 /* ConservativeCleanupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConservativeCleanupService.swift; sourceTree = "<group>"; };
+		B36F2670414C0D6578038A5D /* ConservativePipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConservativePipeline.swift; sourceTree = "<group>"; };
 		F438789C4FAF9A4F53ED298A /* DictionaryCorrectionTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryCorrectionTransformer.swift; sourceTree = "<group>"; };
 		A2D21F18BD19C9009D2FC680 /* EditMapComposition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditMapComposition.swift; sourceTree = "<group>"; };
 		9007BD65069CCDF450A9C382 /* ExplicitCorrectionTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExplicitCorrectionTransformer.swift; sourceTree = "<group>"; };
 		93C59561810B911574D3B0C2 /* ListTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListTransformer.swift; sourceTree = "<group>"; };
 		CBB68CED40F6A6CCF7175669 /* ProtectedSpanDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProtectedSpanDetector.swift; sourceTree = "<group>"; };
+		9DE8EB8E4C2956F53523D75E /* RealWhisperCanonicalizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealWhisperCanonicalizer.swift; sourceTree = "<group>"; };
 		6EA49ACB6185609F326C0364 /* RepetitionTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepetitionTransformer.swift; sourceTree = "<group>"; };
 		E904654C7C10FF6C887356A7 /* SpokenCommandTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpokenCommandTransformer.swift; sourceTree = "<group>"; };
 		B1F890775CE0267E0EE85209 /* TypedValueFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypedValueFormatter.swift; sourceTree = "<group>"; };
@@ -448,6 +453,7 @@
 		28E7ECECB058FBEC50218759 /* ProseWarningDensityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProseWarningDensityTests.swift; sourceTree = "<group>"; };
 		A94FA4993FABAE05B0CACBCD /* QuietInputBenchmarkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuietInputBenchmarkTests.swift; sourceTree = "<group>"; };
 		9EE0CF70F0390923A7AA65E5 /* RealSpeechBaselineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealSpeechBaselineTests.swift; sourceTree = "<group>"; };
+		347F79E95B884C8987F9D165 /* RealWhisperCanonicalizerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealWhisperCanonicalizerTests.swift; sourceTree = "<group>"; };
 		546A02B6F9F18EA622C2A0D0 /* RecordingActivationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingActivationTests.swift; sourceTree = "<group>"; };
 		20B3276C16F6A91CD52C83D1 /* RecordingStateMachineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingStateMachineTests.swift; sourceTree = "<group>"; };
 		19ADBFA4FAE943354F3E7784 /* RepeatedDictationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepeatedDictationTests.swift; sourceTree = "<group>"; };
@@ -667,11 +673,13 @@
 				27DF10798AECF9DB089EB913 /* CleanupService.swift */,
 				F8830073AAEAE1457AED1C05 /* CleanupTransformer.swift */,
 				663B6E706FBC4E180BA9FB33 /* ConservativeCleanupService.swift */,
+				B36F2670414C0D6578038A5D /* ConservativePipeline.swift */,
 				F438789C4FAF9A4F53ED298A /* DictionaryCorrectionTransformer.swift */,
 				A2D21F18BD19C9009D2FC680 /* EditMapComposition.swift */,
 				9007BD65069CCDF450A9C382 /* ExplicitCorrectionTransformer.swift */,
 				93C59561810B911574D3B0C2 /* ListTransformer.swift */,
 				CBB68CED40F6A6CCF7175669 /* ProtectedSpanDetector.swift */,
+				9DE8EB8E4C2956F53523D75E /* RealWhisperCanonicalizer.swift */,
 				6EA49ACB6185609F326C0364 /* RepetitionTransformer.swift */,
 				E904654C7C10FF6C887356A7 /* SpokenCommandTransformer.swift */,
 				B1F890775CE0267E0EE85209 /* TypedValueFormatter.swift */,
@@ -966,6 +974,7 @@
 				28E7ECECB058FBEC50218759 /* ProseWarningDensityTests.swift */,
 				A94FA4993FABAE05B0CACBCD /* QuietInputBenchmarkTests.swift */,
 				9EE0CF70F0390923A7AA65E5 /* RealSpeechBaselineTests.swift */,
+				347F79E95B884C8987F9D165 /* RealWhisperCanonicalizerTests.swift */,
 				546A02B6F9F18EA622C2A0D0 /* RecordingActivationTests.swift */,
 				20B3276C16F6A91CD52C83D1 /* RecordingStateMachineTests.swift */,
 				19ADBFA4FAE943354F3E7784 /* RepeatedDictationTests.swift */,
@@ -1186,11 +1195,13 @@
 				4B798B4E97AF4A293818E71B /* CleanupService.swift in Sources */,
 				5FB0CDC1587FBBF21AEB45A6 /* CleanupTransformer.swift in Sources */,
 				9506325497705DE359C70CE8 /* ConservativeCleanupService.swift in Sources */,
+				2FCE34116489F34FCF160EB6 /* ConservativePipeline.swift in Sources */,
 				F909B660E6F6687C24AF70C3 /* DictionaryCorrectionTransformer.swift in Sources */,
 				C88B2AFEB86EF2F8BC3FF474 /* EditMapComposition.swift in Sources */,
 				81034892BB1C55A0FE753AE4 /* ExplicitCorrectionTransformer.swift in Sources */,
 				1867DDE5B01F8C4BECFB9883 /* ListTransformer.swift in Sources */,
 				9E3437D505D7A526B4970700 /* ProtectedSpanDetector.swift in Sources */,
+				90D66FE77E94B530A55B7E38 /* RealWhisperCanonicalizer.swift in Sources */,
 				9406142C82C8138D10B070E6 /* RepetitionTransformer.swift in Sources */,
 				3DE0E50E1814C5DB24F27F56 /* SpokenCommandTransformer.swift in Sources */,
 				FC29A03E5D824B7D978CFCBE /* TypedValueFormatter.swift in Sources */,
@@ -1325,6 +1336,7 @@
 				EB7E12D92F8F910F16964070 /* ProseWarningDensityTests.swift in Sources */,
 				5C26F7B7B8AA3BBB2A6BAEB8 /* QuietInputBenchmarkTests.swift in Sources */,
 				64331C2954D6E1FCF68BEC6D /* RealSpeechBaselineTests.swift in Sources */,
+				0CB416E1A960B2389154B93B /* RealWhisperCanonicalizerTests.swift in Sources */,
 				8F3263F631DC1E71101897D5 /* RecordingActivationTests.swift in Sources */,
 				BE3886F5BD1B22ECD9C054C2 /* RecordingStateMachineTests.swift in Sources */,
 				BC3F2E64942B318D2D1375D7 /* RepeatedDictationTests.swift in Sources */,

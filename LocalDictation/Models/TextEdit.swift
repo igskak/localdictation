@@ -18,6 +18,7 @@ struct TypedValueRecord: Sendable, Equatable {
 /// rewrite, which `docs/PRODUCT_SCOPE.md` places after the MVP.
 struct TextEdit: Sendable, Equatable {
     enum Kind: String, Sendable, Equatable, CaseIterable {
+        case surfaceNormalization
         case spacing
         case punctuation
         case capitalization
@@ -41,6 +42,7 @@ struct TextEdit: Sendable, Equatable {
 
         var label: String {
             switch self {
+            case .surfaceNormalization: L10n.string("Surface normalization")
             case .spacing: L10n.string("Spacing")
             case .punctuation: L10n.string("Punctuation")
             case .capitalization: L10n.string("Capitalization")

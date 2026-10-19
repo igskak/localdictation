@@ -4,7 +4,7 @@ import Foundation
 /// implementation. Clean deliberately aliases Conservative until its measured
 /// transformers are added by later Phase 9 slices.
 struct AdaptiveCleanupService: CleanupService {
-    private let conservative = ConservativeCleanupService()
+    private let conservative = ConservativePipeline()
     private let commands = SpokenCommandTransformer()
     private let dictionary = DictionaryCorrectionTransformer()
     private let corrections = ExplicitCorrectionTransformer()
