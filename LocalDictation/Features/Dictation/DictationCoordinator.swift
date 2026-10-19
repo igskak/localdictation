@@ -1726,7 +1726,8 @@ final class DictationCoordinator: ObservableObject {
             options: CleanupOptions(
                 level: activeCleanupLevel,
                 glossary: glossary.entries(for: language),
-                context: context
+                context: context,
+                timing: CleanupTimingEvidence.validated(transcript: transcript)
             )
         )
         let spans = riskEngine.analyze(

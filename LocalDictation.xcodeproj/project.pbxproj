@@ -71,6 +71,7 @@
 		C44360A4DB0F0CBFF38FDC31 /* AdaptiveCleanupReleaseGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82F6177325F381CCE7914FAE /* AdaptiveCleanupReleaseGate.swift */; };
 		925324006164BA4F68CE3E6D /* AdaptiveCleanupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07B4857B1CFBFF850A2D4268 /* AdaptiveCleanupService.swift */; };
 		4B798B4E97AF4A293818E71B /* CleanupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27DF10798AECF9DB089EB913 /* CleanupService.swift */; };
+		AB525636B78D5CB7497F8F57 /* CleanupTimingEvidence.swift in Sources */ = {isa = PBXBuildFile; fileRef = B702E090E61FC51F831304FD /* CleanupTimingEvidence.swift */; };
 		5FB0CDC1587FBBF21AEB45A6 /* CleanupTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8830073AAEAE1457AED1C05 /* CleanupTransformer.swift */; };
 		9506325497705DE359C70CE8 /* ConservativeCleanupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 663B6E706FBC4E180BA9FB33 /* ConservativeCleanupService.swift */; };
 		2FCE34116489F34FCF160EB6 /* ConservativePipeline.swift in Sources */ = {isa = PBXBuildFile; fileRef = B36F2670414C0D6578038A5D /* ConservativePipeline.swift */; };
@@ -158,6 +159,7 @@
 		7079653106E703087BDD7F7F /* BoundedPCMBufferTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C64D3C5A6BF8CCA2A02B5ED /* BoundedPCMBufferTests.swift */; };
 		DA485ED8CF282C4408931D97 /* CaptureInterruptionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93CF5E4D633AE25175C43744 /* CaptureInterruptionTests.swift */; };
 		35ACFD2E3FD3DF60844C2AB9 /* CapturePrivacyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 300C15129730DCED75EEEA82 /* CapturePrivacyTests.swift */; };
+		434F86D92CA607A6CCAF936E /* CleanupTimingEvidenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5D59844C59C01FC48B91028 /* CleanupTimingEvidenceTests.swift */; };
 		F80B22561CC37104531BE018 /* ConservativeCleanupServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38793040A6A15D8445E31FFC /* ConservativeCleanupServiceTests.swift */; };
 		CC8DE8E78120D58ACAD16F3A /* ContextCompositorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A798EBA55D53CD8429164062 /* ContextCompositorTests.swift */; };
 		D70D4C591EC0FD2C71402AF4 /* DictationActivityPanelControllerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22B7D117292B18EADD0B42E2 /* DictationActivityPanelControllerTests.swift */; };
@@ -312,6 +314,7 @@
 		82F6177325F381CCE7914FAE /* AdaptiveCleanupReleaseGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveCleanupReleaseGate.swift; sourceTree = "<group>"; };
 		07B4857B1CFBFF850A2D4268 /* AdaptiveCleanupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveCleanupService.swift; sourceTree = "<group>"; };
 		27DF10798AECF9DB089EB913 /* CleanupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupService.swift; sourceTree = "<group>"; };
+		B702E090E61FC51F831304FD /* CleanupTimingEvidence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupTimingEvidence.swift; sourceTree = "<group>"; };
 		F8830073AAEAE1457AED1C05 /* CleanupTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupTransformer.swift; sourceTree = "<group>"; };
 		663B6E706FBC4E180BA9FB33 /* ConservativeCleanupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConservativeCleanupService.swift; sourceTree = "<group>"; };
 		B36F2670414C0D6578038A5D /* ConservativePipeline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConservativePipeline.swift; sourceTree = "<group>"; };
@@ -404,6 +407,7 @@
 		6C64D3C5A6BF8CCA2A02B5ED /* BoundedPCMBufferTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoundedPCMBufferTests.swift; sourceTree = "<group>"; };
 		93CF5E4D633AE25175C43744 /* CaptureInterruptionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureInterruptionTests.swift; sourceTree = "<group>"; };
 		300C15129730DCED75EEEA82 /* CapturePrivacyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapturePrivacyTests.swift; sourceTree = "<group>"; };
+		F5D59844C59C01FC48B91028 /* CleanupTimingEvidenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupTimingEvidenceTests.swift; sourceTree = "<group>"; };
 		38793040A6A15D8445E31FFC /* ConservativeCleanupServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConservativeCleanupServiceTests.swift; sourceTree = "<group>"; };
 		A798EBA55D53CD8429164062 /* ContextCompositorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextCompositorTests.swift; sourceTree = "<group>"; };
 		22B7D117292B18EADD0B42E2 /* DictationActivityPanelControllerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictationActivityPanelControllerTests.swift; sourceTree = "<group>"; };
@@ -671,6 +675,7 @@
 				82F6177325F381CCE7914FAE /* AdaptiveCleanupReleaseGate.swift */,
 				07B4857B1CFBFF850A2D4268 /* AdaptiveCleanupService.swift */,
 				27DF10798AECF9DB089EB913 /* CleanupService.swift */,
+				B702E090E61FC51F831304FD /* CleanupTimingEvidence.swift */,
 				F8830073AAEAE1457AED1C05 /* CleanupTransformer.swift */,
 				663B6E706FBC4E180BA9FB33 /* ConservativeCleanupService.swift */,
 				B36F2670414C0D6578038A5D /* ConservativePipeline.swift */,
@@ -925,6 +930,7 @@
 				6C64D3C5A6BF8CCA2A02B5ED /* BoundedPCMBufferTests.swift */,
 				93CF5E4D633AE25175C43744 /* CaptureInterruptionTests.swift */,
 				300C15129730DCED75EEEA82 /* CapturePrivacyTests.swift */,
+				F5D59844C59C01FC48B91028 /* CleanupTimingEvidenceTests.swift */,
 				38793040A6A15D8445E31FFC /* ConservativeCleanupServiceTests.swift */,
 				A798EBA55D53CD8429164062 /* ContextCompositorTests.swift */,
 				22B7D117292B18EADD0B42E2 /* DictationActivityPanelControllerTests.swift */,
@@ -1193,6 +1199,7 @@
 				C44360A4DB0F0CBFF38FDC31 /* AdaptiveCleanupReleaseGate.swift in Sources */,
 				925324006164BA4F68CE3E6D /* AdaptiveCleanupService.swift in Sources */,
 				4B798B4E97AF4A293818E71B /* CleanupService.swift in Sources */,
+				AB525636B78D5CB7497F8F57 /* CleanupTimingEvidence.swift in Sources */,
 				5FB0CDC1587FBBF21AEB45A6 /* CleanupTransformer.swift in Sources */,
 				9506325497705DE359C70CE8 /* ConservativeCleanupService.swift in Sources */,
 				2FCE34116489F34FCF160EB6 /* ConservativePipeline.swift in Sources */,
@@ -1287,6 +1294,7 @@
 				7079653106E703087BDD7F7F /* BoundedPCMBufferTests.swift in Sources */,
 				DA485ED8CF282C4408931D97 /* CaptureInterruptionTests.swift in Sources */,
 				35ACFD2E3FD3DF60844C2AB9 /* CapturePrivacyTests.swift in Sources */,
+				434F86D92CA607A6CCAF936E /* CleanupTimingEvidenceTests.swift in Sources */,
 				F80B22561CC37104531BE018 /* ConservativeCleanupServiceTests.swift in Sources */,
 				CC8DE8E78120D58ACAD16F3A /* ContextCompositorTests.swift in Sources */,
 				D70D4C591EC0FD2C71402AF4 /* DictationActivityPanelControllerTests.swift in Sources */,

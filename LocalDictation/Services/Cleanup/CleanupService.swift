@@ -9,6 +9,8 @@ struct CleanupOptions: Sendable, Equatable {
     /// Ephemeral and content-bearing. It is consumed synchronously by Clean
     /// and must never be persisted, logged, or copied into diagnostics.
     var context: DictationTextContext? = nil
+    /// Used only for the current utterance; never persisted or logged.
+    var timing: CleanupTimingEvidence? = nil
     var collapsesWhitespace: Bool = true
     var fixesPunctuationSpacing: Bool = true
     var removesFillers: Bool = true
