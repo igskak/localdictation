@@ -76,7 +76,34 @@ struct AdaptiveCleanupReport: Sendable, Equatable {
     }
 }
 
+enum AdaptiveCleanupBenchmarkMode: Sendable {
+    case legacyConservative
+    case conservative
+    case clean
+}
+
+private struct ConfiguredCleanupBenchmarkService: CleanupService {
+    let mode: AdaptiveCleanupBenchmarkMode
+
+    func clean(_ raw: String, language: SpeechLanguage, options: CleanupOptions) -> CleanupResult {
+        switch mode {
+        case .legacyConservative:
+            return ConservativeCleanupService().clean(raw, language: language, options: options)
+        case .conservative:
+            return ConservativePipeline().clean(raw, language: language, options: options)
+        case .clean:
+            var cleanOptions = options
+            cleanOptions.level = .clean
+            return AdaptiveCleanupService().clean(raw, language: language, options: cleanOptions)
+        }
+    }
+}
+
 enum AdaptiveCleanupBenchmark {
+    static func run(manifest: AdaptiveCleanupManifest, mode: AdaptiveCleanupBenchmarkMode) -> AdaptiveCleanupReport {
+        run(manifest: manifest, service: ConfiguredCleanupBenchmarkService(mode: mode))
+    }
+
     static func run(
         manifest: AdaptiveCleanupManifest,
         service: any CleanupService

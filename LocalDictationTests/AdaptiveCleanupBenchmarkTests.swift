@@ -46,6 +46,22 @@ final class AdaptiveCleanupBenchmarkTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(report.p95Duration, report.p50Duration)
     }
 
+    func testBenchmarkModesCompareTheSameRawSamples() {
+        let fixture = AdaptiveCleanupManifest(name: "surface", samples: [
+            AdaptiveCleanupSample(identifier: "percentage", language: .english, profile: nil,
+                                  raw: "20 %", ideal: "20%", context: nil, protectedValues: ["20"],
+                                  allowedEditKinds: ["surfaceNormalization"]),
+        ])
+        let legacy = AdaptiveCleanupBenchmark.run(manifest: fixture, mode: .legacyConservative)
+        let current = AdaptiveCleanupBenchmark.run(manifest: fixture, mode: .conservative)
+        let clean = AdaptiveCleanupBenchmark.run(manifest: fixture, mode: .clean)
+        XCTAssertEqual(legacy.results[0].raw, current.results[0].raw)
+        XCTAssertEqual(current.results[0].raw, clean.results[0].raw)
+        XCTAssertTrue(legacy.results[0].output.contains("20 %"))
+        XCTAssertTrue(current.results[0].output.contains("20%"))
+        XCTAssertTrue(clean.results[0].output.contains("20%"))
+    }
+
     func testScorerReportsProtectedValueLossAndUnexpectedKinds() {
         let sample = manifest.samples[1]
         let cleanup = CleanupResult(
