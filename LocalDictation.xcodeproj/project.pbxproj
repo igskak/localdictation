@@ -83,6 +83,7 @@
 		90D66FE77E94B530A55B7E38 /* RealWhisperCanonicalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DE8EB8E4C2956F53523D75E /* RealWhisperCanonicalizer.swift */; };
 		9406142C82C8138D10B070E6 /* RepetitionTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EA49ACB6185609F326C0364 /* RepetitionTransformer.swift */; };
 		3DE0E50E1814C5DB24F27F56 /* SpokenCommandTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E904654C7C10FF6C887356A7 /* SpokenCommandTransformer.swift */; };
+		FE08757C9FF00C1303809723 /* StructuralBoundaryPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EFCAFD57CB12BFCE4843E02 /* StructuralBoundaryPlanner.swift */; };
 		FC29A03E5D824B7D978CFCBE /* TypedValueFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1F890775CE0267E0EE85209 /* TypedValueFormatter.swift */; };
 		5B7C328DCA493AA374586BB9 /* VerifiedLanguageCleanupRules.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5814841F90BC85AD66DDCC6A /* VerifiedLanguageCleanupRules.swift */; };
 		B99169233CB53FC1FCA79600 /* AXTextContextService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E353675314597AD97AF1197 /* AXTextContextService.swift */; };
@@ -226,6 +227,7 @@
 		451E4794E9068DE25AF17979 /* SilentDictationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8FF10F6BBAD099AD8CD800B /* SilentDictationTests.swift */; };
 		22EF378DC4E0031124EF54CC /* StatusPresentationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E86BD8C693FBAC71C9573850 /* StatusPresentationTests.swift */; };
 		6CDAB727804EB6F2B7EE41BF /* StoreFrontTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90235D91FE3446D571B7ED29 /* StoreFrontTests.swift */; };
+		766A69F69F01C04B1960EAD0 /* StructuralBoundaryPlannerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D23742CD6A9EA2396155898 /* StructuralBoundaryPlannerTests.swift */; };
 		DCA9312AF17CF278E8DB91AC /* AsyncWait.swift in Sources */ = {isa = PBXBuildFile; fileRef = A42E49F87196B5889B35F6B5 /* AsyncWait.swift */; };
 		3FA22DA31B1B4E82011933CC /* ProseCorpus.swift in Sources */ = {isa = PBXBuildFile; fileRef = E93FDCDFC5EE1B630F3C27E1 /* ProseCorpus.swift */; };
 		F3244D20746EBB8F0B217632 /* TestDoubles.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7241549A575F739E4A81775 /* TestDoubles.swift */; };
@@ -326,6 +328,7 @@
 		9DE8EB8E4C2956F53523D75E /* RealWhisperCanonicalizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealWhisperCanonicalizer.swift; sourceTree = "<group>"; };
 		6EA49ACB6185609F326C0364 /* RepetitionTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepetitionTransformer.swift; sourceTree = "<group>"; };
 		E904654C7C10FF6C887356A7 /* SpokenCommandTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpokenCommandTransformer.swift; sourceTree = "<group>"; };
+		0EFCAFD57CB12BFCE4843E02 /* StructuralBoundaryPlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StructuralBoundaryPlanner.swift; sourceTree = "<group>"; };
 		B1F890775CE0267E0EE85209 /* TypedValueFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TypedValueFormatter.swift; sourceTree = "<group>"; };
 		5814841F90BC85AD66DDCC6A /* VerifiedLanguageCleanupRules.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerifiedLanguageCleanupRules.swift; sourceTree = "<group>"; };
 		3E353675314597AD97AF1197 /* AXTextContextService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AXTextContextService.swift; sourceTree = "<group>"; };
@@ -474,6 +477,7 @@
 		A8FF10F6BBAD099AD8CD800B /* SilentDictationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SilentDictationTests.swift; sourceTree = "<group>"; };
 		E86BD8C693FBAC71C9573850 /* StatusPresentationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusPresentationTests.swift; sourceTree = "<group>"; };
 		90235D91FE3446D571B7ED29 /* StoreFrontTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreFrontTests.swift; sourceTree = "<group>"; };
+		6D23742CD6A9EA2396155898 /* StructuralBoundaryPlannerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StructuralBoundaryPlannerTests.swift; sourceTree = "<group>"; };
 		A42E49F87196B5889B35F6B5 /* AsyncWait.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncWait.swift; sourceTree = "<group>"; };
 		E93FDCDFC5EE1B630F3C27E1 /* ProseCorpus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProseCorpus.swift; sourceTree = "<group>"; };
 		C7241549A575F739E4A81775 /* TestDoubles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestDoubles.swift; sourceTree = "<group>"; };
@@ -687,6 +691,7 @@
 				9DE8EB8E4C2956F53523D75E /* RealWhisperCanonicalizer.swift */,
 				6EA49ACB6185609F326C0364 /* RepetitionTransformer.swift */,
 				E904654C7C10FF6C887356A7 /* SpokenCommandTransformer.swift */,
+				0EFCAFD57CB12BFCE4843E02 /* StructuralBoundaryPlanner.swift */,
 				B1F890775CE0267E0EE85209 /* TypedValueFormatter.swift */,
 				5814841F90BC85AD66DDCC6A /* VerifiedLanguageCleanupRules.swift */,
 			);
@@ -997,6 +1002,7 @@
 				A8FF10F6BBAD099AD8CD800B /* SilentDictationTests.swift */,
 				E86BD8C693FBAC71C9573850 /* StatusPresentationTests.swift */,
 				90235D91FE3446D571B7ED29 /* StoreFrontTests.swift */,
+				6D23742CD6A9EA2396155898 /* StructuralBoundaryPlannerTests.swift */,
 				DAAC7BAE20CE48F6E592FCAB /* TelemetryBoundaryTests.swift */,
 				E94829641CB3C55B08DEC72F /* TranscriptTests.swift */,
 				CC2BE105C24716851E5B864B /* TranscriptionScorerTests.swift */,
@@ -1211,6 +1217,7 @@
 				90D66FE77E94B530A55B7E38 /* RealWhisperCanonicalizer.swift in Sources */,
 				9406142C82C8138D10B070E6 /* RepetitionTransformer.swift in Sources */,
 				3DE0E50E1814C5DB24F27F56 /* SpokenCommandTransformer.swift in Sources */,
+				FE08757C9FF00C1303809723 /* StructuralBoundaryPlanner.swift in Sources */,
 				FC29A03E5D824B7D978CFCBE /* TypedValueFormatter.swift in Sources */,
 				5B7C328DCA493AA374586BB9 /* VerifiedLanguageCleanupRules.swift in Sources */,
 				B99169233CB53FC1FCA79600 /* AXTextContextService.swift in Sources */,
@@ -1361,6 +1368,7 @@
 				451E4794E9068DE25AF17979 /* SilentDictationTests.swift in Sources */,
 				22EF378DC4E0031124EF54CC /* StatusPresentationTests.swift in Sources */,
 				6CDAB727804EB6F2B7EE41BF /* StoreFrontTests.swift in Sources */,
+				766A69F69F01C04B1960EAD0 /* StructuralBoundaryPlannerTests.swift in Sources */,
 				DCA9312AF17CF278E8DB91AC /* AsyncWait.swift in Sources */,
 				3FA22DA31B1B4E82011933CC /* ProseCorpus.swift in Sources */,
 				F3244D20746EBB8F0B217632 /* TestDoubles.swift in Sources */,
