@@ -78,6 +78,7 @@
 		F909B660E6F6687C24AF70C3 /* DictionaryCorrectionTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F438789C4FAF9A4F53ED298A /* DictionaryCorrectionTransformer.swift */; };
 		C88B2AFEB86EF2F8BC3FF474 /* EditMapComposition.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2D21F18BD19C9009D2FC680 /* EditMapComposition.swift */; };
 		81034892BB1C55A0FE753AE4 /* ExplicitCorrectionTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9007BD65069CCDF450A9C382 /* ExplicitCorrectionTransformer.swift */; };
+		54A00F88756138E9A90728D0 /* ImplicitListTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D93BE86404F0692726B9C1F /* ImplicitListTransformer.swift */; };
 		1867DDE5B01F8C4BECFB9883 /* ListTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93C59561810B911574D3B0C2 /* ListTransformer.swift */; };
 		9E3437D505D7A526B4970700 /* ProtectedSpanDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBB68CED40F6A6CCF7175669 /* ProtectedSpanDetector.swift */; };
 		90D66FE77E94B530A55B7E38 /* RealWhisperCanonicalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DE8EB8E4C2956F53523D75E /* RealWhisperCanonicalizer.swift */; };
@@ -184,6 +185,7 @@
 		54682A424DEB1BACC15820B3 /* HALInputCaptureServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A989E770BB09278DE70D459D /* HALInputCaptureServiceTests.swift */; };
 		BC4ABC6F915EACE35E16FD88 /* HTTPActivationBackendTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB922631DBF1CBC59EED7E87 /* HTTPActivationBackendTests.swift */; };
 		46A8A5308BE97DC351B9A1B1 /* HotkeyBindingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71C3EEE871B3BB204D934BDD /* HotkeyBindingTests.swift */; };
+		D713B1B0F4A2B30F286B1451 /* ImplicitListTransformerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E141323B3E5FFC76D6B8ADC9 /* ImplicitListTransformerTests.swift */; };
 		4C45D383FE6F1B1AE6081962 /* InputRebindTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B98B0FB2C260D13C37C70DAE /* InputRebindTests.swift */; };
 		225825D7784117E786366BF9 /* InputRoutePolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D4417DDB714D9870FF8CB7B /* InputRoutePolicyTests.swift */; };
 		D70342D948ECF7F40CAFB904 /* InsertionPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 455739E9BE96C143739D4D7D /* InsertionPolicyTests.swift */; };
@@ -323,6 +325,7 @@
 		F438789C4FAF9A4F53ED298A /* DictionaryCorrectionTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DictionaryCorrectionTransformer.swift; sourceTree = "<group>"; };
 		A2D21F18BD19C9009D2FC680 /* EditMapComposition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditMapComposition.swift; sourceTree = "<group>"; };
 		9007BD65069CCDF450A9C382 /* ExplicitCorrectionTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExplicitCorrectionTransformer.swift; sourceTree = "<group>"; };
+		3D93BE86404F0692726B9C1F /* ImplicitListTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImplicitListTransformer.swift; sourceTree = "<group>"; };
 		93C59561810B911574D3B0C2 /* ListTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListTransformer.swift; sourceTree = "<group>"; };
 		CBB68CED40F6A6CCF7175669 /* ProtectedSpanDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProtectedSpanDetector.swift; sourceTree = "<group>"; };
 		9DE8EB8E4C2956F53523D75E /* RealWhisperCanonicalizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealWhisperCanonicalizer.swift; sourceTree = "<group>"; };
@@ -434,6 +437,7 @@
 		A989E770BB09278DE70D459D /* HALInputCaptureServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HALInputCaptureServiceTests.swift; sourceTree = "<group>"; };
 		DB922631DBF1CBC59EED7E87 /* HTTPActivationBackendTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPActivationBackendTests.swift; sourceTree = "<group>"; };
 		71C3EEE871B3BB204D934BDD /* HotkeyBindingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyBindingTests.swift; sourceTree = "<group>"; };
+		E141323B3E5FFC76D6B8ADC9 /* ImplicitListTransformerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImplicitListTransformerTests.swift; sourceTree = "<group>"; };
 		B98B0FB2C260D13C37C70DAE /* InputRebindTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputRebindTests.swift; sourceTree = "<group>"; };
 		9D4417DDB714D9870FF8CB7B /* InputRoutePolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputRoutePolicyTests.swift; sourceTree = "<group>"; };
 		455739E9BE96C143739D4D7D /* InsertionPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsertionPolicyTests.swift; sourceTree = "<group>"; };
@@ -686,6 +690,7 @@
 				F438789C4FAF9A4F53ED298A /* DictionaryCorrectionTransformer.swift */,
 				A2D21F18BD19C9009D2FC680 /* EditMapComposition.swift */,
 				9007BD65069CCDF450A9C382 /* ExplicitCorrectionTransformer.swift */,
+				3D93BE86404F0692726B9C1F /* ImplicitListTransformer.swift */,
 				93C59561810B911574D3B0C2 /* ListTransformer.swift */,
 				CBB68CED40F6A6CCF7175669 /* ProtectedSpanDetector.swift */,
 				9DE8EB8E4C2956F53523D75E /* RealWhisperCanonicalizer.swift */,
@@ -959,6 +964,7 @@
 				A989E770BB09278DE70D459D /* HALInputCaptureServiceTests.swift */,
 				DB922631DBF1CBC59EED7E87 /* HTTPActivationBackendTests.swift */,
 				71C3EEE871B3BB204D934BDD /* HotkeyBindingTests.swift */,
+				E141323B3E5FFC76D6B8ADC9 /* ImplicitListTransformerTests.swift */,
 				B98B0FB2C260D13C37C70DAE /* InputRebindTests.swift */,
 				9D4417DDB714D9870FF8CB7B /* InputRoutePolicyTests.swift */,
 				455739E9BE96C143739D4D7D /* InsertionPolicyTests.swift */,
@@ -1212,6 +1218,7 @@
 				F909B660E6F6687C24AF70C3 /* DictionaryCorrectionTransformer.swift in Sources */,
 				C88B2AFEB86EF2F8BC3FF474 /* EditMapComposition.swift in Sources */,
 				81034892BB1C55A0FE753AE4 /* ExplicitCorrectionTransformer.swift in Sources */,
+				54A00F88756138E9A90728D0 /* ImplicitListTransformer.swift in Sources */,
 				1867DDE5B01F8C4BECFB9883 /* ListTransformer.swift in Sources */,
 				9E3437D505D7A526B4970700 /* ProtectedSpanDetector.swift in Sources */,
 				90D66FE77E94B530A55B7E38 /* RealWhisperCanonicalizer.swift in Sources */,
@@ -1325,6 +1332,7 @@
 				54682A424DEB1BACC15820B3 /* HALInputCaptureServiceTests.swift in Sources */,
 				BC4ABC6F915EACE35E16FD88 /* HTTPActivationBackendTests.swift in Sources */,
 				46A8A5308BE97DC351B9A1B1 /* HotkeyBindingTests.swift in Sources */,
+				D713B1B0F4A2B30F286B1451 /* ImplicitListTransformerTests.swift in Sources */,
 				4C45D383FE6F1B1AE6081962 /* InputRebindTests.swift in Sources */,
 				225825D7784117E786366BF9 /* InputRoutePolicyTests.swift in Sources */,
 				D70342D948ECF7F40CAFB904 /* InsertionPolicyTests.swift in Sources */,

@@ -102,6 +102,15 @@ struct AdaptiveCleanupService: CleanupService {
                     to: result
                 )
             }
+            if options.context?.category != .codeTerminal,
+               !result.edits.contains(where: { $0.kind == .listFormatting }),
+               let timing = options.timing,
+               let policy = ImplicitListPolicy.measuredPolicy(for: language) {
+                result = append(ImplicitListTransformer().transform(
+                    raw: raw, result: result, evidence: timing, language: language, policy: policy,
+                    protected: ProtectedSpanDetector().detect(in: raw, language: language, glossary: options.glossary)
+                ), to: result)
+            }
             result = append(
                 typedValues.transform(
                     result.cleaned,
