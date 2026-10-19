@@ -73,6 +73,21 @@ struct RealWhisperCanonicalizer: Sendable {
                                           kind: .surfaceNormalization))
             }
         }
+        // Join the degree sign to C/F only for a complete numeric temperature.
+        // Keep the value-to-unit spacing and every digit exactly as spoken.
+        if let regex = try? NSRegularExpression(
+            pattern: #"(?<![\p{L}\p{N}_./:@-])[0-9]+(?:[.,][0-9]+)? +° +[CF](?![\p{L}\p{N}_./:@-])"#
+        ) {
+            for match in regex.matches(in: raw, range: NSRange(raw.startIndex..., in: raw)) {
+                guard let range = Range(match.range, in: raw) else { continue }
+                let offsets = raw.distance(from: raw.startIndex, to: range.lowerBound)..<raw.distance(from: raw.startIndex, to: range.upperBound)
+                guard !ProtectedSpanDetector.overlapsGlossary(offsets, in: raw, language: language, glossary: glossary) else { continue }
+                let text = String(source[offsets])
+                guard let degree = text.firstIndex(of: "°"), let unit = text.last else { continue }
+                let prefix = text[...degree]
+                replacements.append(.init(range: offsets, text: String(prefix) + String(unit), kind: .surfaceNormalization))
+            }
+        }
         // Require explicit segment provenance as well as identical positive
         // intervals. Equal timestamps alone do not prove a duplicated token.
         if let timing, timing.boundaryDuplicatePolicyEnabled,

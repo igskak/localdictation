@@ -64,6 +64,22 @@ final class RealWhisperCanonicalizerTests: XCTestCase {
         XCTAssertEqual(canonicalizer.transform("$ 25", language: .german, glossary: []).cleaned, "$ 25")
     }
 
+    func testCompleteTemperatureSpacingAndFences() {
+        let canonicalizer = RealWhisperCanonicalizer()
+        for language in [SpeechLanguage.english, .german, .russian, .ukrainian] {
+            let raw = "20 ° C"
+            let result = canonicalizer.transform(raw, language: language, glossary: [])
+            XCTAssertEqual(result.cleaned, "20 °C")
+            XCTAssertEqual(result.map.rawRange(forCleaned: 0..<result.cleaned.count), 0..<raw.count)
+            XCTAssertEqual(canonicalizer.transform(result.cleaned, language: language, glossary: []).cleaned, result.cleaned)
+        }
+        for raw in ["id20 ° C", "path/20 ° C", "20 ° Celsius", "20 ° Cfoo", "-20 ° C"] {
+            XCTAssertEqual(canonicalizer.transform(raw, language: .english, glossary: []).cleaned, raw)
+        }
+        let glossary = [GlossaryEntry(term: "20", language: .english)]
+        XCTAssertEqual(canonicalizer.transform("20 ° C", language: .english, glossary: glossary).cleaned, "20 ° C")
+    }
+
     func testNumericGlossaryEntryProtectsSurfaceValue() {
         let canonicalizer = RealWhisperCanonicalizer()
         let glossary = [GlossaryEntry(term: "25", language: .english)]
