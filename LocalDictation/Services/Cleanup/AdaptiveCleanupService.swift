@@ -87,18 +87,20 @@ struct AdaptiveCleanupService: CleanupService {
                 ),
                 to: result
             )
-            result = append(
-                lists.transform(
-                    result.cleaned,
-                    language: language,
-                    protected: ProtectedSpanDetector().detect(
-                        in: result.cleaned,
+            if options.context?.category != .codeTerminal {
+                result = append(
+                    lists.transform(
+                        result.cleaned,
                         language: language,
-                        glossary: options.glossary
-                    )
-                ),
-                to: result
-            )
+                        protected: ProtectedSpanDetector().detect(
+                            in: result.cleaned,
+                            language: language,
+                            glossary: options.glossary
+                        )
+                    ),
+                    to: result
+                )
+            }
             result = append(
                 typedValues.transform(
                     result.cleaned,
@@ -118,7 +120,8 @@ struct AdaptiveCleanupService: CleanupService {
                     level: .clean,
                     glossary: options.glossary,
                     collapsesWhitespace: false,
-                    removesFillers: false
+                    removesFillers: false,
+                    addsTerminalPunctuation: options.context?.category != .codeTerminal
                 )
             )
             result = append(final, to: result)

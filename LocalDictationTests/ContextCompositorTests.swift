@@ -39,6 +39,18 @@ final class ContextCompositorTests: XCTestCase {
         XCTAssertTrue(result.edits.contains { $0.kind == .contextPunctuation })
     }
 
+    func testCodeAndTerminalDoNotInferListsOrTerminalPeriods() {
+        XCTAssertEqual(ApplicationCategory.classify(bundleIdentifier: "com.apple.Terminal"), .codeTerminal)
+        XCTAssertEqual(ApplicationCategory.classify(bundleIdentifier: "com.apple.dt.Xcode"), .codeTerminal)
+        let context = DictationTextContext(category: .codeTerminal, fieldRole: .editableText,
+                                           textBeforeCaret: "", textAfterCaret: "", hasSelection: false)
+        let result = service.clean("shopping colon first apples second pears", language: .english,
+                                   options: CleanupOptions(level: .clean, context: context))
+        XCTAssertFalse(result.edits.contains { $0.kind == .listFormatting })
+        XCTAssertFalse(result.cleaned.hasSuffix("."))
+        XCTAssertTrue(result.cleaned.contains(":")) // explicit command remains available
+    }
+
     func testASelectionDoesNotInventAJoinOrLowercase() {
         let context = DictationTextContext(
             category: .emailDocument,
@@ -111,7 +123,7 @@ final class AXTextContextPrivacyTests: XCTestCase {
         XCTAssertEqual(ApplicationCategory.classify(bundleIdentifier: "com.apple.Mail"), .emailDocument)
         XCTAssertEqual(ApplicationCategory.classify(bundleIdentifier: "com.tinyspeck.slackmacgap"), .workMessaging)
         XCTAssertEqual(ApplicationCategory.classify(bundleIdentifier: "com.apple.MobileSMS"), .personalMessaging)
-        XCTAssertEqual(ApplicationCategory.classify(bundleIdentifier: "com.apple.Terminal"), .other)
+        XCTAssertEqual(ApplicationCategory.classify(bundleIdentifier: "com.apple.Terminal"), .codeTerminal)
     }
 }
 
