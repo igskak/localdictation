@@ -5,11 +5,12 @@ Status: **in progress; not cleared for release or Clean-by-default**.
 The synthetic baseline is recorded in `PHASE_9_1_BASELINE.md`. The current
 implementation has a composed Conservative pipeline with a limited set of
 Russian and Ukrainian detached marker repairs and a complete spaced clock
-shape and English percentage and prefix-currency spacing; ephemeral validated
-timing evidence and
+shape, English percentage and prefix-currency spacing, and narrowly validated
+temperature and SI-unit spacing; ephemeral validated timing evidence and
 a boundary-duplicate repair gated on explicit segment provenance and identical
 timestamps; Whisper segment provenance is passed through, but the production
-duplicate policy remains disabled until measured; more conservative explicit-list handling; code and terminal category handling; and sentence,
+duplicate policy remains disabled until measured; more conservative explicit-list handling, literal correction-marker guards, code
+and terminal category handling, and sentence,
 paragraph, and timing-bounded implicit-list paths guarded by disabled policies.
 No production language policy is enabled for these inferred structures. A
 benchmark can compare legacy and current Conservative and Clean, pass fixture
@@ -19,7 +20,7 @@ commit; changes to those shared transformers require revalidating the control.
 Synthetic results are not evidence of real-speech accuracy.
 
 The implementation is incomplete: the remaining surface-equivalence and
-symbol rules, corpus calibration of boundary-duplicate handling, corpus-calibrated structural, paragraph, and implicit-list
+symbol and Unicode rules, corpus calibration of boundary-duplicate handling, corpus-calibrated structural, paragraph, and implicit-list
 policies, broader correction and adversarial coverage, corpus benchmark runs,
 and complete settings explanations still need to be implemented and verified.
 The Conservative setting has been updated for the implemented surface repairs.
