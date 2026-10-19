@@ -88,6 +88,21 @@ struct RealWhisperCanonicalizer: Sendable {
                 replacements.append(.init(range: offsets, text: String(prefix) + String(unit), kind: .surfaceNormalization))
             }
         }
+        // A closed set of SI unit symbols is separated from a complete value.
+        // Do not split identifier fragments, paths, or glossary entries.
+        if let regex = try? NSRegularExpression(
+            pattern: #"(?<![\p{L}\p{N}_./:@-])[0-9]+(?:[.,][0-9]+)?(?:kg|km|cm|mm|ml)(?![\p{L}\p{N}_./:@-])"#
+        ) {
+            for match in regex.matches(in: raw, range: NSRange(raw.startIndex..., in: raw)) {
+                guard let range = Range(match.range, in: raw) else { continue }
+                let offsets = raw.distance(from: raw.startIndex, to: range.lowerBound)..<raw.distance(from: raw.startIndex, to: range.upperBound)
+                guard !ProtectedSpanDetector.overlapsGlossary(offsets, in: raw, language: language, glossary: glossary) else { continue }
+                let text = String(source[offsets])
+                let split = text.index(text.endIndex, offsetBy: -2)
+                replacements.append(.init(range: offsets, text: String(text[..<split]) + " " + String(text[split...]),
+                                          kind: .surfaceNormalization))
+            }
+        }
         // Require explicit segment provenance as well as identical positive
         // intervals. Equal timestamps alone do not prove a duplicated token.
         if let timing, timing.boundaryDuplicatePolicyEnabled,

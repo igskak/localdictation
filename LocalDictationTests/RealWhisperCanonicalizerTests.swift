@@ -80,6 +80,23 @@ final class RealWhisperCanonicalizerTests: XCTestCase {
         XCTAssertEqual(canonicalizer.transform("20 ° C", language: .english, glossary: glossary).cleaned, "20 ° C")
     }
 
+    func testCompleteUnitSpacingAndIdentifierFences() {
+        let canonicalizer = RealWhisperCanonicalizer()
+        for language in [SpeechLanguage.english, .german, .russian, .ukrainian] {
+            for (raw, expected) in [("20km", "20 km"), ("2.5kg", "2.5 kg"), ("5ml", "5 ml")] {
+                let result = canonicalizer.transform(raw, language: language, glossary: [])
+                XCTAssertEqual(result.cleaned, expected, raw)
+                XCTAssertEqual(result.map.rawRange(forCleaned: 0..<expected.count), 0..<raw.count)
+                XCTAssertEqual(canonicalizer.transform(expected, language: language, glossary: []).cleaned, expected)
+            }
+        }
+        for raw in ["id20km", "path/20km", "20kmfile", "-20km", "20km/next"] {
+            XCTAssertEqual(canonicalizer.transform(raw, language: .english, glossary: []).cleaned, raw)
+        }
+        let glossary = [GlossaryEntry(term: "20km", language: .english)]
+        XCTAssertEqual(canonicalizer.transform("20km", language: .english, glossary: glossary).cleaned, "20km")
+    }
+
     func testNumericGlossaryEntryProtectsSurfaceValue() {
         let canonicalizer = RealWhisperCanonicalizer()
         let glossary = [GlossaryEntry(term: "25", language: .english)]
