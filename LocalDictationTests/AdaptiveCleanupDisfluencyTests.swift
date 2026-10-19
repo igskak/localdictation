@@ -55,6 +55,21 @@ final class AdaptiveCleanupDisfluencyTests: XCTestCase {
         }
     }
 
+    func testLiteralCorrectionNounsAndSentenceBoundariesRemain() {
+        let literals: [(SpeechLanguage, String)] = [
+            (.english, "the correction is ready"),
+            (.german, "die Korrektur ist fertig"),
+            (.russian, "эта поправка уже готова"),
+            (.ukrainian, "це виправлення вже готове"),
+            (.english, "finish. correction starts tomorrow"),
+        ]
+        for (language, raw) in literals {
+            let result = service.clean(raw, language: language, options: CleanupOptions(level: .clean))
+            XCTAssertFalse(result.edits.contains { $0.kind == .explicitCorrection }, raw)
+            XCTAssertTrue(result.cleaned.lowercased().contains(WordScanner.words(in: raw)[1].lowercased), raw)
+        }
+    }
+
     func testAdjacentExactTokenAndNGramRepetitionsAreRemoved() {
         XCTAssertEqual(clean("the the report"), "The report.")
         XCTAssertEqual(clean("we should we should leave"), "We should leave.")

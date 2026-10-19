@@ -8,6 +8,15 @@ struct ExplicitCorrectionTransformer: Sendable {
         .ukrainian: [["виправлення"], ["я", "маю", "на", "увазі"]],
     ]
 
+    // These determiners make a single-word marker a noun phrase, not an
+    // instruction to replace the preceding word.
+    private static let literalDeterminers: [SpeechLanguage: Set<String>] = [
+        .english: ["a", "an", "the", "this", "that", "my", "your"],
+        .german: ["der", "die", "das", "eine", "einer", "diese", "meine"],
+        .russian: ["эта", "моя", "ваша", "такая"],
+        .ukrainian: ["це", "ця", "моє", "моєму", "ваше", "таке"],
+    ]
+
     func transform(
         _ text: String,
         language: SpeechLanguage,
@@ -24,6 +33,13 @@ struct ExplicitCorrectionTransformer: Sendable {
                 guard words[start..<(start + marker.count)].map(\.lowercased) == marker else { continue }
                 let prior = words[start - 1]
                 let replacement = words[start + marker.count]
+                if marker.count == 1,
+                   Self.literalDeterminers[language, default: []].contains(prior.lowercased) { continue }
+                let beforeMarker = source[prior.range.upperBound..<words[start].range.lowerBound]
+                let afterMarker = source[words[start + marker.count - 1].range.upperBound..<replacement.range.lowerBound]
+                guard [beforeMarker, afterMarker].allSatisfy({ gap in
+                    !gap.isEmpty && gap.allSatisfy { ($0.isWhitespace && !$0.isNewline) || $0 == "," }
+                }) else { continue }
                 var deletion = prior.range.lowerBound..<words[start + marker.count - 1].range.upperBound
                 if deletion.upperBound < source.count, source[deletion.upperBound] == "," {
                     deletion = deletion.lowerBound..<(deletion.upperBound + 1)
