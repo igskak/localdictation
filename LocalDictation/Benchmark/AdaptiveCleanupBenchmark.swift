@@ -111,7 +111,15 @@ enum AdaptiveCleanupBenchmark {
         let clock = ContinuousClock()
         let results = manifest.samples.map { sample in
             let start = clock.now
-            let cleanup = service.clean(sample.raw, language: sample.language)
+            let context = sample.context.flatMap { fixture -> DictationTextContext? in
+                guard let category = ApplicationCategory(rawValue: fixture.category) else { return nil }
+                return DictationTextContext(category: category, fieldRole: .editableText,
+                                            textBeforeCaret: fixture.textBeforeCaret,
+                                            textAfterCaret: fixture.textAfterCaret,
+                                            hasSelection: fixture.hasSelection)
+            }
+            let cleanup = service.clean(sample.raw, language: sample.language,
+                                        options: CleanupOptions(context: context))
             let duration = start.duration(to: clock.now).timeInterval
             return AdaptiveCleanupScorer.score(sample: sample, cleanup: cleanup, duration: duration)
         }

@@ -62,6 +62,16 @@ final class AdaptiveCleanupBenchmarkTests: XCTestCase {
         XCTAssertTrue(clean.results[0].output.contains("20%"))
     }
 
+    func testBenchmarkPassesFixtureContextToCleanMode() {
+        let context = AdaptiveCleanupSample.Context(category: "workMessaging", textBeforeCaret: "",
+                                                    textAfterCaret: "", hasSelection: false)
+        let sample = AdaptiveCleanupSample(identifier: "chat", language: .english, profile: nil,
+                                           raw: "hello there", ideal: "Hello there", context: context,
+                                           protectedValues: [], allowedEditKinds: [])
+        let report = AdaptiveCleanupBenchmark.run(manifest: .init(name: "context", samples: [sample]), mode: .clean)
+        XCTAssertEqual(report.results[0].output, "Hello there")
+    }
+
     func testLexicalAndIdempotenceScoresDetectChangedFacts() {
         let service = ConservativePipeline()
         let raw = "um во - первых 20 %"
