@@ -8,14 +8,17 @@ struct StructuralBoundaryPolicy: Sendable {
     let allowedClauseEndings: Set<String>
     let paragraphGap: TimeInterval?
     let minimumParagraphTokens: Int
+    let allowsUnpunctuatedParagraphs: Bool
 
     init(sentenceGap: TimeInterval, minimumClauseTokens: Int, allowedClauseEndings: Set<String>,
-         paragraphGap: TimeInterval? = nil, minimumParagraphTokens: Int = 3) {
+         paragraphGap: TimeInterval? = nil, minimumParagraphTokens: Int = 3,
+         allowsUnpunctuatedParagraphs: Bool = false) {
         self.sentenceGap = sentenceGap
         self.minimumClauseTokens = minimumClauseTokens
         self.allowedClauseEndings = allowedClauseEndings
         self.paragraphGap = paragraphGap
         self.minimumParagraphTokens = minimumParagraphTokens
+        self.allowsUnpunctuatedParagraphs = allowsUnpunctuatedParagraphs
     }
 
     static func measuredPolicy(for language: SpeechLanguage) -> StructuralBoundaryPolicy? {
@@ -30,7 +33,8 @@ struct StructuralBoundaryPolicy: Sendable {
             minimumClauseTokens: 5,
             allowedClauseEndings: [],
             paragraphGap: 1.8,
-            minimumParagraphTokens: 4
+            minimumParagraphTokens: 4,
+            allowsUnpunctuatedParagraphs: true
         )
 #else
         // No Phase 9.1 real-speech threshold has been measured yet.
@@ -62,6 +66,7 @@ struct StructuralBoundaryPlanner: Sendable {
             let right = evidence.tokens[index + 1]
             let gap = right.start - left.end
             guard gap >= policy.sentenceGap,
+                  policy.paragraphGap.map({ gap < $0 }) ?? true,
                   left.rawRange.count > 1,
                   source[left.rawRange].allSatisfy(\.isLetter),
                   source[right.rawRange].allSatisfy(\.isLetter),
@@ -104,8 +109,11 @@ struct StructuralBoundaryPlanner: Sendable {
             let stem = text.dropLast()
             let gap = right.start - left.end
             let between = source[left.rawRange.upperBound..<right.rawRange.lowerBound]
-            guard gap >= threshold, text.hasSuffix("."), stem.count > 1,
-                  stem.allSatisfy(\.isLetter), !abbreviations.contains(stem.lowercased()),
+            let hasCompletedSentence = text.hasSuffix(".") && stem.count > 1
+                && stem.allSatisfy(\.isLetter) && !abbreviations.contains(stem.lowercased())
+            let hasPreviewClause = policy.allowsUnpunctuatedParagraphs
+                && text.count > 1 && text.allSatisfy(\.isLetter)
+            guard gap >= threshold, hasCompletedSentence || hasPreviewClause,
                   !between.isEmpty, between.allSatisfy({ $0.isWhitespace && !$0.isNewline }),
                   !protected.contains(where: { $0.range.overlaps(left.rawRange) || $0.range.overlaps(right.rawRange) })
             else { continue }
@@ -116,8 +124,13 @@ struct StructuralBoundaryPlanner: Sendable {
                   result.map.rawRange(forCleaned: rm) == right.rawRange,
                   Array(current[lm]) == Array(source[left.rawRange]), Array(current[rm]) == Array(source[right.rawRange]),
                   current[lm.upperBound..<rm.lowerBound].allSatisfy({ $0.isWhitespace && !$0.isNewline }) else { continue }
-            candidates.append(.init(rawAnchor: left.rawRange.upperBound, cleanedAnchor: lm.upperBound,
-                                    cleanedResume: rm.lowerBound, gap: gap, ruleIdentifier: "measured-completed-sentence"))
+            candidates.append(.init(
+                rawAnchor: left.rawRange.upperBound,
+                cleanedAnchor: lm.upperBound,
+                cleanedResume: rm.lowerBound,
+                gap: gap,
+                ruleIdentifier: hasCompletedSentence ? "measured-completed-sentence" : "preview-long-pause"
+            ))
         }
         return candidates
     }
@@ -128,7 +141,11 @@ struct StructuralBoundaryPlanner: Sendable {
 struct StructuralBoundaryTransformer: Sendable {
     func paragraphs(_ candidates: [StructuralBoundaryCandidate], in text: String, language: SpeechLanguage) -> CleanupResult {
         let replacements = candidates.map {
-            CleanupReplacement(range: $0.cleanedAnchor..<$0.cleanedResume, text: "\n\n", kind: .inferredParagraphBreak)
+            CleanupReplacement(
+                range: $0.cleanedAnchor..<$0.cleanedResume,
+                text: ($0.ruleIdentifier == "preview-long-pause" ? ".\n\n" : "\n\n"),
+                kind: .inferredParagraphBreak
+            )
         }
         return CleanupTransformation.apply(replacements, to: text, language: language)
     }

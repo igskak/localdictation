@@ -53,6 +53,24 @@ final class AdaptiveCleanupFoundationTests: XCTestCase {
                                      options: CleanupOptions(level: .clean, timing: timing)).cleaned,
                        "Во-первых это первый длинный фрагмент. Теперь начинается второй длинный фрагмент.")
     }
+
+    func testPreviewReservesLongPausesForParagraphs() throws {
+        let transcript = Transcript.assemble(words: [
+            .init("это", start: 0, end: 0.1), .init("первый", start: 0.1, end: 0.2),
+            .init("достаточно", start: 0.2, end: 0.35), .init("длинный", start: 0.35, end: 0.5),
+            .init("фрагмент", start: 0.5, end: 0.7), .init("теперь", start: 2.8, end: 2.9),
+            .init("идёт", start: 2.9, end: 3.0), .init("второй", start: 3.0, end: 3.1),
+            .init("достаточно", start: 3.1, end: 3.25), .init("длинный", start: 3.25, end: 3.4),
+            .init("фрагмент", start: 3.4, end: 3.6),
+        ], profile: .russian, audioDuration: 4, processingDuration: 1, engineIdentifier: "fixture")
+        let timing = try XCTUnwrap(CleanupTimingEvidence.validated(transcript: transcript))
+        let result = service.clean(transcript.text, language: .russian,
+                                   options: CleanupOptions(level: .clean, timing: timing))
+        XCTAssertEqual(result.cleaned,
+                       "Это первый достаточно длинный фрагмент.\n\nТеперь идёт второй достаточно длинный фрагмент.")
+        XCTAssertEqual(result.edits.filter { $0.kind == .inferredParagraphBreak }.count, 1)
+        XCTAssertFalse(result.edits.contains { $0.kind == .inferredPunctuation })
+    }
 #endif
 
     func testProtectedDetectorFindsFactsNegationGlossaryAndEntities() {
