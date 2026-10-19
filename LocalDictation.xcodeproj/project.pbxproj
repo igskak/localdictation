@@ -204,6 +204,7 @@
 		1225908246700040DEA0376E /* PrivacyDisclosureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CCD6E81C765C498ED431C9D /* PrivacyDisclosureTests.swift */; };
 		EB7E12D92F8F910F16964070 /* ProseWarningDensityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28E7ECECB058FBEC50218759 /* ProseWarningDensityTests.swift */; };
 		5C26F7B7B8AA3BBB2A6BAEB8 /* QuietInputBenchmarkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A94FA4993FABAE05B0CACBCD /* QuietInputBenchmarkTests.swift */; };
+		64331C2954D6E1FCF68BEC6D /* RealSpeechBaselineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EE0CF70F0390923A7AA65E5 /* RealSpeechBaselineTests.swift */; };
 		8F3263F631DC1E71101897D5 /* RecordingActivationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 546A02B6F9F18EA622C2A0D0 /* RecordingActivationTests.swift */; };
 		BE3886F5BD1B22ECD9C054C2 /* RecordingStateMachineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20B3276C16F6A91CD52C83D1 /* RecordingStateMachineTests.swift */; };
 		BC3F2E64942B318D2D1375D7 /* RepeatedDictationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19ADBFA4FAE943354F3E7784 /* RepeatedDictationTests.swift */; };
@@ -446,6 +447,7 @@
 		4CCD6E81C765C498ED431C9D /* PrivacyDisclosureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyDisclosureTests.swift; sourceTree = "<group>"; };
 		28E7ECECB058FBEC50218759 /* ProseWarningDensityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProseWarningDensityTests.swift; sourceTree = "<group>"; };
 		A94FA4993FABAE05B0CACBCD /* QuietInputBenchmarkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuietInputBenchmarkTests.swift; sourceTree = "<group>"; };
+		9EE0CF70F0390923A7AA65E5 /* RealSpeechBaselineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RealSpeechBaselineTests.swift; sourceTree = "<group>"; };
 		546A02B6F9F18EA622C2A0D0 /* RecordingActivationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingActivationTests.swift; sourceTree = "<group>"; };
 		20B3276C16F6A91CD52C83D1 /* RecordingStateMachineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingStateMachineTests.swift; sourceTree = "<group>"; };
 		19ADBFA4FAE943354F3E7784 /* RepeatedDictationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepeatedDictationTests.swift; sourceTree = "<group>"; };
@@ -963,6 +965,7 @@
 				4CCD6E81C765C498ED431C9D /* PrivacyDisclosureTests.swift */,
 				28E7ECECB058FBEC50218759 /* ProseWarningDensityTests.swift */,
 				A94FA4993FABAE05B0CACBCD /* QuietInputBenchmarkTests.swift */,
+				9EE0CF70F0390923A7AA65E5 /* RealSpeechBaselineTests.swift */,
 				546A02B6F9F18EA622C2A0D0 /* RecordingActivationTests.swift */,
 				20B3276C16F6A91CD52C83D1 /* RecordingStateMachineTests.swift */,
 				19ADBFA4FAE943354F3E7784 /* RepeatedDictationTests.swift */,
@@ -1321,6 +1324,7 @@
 				1225908246700040DEA0376E /* PrivacyDisclosureTests.swift in Sources */,
 				EB7E12D92F8F910F16964070 /* ProseWarningDensityTests.swift in Sources */,
 				5C26F7B7B8AA3BBB2A6BAEB8 /* QuietInputBenchmarkTests.swift in Sources */,
+				64331C2954D6E1FCF68BEC6D /* RealSpeechBaselineTests.swift in Sources */,
 				8F3263F631DC1E71101897D5 /* RecordingActivationTests.swift in Sources */,
 				BE3886F5BD1B22ECD9C054C2 /* RecordingStateMachineTests.swift in Sources */,
 				BC3F2E64942B318D2D1375D7 /* RepeatedDictationTests.swift in Sources */,
