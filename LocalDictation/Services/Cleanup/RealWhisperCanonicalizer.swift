@@ -65,6 +65,7 @@ struct RealWhisperCanonicalizer: Sendable {
                 let left = timing.tokens[index - 1]
                 let right = timing.tokens[index]
                 guard left.start == right.start, left.end == right.end, left.end > left.start,
+                      left.rawRange.upperBound < right.rawRange.lowerBound,
                       source[left.rawRange.upperBound..<right.rawRange.lowerBound].allSatisfy(\.isWhitespace),
                       String(source[left.rawRange]) == String(source[right.rawRange]),
                       !protected.contains(where: { $0.range.overlaps(left.rawRange) || $0.range.overlaps(right.rawRange) })

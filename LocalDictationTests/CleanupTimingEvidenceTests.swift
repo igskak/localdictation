@@ -50,6 +50,10 @@ final class CleanupTimingEvidenceTests: XCTestCase {
                                                    options: CleanupOptions(level: .clean, timing: overlap))
         XCTAssertTrue(clean.edits.contains { $0.kind == .boundaryDuplicateRemoval })
         XCTAssertEqual(clean.raw, raw)
+        let adjacent = try XCTUnwrap(CleanupTimingEvidence.validated(
+            [token(0..<2, 0, 0.5), token(2..<4, 0, 0.5)], raw: "gogo"))
+        let subwords = pipeline.clean("gogo", language: .english, options: CleanupOptions(timing: adjacent))
+        XCTAssertFalse(subwords.edits.contains { $0.kind == .boundaryDuplicateRemoval })
         for evidence in [
             [token(0..<2, 0, 0.5), token(3..<5, 0.4, 0.9), token(6..<9, 1, 2)],
             [token(0..<2, 0, 0), token(3..<5, 0, 0), token(6..<9, 1, 2)],
