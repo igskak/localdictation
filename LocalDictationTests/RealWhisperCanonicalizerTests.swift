@@ -50,6 +50,29 @@ final class RealWhisperCanonicalizerTests: XCTestCase {
         }
     }
 
+    func testEnglishPrefixCurrencySpacingAndFences() {
+        let canonicalizer = RealWhisperCanonicalizer()
+        for (raw, expected) in [("$ 25", "$25"), ("£ 25.50", "£25.50")] {
+            let result = canonicalizer.transform(raw, language: .english, glossary: [])
+            XCTAssertEqual(result.cleaned, expected)
+            XCTAssertEqual(result.map.rawRange(forCleaned: 0..<expected.count), 0..<raw.count)
+            XCTAssertEqual(canonicalizer.transform(expected, language: .english, glossary: []).cleaned, expected)
+        }
+        for raw in ["id$ 25", "path/$ 25", "$ 25.123", "$ 25,000", "$ 25abc", "$ 25%"] {
+            XCTAssertEqual(canonicalizer.transform(raw, language: .english, glossary: []).cleaned, raw)
+        }
+        XCTAssertEqual(canonicalizer.transform("$ 25", language: .german, glossary: []).cleaned, "$ 25")
+    }
+
+    func testNumericGlossaryEntryProtectsSurfaceValue() {
+        let canonicalizer = RealWhisperCanonicalizer()
+        let glossary = [GlossaryEntry(term: "25", language: .english)]
+        XCTAssertEqual(canonicalizer.transform("$ 25", language: .english, glossary: glossary).cleaned, "$ 25")
+        XCTAssertEqual(canonicalizer.transform("25 %", language: .english, glossary: glossary).cleaned, "25 %")
+        let clockGlossary = [GlossaryEntry(term: "12", language: .english)]
+        XCTAssertEqual(canonicalizer.transform("12 : 30", language: .english, glossary: clockGlossary).cleaned, "12 : 30")
+    }
+
     func testVerbatimRemainsExactAndConservativeDoesNotExecuteCommands() {
         let raw = "во - первых двоеточие"
         let service = AdaptiveCleanupService()

@@ -20,7 +20,8 @@ struct RealWhisperCanonicalizer: Sendable {
                 let lower = raw.distance(from: raw.startIndex, to: range.lowerBound)
                 let upper = raw.distance(from: raw.startIndex, to: range.upperBound)
                 let offsets = lower..<upper
-                guard ProtectedSpanDetector.allows(proposed: offsets, protected: protected) else { continue }
+                guard ProtectedSpanDetector.allows(proposed: offsets, protected: protected),
+                      !ProtectedSpanDetector.overlapsGlossary(offsets, in: raw, language: language, glossary: glossary) else { continue }
                 // Preserve the speaker's capitalization; only spaces around the hyphen change.
                 let spelling = String(source[offsets]).replacingOccurrences(of: " - ", with: "-")
                 guard spelling.lowercased() == canonical else { continue }
@@ -37,7 +38,7 @@ struct RealWhisperCanonicalizer: Sendable {
                 let lower = raw.distance(from: raw.startIndex, to: range.lowerBound)
                 let upper = raw.distance(from: raw.startIndex, to: range.upperBound)
                 let offsets = lower..<upper
-                guard !protected.contains(where: { $0.category == .glossary && $0.range.overlaps(offsets) }) else { continue }
+                guard !ProtectedSpanDetector.overlapsGlossary(offsets, in: raw, language: language, glossary: glossary) else { continue }
                 let compact = String(source[offsets]).replacingOccurrences(of: " ", with: "")
                 replacements.append(.init(range: offsets, text: compact, kind: .surfaceNormalization))
             }
@@ -52,7 +53,22 @@ struct RealWhisperCanonicalizer: Sendable {
                 let lower = raw.distance(from: raw.startIndex, to: range.lowerBound)
                 let upper = raw.distance(from: raw.startIndex, to: range.upperBound)
                 let offsets = lower..<upper
-                guard !protected.contains(where: { $0.category == .glossary && $0.range.overlaps(offsets) }) else { continue }
+                guard !ProtectedSpanDetector.overlapsGlossary(offsets, in: raw, language: language, glossary: glossary) else { continue }
+                replacements.append(.init(range: offsets, text: String(source[offsets]).replacingOccurrences(of: " ", with: ""),
+                                          kind: .surfaceNormalization))
+            }
+        }
+        // English prefix currencies conventionally attach to a complete numeric
+        // amount. Only the separator changes; ambiguous identifiers stay fenced.
+        if language == .english, let regex = try? NSRegularExpression(
+            pattern: #"(?<![\p{L}\p{N}_./:@$£-])[$£] +[0-9]+(?:\.[0-9]{1,2})?(?![\p{L}\p{N}_.,/:@%-])"#
+        ) {
+            for match in regex.matches(in: raw, range: NSRange(raw.startIndex..., in: raw)) {
+                guard let range = Range(match.range, in: raw) else { continue }
+                let lower = raw.distance(from: raw.startIndex, to: range.lowerBound)
+                let upper = raw.distance(from: raw.startIndex, to: range.upperBound)
+                let offsets = lower..<upper
+                guard !ProtectedSpanDetector.overlapsGlossary(offsets, in: raw, language: language, glossary: glossary) else { continue }
                 replacements.append(.init(range: offsets, text: String(source[offsets]).replacingOccurrences(of: " ", with: ""),
                                           kind: .surfaceNormalization))
             }
@@ -68,7 +84,9 @@ struct RealWhisperCanonicalizer: Sendable {
                       left.rawRange.upperBound < right.rawRange.lowerBound,
                       source[left.rawRange.upperBound..<right.rawRange.lowerBound].allSatisfy(\.isWhitespace),
                       String(source[left.rawRange]) == String(source[right.rawRange]),
-                      !protected.contains(where: { $0.range.overlaps(left.rawRange) || $0.range.overlaps(right.rawRange) })
+                      !protected.contains(where: { $0.range.overlaps(left.rawRange) || $0.range.overlaps(right.rawRange) }),
+                      !ProtectedSpanDetector.overlapsGlossary(left.rawRange, in: raw, language: language, glossary: glossary),
+                      !ProtectedSpanDetector.overlapsGlossary(right.rawRange, in: raw, language: language, glossary: glossary)
                 else { continue }
                 replacements.append(.init(range: left.rawRange.upperBound..<right.rawRange.upperBound,
                                           text: "", kind: .boundaryDuplicateRemoval))

@@ -68,6 +68,18 @@ struct ProtectedSpanDetector: Sendable {
         return Self.nonOverlapping(candidates)
     }
 
+    /// Glossary ranges must also be checked independently when a rule owns a
+    /// numeric span: the general non-overlapping list can prefer that number.
+    static func overlapsGlossary(_ range: Range<Int>, in text: String,
+                                 language: SpeechLanguage, glossary: [GlossaryEntry]) -> Bool {
+        glossary.filter { $0.language == language }.contains { entry in
+            let phrases = [entry.normalizedTerm] + (entry.normalizedReplacement.map { [$0] } ?? [])
+            return phrases.contains { phrase in
+                exactMatches(of: phrase, in: text).contains { $0.overlaps(range) }
+            }
+        }
+    }
+
     static func allows(
         proposed range: Range<Int>,
         protected spans: [ProtectedSpan],
