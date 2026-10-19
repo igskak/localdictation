@@ -29,10 +29,10 @@ struct StructuralBoundaryPolicy: Sendable {
         // useful for natural speech without pretending a short word list is a
         // grammar model. The production build remains measurement-gated.
         return StructuralBoundaryPolicy(
-            sentenceGap: 0.85,
-            minimumClauseTokens: 5,
+            sentenceGap: 0.55,
+            minimumClauseTokens: 4,
             allowedClauseEndings: [],
-            paragraphGap: 1.8,
+            paragraphGap: 1.4,
             minimumParagraphTokens: 4,
             allowsUnpunctuatedParagraphs: true
         )
