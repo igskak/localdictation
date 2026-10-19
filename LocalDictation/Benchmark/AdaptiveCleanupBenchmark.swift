@@ -89,6 +89,7 @@ struct AdaptiveCleanupReport: Sendable, Equatable {
 
 enum AdaptiveCleanupBenchmarkMode: Sendable {
     case legacyConservative
+    case legacyClean
     case conservative
     case clean
 }
@@ -100,6 +101,11 @@ private struct ConfiguredCleanupBenchmarkService: CleanupService {
         switch mode {
         case .legacyConservative:
             return ConservativeCleanupService().clean(raw, language: language, options: options)
+        case .legacyClean:
+            var cleanOptions = options
+            cleanOptions.level = .clean
+            cleanOptions.timing = nil
+            return Phase9LegacyCleanupService().clean(raw, language: language, options: cleanOptions)
         case .conservative:
             return ConservativePipeline().clean(raw, language: language, options: options)
         case .clean:

@@ -64,6 +64,17 @@ final class AdaptiveCleanupBenchmarkTests: XCTestCase {
         XCTAssertTrue(clean.results[0].output.contains("20%"))
     }
 
+    func testLegacyCleanUsesFrozenPhaseNineRules() {
+        let sample = AdaptiveCleanupSample(identifier: "surface", language: .english, profile: nil,
+                                           raw: "20 %", ideal: "20%", context: nil,
+                                           protectedValues: [], allowedEditKinds: [])
+        let fixture = AdaptiveCleanupManifest(name: "phase-nine", samples: [sample])
+        let old = AdaptiveCleanupBenchmark.run(manifest: fixture, mode: .legacyClean)
+        let current = AdaptiveCleanupBenchmark.run(manifest: fixture, mode: .clean)
+        XCTAssertTrue(old.results[0].output.contains("20 %"))
+        XCTAssertTrue(current.results[0].output.contains("20%"))
+    }
+
     func testBenchmarkPassesFixtureContextToCleanMode() {
         let context = AdaptiveCleanupSample.Context(category: "workMessaging", textBeforeCaret: "",
                                                     textAfterCaret: "", hasSelection: false)
