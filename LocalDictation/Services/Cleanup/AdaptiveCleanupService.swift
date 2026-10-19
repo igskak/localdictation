@@ -122,6 +122,12 @@ struct AdaptiveCleanupService: CleanupService {
                     protected: ProtectedSpanDetector().detect(in: raw, language: language, glossary: options.glossary)
                 )
                 result = append(StructuralBoundaryTransformer().sentences(candidates, in: result.cleaned, language: language), to: result)
+                let paragraphs = StructuralBoundaryPlanner().paragraphs(
+                    raw: raw, result: result, evidence: timing, policy: policy,
+                    category: options.context?.category ?? .other,
+                    protected: ProtectedSpanDetector().detect(in: raw, language: language, glossary: options.glossary)
+                )
+                result = append(StructuralBoundaryTransformer().paragraphs(paragraphs, in: result.cleaned, language: language), to: result)
             }
             let final = conservative.clean(
                 result.cleaned,

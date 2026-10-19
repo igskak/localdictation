@@ -31,6 +31,29 @@ final class StructuralBoundaryPlannerTests: XCTestCase {
                                        policy: policy, protected: []).isEmpty)
     }
 
+    func testParagraphRequiresACompletedSentenceAndIsDisabledInCode() throws {
+        let transcript = Transcript.assemble(words: [
+            .init("we", start: 0, end: 0.1), .init("finished", start: 0.1, end: 0.2),
+            .init("our", start: 0.2, end: 0.3), .init("work", start: 0.3, end: 0.4),
+            .init("today.", start: 0.4, end: 0.5), .init("we", start: 3, end: 3.1),
+            .init("start", start: 3.1, end: 3.2), .init("again", start: 3.2, end: 3.3),
+            .init("tomorrow", start: 3.3, end: 3.4),
+        ], profile: .english, audioDuration: 4, processingDuration: 1, engineIdentifier: "fixture")
+        let timing = try XCTUnwrap(CleanupTimingEvidence.validated(transcript: transcript))
+        let policy = StructuralBoundaryPolicy(sentenceGap: 1, minimumClauseTokens: 3,
+                                               allowedClauseEndings: [], paragraphGap: 2)
+        let result = CleanupResult.unchanged(transcript.text, language: .english)
+        let planner = StructuralBoundaryPlanner()
+        let candidates = planner.paragraphs(raw: transcript.text, result: result, evidence: timing,
+                                             policy: policy, category: .emailDocument, protected: [])
+        XCTAssertEqual(candidates.count, 1)
+        let stage = StructuralBoundaryTransformer().paragraphs(candidates, in: transcript.text, language: .english)
+        XCTAssertEqual(stage.cleaned, "we finished our work today.\n\nwe start again tomorrow")
+        XCTAssertEqual(stage.edits.map(\.kind), [.inferredParagraphBreak])
+        XCTAssertTrue(planner.paragraphs(raw: transcript.text, result: result, evidence: timing,
+                                          policy: policy, category: .codeTerminal, protected: []).isEmpty)
+    }
+
     func testProductionPoliciesRemainDisabledUntilMeasured() {
         for language in [SpeechLanguage.german, .english, .russian, .ukrainian] {
             XCTAssertNil(StructuralBoundaryPolicy.measuredPolicy(for: language))
