@@ -69,16 +69,22 @@ returns the paid key instead of a trial.
    Custom text under the button, one sentence: *€4,99 heute für die ersten 14
    Tage. Danach €49 pro Jahr, automatisch, wenn du nicht bis zum 14. Tag
    kündigst.* Copy the link's `plink_…` id and its `buy.stripe.com` URL.
-2. **Stripe, reminders:** Settings → Billing → Subscriptions and emails → send a
-   reminder before a trial ends and before renewal, and keep Smart Retries on.
+2. **Stripe, reminders (open, Igor's decision):** Settings → Billing →
+   Subscriptions and emails. All customer emails are off. Turning on the trial
+   reminder, the renewal notice and the failed-payment mail is easy, but the
+   "Payment method updates" setting is on the legacy mix that points customers to
+   `www.steliara.com`; moving to Stripe-hosted pages is **irreversible and
+   account-wide** (it also changes Steliara's customers' mails), so it was left
+   alone. Without it these mails would send Witness buyers to steliara.com.
 3. **Stripe, customer portal (done 20.10.2026, link in `partnerOffers.ts`):** Settings → Billing → Customer portal → *Activate
    link*. The portal's *default* configuration is shared with the Steliara
    products on this account; check it before relying on it, and use a separate
    configuration if Steliara's rules (plan switching, quantity) should not apply.
    Copy the login URL.
-4. **Stripe, webhook:** the existing endpoint must send `checkout.session.completed`,
-   `invoice.paid`, `invoice_payment.paid`, `charge.refunded` and
-   `charge.dispute.created`. Renewals and refunds depend on all five.
+4. **Stripe, webhook (checked 20.10.2026):** the endpoint `elegant-oasis`
+   (`api.witnessmac.com/v1/purchases/webhook`) already sends exactly
+   `checkout.session.completed`, `invoice.paid`, `invoice_payment.paid`,
+   `charge.refunded` and `charge.dispute.created`. Nothing to do.
 5. **Stripe, restricted key** with *Subscriptions: write* and nothing else, then
    `cd Service && tools/set-secret.sh STRIPE_API_KEY`.
 6. **Service:** put the link id into `Service/wrangler.toml` as
