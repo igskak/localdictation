@@ -5,11 +5,25 @@ import Foundation
 /// Apple requests system-audio access when an aggregate device containing a
 /// process tap is first started; there is no separate prompt in this boundary.
 protocol SystemAudioPermissionService: Sendable {
-    func startCapture(_ operation: @Sendable () throws -> Void) throws
+    func startCapture(_ operation: @Sendable () -> OSStatus) throws
 }
 
 struct LiveSystemAudioPermissionService: SystemAudioPermissionService {
-    func startCapture(_ operation: @Sendable () throws -> Void) throws { try operation() }
+    func startCapture(_ operation: @Sendable () -> OSStatus) throws {
+        let status = operation()
+        switch status {
+        case noErr:
+            return
+        case kAudioDevicePermissionsError:
+            throw SystemAudioPermissionError.denied
+        default:
+            throw SystemAudioCaptureError.coreAudio(status)
+        }
+    }
+}
+
+enum SystemAudioPermissionError: Error, Equatable {
+    case denied
 }
 
 enum SystemAudioCaptureError: Error, Equatable {
@@ -72,7 +86,7 @@ final class SystemAudioCapture {
             try check(AudioDeviceCreateIOProcID(device, systemAudioIOProc, Unmanaged.passUnretained(context).toOpaque(), &ioProc))
             let device = self.device
             let proc = self.ioProc
-            try permission.startCapture { try Self.checkStatus(AudioDeviceStart(device, proc)) }
+            try permission.startCapture { AudioDeviceStart(device, proc) }
             running = true
             return buffer
         } catch {
@@ -91,7 +105,7 @@ final class SystemAudioCapture {
         guard device != kAudioObjectUnknown, !running else { throw SystemAudioCaptureError.invalidState }
         let device = self.device
         let proc = self.ioProc
-        try permission.startCapture { try Self.checkStatus(AudioDeviceStart(device, proc)) }
+        try permission.startCapture { AudioDeviceStart(device, proc) }
         running = true
     }
 

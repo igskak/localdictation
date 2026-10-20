@@ -3,6 +3,23 @@ import XCTest
 @testable import Witness
 
 final class SystemAudioCaptureTests: XCTestCase {
+    func testPermissionServiceNormalizesDeniedStatus() {
+        XCTAssertThrowsError(try LiveSystemAudioPermissionService().startCapture { kAudioDevicePermissionsError }) {
+            XCTAssertEqual($0 as? SystemAudioPermissionError, .denied)
+        }
+    }
+
+    func testPermissionServicePreservesOtherCoreAudioStatus() {
+        let status = OSStatus(-50)
+        XCTAssertThrowsError(try LiveSystemAudioPermissionService().startCapture { status }) {
+            XCTAssertEqual($0 as? SystemAudioCaptureError, .coreAudio(status))
+        }
+    }
+
+    func testPermissionServiceAcceptsSuccessfulStart() {
+        XCTAssertNoThrow(try LiveSystemAudioPermissionService().startCapture { noErr })
+    }
+
     func testUnknownProcessDoesNotRequestPermission() {
         let permission = FakeSystemAudioPermission()
         let capture = SystemAudioCapture(resolver: EmptyMeetingProcessResolver(), permission: permission)
@@ -21,8 +38,9 @@ private struct EmptyMeetingProcessResolver: MeetingProcessResolving {
 
 private final class FakeSystemAudioPermission: SystemAudioPermissionService, @unchecked Sendable {
     private(set) var requestCount = 0
-    func startCapture(_ operation: @Sendable () throws -> Void) throws {
+    func startCapture(_ operation: @Sendable () -> OSStatus) throws {
         requestCount += 1
-        try operation()
+        let status = operation()
+        if status != noErr { throw SystemAudioCaptureError.coreAudio(status) }
     }
 }

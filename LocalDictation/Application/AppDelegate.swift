@@ -38,6 +38,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #endif
         #if DEBUG
         let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("--notetaker-audio-processes") {
+            Task.detached {
+                let succeeded = DebugSystemAudioProbe.printProcessInventory()
+                await MainActor.run { exit(succeeded ? 0 : 1) }
+            }
+            return
+        }
         if let index = arguments.firstIndex(of: "--notetaker-audio-spike"),
            arguments.count > index + 2,
            let processID = pid_t(arguments[index + 1]), processID > 0,

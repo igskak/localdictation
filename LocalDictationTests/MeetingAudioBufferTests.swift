@@ -10,7 +10,7 @@ final class MeetingAudioBufferTests: XCTestCase {
         send([1, 2], 10)
         send([3], 20)
         send([4, 5, 6], 30)
-        XCTAssertEqual(queue.snapshot(), SystemAudioBufferCounters(receivedCallbacks: 3, droppedCallbacks: 1, droppedFrames: 3, queuedChunks: 2))
+        XCTAssertEqual(queue.snapshot(), SystemAudioBufferCounters(receivedCallbacks: 3, droppedCallbacks: 1, droppedFrames: 3, queuedChunks: 2, peakQueuedChunks: 2))
         let first = try XCTUnwrap(queue.take())
         XCTAssertEqual(first.sequence, 0)
         XCTAssertEqual(first.hostTime, 10)
@@ -21,6 +21,7 @@ final class MeetingAudioBufferTests: XCTestCase {
         XCTAssertEqual(last.sequence, 3)
         XCTAssertEqual(last.samples, [7])
         XCTAssertNil(queue.take())
+        XCTAssertEqual(queue.snapshot().peakQueuedChunks, 2)
     }
 
     func testOversizedCallbackIsReportedWithoutTruncation() {

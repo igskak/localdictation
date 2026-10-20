@@ -15,6 +15,7 @@ struct SystemAudioBufferCounters: Sendable, Equatable {
     let droppedCallbacks: Int64
     let droppedFrames: Int64
     let queuedChunks: Int
+    let peakQueuedChunks: Int
 }
 
 /// Single producer, single consumer. The producer never waits: contention and
@@ -34,6 +35,7 @@ final class MeetingAudioBuffer: @unchecked Sendable {
     private var readIndex = 0
     private var writeIndex = 0
     private var count = 0
+    private var peakCount = 0
     // Updated atomically, including when trylock fails.
     private var callbacks: Int64 = 0
     private var dropped: Int64 = 0
@@ -70,6 +72,7 @@ final class MeetingAudioBuffer: @unchecked Sendable {
         slots[writeIndex] = Slot(sequence: sequence, hostTime: hostTime, count: frames.count)
         writeIndex = (writeIndex + 1) % capacity
         count += 1
+        peakCount = max(peakCount, count)
     }
 
     /// An unusable callback is observable even when its duration is unknown.
@@ -94,12 +97,14 @@ final class MeetingAudioBuffer: @unchecked Sendable {
     func snapshot() -> SystemAudioBufferCounters {
         os_unfair_lock_lock(&lock)
         let queued = count
+        let peakQueued = peakCount
         os_unfair_lock_unlock(&lock)
         return SystemAudioBufferCounters(
             receivedCallbacks: OSAtomicAdd64Barrier(0, &callbacks),
             droppedCallbacks: OSAtomicAdd64Barrier(0, &dropped),
             droppedFrames: OSAtomicAdd64Barrier(0, &lostFrames),
-            queuedChunks: queued
+            queuedChunks: queued,
+            peakQueuedChunks: peakQueued
         )
     }
 }
