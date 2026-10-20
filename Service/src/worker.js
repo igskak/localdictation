@@ -159,6 +159,7 @@ async function handleCancel(request, env, ctx) {
       clientIP: clientAddress(request),
       billing: createBilling(env, log),
       mailer: createMailer(env, log),
+      analytics: createAnalytics(env, { log, ctx }),
       log,
     });
   } catch (error) {

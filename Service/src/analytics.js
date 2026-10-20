@@ -1,7 +1,8 @@
 // What this service tells PostHog, and the list that stops it telling more.
 //
-// Four facts about the business, each the moment it becomes true: a trial was
-// issued, a licence was bought, a licence renewed, a licence was refunded. They
+// Six facts about the business, each the moment it becomes true: a trial was
+// issued, a licence was bought, a paid licence reached its first Mac, a licence
+// renewed, a licence was refunded, a cancellation was asked for. They
 // sit on the same dashboard as the website's visits and downloads, so the whole
 // path from an ad to money is one screen — as counts over time, not as people.
 //
@@ -33,8 +34,13 @@ import { ALLOWED_EVENTS as FUNNEL_EVENTS } from "./events.js";
 export const EVENTS = {
   trial_issued: "trial_issued",
   license_purchased: "license_purchased",
+  // A paid licence's key reached a Mac for the first time: the step between
+  // paying and using, which is where the paid-entry flow can quietly lose people.
+  license_activated: "license_activated",
   license_renewed: "license_renewed",
   license_refunded: "license_refunded",
+  // The website's cancellation button was used for a subscription that exists.
+  subscription_cancel_requested: "subscription_cancel_requested",
 };
 
 /// `revenue` is in major units and signed: a refund is negative, so summing the
@@ -52,7 +58,7 @@ export const EVENTS = {
 /// from a fixed vocabulary or a bounded pattern that `events.js` has already
 /// enforced by the time an event gets here.
 export const ALLOWED_PROPERTIES = [
-  "kind", "revenue", "currency", "provider", "upgrade", "promo", "qualifier", "app_version", "system_version",
+  "kind", "revenue", "currency", "provider", "upgrade", "promo", "intro", "qualifier", "app_version", "system_version",
 ];
 
 const DEFAULT_HOST = "https://eu.i.posthog.com";

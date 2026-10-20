@@ -231,6 +231,8 @@ export async function handleEvent({
       kind: parsed.kind,
       provider: provider.name,
       upgrade: Boolean(existing && existing.kind !== "trial"),
+      // The EUR 4.99 introductory offer, so its sales are not read as annual ones.
+      intro: parsed.intro === true ? true : undefined,
       promo: promoLabel(parsed.promo, env),
       ...money(parsed.amount, parsed.currency),
     },

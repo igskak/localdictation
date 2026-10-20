@@ -154,6 +154,11 @@ export async function activate({
       expiresAt: keyExpiry(license, now),
     });
     isNewSlot = true;
+    // A paid licence reaching a Mac is the moment a purchase becomes use. A trial
+    // has its own event, and a re-issued key is not a new Mac.
+    if (license.kind !== "trial") {
+      analytics.capture(EVENTS.license_activated, license.id, { kind: license.kind }, now);
+    }
   }
 
   // Deterministic: the same five fields always produce the same token, so the

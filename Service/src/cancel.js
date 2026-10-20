@@ -16,6 +16,7 @@
 
 import { normalizeEmail } from "./email.js";
 import { cancellationMail } from "./mailer.js";
+import { EVENTS } from "./analytics.js";
 
 export const CANCEL_LIMITS = {
   email: { limit: 5, window: 3600 },
@@ -27,7 +28,7 @@ const NEUTRAL = {
   message: "If a subscription runs under this address, it is cancelled and the confirmation is on its way to it.",
 };
 
-export async function cancelSubscription({ body, store, now, clientIP, billing, mailer, log }) {
+export async function cancelSubscription({ body, store, now, clientIP, billing, mailer, log, analytics = { capture() {} } }) {
   if ((await store.bump(`cancel-ip:${clientIP}`, now, CANCEL_LIMITS.address.window)) > CANCEL_LIMITS.address.limit) {
     return { status: 429, body: { error: "rate_limited" }, headers: { "Retry-After": "60" } };
   }
@@ -48,6 +49,7 @@ export async function cancelSubscription({ body, store, now, clientIP, billing, 
         if (await billing.cancelAtPeriodEnd(subscription)) {
           cancelled = true;
           endsAt = Math.max(endsAt ?? 0, license.expires_at ?? now);
+          analytics.capture(EVENTS.subscription_cancel_requested, license.id, { kind: license.kind }, now);
         }
       } catch (error) {
         log("cancellation failed", { license: license.id, reason: String(error?.name ?? "error") });

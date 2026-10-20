@@ -26,6 +26,7 @@ const env = {
   POSTHOG_KEY: KEY,
   PAYMENT_LINK_LIFETIME: "plink_lifetime",
   PAYMENT_LINK_ANNUAL: "plink_annual",
+  PAYMENT_LINK_INTRO: "plink_intro",
 };
 
 function recorder(overrides = {}) {
@@ -146,14 +147,14 @@ test("an event carries the licence id, the allowlisted properties, and no addres
   assert.equal(JSON.stringify(body).includes(MAC), false, "a device identifier reached PostHog");
 });
 
-test("only the four business events and the nine app events can be sent", async () => {
+test("only the six business events and the nine app events can be sent", async () => {
   const { analytics, sent } = recorder();
   await analytics.capture("identify", "lic_1", {});
   await analytics.capture("$pageview", "lic_1", {});
   assert.equal(sent.length, 0);
   assert.deepEqual(
     [...ALLOWED_PROPERTIES].sort(),
-    ["app_version", "currency", "kind", "promo", "provider", "qualifier", "revenue", "system_version", "upgrade"],
+    ["app_version", "currency", "intro", "kind", "promo", "provider", "qualifier", "revenue", "system_version", "upgrade"],
   );
 });
 
@@ -260,12 +261,12 @@ test("a label that is not a short upper-case word is never sent", async () => {
   assert.equal(h.sent[0].body.properties.promo, "other");
 });
 
-test("fetching the key a purchase paid for is not a trial", async () => {
+test("fetching the key a purchase paid for is not a trial, it is an activation", async () => {
   const h = await harness();
   await h.deliver(checkout("plink_lifetime"));
   await h.activate();
 
-  assert.deepEqual(h.names(), ["license_purchased"]);
+  assert.deepEqual(h.names(), ["license_purchased", "license_activated"]);
 });
 
 test("a lifetime bought over an annual is a lifetime sale marked as an upgrade", async () => {
@@ -306,4 +307,52 @@ test("another product's sale on the same Stripe account is not counted", async (
   await h.deliver({ id: "evt_r", type: "charge.refunded", data: { object: { id: "ch_other", amount_refunded: 1000, currency: "eur" } } });
 
   assert.deepEqual(h.names(), []);
+});
+
+// MARK: - The paid-entry path
+
+test("an introductory purchase is marked as one, with what was actually paid", async () => {
+  const h = await harness();
+  await h.deliver(checkout("plink_intro", { subscription: "sub_1", amount: 499 }));
+
+  const purchase = h.sent.find((s) => s.body.event === "license_purchased").body;
+  assert.equal(purchase.properties.intro, true);
+  assert.equal(purchase.properties.kind, "annual");
+  assert.equal(purchase.properties.revenue, 4.99);
+  assert.ok(!JSON.stringify(purchase).includes(EMAIL));
+});
+
+test("a plain annual purchase carries no intro flag", async () => {
+  const h = await harness();
+  await h.deliver(checkout("plink_annual", { subscription: "sub_1", amount: 4900 }));
+  const purchase = h.sent.find((s) => s.body.event === "license_purchased").body;
+  assert.equal("intro" in purchase.properties, false);
+});
+
+test("a paid licence reaching its first Mac is reported once, a trial is not, and a re-issued key is not", async () => {
+  const h = await harness();
+  await h.deliver(checkout("plink_intro", { subscription: "sub_1", amount: 499 }));
+
+  await h.activate();
+  await h.activate({ now: NOW + 86_400 });
+  assert.equal(h.names().filter((name) => name === "license_activated").length, 1);
+  const activated = h.sent.find((s) => s.body.event === "license_activated").body;
+  assert.equal(activated.properties.kind, "annual");
+  assert.ok(!JSON.stringify(activated).includes(EMAIL));
+  assert.ok(!JSON.stringify(activated).includes(MAC));
+
+  const trial = await harness();
+  await trial.activate({ email: "stranger@example.com" });
+  assert.deepEqual(trial.names(), ["trial_issued"]);
+});
+
+test("every event the paid-entry path sends is on the list and carries only allowed properties", () => {
+  assert.ok(ALLOWED_PROPERTIES.includes("intro"));
+  const { analytics, sent } = recorder();
+  analytics.capture("subscription_cancel_requested", "lic_1", { kind: "annual", email: EMAIL });
+  analytics.capture("license_activated", "lic_1", { kind: "annual", device: MAC });
+  assert.deepEqual(sent.map((s) => s.body.event), ["subscription_cancel_requested", "license_activated"]);
+  for (const message of sent) {
+    assert.deepEqual(Object.keys(message.body.properties).sort(), ["$geoip_disable", "$process_person_profile", "kind", "source"].sort());
+  }
 });

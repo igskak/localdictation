@@ -15,6 +15,7 @@ async function harness() {
   const store = new Store(makeTestDatabase());
   const sent = [];
   const stopped = [];
+  const events = [];
   const billing = {
     async cancelAtPeriodEnd(id) {
       stopped.push(id);
@@ -25,6 +26,7 @@ async function harness() {
     store,
     sent,
     stopped,
+    events,
     call(body, { now = NOW, ip = "203.0.113.9" } = {}) {
       return cancelSubscription({
         body,
@@ -33,6 +35,7 @@ async function harness() {
         clientIP: ip,
         billing,
         mailer: { async send(message) { sent.push(message); return true; } },
+        analytics: { capture(event, id, properties) { events.push({ event, id, properties }); } },
         log: () => {},
       });
     },
@@ -79,4 +82,16 @@ test("the same address cannot be asked about without limit", async () => {
   await subscribe(h.store);
   for (let i = 0; i < CANCEL_LIMITS.email.limit; i += 1) await h.call({ email: EMAIL });
   assert.equal((await h.call({ email: EMAIL })).status, 429);
+});
+
+test("a cancellation is counted without saying who asked", async () => {
+  const h = await harness();
+  await subscribe(h.store);
+  await h.call({ email: EMAIL });
+  await h.call({ email: "stranger@example.com" });
+
+  assert.equal(h.events.length, 1);
+  assert.equal(h.events[0].event, "subscription_cancel_requested");
+  assert.equal(h.events[0].id, "lic-sub_1");
+  assert.deepEqual(h.events[0].properties, { kind: "annual" });
 });
