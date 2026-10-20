@@ -46,10 +46,10 @@ case "$NAME" in
 esac
 
 case "$NAME" in
-    WEBHOOK_SECRET | LICENSE_SIGNING_KEY | MAIL_API_KEY) ;;
+    WEBHOOK_SECRET | LICENSE_SIGNING_KEY | MAIL_API_KEY | STRIPE_API_KEY) ;;
     *)
         die "unknown secret '$NAME'.
-  This service has three: WEBHOOK_SECRET, LICENSE_SIGNING_KEY, MAIL_API_KEY.
+  This service has four: WEBHOOK_SECRET, LICENSE_SIGNING_KEY, MAIL_API_KEY, STRIPE_API_KEY.
   Anything else is a typo, and a typo here creates a secret nothing reads while
   leaving the real one unset."
         ;;
@@ -69,6 +69,15 @@ case "$NAME" in
         case "$VALUE" in
             whsec_*) ;;
             *) die "a Stripe webhook signing secret starts with 'whsec_'. Reveal it on the endpoint's own page." ;;
+        esac
+        ;;
+    STRIPE_API_KEY)
+        # Restricted, never the account's secret key: this service only cancels
+        # subscriptions, and a leaked `sk_live_` could move money.
+        case "$VALUE" in
+            rk_live_*) ;;
+            sk_*) die "that is Stripe's full secret key. Create a *restricted* key (rk_live_...) with Subscriptions: Write and nothing else." ;;
+            *) die "a restricted Stripe key starts with 'rk_live_'. Create it under Developers, API keys, Create restricted key." ;;
         esac
         ;;
     LICENSE_SIGNING_KEY)
