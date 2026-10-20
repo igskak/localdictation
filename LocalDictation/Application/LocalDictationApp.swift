@@ -247,10 +247,10 @@ struct ApplicationComposition {
         make(
             notetakerAvailability: notetakerAvailability,
             makeDictationCoordinator: DictationCoordinator.makeLive,
-            // Slice 0 deliberately has no available implementation. This
-            // closure is never invoked by the live default and is replaced by
-            // the first gated implementation, rather than growing effects here.
-            makeAvailableNotetaker: UnavailableNotetakerFacade.init
+            // A normal Release never invokes this closure. The separately
+            // built dogfood DMG enables it with NOTETAKER_DOGFOOD so the
+            // testable UI cannot accidentally ship in the public build.
+            makeAvailableNotetaker: DogfoodNotetakerFacade.init
         )
     }
 }

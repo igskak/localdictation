@@ -9,7 +9,11 @@ enum NotetakerAvailability: Sendable, Equatable {
     case disabled
     case enabled
 
+    #if NOTETAKER_DOGFOOD
+    static let liveDefault: NotetakerAvailability = .enabled
+    #else
     static let liveDefault: NotetakerAvailability = .disabled
+    #endif
 }
 
 /// A menu action supplied by an available Notetaker implementation.

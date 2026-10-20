@@ -83,6 +83,18 @@ final class MeetingMicrophoneCapture {
         context = nil
     }
 
+    func pause() throws {
+        guard let unit, running else { throw SystemAudioCaptureError.invalidState }
+        try check(AudioOutputUnitStop(unit))
+        running = false
+    }
+
+    func resume() throws {
+        guard let unit, initialized, !running else { throw SystemAudioCaptureError.invalidState }
+        try check(AudioOutputUnitStart(unit))
+        running = true
+    }
+
     deinit { stop() }
     private func check(_ status: OSStatus) throws {
         guard status == noErr else { throw SystemAudioCaptureError.coreAudio(status) }

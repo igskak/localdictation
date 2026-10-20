@@ -16,9 +16,10 @@ changing later timeline positions. It retains the raw recognition output behind
 the presentation and only removes time-aligned boundary repeats whose text is
 exact apart from punctuation. The process tap may include other Chrome tabs.
 
-This is an engineering harness, not a released meeting recorder. It currently
-has Start and Stop, not the later product UI, and is not a substitute for a
-consented hardware test. Headphones are the supported test configuration; echo
+This remains an internal test path, not a released meeting recorder. The
+command-line Debug harness has Start and Stop; the dogfood build below adds the
+native test interface. Neither is a substitute for a consented hardware test.
+Headphones are the supported test configuration; echo
 on speakers has not been measured. Closing the window requests a stop. The harness displays inference time divided
 by captured meeting time, audio real-time factor, maximum queue delay, peak
 queue depth, process peak resident memory, skipped silent windows and detected
@@ -26,6 +27,26 @@ lost intervals. These are local engineering diagnostics, not validated
 benchmark results. A lost interval is a detected callback/queue discontinuity,
 not a claim that every inaudible or semantically missing word can be counted
 automatically.
+
+## Installable dogfood build
+
+An internal Release DMG can expose the native meeting window without enabling
+Notetaker in ordinary Release builds:
+
+```sh
+NOTETAKER_DOGFOOD=1 Tools/build_test_dmg.sh
+```
+
+The dogfood window is opened from `Start meeting note…` in the Witness menu.
+It lists Core Audio processes, prefers active Zoom or Chrome processes, accepts
+one verified transcript language, supports Start/Pause/Resume/Stop, displays
+source health and elapsed captured time, and keeps the live transcript and
+technical metrics in memory. The reminder about applicable recording rules is
+informational and does not block Start. No bot joins the meeting and Witness
+does not send a participant notification.
+
+The ordinary build omits `NOTETAKER_DOGFOOD`, so its composition root remains
+disabled and constructs none of this UI or its system-facing dependencies.
 
 ## Required measurements — not yet performed
 

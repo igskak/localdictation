@@ -24,6 +24,23 @@ final class SystemAudioChunkProcessorTests: XCTestCase {
         XCTAssertLessThanOrEqual(abs(microphoneChunk.startFrame - 16_000), 1)
     }
 
+    func testIntentionalPauseKeepsTheResumedChunkOnTheHostTimeline() throws {
+        let origin = AudioGetCurrentHostTime()
+        let resumed = AudioConvertNanosToHostTime(AudioConvertHostTimeToNanos(origin) + 2_000_000_000)
+        let queue = MeetingAudioBuffer(capacity: 2, maximumFrames: 512, sampleRate: 16_000)
+        let processor = try SystemAudioChunkProcessor(buffer: queue, inputSampleRate: 16_000,
+                                                      originHostTime: origin, source: .system)
+        let frames = [Float](repeating: 0.5, count: 128)
+        frames.withUnsafeBufferPointer { queue.ingest($0, hostTime: origin) }
+        _ = try XCTUnwrap(processor.take())
+
+        processor.prepareForResume()
+        frames.withUnsafeBufferPointer { queue.ingest($0, hostTime: resumed) }
+        let resumedChunk = try XCTUnwrap(processor.take())
+
+        XCTAssertLessThanOrEqual(abs(resumedChunk.startFrame - 32_000), 1)
+    }
+
     func testDroppedCallbackBecomesAnExplicitDiscontinuity() throws {
         let origin = AudioGetCurrentHostTime()
         let queue = MeetingAudioBuffer(capacity: 1, maximumFrames: 512, sampleRate: 16_000)

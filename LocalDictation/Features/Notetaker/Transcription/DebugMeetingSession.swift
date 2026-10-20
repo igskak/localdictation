@@ -1,4 +1,3 @@
-#if DEBUG
 import CoreAudio
 import Darwin
 import Foundation
@@ -19,6 +18,9 @@ actor DebugMeetingSession {
     private let profile: LanguageProfile
     private let emit: @Sendable (DebugMeetingUpdate) -> Void
     private var stopRequested = false
+    private var pauseRequested = false
+    private var resumeRequested = false
+    private var paused = false
     private var captureFinished = false
     private var partial = false
     private var worker: LongFormTranscriber?
@@ -68,6 +70,18 @@ actor DebugMeetingSession {
         emit(.status("Finishing the transcript…"))
     }
 
+    func pause() {
+        guard !stopRequested, !paused else { return }
+        pauseRequested = true
+        emit(.status("Pausing…"))
+    }
+
+    func resume() {
+        guard !stopRequested, paused else { return }
+        resumeRequested = true
+        emit(.status("Resuming…"))
+    }
+
     private func pump(_ systemProcessor: SystemAudioChunkProcessor, _ microphoneProcessor: SystemAudioChunkProcessor,
                       _ systemBuffer: MeetingAudioBuffer, _ microphoneBuffer: MeetingAudioBuffer,
                       _ worker: LongFormTranscriber) async {
@@ -75,9 +89,39 @@ actor DebugMeetingSession {
         var microphoneWindows = MeetingWindowBuilder(source: .microphone)
         do {
             while true {
+                if pauseRequested, !paused {
+                    try system.pause()
+                    try microphone.pause()
+                    while let chunk = try systemProcessor.take() {
+                        for window in try systemWindows.append(chunk) { try await worker.enqueue(window) }
+                    }
+                    while let chunk = try microphoneProcessor.take() {
+                        for window in try microphoneWindows.append(chunk) { try await worker.enqueue(window) }
+                    }
+                    if let window = systemWindows.finish() { try await worker.enqueue(window) }
+                    if let window = microphoneWindows.finish() { try await worker.enqueue(window) }
+                    systemWindows = MeetingWindowBuilder(source: .system)
+                    microphoneWindows = MeetingWindowBuilder(source: .microphone)
+                    systemProcessor.prepareForResume()
+                    microphoneProcessor.prepareForResume()
+                    pauseRequested = false
+                    paused = true
+                    emit(.status("Paused — audio is not being captured."))
+                }
+                if resumeRequested, paused {
+                    try system.resume()
+                    try microphone.resume()
+                    resumeRequested = false
+                    paused = false
+                    emit(.status("Recording — transcript stays on this Mac."))
+                }
                 if stopRequested {
                     if captureEndedAt == nil { captureEndedAt = ProcessInfo.processInfo.systemUptime }
                     system.stop(); microphone.stop()
+                }
+                if paused, !stopRequested {
+                    try await Task.sleep(for: .milliseconds(50))
+                    continue
                 }
                 while let chunk = try systemProcessor.take() {
                     for window in try systemWindows.append(chunk) { try await worker.enqueue(window) }
@@ -164,4 +208,3 @@ actor DebugMeetingSession {
 }
 
 enum DebugMeetingError: Error { case modelUnavailable }
-#endif

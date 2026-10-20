@@ -11,7 +11,11 @@ fi
 build_args=(-project LocalDictation.xcodeproj -scheme LocalDictation
     -configuration Release -destination 'platform=macOS,arch=arm64'
     ENABLE_HARDENED_RUNTIME=NO CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM=)
-build_args+=(SWIFT_ACTIVE_COMPILATION_CONDITIONS='$(inherited) WITNESS_PHASE_9_1_PREVIEW')
+compilation_conditions='$(inherited) WITNESS_PHASE_9_1_PREVIEW'
+if [ "${NOTETAKER_DOGFOOD:-0}" = 1 ]; then
+    compilation_conditions="$compilation_conditions NOTETAKER_DOGFOOD"
+fi
+build_args+=(SWIFT_ACTIVE_COMPILATION_CONDITIONS="$compilation_conditions")
 
 xcodebuild "${build_args[@]}" ${package_args[@]+"${package_args[@]}"} build
 settings=$(xcodebuild "${build_args[@]}" ${package_args[@]+"${package_args[@]}"} -showBuildSettings)

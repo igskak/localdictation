@@ -23,7 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// another application, and there is no menu bar window open to host the
     /// answer.
     private var paywall: PaywallWindowController?
-    #if DEBUG
+    #if DEBUG || NOTETAKER_DOGFOOD
     private var debugMeetingWindow: DebugMeetingWindowController?
     #endif
 
@@ -39,7 +39,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         #endif
-        #if DEBUG
+        #if DEBUG || NOTETAKER_DOGFOOD
         let arguments = ProcessInfo.processInfo.arguments
         if arguments.contains("--notetaker-meeting-harness") {
             let controller = DebugMeetingWindowController()
@@ -47,6 +47,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             controller.show()
             return
         }
+        #endif
+        #if DEBUG
         if arguments.contains("--notetaker-audio-processes") {
             Task.detached {
                 let succeeded = DebugSystemAudioProbe.printProcessInventory()

@@ -24,6 +24,7 @@ final class SystemAudioChunkProcessor {
     private var nextSequence: UInt64 = 0
     private var previousSequence: UInt64?
     private var expectedInputEndNanos: UInt64?
+    private var nextChunkStartsAtHostTime = false
     private var finished = false
 
     init(buffer: MeetingAudioBuffer, inputSampleRate: Double, originHostTime: UInt64, source: MeetingAudioSource = .system) throws {
@@ -52,7 +53,10 @@ final class SystemAudioChunkProcessor {
             let tolerance = UInt64((2e9 / chunk.sampleRate).rounded(.up))
             guard delta <= tolerance else { throw SystemAudioCaptureError.discontinuity }
         }
-        let start = previousSequence == nil ? Self.frame(hostTime: chunk.hostTime, originHostTime: originHostTime) : nextFrame
+        let start = previousSequence == nil || nextChunkStartsAtHostTime
+            ? Self.frame(hostTime: chunk.hostTime, originHostTime: originHostTime)
+            : nextFrame
+        nextChunkStartsAtHostTime = false
         let frames = try converter.convert(input)
         nextFrame = start + Int64(frames.count)
         nextSequence = chunk.sequence + 1
@@ -60,6 +64,13 @@ final class SystemAudioChunkProcessor {
         expectedInputEndNanos = hostNanos + UInt64((Double(chunk.samples.count) / chunk.sampleRate * 1e9).rounded())
         return MeetingAudioChunk(source: source, sequence: chunk.sequence, startFrame: start,
                                  sampleRate: converter.outputFormat.sampleRate, samples: Array(frames), isFinal: false)
+    }
+
+    /// Pause is an intentional hole, not lost audio. The first resumed chunk
+    /// keeps its host-time position while sequence checking stays intact.
+    func prepareForResume() {
+        expectedInputEndNanos = nil
+        nextChunkStartsAtHostTime = true
     }
 
     /// Call after the device is stopped and every queued buffer has been read.
