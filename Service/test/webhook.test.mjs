@@ -867,8 +867,16 @@ test("the introductory link creates an annual licence paid for fourteen days", a
   const license = await h.store.strongestLicense(EMAIL, NOW);
   assert.equal(license.kind, "annual");
   assert.equal(license.expires_at, NOW + 14 * 86400);
-  assert.match(h.sent.at(-1).text, /EUR 49/);
-  assert.match(h.sent.at(-1).text, /Cancelling before that day costs nothing/);
+  const mail = h.sent.at(-1).text;
+  assert.match(mail, /WICHTIG: Gib in Witness die E-Mail-Adresse ein, mit der du bezahlt hast/);
+  assert.match(mail, /IMPORTANT: In Witness, enter the email address you paid with/);
+  assert.match(mail, /Download: https:\/\/witnessmac\.com\/download/);
+  assert.match(mail, /https:\/\/witnessmac\.com\/kuendigen/);
+  assert.match(mail, /https:\/\/witnessmac\.com\/en\/cancel-subscription/);
+  assert.match(mail, /€49/);
+  assert.match(mail, /EUR 49/);
+  // The big line comes before everything else a buyer could skip to.
+  assert.ok(mail.indexOf("WICHTIG") < mail.indexOf("Download:"));
 });
 
 test("the first EUR 49 invoice, on the fifteenth day, pays through the period Stripe states", async () => {

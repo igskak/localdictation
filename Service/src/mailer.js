@@ -119,21 +119,93 @@ export function activationMail({ key, kind, expiresAt }) {
 /// which is true in both cases, rather than confirming something nobody here
 /// knows happened.
 export function purchaseMail({ kind, expiresAt, intro = false }) {
+  return intro ? introPurchaseMail({ expiresAt }) : standardPurchaseMail({ kind, expiresAt });
+}
+
+/// What somebody gets who paid EUR 4.99 on `/start`.
+///
+/// German first and English under it, because the page is sold in both and the
+/// buyer's language is not in the payment. It is built around the one thing that
+/// goes wrong for these buyers: the app does not know they paid for the first
+/// three days, and on day three it asks for an address. An address other than the
+/// one they paid with gets them a free trial instead of their subscription, and
+/// Stripe still charges EUR 49 on day 15. So that sentence is the biggest thing
+/// in the mail, and the download link is in it because there is no other copy of
+/// it once the thanks page is closed.
+function introPurchaseMail({ expiresAt }) {
+  const until = formatDate(expiresAt);
+  const rule = "=".repeat(60);
+
+  return {
+    subject: "Witness: dein Download und ein Schritt in der App / your download and one step in the app",
+    text: [
+      "Danke für deinen Kauf.",
+      "",
+      rule,
+      "WICHTIG: Gib in Witness die E-Mail-Adresse ein, mit der du bezahlt hast",
+      "(diese hier). Mit einer anderen Adresse erkennt Witness deinen Kauf nicht.",
+      rule,
+      "",
+      "Download: https://witnessmac.com/download",
+      "",
+      "So geht es weiter:",
+      "  1. Witness laden, öffnen, in den Ordner Programme ziehen.",
+      "  2. Die ersten drei Tage fragt Witness nach nichts.",
+      "  3. Am dritten Tag bittet es um deine E-Mail-Adresse. Gib diese hier ein,",
+      "     dann ist dein Abonnement aktiv. Das geht auch jederzeit vorher unter",
+      "     Einstellungen, Lizenz, „Schlüssel anfordern“.",
+      "",
+      `Dein Zugang ist bis ${until} bezahlt. Danach zieht Stripe automatisch €49 für ein Jahr ein,`,
+      "wenn du nicht bis zum 14. Tag kündigst. Kündigst du bis dahin, zahlst du nur die €4,99.",
+      "Kündigen: https://witnessmac.com/kuendigen",
+      "Zahlung und Rechnungen verwalten: https://witnessmac.com/manage",
+      "",
+      "Dein Widerrufsrecht: Auf der Bestellseite hast du ausdrücklich verlangt, dass die",
+      "Lieferung sofort beginnt, und bestätigt, dass du dadurch dein Widerrufsrecht verlierst:",
+      "„Ich verlange ausdrücklich die sofortige Ausführung des Vertrags und bestätige, dass ich",
+      "dadurch mein Widerrufsrecht verliere.“ Diese Mail ist die Bestätigung dieser Erklärung.",
+      "Widerrufsbelehrung: https://witnessmac.com/widerruf",
+      "",
+      "",
+      "Thank you for your purchase.",
+      "",
+      rule,
+      "IMPORTANT: In Witness, enter the email address you paid with (this one).",
+      "With a different address Witness does not recognise your purchase.",
+      rule,
+      "",
+      "Download: https://witnessmac.com/download",
+      "",
+      "What happens next:",
+      "  1. Download Witness, open it, drag it into the Applications folder.",
+      "  2. For the first three days Witness asks for nothing.",
+      "  3. On day three it asks for your email address. Enter this one and your",
+      "     subscription is active. You can also do it any time before, under",
+      "     Settings, License, “Send me a key”.",
+      "",
+      `Your access is paid until ${until}. After that Stripe automatically charges EUR 49 for a year`,
+      "unless you cancel by day 14. If you cancel by then you pay only the EUR 4.99.",
+      "Cancel: https://witnessmac.com/en/cancel-subscription",
+      "Manage payment and invoices: https://witnessmac.com/manage",
+      "",
+      "Your right of withdrawal: on the order page you expressly asked for delivery to begin at once",
+      "and acknowledged that you lose the right of withdrawal as a result: “Ich verlange ausdrücklich",
+      "die sofortige Ausführung des Vertrags und bestätige, dass ich dadurch mein Widerrufsrecht",
+      "verliere.” This mail is the confirmation of that declaration.",
+      "Withdrawal instruction: https://witnessmac.com/en/cancellation",
+      "",
+      "This is a transactional message about a purchase you made.",
+    ].join("\n"),
+  };
+}
+
+function standardPurchaseMail({ kind, expiresAt }) {
   const term = kind === "lifetime" ? "a lifetime license" : `an annual license until ${formatDate(expiresAt)}`;
 
   return {
     subject: "Your Witness license — one step to finish",
     text: [
-      intro
-        ? `Thank you. This address is covered until ${formatDate(expiresAt)}, and then a year for EUR 49 follows unless you cancel before then.`
-        : `Thank you. This address now holds ${term}.`,
-      ...(intro
-        ? [
-            "",
-            "Cancelling before that day costs nothing: you pay the EUR 4.99 and no more.",
-            `Cancel any time, at https://witnessmac.com/kuendigen or from Witness, Settings, License.`,
-          ]
-        : []),
+      `Thank you. This address now holds ${term}.`,
       "",
       "A key names one Mac, and a browser cannot know which. So the last step",
       "happens in the app:",
