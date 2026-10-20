@@ -19,23 +19,27 @@ Nothing you dictate leaves your Mac. Not the audio, not the transcript, not the
 cleaned text, not your dictionary, not the names of the applications you dictate
 into, and nothing derived from any of them. There is no account and no sign-in.
 
-The following requests can leave. Activation and updates follow your action;
-the model download occurs when its files are missing; nine events about setting
-the app up and about the trial can be switched off in Settings → Privacy:
+The following requests can leave. Activation follows your action, and for a
+subscription it repeats by itself about once a month; update checks run once a
+day unless you switch them off; the model download occurs when its files are
+missing; nine events about setting the app up and about the trial can be
+switched off in Settings → Privacy:
 
 | What | When | To whom | Why |
 | --- | --- | --- | --- |
 | A request for the speech model, and one for the list of its files and their sizes | The first launch, automatically, and any later one where the model is missing — or when you press **Get the speech model** | Hugging Face, WhisperKit's host | Fetching a static file, and knowing how large it is so the progress bar can say how much is left. One way — nothing is uploaded, and neither request carries an identifier of you or this Mac |
-| Your email address and a device identifier | You press **Send me a key** or **Send my key** | The Witness activation service, at `api.witnessmac.com` | Issuing a licence key for this Mac |
+| Your email address and a device identifier | You press **Send me a key** or **Send my key**; and, while an annual subscription runs, automatically in the background once its key is in its last week, which is about once a month | The Witness activation service, at `api.witnessmac.com` | Issuing a licence key for this Mac, and replacing a subscription key before it runs out. A subscription key lasts thirty days so that a cancellation or refund takes effect within a month |
 | A licence key you already hold | You press **Remove from this Mac** | The same service | Freeing one of the two Macs your licence covers |
 | Nine events about setup and the trial, each with an app version, a macOS major and minor version, and a random number made at install | The app is installed, the speech model starts arriving, arrives or fails, a press finds it still arriving, the microphone is refused, a trial starts, the app asks for an email, or it puts the offers on screen — unless you turned this off | The same service, at `api.witnessmac.com` | Counting how many installations reach a first dictation, and how many people reach the wall and get past it |
-| Update catalogue HTTPS request: requested URL, IP address, User-Agent with Witness name/version and Sparkle version | You press **Check for updates** in Settings | GitHub Releases | Looking for a newer signed version |
+| Update catalogue HTTPS request: requested URL, IP address, User-Agent with Witness name/version and Sparkle version | You press **Check for updates** in Settings, and once a day while **Check for updates automatically** in Settings is on, which it is by default | GitHub Releases | Looking for a newer signed version, and offering it to you if there is one |
 | Signed update file HTTPS request: requested URL, IP address, User-Agent | You confirm an offered update | GitHub Releases | Downloading the chosen version for installation |
 
 That is the complete list. The update requests contain no audio, transcript,
 dictionary, licence key, email address, application content, or data derived
-from dictated content. Automatic update checks, automatic installation and
-Sparkle system profiling are disabled in `LocalDictation/Resources/Info.plist`.
+from dictated content. Automatic installation and Sparkle system profiling are
+disabled in `LocalDictation/Resources/Info.plist`; the daily check is on by
+default and has a switch in Settings, and nothing is installed until you
+confirm it.
 The catalogue and update file are hosted by GitHub. We receive and retain no
 GitHub request logs. GitHub may retain IP addresses and request metadata under
 its [privacy statement](https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement),
@@ -46,7 +50,8 @@ The first row used to wait for a button. It no longer does: the weights are the
 one thing the product cannot work without, so a fresh install starts fetching
 them as it launches and says so in the menu bar and on the first-run screen. If
 you would rather it did not, quit Witness before it finishes. The update
-checker does not make a request until you press its button.
+checker asks once a day unless you switch it off in Settings, and otherwise
+when you press its button.
 
 ## The audio, and why it is not on that list
 

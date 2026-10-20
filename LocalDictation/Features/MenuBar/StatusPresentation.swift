@@ -218,10 +218,13 @@ struct StatusPresentation: Sendable, Equatable {
             switch lock {
             case .activationRequired:
                 title = L10n.string("Activate to keep going")
-                detail = L10n.string("The first three days are ungated. Add your email under Settings → License and the trial runs for ten more days.")
+                detail = L10n.string("The first three days are over. Enter your email address under Settings → License to carry on. No payment is needed at this step.")
             case let .expired(.trial, at):
                 title = L10n.string("Trial finished")
                 detail = L10n.format("The trial ended %@. A license brings it back, on this Mac and one more.", Self.dayFormatter.string(from: at))
+            case let .expired(.annual, at):
+                title = L10n.string("Subscription not renewed")
+                detail = L10n.format("Witness could not renew its key, and the last one ran out %@. Open Settings → License to put it right.", Self.dayFormatter.string(from: at))
             case let .expired(kind, at):
                 title = L10n.format("%@ license expired", kind.displayName)
                 detail = L10n.format("It ran out %@. Renewing unlocks dictation again; nothing on this Mac was touched.", Self.dayFormatter.string(from: at))

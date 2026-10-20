@@ -35,7 +35,7 @@
 	<key>SUPublicEDKey</key>
 	<string>sPeh0e6Mjwm1tak9tv4keTlz4/sBEdzDnGDYFr2LubU=</string>
 	<key>SUEnableAutomaticChecks</key>
-	<false/>
+	<true/>
 	<key>SUAllowsAutomaticUpdates</key>
 	<false/>
 	<key>SUEnableSystemProfiling</key>

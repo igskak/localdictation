@@ -27,6 +27,9 @@ final class EntitlementService {
     private let clock: @Sendable () -> Date
 
     private var record: UsageRecord
+    /// When the app last asked the service for a fresh subscription key. Kept in
+    /// memory on purpose: a relaunch is allowed to ask straight away.
+    private var lastRefreshAttempt: Date?
     /// The verified license, or `nil`. Never written from anywhere but
     /// `reevaluate`, which re-derives it from the stored token.
     private(set) var license: License?
@@ -203,6 +206,37 @@ final class EntitlementService {
         } catch {
             telemetry.send(.activationFailed(.unreachable))
             return .failure(.unreachable(error.localizedDescription))
+        }
+    }
+
+    /// Quietly replaces a subscription key that is in its last week, or past it.
+    ///
+    /// Nothing is shown and nothing is sent to the product-event stream: this is
+    /// the same request a person makes by pressing **Send my key**, made for
+    /// them, with the address the key was issued to. It is the whole mechanism
+    /// by which a renewal reaches this Mac, so every failure here is silent and
+    /// retried — the key still has days on it, or the user is shown the lock and
+    /// the form, both of which already say what to do.
+    ///
+    /// `LicenseRefreshPolicy` decides whether it is time.
+    func refreshSubscriptionKeyIfDue() async {
+        let now = clock()
+        guard backend.isConfigured, let current = license else { return }
+        guard LicenseRefreshPolicy.isDue(license: current, now: now, lastAttempt: lastRefreshAttempt) else { return }
+        lastRefreshAttempt = now
+
+        do {
+            let token = try await backend.requestKey(email: current.email, deviceID: deviceID)
+            let fresh = try LicenseKey.verify(token, authority: authority, deviceID: deviceID)
+            guard LicenseRefreshPolicy.isImprovement(fresh, over: current) else { return }
+            record.licenseToken = token.trimmingCharacters(in: .whitespacesAndNewlines)
+            persist()
+            Log.licensing.info("Subscription key refreshed (\(fresh.kind.rawValue, privacy: .public))")
+            reevaluate()
+        } catch let error as ActivationError {
+            Log.licensing.notice("Subscription key not refreshed: \(error.failureReason.rawValue, privacy: .public)")
+        } catch {
+            Log.licensing.notice("Subscription key not refreshed")
         }
     }
 
@@ -389,6 +423,9 @@ extension ActivationError {
         case .unreachable: .unreachable
         case .rejected: .rejected
         case .deviceLimitReached: .deviceLimitReached
+        // Counted with the other refusals. A new qualifier would be a new
+        // transmitted value, and `docs/PRIVACY.md` lists the ones there are.
+        case .subscriptionInactive: .rejected
         }
     }
 }

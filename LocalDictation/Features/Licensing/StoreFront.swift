@@ -37,6 +37,14 @@ enum StoreFront {
     /// supposed to be the opposite of.
     static let annualCheckout = URL(string: "https://witnessmac.com/buy?plan=annual")
 
+    /// Where a subscriber cancels, changes the card, or downloads invoices.
+    ///
+    /// Our own address rather than Stripe's, for the same reason as `/buy`:
+    /// `witnessmac.com/manage` redirects to the customer portal's login page, so
+    /// the portal can be replaced without a build going out, and a build already
+    /// installed keeps working.
+    static let manageSubscription = URL(string: "https://witnessmac.com/manage")
+
     /// The product page. Read in one place that matters: a lifetime licence on
     /// a superseded major version is told to download the version it owns,
     /// which needs somewhere to download it from.

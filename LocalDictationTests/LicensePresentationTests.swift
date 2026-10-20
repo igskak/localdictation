@@ -19,8 +19,8 @@ final class LicensePresentationTests: XCTestCase {
         let standing = GraceStanding(expiresAt: now.addingTimeInterval(3600))
         let presentation = LicensePresentation(state: .ungated(standing), now: now)
 
-        XCTAssertTrue(presentation.detail.contains("Nothing is asked for until"))
-        XCTAssertTrue(presentation.detail.contains("ten more days"))
+        XCTAssertTrue(presentation.detail.contains("asks for nothing until"))
+        XCTAssertFalse(presentation.detail.contains("ten"), "it does not say what an address unlocks")
     }
 
     func testALockedTrialLeadsWithTheOfferAndNotWithTheForm() {
@@ -173,7 +173,7 @@ final class LicensePresentationTests: XCTestCase {
     func testTheSuccessSentenceDescribesWhatArrivedAndNotWhatWasAsked() {
         XCTAssertEqual(
             LicensePresentation.activationSucceeded(.annual),
-            "Your annual license is on this Mac now. There is nothing else to enter."
+            "Your annual subscription is on this Mac now. There is nothing else to enter."
         )
         XCTAssertTrue(LicensePresentation.activationSucceeded(.lifetime).contains("lifetime"))
         XCTAssertTrue(LicensePresentation.activationSucceeded(.trial).contains("ten days"))
@@ -241,5 +241,80 @@ final class LicensePresentationTests: XCTestCase {
             XCTAssertFalse(lowered.contains("14 days") || lowered.contains("14-day") || lowered.contains("14 tage"), "still names 14 days: \(sentence)")
             XCTAssertFalse(lowered.contains("five dictations") || lowered.contains("fünf diktat"), "still counts dictations: \(sentence)")
         }
+    }
+
+    // MARK: - Nothing about free days before a key arrives
+
+    /// Somebody who paid on the website passes the same three days and meets the
+    /// same wall as everybody else, so every sentence on the way there reaches
+    /// them too. A line about free days tells a buyer what they could have had
+    /// without paying.
+    func testNoSentenceBeforeTheKeyArrivesNamesATrialOrFreeDays() {
+        let states: [EntitlementState] = [
+            .ungated(.untouched),
+            .ungated(GraceStanding(expiresAt: now.addingTimeInterval(3600))),
+            .locked(.activationRequired),
+        ]
+
+        var sentences: [String] = [ActivationError.unreachable("offline").message]
+        for state in states {
+            let presentation = LicensePresentation(state: state, now: now)
+            sentences += [presentation.headline, presentation.detail, presentation.activationHint, presentation.activationTitle]
+            if let notice = EntitlementNotice(state: state, now: now) {
+                sentences += [notice.headline, notice.detail]
+            }
+        }
+        sentences.append(StatusPresentation(state: .locked(.activationRequired), binding: .optionSpace).detail)
+
+        for sentence in sentences {
+            let lowered = sentence.lowercased()
+            for word in ["free", "trial", "ten more", "ten full", "ten days"] {
+                XCTAssertFalse(lowered.contains(word), "\"\(word)\" before the key: \(sentence)")
+            }
+        }
+    }
+
+    func testTheWallSaysNoPaymentIsNeededAtThisStep() {
+        let presentation = LicensePresentation(state: .locked(.activationRequired), now: now)
+        XCTAssertTrue(presentation.detail.contains("No payment is needed"))
+    }
+
+    func testASubscriptionShowsNoCountdownAndOffersManagement() {
+        let license = License(
+            id: "lic", email: "owner@example.com", kind: .annual, deviceID: "device",
+            issuedAt: now, expiresAt: now.addingTimeInterval(12 * 86_400)
+        )
+        let presentation = LicensePresentation(state: .licensed(license), now: now)
+
+        XCTAssertEqual(presentation.headline, "Annual subscription")
+        XCTAssertFalse(presentation.detail.contains("days left"), "the key's date is not what the person paid for")
+        XCTAssertTrue(presentation.showsSubscriptionManagement)
+    }
+
+    func testALapsedSubscriptionSaysWhatToDoAndOffersManagement() {
+        let presentation = LicensePresentation(state: .locked(.expired(.annual, at: now)), now: now)
+
+        XCTAssertEqual(presentation.headline, "Subscription not renewed")
+        XCTAssertTrue(presentation.showsSubscriptionManagement)
+        XCTAssertTrue(presentation.offersKeyRetrieval)
+    }
+
+    func testNobodyElseIsOfferedSubscriptionManagement() {
+        XCTAssertFalse(LicensePresentation(state: .locked(.activationRequired), now: now).showsSubscriptionManagement)
+        XCTAssertFalse(LicensePresentation(state: .ungated(.untouched), now: now).showsSubscriptionManagement)
+        XCTAssertFalse(LicensePresentation(state: .locked(.expired(.trial, at: now)), now: now).showsSubscriptionManagement)
+    }
+
+    func testTheUnreachableNoteOnlyPromisesWhatIsTrue() {
+        let open = EntitlementState.ungated(GraceStanding(expiresAt: now.addingTimeInterval(86_400)))
+        XCTAssertNotNil(LicensePresentation.unreachableNote(state: open, now: now))
+        XCTAssertNil(LicensePresentation.unreachableNote(state: .locked(.activationRequired), now: now))
+        XCTAssertNil(LicensePresentation.unreachableNote(state: .ungated(.untouched), now: now))
+    }
+
+    func testTheInactiveSubscriptionRefusalNamesNoTrial() {
+        let message = ActivationError.subscriptionInactive.message.lowercased()
+        XCTAssertFalse(message.contains("trial"))
+        XCTAssertFalse(message.contains("free"))
     }
 }

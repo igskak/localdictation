@@ -349,6 +349,7 @@ final class DictationCoordinator: ObservableObject {
         loadPreferences()
         loadGlossary()
         startObservingEntitlement()
+        startRefreshingSubscriptionKey()
         apply(.authorizationResolved(resolveMicrophoneAuthorization()))
         refreshAccessibilityAuthorization()
         refreshSecureInput()
@@ -427,6 +428,9 @@ final class DictationCoordinator: ObservableObject {
         // is re-read here too rather than only at launch. It is a comparison of
         // dates, and it costs nothing.
         entitlementService?.refresh()
+        // A subscription key that is in its last week is replaced here as well:
+        // coming back to the Mac is when a lapsed card has just been fixed.
+        Task { [weak self] in await self?.entitlementService?.refreshSubscriptionKeyIfDue() }
         let authorization = resolveMicrophoneAuthorization()
         guard !state.isBusy else { return }
         apply(.authorizationResolved(authorization))
@@ -1366,6 +1370,21 @@ final class DictationCoordinator: ObservableObject {
     var deviceIdentifier: String? { entitlementService?.deviceID }
     var licenseRecordLocation: String? { entitlementService?.recordLocationDescription }
     var licenseStoreErrorDescription: String? { entitlementService?.storeErrorDescription }
+
+    /// Checks every few hours whether a subscription key needs replacing. The
+    /// policy decides; this only makes sure somebody asks, because a menu-bar
+    /// app can run for weeks without anyone bringing it forward.
+    private var subscriptionRefreshTask: Task<Void, Never>?
+
+    private func startRefreshingSubscriptionKey() {
+        guard entitlementService != nil, subscriptionRefreshTask == nil else { return }
+        subscriptionRefreshTask = Task { [weak self] in
+            while !Task.isCancelled {
+                await self?.entitlementService?.refreshSubscriptionKeyIfDue()
+                try? await Task.sleep(for: .seconds(4 * 3_600))
+            }
+        }
+    }
 
     private func startObservingEntitlement() {
         guard let entitlementService else { return }

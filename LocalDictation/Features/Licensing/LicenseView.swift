@@ -38,6 +38,10 @@ struct LicenseView: View {
                 activation
             }
 
+            if presentation.showsSubscriptionManagement, StoreFront.manageSubscription != nil {
+                subscription
+            }
+
             manualKey
 
             if presentation.showsOffers {
@@ -116,6 +120,20 @@ struct LicenseView: View {
             .font(.callout)
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var subscription: some View {
+        Section("Subscription") {
+            Button("Manage subscription") {
+                if let url = StoreFront.manageSubscription { StoreFront.open(url) }
+            }
+            .buttonStyle(WitnessSecondaryButtonStyle())
+
+            Text("Opens a page in your browser where you can cancel, change the card, or download invoices. You sign in there with the email address you paid with.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -251,7 +269,14 @@ struct LicenseView: View {
         isRequesting = true
         defer { isRequesting = false }
         if let error = await coordinator.requestActivation(email: email) {
-            notice = .failure(error.message)
+            var message = error.message
+            // Only when the service could not be reached, and only while
+            // dictation really is still allowed.
+            if case .unreachable = error,
+               let note = LicensePresentation.unreachableNote(state: coordinator.entitlement) {
+                message += " " + note
+            }
+            notice = .failure(message)
             return
         }
         // Read *after* the call, from the licence that arrived. What the form

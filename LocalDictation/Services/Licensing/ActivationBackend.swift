@@ -26,6 +26,11 @@ enum ActivationError: Error, Sendable, Equatable {
     case rejected(String)
     /// The license already covers two Macs.
     case deviceLimitReached
+    /// The address once held a paid licence that no longer covers it: a
+    /// subscription that ended, a card that kept declining, a refund. It is not
+    /// handed the free trial a stranger gets, and it is not told what a trial
+    /// would have been.
+    case subscriptionInactive
 
     var message: String {
         switch self {
@@ -34,11 +39,13 @@ enum ActivationError: Error, Sendable, Equatable {
         case .invalidEmail:
             L10n.string("That address does not look complete. The key is sent to it, so a typo means it goes nowhere.")
         case let .unreachable(detail):
-            L10n.format("The activation service could not be reached: %@. Your dictation still works until the trial window closes.", detail)
+            L10n.format("The activation service could not be reached: %@. Check your connection and try again.", detail)
         case let .rejected(detail):
             detail
         case .deviceLimitReached:
             L10n.string("This license already covers two Macs. Release one of them before activating a third.")
+        case .subscriptionInactive:
+            L10n.string("This address has no active subscription. If you subscribed, check the payment under Manage subscription. A subscription that ended or was refunded no longer unlocks Witness.")
         }
     }
 }

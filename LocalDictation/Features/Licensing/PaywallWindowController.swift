@@ -285,6 +285,10 @@ struct PaywallView: View {
         HStack {
             Button("Enter a key…", action: openLicenseSettings)
                 .buttonStyle(WitnessSecondaryButtonStyle())
+            if presentation.showsSubscriptionManagement, let url = StoreFront.manageSubscription {
+                Button("Manage subscription") { StoreFront.open(url) }
+                    .buttonStyle(WitnessSecondaryButtonStyle())
+            }
             Spacer()
             Button("Not now", action: dismiss)
                 .buttonStyle(.plain)

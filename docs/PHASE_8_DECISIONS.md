@@ -290,3 +290,42 @@ There is no funnel worth measuring before there are users, and consent asked for
 a collector that does not exist yet is consent asked for nothing. The day it is
 worth it, what turns on is a transport — the events, their allowlist, and the
 test that no content can reach them all exist already.
+
+## D8 — the subscription and its thirty-day key (20.10.2026)
+
+**An annual licence is a Stripe subscription, and its key lives thirty days.**
+The licence itself is paid through the end of the period Stripe states on each
+invoice. The key that goes on a Mac is dated the shorter of a month from now and
+a week past that paid-through date, and the app replaces it in its last week by
+calling `POST /v1/activate` again with the address the key was issued to.
+
+This is the whole revocation story and it is bounded rather than instant: a
+refund, a dispute or a cancellation stops the *next* key, and the one already on
+the Mac runs out within a month. D2 chose an offline check knowingly; a faster
+recall would need a check in the app every day, which is a different product.
+Lifetime keys are not subject to any of this, which is why a lifetime licence is
+sold only by an explicit purchase and never as the end of a trial period.
+
+**The introductory offer.** €4.99 buys the first fourteen days of the annual
+subscription (a one-off price alongside the recurring one, with a fourteen-day
+trial on the subscription), and the first €49 invoice follows on the fifteenth
+day unless the buyer cancelled. A purchase through the introductory link is paid
+for fourteen days; the first invoice moves the licence to the period Stripe
+states. The buyer enters the address they paid with when the app asks for one
+after the three ungated days, and gets the paid key instead of a trial.
+
+**A refund cancels the subscription.** The webhook that kills the licence also
+cancels the Stripe subscription, so a buyer who got the €4.99 back is not
+charged €49 on the fifteenth day. That needs a restricted `STRIPE_API_KEY`
+(Subscriptions write) in the Worker. `POST /v1/subscriptions/cancel` is the
+website's cancellation button (§312k BGB): it stops renewal at the end of the
+paid period and mails a confirmation, and answers the same whether or not the
+address held anything.
+
+**A lapsed subscriber is not handed a trial.** An address that ever held a paid
+licence and no longer has a live one is told so (`subscription_inactive`), and
+the app words that itself. Nothing shown before a key arrives mentions what an
+address would unlock; see `LicensePresentation`.
+
+The numbers are one decision in two languages, `Service/src/subscription.js` and
+`LicenseRefreshPolicy`.

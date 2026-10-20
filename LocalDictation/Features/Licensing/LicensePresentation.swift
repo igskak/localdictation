@@ -29,7 +29,7 @@ struct LicensePresentation: Sendable, Equatable {
     /// What the form is called, what its button says, and the sentence under
     /// it. All three travel with the flag because which of the two errands the
     /// form is running changes all three, and copy in this file is testable.
-    private(set) var activationTitle = L10n.string("Activate the trial")
+    private(set) var activationTitle = L10n.string("Continue with your email")
     private(set) var activationButtonTitle = L10n.string("Send me a key")
     /// Two jobs, and the second one is newer than the first.
     ///
@@ -40,7 +40,10 @@ struct LicensePresentation: Sendable, Equatable {
     /// and unlocks the app before the mail is even sent. Saying so here costs a
     /// line and saves the person who would otherwise sit waiting for an email
     /// in order to use software that is already working.
-    private(set) var activationHint = L10n.string("The key comes straight back here and unlocks the app — there is nothing to fetch from your mail and nothing to paste. The address and an identifier for this Mac are the only things sent, and they are sent only when you press the button. No audio, no text, and nothing from your dictionary ever leaves this Mac.")
+    private(set) var activationHint = L10n.string("The key comes straight back here and unlocks the app — there is nothing to fetch from your mail and nothing to paste. The address and an identifier for this Mac are the only things sent: when you press the button, and, for a subscription, about once a month to renew its key. No audio, no text, and nothing from your dictionary ever leaves this Mac.")
+    /// Whether to offer the page where a subscription is cancelled, paid for
+    /// again, or looked up. Only somebody who holds, or has just lost, one.
+    private(set) var showsSubscriptionManagement = false
     let symbol: String
 
     init(state: EntitlementState, now: Date = Date()) {
@@ -50,11 +53,14 @@ struct LicensePresentation: Sendable, Equatable {
             showsOffers = false
             showsActivation = true
             if let expiresAt = standing.expiresAt {
-                headline = L10n.string("Trial, not yet activated")
-                detail = L10n.format("Nothing is asked for until %@. Adding your email after that adds ten more days, free.", Self.moment.string(from: expiresAt))
+                // Nothing here says what an address will unlock. Somebody who has
+                // already paid reads this screen too, and a sentence about free
+                // days tells them what they could have had without paying.
+                headline = L10n.string("Ready to use")
+                detail = L10n.format("Witness asks for nothing until %@. After that it asks for your email address, to carry on.", Self.moment.string(from: expiresAt))
             } else {
                 headline = L10n.string("Ready to use, nothing asked for yet")
-                detail = L10n.string("The first three days need no email and no key. After that, an email keeps the trial running for ten more days.")
+                detail = L10n.string("The first three days need no email and no key. After that, Witness asks for your email address, to carry on.")
             }
 
         case let .licensed(license):
@@ -68,9 +74,12 @@ struct LicensePresentation: Sendable, Equatable {
                 retrieveInstead()
             case .annual:
                 showsOffers = false
-                headline = L10n.string("Annual license")
-                detail = Self.remaining(license, now: now, suffix: L10n.format("Licensed to %@.", license.email))
-                retrieveInstead()
+                // No countdown. The key on this Mac lives about a month and the
+                // app replaces it by itself, so "12 days left" would be a number
+                // about the key rather than about what the person paid for.
+                headline = L10n.string("Annual subscription")
+                detail = L10n.format("Licensed to %@. It renews by itself while the subscription runs, and Witness picks up its new key in the background. You can manage or cancel it any time.", license.email)
+                showsSubscriptionManagement = true
             case .lifetime:
                 showsOffers = false
                 headline = L10n.string("Lifetime license")
@@ -88,7 +97,7 @@ struct LicensePresentation: Sendable, Equatable {
                 showsOffers = false
                 showsActivation = true
                 headline = L10n.string("Activate to keep dictating")
-                detail = L10n.string("The first three days are over. An email address gets you a key for this Mac and ten full days; nothing else about the app changes, and nothing you have dictated has left it.")
+                detail = L10n.string("The first three days are over. Enter your email address to carry on. No payment is needed at this step, and nothing you have dictated has left this Mac.")
             case let .expired(.trial, at):
                 symbol = "lock"
                 showsOffers = true
@@ -100,6 +109,14 @@ struct LicensePresentation: Sendable, Equatable {
                 // is what went stale here: this said "Fourteen" in English and
                 // "vierzehn" in German through two releases of a ten-day trial.
                 detail = L10n.format("The trial ran out on %@. Your dictionary and settings are untouched and come straight back with a license.", Self.moment.string(from: at))
+                retrieveInstead()
+            case let .expired(.annual, at):
+                symbol = "lock"
+                showsOffers = true
+                showsActivation = false
+                showsSubscriptionManagement = true
+                headline = L10n.string("Subscription not renewed")
+                detail = L10n.format("Witness could not renew its key, and the last one ran out on %@. If a payment did not go through, fix it under Manage subscription, then press the button below. Nothing local was removed.", Self.moment.string(from: at))
                 retrieveInstead()
             case let .expired(kind, at):
                 symbol = "lock"
@@ -133,7 +150,7 @@ struct LicensePresentation: Sendable, Equatable {
         offersKeyRetrieval = true
         activationTitle = L10n.string("Already bought a license?")
         activationButtonTitle = L10n.string("Send my key")
-        activationHint = L10n.string("The address you bought with fetches a key for this Mac. It and an identifier for this Mac are the only things sent, and only when you press the button — no audio, no text, and nothing from your dictionary.")
+        activationHint = L10n.string("The address you bought with fetches a key for this Mac. It and an identifier for this Mac are the only things sent: when you press the button, and, for a subscription, about once a month to renew its key. No audio, no text, and nothing from your dictionary.")
     }
 
     private static func remaining(_ license: License, now: Date, suffix: String) -> String {
@@ -146,7 +163,7 @@ struct LicensePresentation: Sendable, Equatable {
     /// Worded from the licence that actually arrived, never from the errand the
     /// form thought it was running. The service decides what an address is
     /// owed, and it is routinely more than the form guessed: the wall a
-    /// stranger hits is labelled "Activate the trial", and somebody who has
+    /// stranger hits is labelled "Continue with your email", and somebody who has
     /// already bought types their address into that same form and gets the
     /// annual or lifetime key they paid for.
     ///
@@ -172,12 +189,21 @@ struct LicensePresentation: Sendable, Equatable {
         case .trial:
             L10n.string("Activated, and there is nothing else to enter. The trial runs for ten days from today.")
         case .annual:
-            L10n.string("Your annual license is on this Mac now. There is nothing else to enter.")
+            L10n.string("Your annual subscription is on this Mac now. There is nothing else to enter.")
         case .lifetime:
             L10n.string("Your lifetime license is on this Mac now. There is nothing else to enter — no renewal, and no connection.")
         case nil:
             L10n.string("The key for this Mac was accepted.")
         }
+    }
+
+    /// The sentence after a failed activation that cannot reach the service,
+    /// when dictation is still allowed to work. Empty otherwise: promising
+    /// "it still works" to somebody who is already locked out would be the
+    /// error this exists to avoid.
+    static func unreachableNote(state: EntitlementState, now: Date = Date()) -> String? {
+        guard case let .ungated(standing) = state, let expiresAt = standing.expiresAt, expiresAt > now else { return nil }
+        return L10n.format("Dictation keeps working until %@.", moment.string(from: expiresAt))
     }
 
     /// What the emailed copy of the key is for, said where the user is looking

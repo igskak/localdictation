@@ -14,7 +14,11 @@ import Foundation
 struct EntitlementNotice: Sendable, Equatable {
     /// Three thresholds, because three windows of very different lengths.
     static let trialWarningDays = 3
-    static let annualWarningDays = 14
+    /// A subscription key lives about a month and renews itself in its last
+    /// week, so a countdown from two weeks out would appear every single month.
+    /// The notice is for the case where the renewal did not arrive: three days
+    /// before the key runs out is late enough that it means something.
+    static let annualWarningDays = 3
     /// The ungated window is only three days long, so the trial's own
     /// three-day threshold would put this notice on screen from the first
     /// minute — and this file's whole argument is that a countdown which is
@@ -44,7 +48,7 @@ struct EntitlementNotice: Sendable, Equatable {
             guard days <= Self.ungatedWarningDays else { return nil }
 
             headline = L10n.string("Your last day before activation")
-            detail = L10n.format("The first three days ask for nothing; they end %@. An email address adds ten more days, free, and nothing else changes.", Self.moment.string(from: expiresAt))
+            detail = L10n.format("The first three days ask for nothing; they end %@. After that Witness asks for your email address, to carry on.", Self.moment.string(from: expiresAt))
             actionTitle = L10n.string("Activate…")
             symbol = "envelope"
             // There is no gentler step before this one — the notice appears on
@@ -74,9 +78,9 @@ struct EntitlementNotice: Sendable, Equatable {
                     let expiresAt = license.expiresAt
                 else { return nil }
                 headline = days <= 1
-                    ? L10n.string("Your license ends today")
-                    : L10n.format("Your license ends in %lld days", Int64(days))
-                detail = L10n.format("It runs out on %@. Renewing before then means dictation never stops; nothing local is touched either way.", Self.moment.string(from: expiresAt))
+                    ? L10n.string("Your key ends today")
+                    : L10n.format("Your key ends in %lld days", Int64(days))
+                detail = L10n.format("The key on this Mac runs out on %@, and Witness has not been able to fetch a new one. Open Witness with an internet connection; if a payment did not go through, fix it under Manage subscription.", Self.moment.string(from: expiresAt))
                 actionTitle = L10n.string("Open License settings")
                 symbol = "clock.badge.exclamationmark"
                 isPressing = days <= Self.trialWarningDays

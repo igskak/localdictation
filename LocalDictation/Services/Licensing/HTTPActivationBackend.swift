@@ -277,6 +277,7 @@ private struct ActivationReply {
         switch payload?.error {
         case "invalid_email": return .invalidEmail
         case "device_limit": return .deviceLimitReached
+        case "subscription_inactive": return .subscriptionInactive
         default: break
         }
         if let code = payload?.error {

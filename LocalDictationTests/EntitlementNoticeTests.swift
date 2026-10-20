@@ -26,12 +26,20 @@ final class EntitlementNoticeTests: XCTestCase {
         XCTAssertNil(EntitlementNotice(state: .licensed(license), now: now))
     }
 
-    func testAnAnnualLicenseIsQuietUntilItsLastFortnight() {
+    /// A subscription key lives a month and renews itself in its last week, so
+    /// a notice from two weeks out would be on screen every month. It appears
+    /// only in the last three days, when the renewal has plainly not arrived.
+    func testASubscriptionIsQuietUntilItsKeyIsAboutToRunOut() throws {
         let far = makeLicense(kind: .annual, expiresAt: now.addingTimeInterval(60 * 86_400))
         XCTAssertNil(EntitlementNotice(state: .licensed(far), now: now))
 
-        let near = makeLicense(kind: .annual, expiresAt: now.addingTimeInterval(10 * 86_400))
-        XCTAssertNotNil(EntitlementNotice(state: .licensed(near), now: now))
+        let renewing = makeLicense(kind: .annual, expiresAt: now.addingTimeInterval(6 * 86_400))
+        XCTAssertNil(EntitlementNotice(state: .licensed(renewing), now: now))
+
+        let near = makeLicense(kind: .annual, expiresAt: now.addingTimeInterval(2 * 86_400))
+        let notice = try XCTUnwrap(EntitlementNotice(state: .licensed(near), now: now))
+        XCTAssertEqual(notice.headline, "Your key ends in 2 days")
+        XCTAssertTrue(notice.detail.contains("Manage subscription"))
     }
 
     /// The lock view already says this, with the same words. Two boxes making
@@ -71,7 +79,8 @@ final class EntitlementNoticeTests: XCTestCase {
         let standing = GraceStanding(expiresAt: now.addingTimeInterval(3600))
         let notice = try XCTUnwrap(EntitlementNotice(state: .ungated(standing), now: now))
 
-        XCTAssertTrue(notice.detail.contains("ten more days"))
+        XCTAssertTrue(notice.detail.contains("asks for your email address"))
+        XCTAssertFalse(notice.detail.lowercased().contains("free"), "a buyer reads this too")
         XCTAssertFalse(notice.detail.contains("whichever comes first"), "there is only one way for the window to end now")
     }
 

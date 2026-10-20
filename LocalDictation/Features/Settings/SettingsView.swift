@@ -107,7 +107,14 @@ struct SettingsView: View {
                 LabeledContent("Installed version", value: AppVersion.short)
                 Button("Check for updates…") { updater.checkForUpdates() }
                     .disabled(!updater.canCheckForUpdates)
-                Text("Witness checks only when you press this button. If an update is available, you can review it, install it here, and relaunch the app.")
+                Toggle(
+                    "Check for updates automatically",
+                    isOn: Binding(
+                        get: { updater.automaticallyChecksForUpdates },
+                        set: { updater.automaticallyChecksForUpdates = $0 }
+                    )
+                )
+                Text("Once a day Witness asks GitHub whether a newer signed version exists, and offers it if so. Nothing is installed until you confirm. You can also check yourself with the button above.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
