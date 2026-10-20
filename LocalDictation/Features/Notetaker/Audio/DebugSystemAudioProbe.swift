@@ -65,6 +65,7 @@ enum DebugSystemAudioProbe {
         case .processNotFound: return "process-not-found"
         case .unsupportedFormat: return "unsupported-format"
         case .invalidState: return "invalid-state"
+        case .discontinuity: return "audio-discontinuity"
         case .coreAudio: return "core-audio"
         case nil: return "unexpected"
         }

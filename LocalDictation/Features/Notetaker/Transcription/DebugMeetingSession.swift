@@ -73,9 +73,6 @@ actor DebugMeetingSession {
                       _ worker: LongFormTranscriber) async {
         var systemWindows = MeetingWindowBuilder(source: .system)
         var microphoneWindows = MeetingWindowBuilder(source: .microphone)
-        var lastSystemCallbacks: Int64 = 0
-        var lastMicrophoneCallbacks: Int64 = 0
-        var lastHealthCheck = ProcessInfo.processInfo.systemUptime
         do {
             while true {
                 if stopRequested {
@@ -90,22 +87,12 @@ actor DebugMeetingSession {
                 }
                 let systemStats = systemBuffer.snapshot()
                 let microphoneStats = microphoneBuffer.snapshot()
-                guard systemStats.droppedCallbacks == 0, microphoneStats.droppedCallbacks == 0 else {
+                let droppedCallbacks = systemStats.droppedCallbacks + microphoneStats.droppedCallbacks
+                guard droppedCallbacks == 0 else {
+                    await worker.recordLostIntervals(Int(droppedCallbacks))
                     throw LongFormTranscriptionError.missingAudio
                 }
-                if ProcessInfo.processInfo.systemUptime - lastHealthCheck >= 5 {
-                    guard systemStats.receivedCallbacks > lastSystemCallbacks,
-                          microphoneStats.receivedCallbacks > lastMicrophoneCallbacks else {
-                        throw LongFormTranscriptionError.missingAudio
-                    }
-                    lastSystemCallbacks = systemStats.receivedCallbacks
-                    lastMicrophoneCallbacks = microphoneStats.receivedCallbacks
-                    lastHealthCheck = ProcessInfo.processInfo.systemUptime
-                }
                 if stopRequested {
-                    guard systemStats.receivedCallbacks > 0, microphoneStats.receivedCallbacks > 0 else {
-                        throw LongFormTranscriptionError.missingAudio
-                    }
                     for (processor, source) in [(systemProcessor, MeetingAudioSource.system), (microphoneProcessor, MeetingAudioSource.microphone)] {
                         let tail = try processor.finish()
                         let windows = try source == .system ? systemWindows.append(tail) : microphoneWindows.append(tail)
@@ -119,6 +106,9 @@ actor DebugMeetingSession {
             }
         } catch {
             partial = true
+            if await worker.metrics.lostIntervals == 0 {
+                await worker.recordLostIntervals()
+            }
             if captureEndedAt == nil { captureEndedAt = ProcessInfo.processInfo.systemUptime }
             system.stop()
             microphone.stop()
@@ -141,7 +131,11 @@ actor DebugMeetingSession {
                 if captureEndedAt == nil { captureEndedAt = ProcessInfo.processInfo.systemUptime }
                 system.stop()
                 microphone.stop()
+                await worker.cancel()
                 emit(.status("Transcription stopped. The transcript is partial."))
+                while !captureFinished {
+                    try? await Task.sleep(for: .milliseconds(10))
+                }
                 break
             }
         }
@@ -154,7 +148,17 @@ actor DebugMeetingSession {
         let elapsed = max((captureEndedAt ?? ProcessInfo.processInfo.systemUptime) - startedAt, 0.001)
         var usage = rusage()
         let resident = getrusage(RUSAGE_SELF, &usage) == 0 ? Double(usage.ru_maxrss) / 1_048_576 : 0
-        let text = String(format: "Inference / meeting time: %.2f; peak queue: %d; max queue delay: %.1f s; peak process memory: %.0f MB", metrics.inferenceSeconds / elapsed, metrics.peakQueuedWindows, metrics.maximumQueueDelay, resident)
+        let realTimeFactor = metrics.realTimeFactor.map { String(format: "%.2f", $0) } ?? "n/a"
+        let text = String(
+            format: "Audio RTF: %@; inference / meeting time: %.2f; peak queue: %d; max queue delay: %.1f s; peak process memory: %.0f MB; silent windows: %d; lost intervals: %d",
+            realTimeFactor,
+            metrics.inferenceSeconds / elapsed,
+            metrics.peakQueuedWindows,
+            metrics.maximumQueueDelay,
+            resident,
+            metrics.skippedSilentWindows,
+            metrics.lostIntervals
+        )
         emit(.metrics(text))
     }
 }

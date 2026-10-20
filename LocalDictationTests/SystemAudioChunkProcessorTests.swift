@@ -3,6 +3,27 @@ import XCTest
 @testable import Witness
 
 final class SystemAudioChunkProcessorTests: XCTestCase {
+    func testBothSourcesShareTheSameHostTimeOrigin() throws {
+        let origin = AudioGetCurrentHostTime()
+        let oneSecondLater = AudioConvertNanosToHostTime(AudioConvertHostTimeToNanos(origin) + 1_000_000_000)
+        let systemQueue = MeetingAudioBuffer(capacity: 1, maximumFrames: 512, sampleRate: 16_000)
+        let microphoneQueue = MeetingAudioBuffer(capacity: 1, maximumFrames: 512, sampleRate: 16_000)
+        let system = try SystemAudioChunkProcessor(buffer: systemQueue, inputSampleRate: 16_000,
+                                                   originHostTime: origin, source: .system)
+        let microphone = try SystemAudioChunkProcessor(buffer: microphoneQueue, inputSampleRate: 16_000,
+                                                       originHostTime: origin, source: .microphone)
+        let frames = [Float](repeating: 0.5, count: 128)
+        frames.withUnsafeBufferPointer { systemQueue.ingest($0, hostTime: origin) }
+        frames.withUnsafeBufferPointer { microphoneQueue.ingest($0, hostTime: oneSecondLater) }
+
+        let systemChunk = try XCTUnwrap(system.take())
+        let microphoneChunk = try XCTUnwrap(microphone.take())
+        XCTAssertEqual(systemChunk.source, .system)
+        XCTAssertEqual(microphoneChunk.source, .microphone)
+        XCTAssertLessThanOrEqual(abs(systemChunk.startFrame), 1)
+        XCTAssertLessThanOrEqual(abs(microphoneChunk.startFrame - 16_000), 1)
+    }
+
     func testDroppedCallbackBecomesAnExplicitDiscontinuity() throws {
         let origin = AudioGetCurrentHostTime()
         let queue = MeetingAudioBuffer(capacity: 1, maximumFrames: 512, sampleRate: 16_000)

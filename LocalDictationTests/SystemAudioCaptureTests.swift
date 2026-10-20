@@ -3,6 +3,16 @@ import XCTest
 @testable import Witness
 
 final class SystemAudioCaptureTests: XCTestCase {
+    func testAggregateStartsWithoutWaitingForSelectedProcessAudio() {
+        let description = SystemAudioCapture.aggregateDescription(tapUID: "tap" as CFString,
+                                                                  deviceUID: "device")
+        XCTAssertEqual(description[kAudioAggregateDeviceTapAutoStartKey] as? Bool, false)
+        XCTAssertEqual(description[kAudioAggregateDeviceIsPrivateKey] as? Bool, true)
+        let taps = description[kAudioAggregateDeviceTapListKey] as? [[String: Any]]
+        XCTAssertEqual(taps?.count, 1)
+        XCTAssertEqual(taps?.first?[kAudioSubTapUIDKey] as? String, "tap")
+    }
+
     func testPermissionServiceNormalizesDeniedStatus() {
         XCTAssertThrowsError(try LiveSystemAudioPermissionService().startCapture { kAudioDevicePermissionsError }) {
             XCTAssertEqual($0 as? SystemAudioPermissionError, .denied)

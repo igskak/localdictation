@@ -73,13 +73,7 @@ final class SystemAudioCapture {
             size = UInt32(MemoryLayout<CFString>.size)
             address.mSelector = kAudioTapPropertyUID
             try withUnsafeMutablePointer(to: &uid) { try check(AudioObjectGetPropertyData(tap, &address, 0, nil, &size, $0)) }
-            let aggregate: [String: Any] = [
-                kAudioAggregateDeviceNameKey: "Witness Notetaker Tap",
-                kAudioAggregateDeviceUIDKey: UUID().uuidString,
-                kAudioAggregateDeviceIsPrivateKey: true,
-                kAudioAggregateDeviceTapAutoStartKey: true,
-                kAudioAggregateDeviceTapListKey: [[kAudioSubTapUIDKey: uid]]
-            ]
+            let aggregate = Self.aggregateDescription(tapUID: uid, deviceUID: UUID().uuidString)
             try check(AudioHardwareCreateAggregateDevice(aggregate as CFDictionary, &device))
             let buffer = MeetingAudioBuffer(capacity: queueCapacity, maximumFrames: maximumFrames, sampleRate: format.mSampleRate)
             let context = TapCallbackContext(buffer: buffer)
@@ -94,6 +88,17 @@ final class SystemAudioCapture {
             stop()
             throw error
         }
+    }
+
+    static func aggregateDescription(tapUID: CFString, deviceUID: String) -> [String: Any] {
+        [
+            kAudioAggregateDeviceNameKey: "Witness Notetaker Tap",
+            kAudioAggregateDeviceUIDKey: deviceUID,
+            kAudioAggregateDeviceIsPrivateKey: true,
+            // Do not block Start while the selected process is silent or muted.
+            kAudioAggregateDeviceTapAutoStartKey: false,
+            kAudioAggregateDeviceTapListKey: [[kAudioSubTapUIDKey: tapUID]]
+        ]
     }
 
     func pause() throws {

@@ -25,7 +25,8 @@ final class LongFormTranscriberTests: XCTestCase {
         let engine = FakeTranscriptionService()
         engine.setResult(Transcript(text: "hello", tokens: [], profile: .english, detectedLanguage: .english,
                                     audioDuration: 1, processingDuration: 0, engineIdentifier: "fake"))
-        let service = LongFormTranscriber(engine: engine, profile: .english, capacity: 3)
+        let service = LongFormTranscriber(engine: engine, profile: .english, capacity: 3,
+                                          speechClassifier: { _ in true })
         try await service.enqueue(MeetingRecognitionAudio(source: .microphone, startFrame: 0, samples: [1]))
         try await service.enqueue(MeetingRecognitionAudio(source: .microphone, startFrame: 10, samples: [2]))
         try await service.enqueue(MeetingRecognitionAudio(source: .system, startFrame: 1, samples: [3]))
@@ -46,7 +47,8 @@ final class LongFormTranscriberTests: XCTestCase {
     func testModelFailureKeepsWindowAvailableForRecovery() async throws {
         let engine = FakeTranscriptionService()
         engine.setModelState(.unavailable("test", needsUserAction: true))
-        let service = LongFormTranscriber(engine: engine, profile: .english)
+        let service = LongFormTranscriber(engine: engine, profile: .english,
+                                          speechClassifier: { _ in true })
         try await service.enqueue(MeetingRecognitionAudio(source: .system, startFrame: 0, samples: [1]))
         do { _ = try await service.drainOne(); XCTFail("must refuse an unready model") }
         catch { XCTAssertEqual(error as? LongFormTranscriptionError, .modelNotReady) }
@@ -54,7 +56,80 @@ final class LongFormTranscriberTests: XCTestCase {
         XCTAssertEqual(remaining, 1)
     }
 
+    func testMeasuredSilenceSkipsInferenceWithoutLosingTimelineProgress() async throws {
+        let engine = FakeTranscriptionService()
+        let service = LongFormTranscriber(engine: engine, profile: .english)
+        let silence = MeetingRecognitionAudio(source: .system, startFrame: 32_000,
+                                               samples: [Float](repeating: 0, count: 960))
+        try await service.enqueue(silence)
+        let madeProgress = try await service.drainOne()
+        let queued = await service.queuedCount()
+        let rows = await service.assembler.rows
+        XCTAssertTrue(madeProgress)
+        XCTAssertEqual(engine.transcribeCount, 0)
+        XCTAssertEqual(queued, 0)
+        let metrics = await service.metrics
+        XCTAssertEqual(metrics.skippedSilentWindows, 1)
+        XCTAssertEqual(metrics.skippedSilentAudioSeconds, 0.06, accuracy: 0.000_001)
+        XCTAssertTrue(rows.isEmpty)
+    }
+
+    func testQueueDelayAndRealTimeFactorUseInjectedMonotonicClock() async throws {
+        let engine = FakeTranscriptionService()
+        engine.setResult(Transcript(text: "hello", tokens: [], profile: .english, detectedLanguage: .english,
+                                    audioDuration: 1, processingDuration: 0, engineIdentifier: "fake"))
+        let clock = TestMeetingClock(10)
+        let service = LongFormTranscriber(engine: engine, profile: .english,
+                                          speechClassifier: { _ in true }, uptime: { clock.value })
+        try await service.enqueue(MeetingRecognitionAudio(source: .system, startFrame: 0,
+                                                          samples: [Float](repeating: 0.1, count: 16_000)))
+        clock.value = 13
+        let madeProgress = try await service.drainOne()
+        XCTAssertTrue(madeProgress)
+        let metrics = await service.metrics
+        XCTAssertEqual(metrics.maximumQueueDelay, 3)
+        XCTAssertEqual(metrics.inferenceSeconds, 0)
+        XCTAssertEqual(metrics.transcribedAudioSeconds, 1)
+        XCTAssertEqual(metrics.realTimeFactor, 0)
+    }
+
+    func testCancellationRejectsLateResultAndReleasesBoundedAudio() async throws {
+        let engine = FakeTranscriptionService()
+        engine.setResult(Transcript(text: "late", tokens: [], profile: .english, detectedLanguage: .english,
+                                    audioDuration: 1, processingDuration: 0, engineIdentifier: "fake"))
+        let gate = engine.blockNextTranscription()
+        let service = LongFormTranscriber(engine: engine, profile: .english,
+                                          speechClassifier: { _ in true })
+        try await service.enqueue(MeetingRecognitionAudio(source: .system, startFrame: 0, samples: [0.1]))
+        let draining = Task { try await service.drainOne() }
+        while engine.transcribeCount == 0 { await Task.yield() }
+        await service.cancel()
+        gate.open()
+        do {
+            _ = try await draining.value
+            XCTFail("a result from a cancelled generation must not publish")
+        } catch {
+            XCTAssertEqual(error as? LongFormTranscriptionError, .cancelled)
+        }
+        let queued = await service.queuedCount()
+        let rows = await service.assembler.rows
+        let metrics = await service.metrics
+        XCTAssertEqual(queued, 0)
+        XCTAssertTrue(rows.isEmpty)
+        XCTAssertEqual(metrics.lostIntervals, 1)
+    }
+
     private func chunk(start: Int64, values: [Float]) -> MeetingAudioChunk {
         MeetingAudioChunk(source: .microphone, sequence: 0, startFrame: start, sampleRate: 16_000, samples: values, isFinal: false)
+    }
+}
+
+private final class TestMeetingClock: @unchecked Sendable {
+    private let lock = NSLock()
+    private var storedValue: TimeInterval
+    init(_ value: TimeInterval) { storedValue = value }
+    var value: TimeInterval {
+        get { lock.withLock { storedValue } }
+        set { lock.withLock { storedValue = newValue } }
     }
 }
