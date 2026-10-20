@@ -11,6 +11,7 @@ import { normalizeEmail } from "./email.js";
 import { DEVICE_PATTERN, issueToken } from "./token.js";
 import { activationMail } from "./mailer.js";
 import { EVENTS } from "./analytics.js";
+import { keyExpiry, shouldReissue } from "./subscription.js";
 
 /// Ten days, from the moment of activation.
 ///
@@ -80,6 +81,20 @@ export async function activate({
   let license = await store.strongestLicense(email, now);
 
   if (!license) {
+    // Somebody who paid and is no longer covered — a lapsed card, a refund, a
+    // cancellation that ran out — is told that, and is not handed the free
+    // trial a stranger gets. The text is not shown verbatim: the app words this
+    // case itself, so a payer is never told what a trial would have been.
+    if (await store.hasHeldPaidLicense(email)) {
+      return {
+        status: 422,
+        body: {
+          error: "subscription_inactive",
+          message: "This address has no active licence. A subscription that ended, or was refunded, no longer unlocks dictation.",
+        },
+      };
+    }
+
     // A second trial is refused rather than quietly granted, and the refusal
     // names the way forward — a message the app shows verbatim.
     if ((await store.hasHadTrial(email)) || (await store.deviceHasHadTrial(device))) {
@@ -115,11 +130,17 @@ export async function activate({
   let isNewSlot = false;
 
   if (slot) {
-    // A renewal moved the license's date after this key was issued. Same slot,
-    // same key id, new expiry — so the user is not paying a device slot for
-    // their own renewal.
-    if ((slot.expires_at ?? null) !== (license.expires_at ?? null)) {
-      slot = await store.reissueSlot({ licenseID: license.id, device, expiresAt: license.expires_at });
+    // A renewal moved the license's date after this key was issued, or an
+    // annual key is in its last week. Same slot, same key id, new expiry — so
+    // the user is not paying a device slot for their own renewal. A subscription
+    // key is swapped silently by the app, so it is not mailed again.
+    if (shouldReissue(slot.expires_at, license, now)) {
+      slot = await store.reissueSlot({
+        licenseID: license.id,
+        device,
+        expiresAt: keyExpiry(license, now),
+        mail: license.kind !== "annual",
+      });
     }
   } else {
     if ((await store.liveSlotCount(license.id)) >= DEVICE_LIMIT) {
@@ -130,7 +151,7 @@ export async function activate({
       device,
       keyID: uuid(),
       issuedAt: now,
-      expiresAt: license.expires_at,
+      expiresAt: keyExpiry(license, now),
     });
     isNewSlot = true;
   }

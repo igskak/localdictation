@@ -26,18 +26,21 @@ const env = {
   PRICE_ANNUAL: "pri_annual",
   PAYMENT_LINK_LIFETIME: "plink_lifetime",
   PAYMENT_LINK_ANNUAL: "plink_annual",
+  PAYMENT_LINK_INTRO: "plink_intro",
 };
 
 async function harness() {
   const { privateBase64, publicBase64 } = makeKeypair();
   const store = new Store(makeTestDatabase());
   const sent = [];
+  const cancelled = [];
   let counter = 0;
   const signingKey = await importSigningKey(privateBase64);
 
   return {
     store,
     sent,
+    cancelled,
     async verifying() {
       return importVerifyingKey(publicBase64);
     },
@@ -51,6 +54,12 @@ async function harness() {
         mailer: {
           async send(message) {
             sent.push(message);
+            return true;
+          },
+        },
+        billing: {
+          async cancelNow(id) {
+            cancelled.push(id);
             return true;
           },
         },
@@ -371,10 +380,10 @@ test("a subscription renewal a year later extends the licence", async () => {
   assert.equal(second.expires_at, first.expires_at + ANNUAL_SECONDS);
   assert.equal(await h.store.liveSlotCount(first.id), 0);
 
-  // The key on the Mac still carries the old date, so the renewal has to say
-  // how to replace it. This is the mail that keeps a paying subscriber from
-  // being locked out on their renewal day.
-  assert.match(h.sent.at(-1).text, /Send my key/);
+  // The app fetches the new key by itself, so the mail is a receipt that asks
+  // for nothing and says how to stop the next year.
+  assert.match(h.sent.at(-1).text, /nothing to do/i);
+  assert.match(h.sent.at(-1).text, /kuendigen/);
   assert.match(h.sent.at(-1).subject, /renewed/i);
 });
 
@@ -411,7 +420,8 @@ test("a renewed licence hands the same Mac a key with the new date", async () =>
   const after = await h.activate({ now: renewalAt + 60 });
   assert.notEqual(after.body.key, before.body.key);
   const payload = await verifyToken(after.body.key, await h.verifying());
-  assert.equal(payload.expires, NOW + 2 * ANNUAL_SECONDS);
+  // The key is a month long, counted from when it was asked for.
+  assert.equal(payload.expires, renewalAt + 60 + 30 * 86400);
 });
 
 test("the first invoice of a subscription is left to the checkout session", async () => {
@@ -831,3 +841,100 @@ async function hmac(message) {
   const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(message));
   return [...new Uint8Array(signature)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
+
+// MARK: - The introductory offer
+
+const introSession = ({ id = "evt_intro", email = EMAIL } = {}) => ({
+  id,
+  type: "checkout.session.completed",
+  data: {
+    object: {
+      id: "cs_intro",
+      subscription: "sub_intro",
+      invoice: "in_intro",
+      payment_intent: "pi_intro",
+      payment_link: "plink_intro",
+      customer_details: { email },
+    },
+  },
+});
+
+test("the introductory link creates an annual licence paid for fourteen days", async () => {
+  const h = await harness();
+  const result = await h.deliver(introSession(), { provider: stripe });
+  assert.equal(result.body.applied, true);
+
+  const license = await h.store.strongestLicense(EMAIL, NOW);
+  assert.equal(license.kind, "annual");
+  assert.equal(license.expires_at, NOW + 14 * 86400);
+  assert.match(h.sent.at(-1).text, /EUR 49/);
+  assert.match(h.sent.at(-1).text, /Cancelling before that day costs nothing/);
+});
+
+test("the first EUR 49 invoice, on the fifteenth day, pays through the period Stripe states", async () => {
+  const h = await harness();
+  await h.deliver(introSession(), { provider: stripe });
+  const periodEnd = NOW + 14 * 86400 + 365 * 86400;
+
+  const renewal = await h.deliver(
+    {
+      id: "evt_day15",
+      type: "invoice.paid",
+      data: {
+        object: {
+          id: "in_day15",
+          subscription: "sub_intro",
+          billing_reason: "subscription_cycle",
+          lines: { data: [{ period: { start: NOW + 14 * 86400, end: periodEnd } }] },
+        },
+      },
+    },
+    { provider: stripe, now: NOW + 14 * 86400 },
+  );
+
+  assert.equal(renewal.body.applied, true);
+  const license = await h.store.strongestLicense(EMAIL, NOW + 15 * 86400);
+  assert.equal(license.expires_at, periodEnd);
+});
+
+test("a refund cancels the subscription behind the licence as well as killing it", async () => {
+  const h = await harness();
+  await h.deliver(introSession(), { provider: stripe });
+
+  const refund = await h.deliver(
+    {
+      id: "evt_refund",
+      type: "charge.refunded",
+      data: { object: { id: "ch_1", payment_intent: "pi_intro", invoice: "in_intro", amount_refunded: 499, currency: "eur" } },
+    },
+    { provider: stripe },
+  );
+
+  assert.equal(refund.body.applied, true);
+  assert.deepEqual(h.cancelled, ["sub_intro"]);
+  assert.equal(await h.store.strongestLicense(EMAIL, NOW), null);
+});
+
+test("a refund for something this service did not sell cancels nothing", async () => {
+  const h = await harness();
+  await h.deliver(introSession(), { provider: stripe });
+
+  await h.deliver(
+    { id: "evt_other", type: "charge.refunded", data: { object: { id: "ch_other", payment_intent: "pi_other", amount_refunded: 100 } } },
+    { provider: stripe },
+  );
+
+  assert.deepEqual(h.cancelled, []);
+  assert.notEqual(await h.store.strongestLicense(EMAIL, NOW), null);
+});
+
+test("a key issued after the introductory purchase ends a week past the fourteen days", async () => {
+  const h = await harness();
+  await h.deliver(introSession(), { provider: stripe });
+
+  const result = await h.activate({ now: NOW + 3 * 86400 });
+  assert.equal(result.status, 200);
+  const payload = await verifyToken(result.body.key, await h.verifying());
+  assert.equal(payload.kind, "annual");
+  assert.equal(payload.expires, NOW + 21 * 86400);
+});

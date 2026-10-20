@@ -12,6 +12,8 @@
 // the same fields always produce the same token: keeping the fields is keeping
 // the key, without keeping the key.
 
+import { GRACE_SECONDS } from "./subscription.js";
+
 /// Wraps whatever `env.DB` is — a real D1 binding in production, a `node:sqlite`
 /// database behind the same three methods in the tests.
 export class Store {
@@ -26,10 +28,13 @@ export class Store {
   /// dead and is skipped — an already-issued key keeps working, but this is
   /// where "no further issuance" is enforced.
   async strongestLicense(email, now) {
+    // An annual licence is still an entitlement for a week after its paid
+    // date, because Stripe retries a declined card for days and a key must not
+    // stop on the first attempt. A trial gets no such grace.
     const rows = await this.all(
       `SELECT * FROM licenses WHERE email = ? AND status = 'live'
-         AND (expires_at IS NULL OR expires_at > ?)`,
-      [email, now],
+         AND (expires_at IS NULL OR expires_at > ? OR (kind = 'annual' AND expires_at > ?))`,
+      [email, now, now - GRACE_SECONDS],
     );
     const rank = { lifetime: 3, annual: 2, trial: 1 };
     let best = null;
@@ -110,6 +115,31 @@ export class Store {
       if (row) return row;
     }
     return null;
+  }
+
+  /// Has this address ever held a paid licence, live or not? Asked so that a
+  /// lapsed or refunded subscription is told so, rather than being handed the
+  /// free trial a stranger would get.
+  async hasHeldPaidLicense(email) {
+    const row = await this.first(`SELECT id FROM licenses WHERE email = ? AND kind IN ('annual', 'lifetime') LIMIT 1`, [
+      email,
+    ]);
+    return row != null;
+  }
+
+  /// The Stripe subscriptions behind a licence, from the identifiers recorded
+  /// when it was bought. Stripe's subscription ids all start with `sub_`.
+  async subscriptionIDs(licenseID) {
+    const rows = await this.all(
+      `SELECT ref FROM provider_refs WHERE license_id = ? AND ref LIKE 'sub\\_%' ESCAPE '\\'`,
+      [licenseID],
+    );
+    return rows.map((row) => row.ref);
+  }
+
+  /// Live annual licences on an address, for a cancellation asked for by it.
+  async liveAnnualLicenses(email) {
+    return this.all(`SELECT * FROM licenses WHERE email = ? AND kind = 'annual' AND status = 'live'`, [email]);
   }
 
   /// Has this address ever had a trial? Asked of every trial ever issued, live
@@ -206,9 +236,14 @@ export class Store {
   /// A renewal moved the license's date; the slot keeps its key id and issue
   /// date and takes the new expiry, so the user gets a fresh key by mail rather
   /// than a stale one that stops working on the old date.
-  async reissueSlot({ licenseID, device, expiresAt }) {
+  async reissueSlot({ licenseID, device, expiresAt, mail = true }) {
+    // A subscription key is swapped every month by the app itself, and mailing
+    // each one would be twelve mails a year about nothing. `mail: false` leaves
+    // `mailed_at` alone.
     await this.run(
-      `UPDATE device_slots SET expires_at = ?, mailed_at = NULL WHERE license_id = ? AND device = ?`,
+      mail
+        ? `UPDATE device_slots SET expires_at = ?, mailed_at = NULL WHERE license_id = ? AND device = ?`
+        : `UPDATE device_slots SET expires_at = ? WHERE license_id = ? AND device = ?`,
       [expiresAt ?? null, licenseID, device],
     );
     return this.slot(licenseID, device);

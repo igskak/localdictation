@@ -15,6 +15,8 @@ import { handleEvent } from "./webhook.js";
 import { providerFor, signatureHeader } from "./providers.js";
 import { createMailer } from "./mailer.js";
 import { createAnalytics } from "./analytics.js";
+import { createBilling } from "./billing.js";
+import { cancelSubscription } from "./cancel.js";
 
 /// Structured, one line per event, and never an address. The key id is what a
 /// support conversation is conducted in; a log that carries the customer's
@@ -60,6 +62,11 @@ export default {
     if (route === "/v1/events") {
       if (request.method !== "POST") return json(405, { error: "method_not_allowed" });
       return handleEvents(request, env, ctx);
+    }
+
+    if (route === "/v1/subscriptions/cancel") {
+      if (request.method !== "POST") return json(405, { error: "method_not_allowed" });
+      return handleCancel(request, env, ctx);
     }
 
     if (route === "/v1/purchases/webhook") {
@@ -132,6 +139,34 @@ async function handleRelease(request, env, ctx) {
 
   ctx?.waitUntil?.(store.forgetOldCounters(now).catch(() => {}));
 
+  return json(result.status, result.body, result.headers ?? {});
+}
+
+async function handleCancel(request, env, ctx) {
+  const log = makeLog("/v1/subscriptions/cancel");
+  const body = await readJSON(request);
+  if (!body) return json(400, { error: "invalid_request" });
+
+  const store = new Store(env.DB);
+  const now = Math.floor(Date.now() / 1000);
+
+  let result;
+  try {
+    result = await cancelSubscription({
+      body,
+      store,
+      now,
+      clientIP: clientAddress(request),
+      billing: createBilling(env, log),
+      mailer: createMailer(env, log),
+      log,
+    });
+  } catch (error) {
+    log("cancellation route failed", { reason: String(error?.message ?? "error") });
+    return json(500, { error: "internal" });
+  }
+
+  ctx?.waitUntil?.(store.forgetOldCounters(now).catch(() => {}));
   return json(result.status, result.body, result.headers ?? {});
 }
 

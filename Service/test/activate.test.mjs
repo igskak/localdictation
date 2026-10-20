@@ -212,19 +212,36 @@ test("a lifetime license outranks a live trial on the same address", async () =>
   assert.equal((await verifyToken(result.body.key, await h.verifying())).kind, "lifetime");
 });
 
-test("an expired annual is not an entitlement", async () => {
+test("an annual a day past its paid date still gets a key, because Stripe is still retrying the card", async () => {
   const h = await harness();
   await h.store.createLicense({
-    id: "lapsed",
+    id: "late",
     email: "someone@example.com",
     kind: "annual",
     issuedAt: NOW - 400 * 86400,
     expiresAt: NOW - 86400,
   });
 
-  // Nothing live, and this address has never had a trial, so it gets one.
   const result = await h.call();
-  assert.equal((await verifyToken(result.body.key, await h.verifying())).kind, "trial");
+  const payload = await verifyToken(result.body.key, await h.verifying());
+  assert.equal(payload.kind, "annual");
+  // Never past the grace: a week after what was paid for.
+  assert.equal(payload.expires, NOW - 86400 + 7 * 86400);
+});
+
+test("an annual that lapsed beyond the grace is told so, and is not handed the free trial", async () => {
+  const h = await harness();
+  await h.store.createLicense({
+    id: "lapsed",
+    email: "someone@example.com",
+    kind: "annual",
+    issuedAt: NOW - 400 * 86400,
+    expiresAt: NOW - 10 * 86400,
+  });
+
+  const result = await h.call();
+  assert.equal(result.status, 422);
+  assert.equal(result.body.error, "subscription_inactive");
 });
 
 test("a refunded license issues no further paid key, and the key already out keeps working", async () => {
@@ -235,11 +252,12 @@ test("a refunded license issues no further paid key, and the key already out kee
 
   await h.store.killLicense("bought");
 
-  // Nothing paid comes out of this address again. What the caller gets is what
-  // an address with nothing on it gets — a trial, once — which is the same
-  // answer a stranger would have had, and no worse.
+  // Nothing paid comes out of this address again, and it is not handed the
+  // free trial either: somebody who bought and was refunded is told that this
+  // address has no active licence, rather than getting free days for it.
   const after = await h.call({ device: MAC_B });
-  assert.equal((await verifyToken(after.body.key, await h.verifying())).kind, "trial");
+  assert.equal(after.status, 422);
+  assert.equal(after.body.error, "subscription_inactive");
 
   // And the key that is already on the customer's Mac still verifies. That is
   // the bill for an offline check, and Phase 6 paid it knowingly: a revocation
@@ -248,7 +266,21 @@ test("a refunded license issues no further paid key, and the key already out kee
   assert.notEqual(await verifyToken(issued.body.key, await h.verifying()), null);
 });
 
-test("a renewal hands the same Mac a fresh key without spending a second slot", async () => {
+test("an annual key lives thirty days, whatever was paid for", async () => {
+  const h = await harness();
+  await h.store.createLicense({
+    id: "annual",
+    email: "someone@example.com",
+    kind: "annual",
+    issuedAt: NOW,
+    expiresAt: NOW + 365 * 86400,
+  });
+
+  const result = await h.call();
+  assert.equal((await verifyToken(result.body.key, await h.verifying())).expires, NOW + 30 * 86400);
+});
+
+test("asking again before the last week returns the same key, and the last week brings a new one silently", async () => {
   const h = await harness();
   await h.store.createLicense({
     id: "annual",
@@ -259,13 +291,50 @@ test("a renewal hands the same Mac a fresh key without spending a second slot", 
   });
   const first = await h.call();
 
-  await h.store.extendLicense({ id: "annual", kind: "annual", expiresAt: NOW + 730 * 86400 });
-  const second = await h.call({ now: NOW + 10 });
+  const early = await h.call({ now: NOW + 10 * 86400 });
+  assert.equal(early.body.key, first.body.key);
 
-  assert.notEqual(first.body.key, second.body.key);
-  assert.equal((await verifyToken(second.body.key, await h.verifying())).expires, NOW + 730 * 86400);
+  const late = await h.call({ now: NOW + 25 * 86400 });
+  assert.notEqual(late.body.key, first.body.key);
+  assert.equal((await verifyToken(late.body.key, await h.verifying())).expires, NOW + 55 * 86400);
   assert.equal(await h.store.liveSlotCount("annual"), 1);
-  assert.equal(h.sent.length, 2);
+  // One mail, the first. A key the app swaps by itself is not mailed again.
+  assert.equal(h.sent.length, 1);
+});
+
+test("a subscription that was not renewed keeps getting the key it has, which then ends on its date", async () => {
+  const h = await harness();
+  await h.store.createLicense({
+    id: "intro",
+    email: "someone@example.com",
+    kind: "annual",
+    issuedAt: NOW,
+    expiresAt: NOW + 14 * 86400,
+  });
+  const first = await h.call();
+  assert.equal((await verifyToken(first.body.key, await h.verifying())).expires, NOW + 21 * 86400);
+
+  const later = await h.call({ now: NOW + 18 * 86400 });
+  assert.equal(later.body.key, first.body.key);
+});
+
+test("a renewal moves the key past the paid-through date in the same slot", async () => {
+  const h = await harness();
+  await h.store.createLicense({
+    id: "intro",
+    email: "someone@example.com",
+    kind: "annual",
+    issuedAt: NOW,
+    expiresAt: NOW + 14 * 86400,
+  });
+  const first = await h.call();
+
+  await h.store.extendLicense({ id: "intro", kind: "annual", expiresAt: NOW + 379 * 86400 });
+  const second = await h.call({ now: NOW + 15 * 86400 });
+
+  assert.notEqual(second.body.key, first.body.key);
+  assert.equal((await verifyToken(second.body.key, await h.verifying())).expires, NOW + 45 * 86400);
+  assert.equal(await h.store.liveSlotCount("intro"), 1);
 });
 
 // MARK: - Refusals

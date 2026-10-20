@@ -17,8 +17,9 @@
 // provider stops retrying while a human looks.
 
 import { normalizeEmail } from "./email.js";
+import { ANNUAL_SECONDS } from "./subscription.js";
 
-export const ANNUAL_SECONDS = 365 * 86400;
+export { ANNUAL_SECONDS };
 
 /// Constant-time comparison of two hex digests. A byte-at-a-time `===` on a
 /// signature is a timing oracle, and this is the one place in the service where
@@ -167,6 +168,11 @@ export const stripe = {
         lookup: [subscriptionOf(object)],
         refs: [object.id, object.charge, object.payment_intent],
         orderID: subscriptionOf(object) ?? object.id ?? null,
+        // The end of the period this invoice paid for, as Stripe states it. The
+        // licence is paid through exactly that date, so a renewal is not "a
+        // year added to whatever the row said": the row can be wrong about the
+        // past and the invoice cannot.
+        paidThrough: periodEndOf(object),
         // What was paid, for the analytics event and nothing else: no licence
         // decision reads it.
         amount: object.amount_paid ?? null,
@@ -221,6 +227,9 @@ export const stripe = {
       effect: "purchase",
       email,
       kind,
+      // The €4.99 introductory offer: the subscription starts with a fourteen
+      // day trial, so what was paid for runs fourteen days, not a year.
+      intro: isIntro(candidates, env),
       // The payment intent first, because that is what a refund names. A
       // subscription checkout has none, so its own id is next.
       orderID: object.payment_intent ?? object.subscription ?? object.id ?? null,
@@ -268,6 +277,15 @@ function subscriptionOf(invoice) {
   return invoice.subscription ?? invoice.parent?.subscription_details?.subscription ?? null;
 }
 
+/// The end of the period an invoice's first line paid for. A subscription
+/// invoice has one line per period; the largest end wins if there are several.
+function periodEndOf(invoice) {
+  const ends = (invoice.lines?.data ?? [])
+    .map((line) => line?.period?.end)
+    .filter((end) => Number.isSafeInteger(end));
+  return ends.length === 0 ? null : Math.max(...ends);
+}
+
 function identifiers(object) {
   const lineItems = object.line_items?.data ?? object.lines?.data ?? [];
   return [
@@ -287,9 +305,20 @@ function linkIDs(value) {
   return (value ?? "").split(",").map((piece) => piece.trim()).filter(Boolean);
 }
 
+function introIDs(env) {
+  return [env.PRICE_INTRO, ...linkIDs(env.PAYMENT_LINK_INTRO)].filter(Boolean);
+}
+
+function isIntro(candidates, env) {
+  const intro = introIDs(env);
+  return candidates.some((candidate) => candidate && intro.includes(candidate));
+}
+
 function kindFor(candidates, env) {
   const lifetime = [env.PRICE_LIFETIME, ...linkIDs(env.PAYMENT_LINK_LIFETIME)].filter(Boolean);
-  const annual = [env.PRICE_ANNUAL, ...linkIDs(env.PAYMENT_LINK_ANNUAL)].filter(Boolean);
+  // The introductory link sells the same annual subscription, which is what the
+  // buyer holds once the fourteen days are over.
+  const annual = [env.PRICE_ANNUAL, ...linkIDs(env.PAYMENT_LINK_ANNUAL), ...introIDs(env)].filter(Boolean);
   for (const candidate of candidates) {
     if (!candidate) continue;
     if (lifetime.includes(candidate)) return "lifetime";

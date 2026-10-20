@@ -21,6 +21,9 @@ src/
   worker.js     the router, and the health check
   activate.js   POST /v1/activate: the whole of what a person can be told
   release.js    POST /v1/devices/release: the key is the proof
+  cancel.js     POST /v1/subscriptions/cancel: the website's cancellation button
+  billing.js    the two calls made to Stripe: cancel now, cancel at period end
+  subscription.js how long a subscription key lives, and when it is replaced
   webhook.js    POST /v1/purchases/webhook: money becoming an entitlement
   events.js     POST /v1/events: three funnel events, and no address anywhere
   analytics.js  trials, sales, renewals and refunds, and the nine app events, reported to PostHog EU
@@ -125,6 +128,29 @@ npx wrangler secret put MAIL_API_KEY
 npx wrangler secret put WEBHOOK_SECRET
 
 npx wrangler deploy
+```
+
+### Subscriptions
+
+An annual licence is a Stripe subscription. Its key lives **thirty days** and the
+app replaces it in its last week by calling `POST /v1/activate` again, which
+returns the same key until then and a new one after (`src/subscription.js`). The
+licence itself is paid through the end of the period Stripe states on each
+invoice; the key may run a week past that so a declined card being retried does
+not lock anybody out.
+
+The EUR 4.99 introductory offer is a Payment Link with a fourteen day trial on
+the annual price, sold alongside a one-off EUR 4.99 price. Set
+`PAYMENT_LINK_INTRO` in `wrangler.toml` to its id. A purchase through it is paid
+for fourteen days; the first EUR 49 invoice moves the licence a year on.
+
+A refund or a dispute cancels the subscription as well as killing the licence,
+and `POST /v1/subscriptions/cancel` stops renewal for the website's cancellation
+button. Both need a **restricted** Stripe key with Subscriptions write and
+nothing else:
+
+```bash
+tools/set-secret.sh STRIPE_API_KEY
 ```
 
 ### Changing a table that already exists

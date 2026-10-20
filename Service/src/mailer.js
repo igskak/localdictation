@@ -118,13 +118,22 @@ export function activationMail({ key, kind, expiresAt }) {
 /// So the mail says what the app asks and what follows if it was never asked —
 /// which is true in both cases, rather than confirming something nobody here
 /// knows happened.
-export function purchaseMail({ kind, expiresAt }) {
+export function purchaseMail({ kind, expiresAt, intro = false }) {
   const term = kind === "lifetime" ? "a lifetime license" : `an annual license until ${formatDate(expiresAt)}`;
 
   return {
     subject: "Your Witness license — one step to finish",
     text: [
-      `Thank you. This address now holds ${term}.`,
+      intro
+        ? `Thank you. This address is covered until ${formatDate(expiresAt)}, and then a year for EUR 49 follows unless you cancel before then.`
+        : `Thank you. This address now holds ${term}.`,
+      ...(intro
+        ? [
+            "",
+            "Cancelling before that day costs nothing: you pay the EUR 4.99 and no more.",
+            `Cancel any time, at https://witnessmac.com/kuendigen or from Witness, Settings, License.`,
+          ]
+        : []),
       "",
       "A key names one Mac, and a browser cannot know which. So the last step",
       "happens in the app:",
@@ -157,32 +166,51 @@ export function purchaseMail({ kind, expiresAt }) {
   };
 }
 
-/// What a renewal gets, and the reason it is not silent.
+/// What a renewal gets.
 ///
-/// A key carries the date it was issued against, so the key on a subscriber's
-/// Mac still expires on the old date even though the licence no longer does.
-/// One press of Send my key replaces it. The app warns two weeks ahead as well,
-/// but the person who set this up a year ago is not reading the menu.
+/// Since the thirty-day keys, Witness fetches the new key by itself, so the mail
+/// asks for nothing. It is still sent: it is the receipt that the year began and
+/// the place a person finds how to stop the next one.
 export function renewalMail({ expiresAt }) {
   return {
-    subject: "Witness renewed — refresh the key on your Macs",
+    subject: "Witness renewed",
     text: [
-      `Your licence is renewed until ${formatDate(expiresAt)}. Nothing was charged twice and`,
-      "nothing needs cancelling.",
+      `Your subscription is renewed until ${formatDate(expiresAt)}.`,
       "",
-      "One step, on each Mac you use it on:",
+      "There is nothing to do. Witness picks up its new key by itself the next",
+      "time it is open with an internet connection.",
       "",
-      "  1. Open Witness.",
-      "  2. Settings, then License.",
-      "  3. Type this address and press 'Send my key'.",
+      "You can cancel any time, and the paid time stays yours:",
       "",
-      "That replaces the key on the Mac with one that runs to the new date. A key",
-      "is checked on your Mac and not against us, which is why it has a date in it",
-      "at all -- and why this step exists.",
+      "  https://witnessmac.com/kuendigen",
       "",
       "This is a transactional message about a subscription you hold.",
     ].join("\n"),
   };
+}
+
+/// What somebody who asked to cancel on the website is sent, at once. §312k BGB
+/// wants the confirmation in text form with the date and time, and says when
+/// the contract ends.
+export function cancellationMail({ endsAt, at }) {
+  return {
+    subject: "Witness: your cancellation was received",
+    text: [
+      `We received your cancellation on ${formatDateTime(at)}.`,
+      "",
+      `Your subscription does not renew. Witness keeps working until ${formatDate(endsAt)}, the end of the period you paid for.`,
+      "",
+      "Changed your mind? Until that date you can resume the subscription from",
+      "Witness, Settings, License, Manage subscription.",
+      "",
+      "This is a transactional message about a subscription you hold.",
+    ].join("\n"),
+  };
+}
+
+function formatDateTime(seconds) {
+  if (!Number.isFinite(seconds)) return "this date";
+  return `${new Date(seconds * 1000).toISOString().slice(0, 16).replace("T", " ")} UTC`;
 }
 
 function formatDate(seconds) {

@@ -8,7 +8,8 @@
 // A key cannot be issued here. A browser does not know which Mac it is buying
 // for, and the payload of a key names one.
 
-import { ANNUAL_SECONDS } from "./providers.js";
+import { ANNUAL_SECONDS, INTRO_SECONDS } from "./subscription.js";
+import { createBilling } from "./billing.js";
 import { purchaseMail, renewalMail } from "./mailer.js";
 import { EVENTS, money, promoLabel } from "./analytics.js";
 
@@ -20,6 +21,7 @@ export async function handleEvent({
   now,
   mailer,
   log,
+  billing = createBilling(env, log),
   analytics = { capture() {} },
   uuid = () => crypto.randomUUID(),
 }) {
@@ -94,7 +96,9 @@ export async function handleEvent({
     // Dead for *future* issuance only. A key already on somebody's Mac keeps
     // working: Phase 6 chose an offline check with its eyes open, and a
     // revocation call in the app would trade the product's central promise for
-    // a rounding error in fraud.
+    // a rounding error in fraud. What makes that bounded is `subscription.js`:
+    // a subscription key lives thirty days, so a refund stops dictation within
+    // a month, and within three weeks if it was the €4.99 introductory payment.
     //
     // Found only by an identifier this service recorded when the licence was
     // bought. Not by the customer's address: one payment account can sell more
@@ -106,6 +110,16 @@ export async function handleEvent({
     if (license) {
       await store.killLicense(license.id);
       log("license marked dead", { license: license.id });
+      // The refund does not cancel the subscription behind it. Without this, a
+      // buyer who got the €4.99 back is charged €49 on the fifteenth day.
+      for (const subscription of await store.subscriptionIDs(license.id)) {
+        try {
+          const cancelled = await billing.cancelNow(subscription);
+          log("subscription cancelled after a refund", { license: license.id, cancelled });
+        } catch (error) {
+          log("subscription cancel failed", { license: license.id, reason: String(error?.name ?? "error") });
+        }
+      }
       // Negative, so that summing revenue over every event is net takings.
       const refunded = money(parsed.amount, parsed.currency);
       analytics.capture(
@@ -137,7 +151,10 @@ export async function handleEvent({
       log("renewal for a subscription this service does not have", { provider: provider.name });
       return { status: 200, body: { received: true, applied: false } };
     }
-    const expiresAt = Math.max(renewed.expires_at ?? now, now) + ANNUAL_SECONDS;
+    // The invoice states what period it paid for; that is the paid-through date.
+    // Only when it does not is a year added to whichever is later, the old date
+    // or now.
+    const expiresAt = parsed.paidThrough ?? Math.max(renewed.expires_at ?? now, now) + ANNUAL_SECONDS;
     const license = await store.extendLicense({
       id: renewed.id,
       kind: renewed.kind === "lifetime" ? "lifetime" : "annual",
@@ -177,7 +194,9 @@ export async function handleEvent({
     license = await store.extendLicense({
       id: existing.id,
       kind: lifetime ? "lifetime" : "annual",
-      expiresAt: lifetime ? null : Math.max(existing.expires_at ?? now, now) + ANNUAL_SECONDS,
+      expiresAt: lifetime
+        ? null
+        : Math.max(existing.expires_at ?? now, now) + (parsed.intro ? INTRO_SECONDS : ANNUAL_SECONDS),
       providerOrderID: parsed.orderID,
     });
   } else {
@@ -189,7 +208,9 @@ export async function handleEvent({
       email: parsed.email,
       kind: parsed.kind,
       issuedAt: now,
-      expiresAt: parsed.kind === "lifetime" ? null : now + ANNUAL_SECONDS,
+      // The introductory offer is paid through its fourteen days; the first
+      // €49 invoice, on the fifteenth, moves the date a year on.
+      expiresAt: parsed.kind === "lifetime" ? null : now + (parsed.intro ? INTRO_SECONDS : ANNUAL_SECONDS),
       providerOrderID: parsed.orderID,
     });
   }
@@ -217,7 +238,7 @@ export async function handleEvent({
   );
 
   try {
-    await mailer.send({ to: parsed.email, ...purchaseMail({ kind: license.kind, expiresAt: license.expires_at }) });
+    await mailer.send({ to: parsed.email, ...purchaseMail({ kind: license.kind, expiresAt: license.expires_at, intro: parsed.intro === true }) });
   } catch (error) {
     // The entitlement is recorded, which is the part that must not be lost. The
     // buyer can still activate from inside the app without ever reading a mail.
