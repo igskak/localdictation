@@ -38,8 +38,8 @@ returns the paid key instead of a trial.
   möglich" and no buy button, and `/buy?plan=intro` sends the reader back to
   `/start`. Nothing can be bought until `introPaymentLink` in
   `website/app/_data/partnerOffers.ts` is set.
-- **`customerPortalLink` is `null`.** `/manage` then falls back to the
-  cancellation form.
+- **The customer portal link is set** (activated 20.10.2026 on the shared default
+  configuration); `/manage` redirects to it once the website PR is deployed.
 - **`STRIPE_API_KEY` is not set.** Refunds still kill the licence; they do not
   cancel the subscription, and the cancellation form does nothing.
 
@@ -65,7 +65,7 @@ returns the paid key instead of a trial.
    kündigst.* Copy the link's `plink_…` id and its `buy.stripe.com` URL.
 2. **Stripe, reminders:** Settings → Billing → Subscriptions and emails → send a
    reminder before a trial ends and before renewal, and keep Smart Retries on.
-3. **Stripe, customer portal:** Settings → Billing → Customer portal → *Activate
+3. **Stripe, customer portal (done 20.10.2026, link in `partnerOffers.ts`):** Settings → Billing → Customer portal → *Activate
    link*. The portal's *default* configuration is shared with the Steliara
    products on this account; check it before relying on it, and use a separate
    configuration if Steliara's rules (plan switching, quantity) should not apply.
@@ -81,8 +81,8 @@ returns the paid key instead of a trial.
 7. **App:** release 0.6.21 (`docs/PHASE_6_RELEASE.md`). It must be the latest
    release before the first sale: an older build does not refresh its key and a
    buyer on it is locked out after about a month.
-8. **Website:** set `introPaymentLink` and `customerPortalLink` in
-   `partnerOffers.ts`, merge the PR, deploy.
+8. **Website:** set `introPaymentLink` in `partnerOffers.ts`, merge the PR,
+   deploy.
 9. **Test in production with a real card:** buy the €4,99, install on a clean
    Mac, wait out the three days (or move the Mac's clock), enter the address, see
    "Annual subscription". Then refund it in Stripe and check that the licence is
