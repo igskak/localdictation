@@ -34,10 +34,10 @@ returns the paid key instead of a trial.
 
 ## Still switched off, on purpose
 
-- **No Payment Link for the intro offer.** `/start` shows "Der Kauf ist in Kürze
-  möglich" and no buy button, and `/buy?plan=intro` sends the reader back to
-  `/start`. Nothing can be bought until `introPaymentLink` in
-  `website/app/_data/partnerOffers.ts` is set.
+- **The website is not deployed.** The Payment Link exists and is wired into the
+  PR, but `witnessmac.com/start` does not exist until the PR is merged and
+  deployed. The link itself already works: anybody who has its address can buy
+  through it.
 - **The customer portal link is set** (activated 20.10.2026 on the shared default
   configuration); `/manage` redirects to it once the website PR is deployed.
 - **`STRIPE_API_KEY` is not set.** Refunds still kill the licence; they do not
@@ -49,9 +49,15 @@ returns the paid key instead of a trial.
   `price_1USjZyHOSgmME2jEEvvpRVN5`**, description "Einführung 14 Tage", lookup
   key `witness_intro_14_days`. It is in `Service/wrangler.toml` as `PRICE_INTRO`.
 - The annual price is the existing `price_1UBsuZHOSgmME2jEqlNKU0Sn`.
-- Creating the Payment Link was **refused by the permission classifier** at the
-  "Include a free trial" box, so the link does not exist. The form was left
-  unsaved in the dashboard tab.
+- **Payment Link `plink_1USkPxHOSgmME2jERfCcYoSq`**, `https://buy.stripe.com/5kQaEXeMY7NIdEMbAmds405`:
+  the €49/year price and the €4,99 price, a 14-day trial, Managed Payments off,
+  tax collected automatically, no promotion codes, confirmation page redirects to
+  `https://witnessmac.com/start/danke`. The checkout reads "Try Witness €4,99,
+  then €49,00 per year" and the button "Pay and start trial". The merchant name
+  shown is "Steliara", as on the account's other links. (The first attempt at the
+  trial box was refused by the permission classifier; it went through after the
+  explicit request in chat.)
+- **Customer portal** login link activated: `billing.stripe.com/p/login/cNi28rgV6c3Y1W45bYds400`.
 
 ## Order to switch it on
 
@@ -77,12 +83,12 @@ returns the paid key instead of a trial.
    `cd Service && tools/set-secret.sh STRIPE_API_KEY`.
 6. **Service:** put the link id into `Service/wrangler.toml` as
    `PAYMENT_LINK_INTRO = "plink_…"`, `cd Service && npm test`, `npx wrangler
-   deploy`, and check `/v1/health`.
+   deploy`, and check `/v1/health`. `PAYMENT_LINK_INTRO` is already in
+   `wrangler.toml`.
 7. **App:** release 0.6.21 (`docs/PHASE_6_RELEASE.md`). It must be the latest
    release before the first sale: an older build does not refresh its key and a
    buyer on it is locked out after about a month.
-8. **Website:** set `introPaymentLink` in `partnerOffers.ts`, merge the PR,
-   deploy.
+8. **Website:** merge the PR and deploy (both links are already in it).
 9. **Test in production with a real card:** buy the €4,99, install on a clean
    Mac, wait out the three days (or move the Mac's clock), enter the address, see
    "Annual subscription". Then refund it in Stripe and check that the licence is

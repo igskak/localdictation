@@ -79,14 +79,14 @@ PRICE_ANNUAL = "price_1UBsuZHOSgmME2jEqlNKU0Sn"
 # The EUR 4.99 introductory price (20.10.2026): the first fourteen days of the
 # annual subscription, sold by its own Payment Link. A purchase through
 # `PAYMENT_LINK_INTRO` creates an annual licence paid for fourteen days; the
-# first EUR 49 invoice then moves it a year on. Set PAYMENT_LINK_INTRO with the
-# link's `plink_` id once the link exists; until then nothing can be bought.
+# first EUR 49 invoice then moves it a year on. The link was created 20.10.2026: the
+# annual price and PRICE_INTRO together, a 14-day trial, no promotion codes.
 #
 # `STRIPE_API_KEY` is a Workers secret, a *restricted* key with Subscriptions
 # write and nothing else. Without it a refund still kills the licence but the
 # subscription is not cancelled, and the cancellation form does nothing.
 PRICE_INTRO = "price_1USjZyHOSgmME2jEEvvpRVN5"
-# PAYMENT_LINK_INTRO = "plink_..."
+PAYMENT_LINK_INTRO = "plink_1USkPxHOSgmME2jERfCcYoSq"
 
 # PostHog, EU cloud, project 271280 — the same project the website reports to,
 # so trials and sales land on the dashboard next to visits and downloads.
