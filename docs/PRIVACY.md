@@ -128,14 +128,15 @@ fields to send and neither can carry it.
 
 `Service/src/analytics.js`
 
-The service reports four facts about the business to **PostHog**, in PostHog's
+The service reports six facts about the business to **PostHog**, in PostHog's
 **EU** region, the same project that measures the website: a trial was issued, a
-licence was bought, a licence renewed, a licence was refunded. That is what puts
-trials and sales on one dashboard next to the site's visits and downloads.
+licence was bought, a paid licence reached its first Mac, a licence renewed, a
+licence was refunded, a subscription was cancelled on the website. That is what
+puts trials and sales on one dashboard next to the site's visits and downloads.
 
 Each event carries the licence's own random identifier, the kind of licence, the
-payment provider's name, whether a purchase was an upgrade, and — for money — the
-amount and currency paid. A purchase made with a discount also carries one word
+payment provider's name, whether a purchase was an upgrade or the introductory
+offer, and — for money — the amount and currency paid. A purchase made with a discount also carries one word
 saying which of our promotion codes it was (for example a partner's code), or
 `other` when the discount is one we have no name for. That word comes from a
 short list we keep ourselves, never from what the buyer typed, so a code only

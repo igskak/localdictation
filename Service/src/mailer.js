@@ -125,7 +125,8 @@ export function purchaseMail({ kind, expiresAt, intro = false }) {
 /// What somebody gets who paid EUR 4.99 on `/start`.
 ///
 /// German first and English under it, because the page is sold in both and the
-/// buyer's language is not in the payment. It is built around the one thing that
+/// buyer's language is not in the payment. It says the buyer has the statutory
+/// fourteen days of withdrawal: the order page no longer asks them to give it up. It is built around the one thing that
 /// goes wrong for these buyers: the app does not know they paid for the first
 /// three days, and on day three it asks for an address. An address other than the
 /// one they paid with gets them a free trial instead of their subscription, and
@@ -160,10 +161,10 @@ function introPurchaseMail({ expiresAt }) {
       "Kündigen: https://witnessmac.com/kuendigen",
       "Zahlung und Rechnungen verwalten: https://witnessmac.com/manage",
       "",
-      "Dein Widerrufsrecht: Auf der Bestellseite hast du ausdrücklich verlangt, dass die",
-      "Lieferung sofort beginnt, und bestätigt, dass du dadurch dein Widerrufsrecht verlierst:",
-      "„Ich verlange ausdrücklich die sofortige Ausführung des Vertrags und bestätige, dass ich",
-      "dadurch mein Widerrufsrecht verliere.“ Diese Mail ist die Bestätigung dieser Erklärung.",
+      "Dein Widerrufsrecht: Du kannst diesen Vertrag innerhalb von 14 Tagen ab dem Kauf ohne",
+      "Angabe von Gründen widerrufen, auch wenn du Witness schon benutzt hast. Eine E-Mail an",
+      "hallo@witnessmac.com mit der Adresse, unter der du gekauft hast, genügt; du bekommst das",
+      "Geld zurück, und die Lizenz endet.",
       "Widerrufsbelehrung: https://witnessmac.com/widerruf",
       "",
       "",
@@ -188,10 +189,10 @@ function introPurchaseMail({ expiresAt }) {
       "Cancel: https://witnessmac.com/en/cancel-subscription",
       "Manage payment and invoices: https://witnessmac.com/manage",
       "",
-      "Your right of withdrawal: on the order page you expressly asked for delivery to begin at once",
-      "and acknowledged that you lose the right of withdrawal as a result: “Ich verlange ausdrücklich",
-      "die sofortige Ausführung des Vertrags und bestätige, dass ich dadurch mein Widerrufsrecht",
-      "verliere.” This mail is the confirmation of that declaration.",
+      "Your right of withdrawal: you can withdraw from this contract within 14 days of the purchase,",
+      "without giving a reason, even if you have already used Witness. An email to",
+      "hallo@witnessmac.com naming the address you bought with is enough; you get the money back and",
+      "the licence ends.",
       "Withdrawal instruction: https://witnessmac.com/en/cancellation",
       "",
       "This is a transactional message about a purchase you made.",

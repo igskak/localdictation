@@ -875,6 +875,10 @@ test("the introductory link creates an annual licence paid for fourteen days", a
   assert.match(mail, /https:\/\/witnessmac\.com\/en\/cancel-subscription/);
   assert.match(mail, /€49/);
   assert.match(mail, /EUR 49/);
+  // The order page asks for no waiver, so the mail must not claim one.
+  assert.match(mail, /innerhalb von 14 Tagen ab dem Kauf ohne\s+Angabe von Gründen widerrufen/);
+  assert.match(mail, /within 14 days of the purchase,\s+without giving a reason/);
+  assert.doesNotMatch(mail, /Widerrufsrecht verliere|lose the right of withdrawal/);
   // The big line comes before everything else a buyer could skip to.
   assert.ok(mail.indexOf("WICHTIG") < mail.indexOf("Download:"));
 });

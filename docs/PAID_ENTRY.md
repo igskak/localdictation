@@ -3,6 +3,12 @@
 Written 20.10.2026. The decision is `docs/PHASE_8_DECISIONS.md` D8; this file is
 what exists, what is still switched off, and the order to switch it on.
 
+> **21.10.2026: the withdrawal declaration box on `/start` was removed.** It put
+> people off. Purchases made there carry the full statutory fourteen days of
+> withdrawal (the intro period is the same length), the purchase mail and the
+> withdrawal instruction say so, and a refund kills the licence and cancels the
+> subscription as before. The app's own checkout box is unchanged.
+
 ## What is being tested
 
 Whether an ad visitor who is asked to pay first converts better than one who is
