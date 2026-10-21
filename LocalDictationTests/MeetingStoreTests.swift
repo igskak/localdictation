@@ -101,6 +101,80 @@ final class MeetingStoreTests: XCTestCase {
         XCTAssertEqual(loadedTranscript, [record])
     }
 
+    func testLegacyTranscriptDefaultsOriginalSpeakerEvidence() async throws {
+        let store = FileMeetingStore(rootURL: root)
+        let manifest = makeManifest()
+        try await store.createMeeting(manifest)
+        let record = makeRecord(source: .system, text: "legacy", start: 0)
+        var json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(record)) as? [String: Any])
+        for key in [
+            "originalSpeakerID", "speakerConfidence", "speakerAssignmentSource",
+            "originalSpeakerConfidence", "originalSpeakerAssignmentSource", "wordAttributions"
+        ] { json.removeValue(forKey: key) }
+        var line = try JSONSerialization.data(withJSONObject: json)
+        line.append(0x0A)
+        try line.write(to: transcriptURL(manifest.id), options: .atomic)
+
+        let records = try await store.loadTranscript(meetingID: manifest.id)
+        let loaded = try XCTUnwrap(records.first)
+        XCTAssertEqual(loaded.speakerID, "others")
+        XCTAssertEqual(loaded.originalSpeakerID, "others")
+        XCTAssertEqual(loaded.speakerAssignmentSource, .sourceFallback)
+        XCTAssertTrue(loaded.wordAttributions.isEmpty)
+    }
+
+    func testSpeakerReassignmentIsAtomicAndRestoresOriginalAttribution() async throws {
+        let store = FileMeetingStore(rootURL: root)
+        var manifest = makeManifest()
+        manifest.speakerDisplayNames["speaker-1"] = "Alex"
+        try await store.createMeeting(manifest)
+        let record = makeRecord(source: .system, text: "decision", start: 0)
+        try await store.appendTranscript(record, meetingID: manifest.id)
+
+        try await store.reassignTranscript(record.id, meetingID: manifest.id, speakerID: "speaker-1")
+        var records = try await store.loadTranscript(meetingID: manifest.id)
+        var loaded = try XCTUnwrap(records.first)
+        XCTAssertEqual(loaded.speakerID, "speaker-1")
+        XCTAssertEqual(loaded.originalSpeakerID, "others")
+        XCTAssertEqual(loaded.speakerAssignmentSource, .manual)
+        XCTAssertTrue(loaded.isManuallyReassigned)
+        let export = try await store.export(meetingID: manifest.id, format: .plainText)
+        XCTAssertTrue(export.contains("Alex: decision"))
+
+        try await store.reassignTranscript(record.id, meetingID: manifest.id, speakerID: nil)
+        records = try await store.loadTranscript(meetingID: manifest.id)
+        loaded = try XCTUnwrap(records.first)
+        XCTAssertEqual(loaded.speakerID, "others")
+        XCTAssertEqual(loaded.speakerAssignmentSource, .sourceFallback)
+        XCTAssertFalse(loaded.isManuallyReassigned)
+    }
+
+    func testSelectingCurrentSpeakerDoesNotReplaceOriginalAttributionSource() {
+        let record = makeRecord(source: .system, text: "same speaker", start: 0)
+
+        let unchanged = record.assigningSpeaker("others")
+
+        XCTAssertEqual(unchanged, record)
+        XCTAssertEqual(unchanged.speakerAssignmentSource, .sourceFallback)
+    }
+
+    func testFailedSpeakerReassignmentPreservesTranscript() async throws {
+        let writer = AtomicWriteGate(failAtWrite: 3)
+        let store = FileMeetingStore(rootURL: root, atomicWriter: writer.write)
+        let manifest = makeManifest()
+        try await store.createMeeting(manifest) // manifest + notes are writes one and two
+        let record = makeRecord(source: .system, text: "keep original", start: 0)
+        try await store.appendTranscript(record, meetingID: manifest.id)
+
+        await XCTAssertThrowsErrorAsync(
+            try await store.reassignTranscript(record.id, meetingID: manifest.id, speakerID: "speaker-1")
+        ) { error in
+            XCTAssertEqual(error as? MeetingStoreError, .unwritable("rewriteTranscript"))
+        }
+        let loaded = try await store.loadTranscript(meetingID: manifest.id)
+        XCTAssertEqual(loaded, [record])
+    }
+
     func testFutureSchemaIsRejected() async throws {
         let store = FileMeetingStore(rootURL: root)
         let manifest = makeManifest()
@@ -238,6 +312,15 @@ final class MeetingStoreTests: XCTestCase {
         await model.saveNotes()
         let savedNotes = try await store.loadNotes(meetingID: manifest.id)
         XCTAssertEqual(savedNotes.text, "Review the uncertain passage.")
+
+        model.speakerNameDrafts["speaker-1"] = "Sam"
+        await model.saveSpeakerNames()
+        await model.assignSpeaker(recordID: try XCTUnwrap(model.detail?.transcript.first?.id), speakerID: "speaker-1")
+        XCTAssertEqual(model.detail?.manifest.speakerDisplayNames["speaker-1"], "Sam")
+        XCTAssertEqual(model.detail?.transcript.first?.speakerID, "speaker-1")
+        XCTAssertEqual(model.detail?.transcript.first?.originalSpeakerID, "others")
+        await model.assignSpeaker(recordID: try XCTUnwrap(model.detail?.transcript.first?.id), speakerID: nil)
+        XCTAssertEqual(model.detail?.transcript.first?.speakerID, "others")
 
         let exported = await model.export(.markdown)
         XCTAssertEqual(exported?.suggestedName, "Renamed local test.md")

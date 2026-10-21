@@ -89,9 +89,12 @@ Each note has its own owner-only directory under
 `manifest.json`, an append-only `transcript.ndjson`, and `notes.json`. The
 manifest holds the title, meeting identifier, start and end time, selected
 languages, source kind, completion state, and speaker display labels. Transcript
-lines hold the recognized text, timestamp, `You`/`Others` source attribution,
-and recognition confidence/risk evidence. These files contain no raw audio,
-meeting URL, imported participant list, or recording of any kind.
+lines hold the recognized text, timestamp, current and original speaker
+attribution, optional local attribution confidence, manual-edit state, and
+recognition confidence/risk evidence. These files contain no raw audio,
+meeting URL, imported participant list, or recording of any kind. Renaming or
+reassigning a speaker is local to that meeting and can be reset to the original
+attribution.
 
 Meeting files remain on this Mac until you permanently delete that meeting.
 Deletion removes the whole per-meeting directory, including manifest,

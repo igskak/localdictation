@@ -36,6 +36,7 @@ final class MeetingLibraryModel: ObservableObject {
     @Published var searchText = ""
     @Published var titleDraft = ""
     @Published var notesDraft = ""
+    @Published var speakerNameDrafts: [String: String] = [:]
     @Published private(set) var feedbackMessage: String?
     let loadsOnAppear: Bool
 
@@ -62,6 +63,7 @@ final class MeetingLibraryModel: ObservableObject {
         detailPhase = detail == nil ? .noSelection : .content
         titleDraft = detail?.manifest.title ?? ""
         notesDraft = detail?.notes.text ?? ""
+        speakerNameDrafts = Self.editableSpeakerNames(for: detail)
     }
 
     func refresh(selecting preferredID: UUID? = nil) async {
@@ -115,6 +117,7 @@ final class MeetingLibraryModel: ObservableObject {
             detail = loaded
             titleDraft = loaded.manifest.title
             notesDraft = loaded.notes.text
+            speakerNameDrafts = Self.editableSpeakerNames(for: loaded)
             detailPhase = .content
         } catch {
             guard detailGeneration == generation, selectedID == id else { return }
@@ -148,6 +151,46 @@ final class MeetingLibraryModel: ObservableObject {
             try await store.saveNotes(notes, meetingID: id)
             detail?.notes = notes
             feedbackMessage = "Notes saved locally."
+        } catch {
+            feedbackMessage = Self.message(for: error)
+        }
+    }
+
+    func saveSpeakerNames() async {
+        guard var manifest = detail?.manifest else { return }
+        var names = manifest.speakerDisplayNames
+        for speakerID in Self.editableSpeakerIDs {
+            let value = speakerNameDrafts[speakerID, default: Self.defaultSpeakerName(speakerID)]
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !value.isEmpty else {
+                feedbackMessage = "Speaker labels cannot be empty."
+                return
+            }
+            names[speakerID] = value
+        }
+        guard names != manifest.speakerDisplayNames else { return }
+        manifest.speakerDisplayNames = names
+        do {
+            try await store.updateManifest(manifest)
+            detail?.manifest = manifest
+            if let index = meetings.firstIndex(where: { $0.id == manifest.id }) { meetings[index] = manifest }
+            feedbackMessage = "Speaker labels saved locally."
+        } catch {
+            feedbackMessage = Self.message(for: error)
+        }
+    }
+
+    func resetSpeakerNames() {
+        speakerNameDrafts = Dictionary(uniqueKeysWithValues: Self.editableSpeakerIDs.map { ($0, Self.defaultSpeakerName($0)) })
+    }
+
+    func assignSpeaker(recordID: UUID, speakerID: String?) async {
+        guard let meetingID = selectedID else { return }
+        do {
+            try await store.reassignTranscript(recordID, meetingID: meetingID, speakerID: speakerID)
+            let transcript = try await store.loadTranscript(meetingID: meetingID)
+            detail?.transcript = transcript
+            feedbackMessage = speakerID == nil ? "Original speaker attribution restored." : "Speaker assignment saved locally."
         } catch {
             feedbackMessage = Self.message(for: error)
         }
@@ -197,6 +240,7 @@ final class MeetingLibraryModel: ObservableObject {
         detail = nil
         titleDraft = ""
         notesDraft = ""
+        speakerNameDrafts = [:]
         detailPhase = .noSelection
     }
 
@@ -205,6 +249,25 @@ final class MeetingLibraryModel: ObservableObject {
         let parts = value.components(separatedBy: disallowed).filter { !$0.isEmpty }
         let value = parts.joined(separator: "-").trimmingCharacters(in: .whitespacesAndNewlines)
         return value.isEmpty ? "Meeting note" : value
+    }
+
+    static let editableSpeakerIDs = ["you", "others", "speaker-1", "speaker-2", "speaker-3"]
+
+    static func defaultSpeakerName(_ speakerID: String) -> String {
+        switch speakerID {
+        case "you": "You"
+        case "others": "Others"
+        case "speaker-1": "Speaker 1"
+        case "speaker-2": "Speaker 2"
+        case "speaker-3": "Speaker 3"
+        default: speakerID
+        }
+    }
+
+    private static func editableSpeakerNames(for detail: MeetingLibraryDetail?) -> [String: String] {
+        Dictionary(uniqueKeysWithValues: editableSpeakerIDs.map { speakerID in
+            (speakerID, detail?.manifest.speakerDisplayNames[speakerID] ?? defaultSpeakerName(speakerID))
+        })
     }
 
     private static func message(for error: Error) -> String {
@@ -459,19 +522,76 @@ struct MeetingLibraryView: View {
     }
 
     private func transcript(_ detail: MeetingLibraryDetail) -> some View {
-        ScrollView {
-            if detail.transcript.isEmpty {
-                stateView("No transcript was saved", detail: "The meeting may have ended before speech was captured.", symbol: "text.bubble") { EmptyView() }
-                    .frame(minHeight: 360)
-            } else {
-                LazyVStack(alignment: .leading, spacing: 12) {
-                    ForEach(detail.transcript) { row in
-                        MeetingTranscriptRecordView(row: row, speaker: detail.manifest.speakerDisplayNames[row.speakerID] ?? row.speakerID)
+        VStack(spacing: 0) {
+            speakerEditor(detail)
+            Divider().overlay(WitnessStyle.line)
+            ScrollView {
+                if detail.transcript.isEmpty {
+                    stateView("No transcript was saved", detail: "The meeting may have ended before speech was captured.", symbol: "text.bubble") { EmptyView() }
+                        .frame(minHeight: 360)
+                } else {
+                    LazyVStack(alignment: .leading, spacing: 12) {
+                        ForEach(detail.transcript) { row in
+                            MeetingTranscriptRecordView(
+                                row: row,
+                                speaker: detail.manifest.speakerDisplayNames[row.speakerID] ?? MeetingLibraryModel.defaultSpeakerName(row.speakerID),
+                                choices: MeetingLibraryModel.editableSpeakerIDs.map { speakerID in
+                                    MeetingSpeakerChoice(
+                                        id: speakerID,
+                                        name: detail.manifest.speakerDisplayNames[speakerID] ?? MeetingLibraryModel.defaultSpeakerName(speakerID)
+                                    )
+                                },
+                                originalSpeaker: detail.manifest.speakerDisplayNames[row.originalSpeakerID] ?? MeetingLibraryModel.defaultSpeakerName(row.originalSpeakerID),
+                                assign: { speakerID in Task { await model.assignSpeaker(recordID: row.id, speakerID: speakerID) } },
+                                restore: { Task { await model.assignSpeaker(recordID: row.id, speakerID: nil) } }
+                            )
+                        }
                     }
+                    .padding(20)
                 }
-                .padding(20)
             }
         }
+    }
+
+    private func speakerEditor(_ detail: MeetingLibraryDetail) -> some View {
+        DisclosureGroup {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Automatic numbered speakers remain off until the local corpus quality gate passes. You can label passages manually; the original attribution is always retained.")
+                    .font(.caption)
+                    .foregroundStyle(WitnessStyle.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+                ForEach(MeetingLibraryModel.editableSpeakerIDs, id: \.self) { speakerID in
+                    HStack {
+                        Text(MeetingLibraryModel.defaultSpeakerName(speakerID))
+                            .font(.caption.weight(.medium))
+                            .frame(width: 72, alignment: .leading)
+                        TextField(
+                            MeetingLibraryModel.defaultSpeakerName(speakerID),
+                            text: Binding(
+                                get: { model.speakerNameDrafts[speakerID, default: MeetingLibraryModel.defaultSpeakerName(speakerID)] },
+                                set: { model.speakerNameDrafts[speakerID] = $0 }
+                            )
+                        )
+                        .textFieldStyle(.roundedBorder)
+                        .accessibilityLabel("Display name for \(MeetingLibraryModel.defaultSpeakerName(speakerID))")
+                    }
+                }
+                HStack {
+                    Button("Reset labels") { model.resetSpeakerNames() }
+                        .buttonStyle(WitnessSecondaryButtonStyle())
+                    Spacer()
+                    Button("Save labels") { Task { await model.saveSpeakerNames() } }
+                        .buttonStyle(WitnessPrimaryButtonStyle())
+                }
+            }
+            .padding(.top, 10)
+        } label: {
+            Label("Speaker labels", systemImage: "person.2")
+                .font(.callout.weight(.semibold))
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .accessibilityHint("Expands controls for renaming You, Others, and numbered speakers")
     }
 
     private func export(_ format: MeetingExportFormat) {
@@ -558,9 +678,18 @@ private struct MeetingLibraryRow: View {
     }
 }
 
+private struct MeetingSpeakerChoice: Identifiable {
+    let id: String
+    let name: String
+}
+
 private struct MeetingTranscriptRecordView: View {
     let row: MeetingTranscriptRecord
     let speaker: String
+    let choices: [MeetingSpeakerChoice]
+    let originalSpeaker: String
+    let assign: (String) -> Void
+    let restore: () -> Void
 
     private var timestamp: String {
         let seconds = max(Int(Double(row.startFrame) / max(row.sampleRate, 1)), 0)
@@ -577,7 +706,40 @@ private struct MeetingTranscriptRecordView: View {
                 .frame(width: 46, alignment: .leading)
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
-                    Text(speaker).font(.caption.weight(.semibold))
+                    Menu {
+                        ForEach(choices) { choice in
+                            Button {
+                                assign(choice.id)
+                            } label: {
+                                if choice.id == row.speakerID {
+                                    Label(choice.name, systemImage: "checkmark")
+                                } else {
+                                    Text(choice.name)
+                                }
+                            }
+                        }
+                        if row.isManuallyReassigned {
+                            Divider()
+                            Button("Restore original: \(originalSpeaker)", action: restore)
+                        }
+                    } label: {
+                        Label(speaker, systemImage: "person.crop.circle")
+                            .font(.caption.weight(.semibold))
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
+                    .accessibilityLabel("Speaker: \(speaker)")
+                    .accessibilityHint("Choose a different speaker for this passage")
+                    if row.speakerAssignmentSource == .diarization, let confidence = row.speakerConfidence {
+                        Text("Inferred \(confidence.formatted(.percent.precision(.fractionLength(0))))")
+                            .font(.caption2)
+                            .foregroundStyle(WitnessStyle.muted)
+                            .accessibilityLabel("Inferred speaker confidence \(confidence.formatted(.percent))")
+                    } else if row.isManuallyReassigned {
+                        Text("Edited · original \(originalSpeaker)")
+                            .font(.caption2)
+                            .foregroundStyle(WitnessStyle.muted)
+                    }
                     if needsReview {
                         Label("Review", systemImage: "exclamationmark.triangle")
                             .font(.caption2.weight(.medium))
@@ -603,8 +765,7 @@ private struct MeetingTranscriptRecordView: View {
             RoundedRectangle(cornerRadius: WitnessStyle.cornerRadius)
                 .stroke(needsReview ? WitnessStyle.warning.opacity(0.5) : WitnessStyle.line, lineWidth: 1)
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(speaker), \(timestamp): \(row.text)\(needsReview ? ", needs review" : "")")
+        .accessibilityElement(children: .contain)
     }
 }
 

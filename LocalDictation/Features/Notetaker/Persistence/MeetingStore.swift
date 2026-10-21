@@ -44,7 +44,13 @@ struct MeetingManifest: Codable, Sendable, Equatable, Identifiable {
 struct MeetingTranscriptRecord: Codable, Sendable, Equatable, Identifiable {
     let id: UUID
     let source: MeetingAudioSource
-    let speakerID: String
+    var speakerID: String
+    let originalSpeakerID: String
+    var speakerConfidence: Double?
+    var speakerAssignmentSource: SpeakerAssignmentSource
+    let originalSpeakerConfidence: Double?
+    let originalSpeakerAssignmentSource: SpeakerAssignmentSource
+    let wordAttributions: [SpeakerWordAttribution]
     let startFrame: Int64
     let endFrame: Int64
     let sampleRate: Double
@@ -59,6 +65,12 @@ struct MeetingTranscriptRecord: Codable, Sendable, Equatable, Identifiable {
         id: UUID = UUID(),
         source: MeetingAudioSource,
         speakerID: String,
+        originalSpeakerID: String? = nil,
+        speakerConfidence: Double? = nil,
+        speakerAssignmentSource: SpeakerAssignmentSource = .sourceFallback,
+        originalSpeakerConfidence: Double? = nil,
+        originalSpeakerAssignmentSource: SpeakerAssignmentSource? = nil,
+        wordAttributions: [SpeakerWordAttribution] = [],
         startFrame: Int64,
         endFrame: Int64,
         sampleRate: Double = 16_000,
@@ -72,6 +84,12 @@ struct MeetingTranscriptRecord: Codable, Sendable, Equatable, Identifiable {
         self.id = id
         self.source = source
         self.speakerID = speakerID
+        self.originalSpeakerID = originalSpeakerID ?? speakerID
+        self.speakerConfidence = speakerConfidence
+        self.speakerAssignmentSource = speakerAssignmentSource
+        self.originalSpeakerConfidence = originalSpeakerConfidence ?? speakerConfidence
+        self.originalSpeakerAssignmentSource = originalSpeakerAssignmentSource ?? speakerAssignmentSource
+        self.wordAttributions = wordAttributions
         self.startFrame = startFrame
         self.endFrame = endFrame
         self.sampleRate = sampleRate
@@ -95,6 +113,71 @@ struct MeetingTranscriptRecord: Codable, Sendable, Equatable, Identifiable {
             minimumConfidence: row.original.minimumConfidence,
             hasConfidenceSignal: row.original.hasConfidenceSignal
         )
+    }
+
+    init(row: MeetingTranscriptRow, alignment: SpeakerAlignment) {
+        self.init(
+            source: row.source,
+            speakerID: alignment.speakerID,
+            speakerConfidence: alignment.confidence,
+            speakerAssignmentSource: .diarization,
+            wordAttributions: alignment.words,
+            startFrame: row.startFrame,
+            endFrame: row.endFrame,
+            text: row.text,
+            rawText: row.original.text,
+            meanConfidence: row.original.meanConfidence,
+            minimumConfidence: row.original.minimumConfidence,
+            hasConfidenceSignal: row.original.hasConfidenceSignal
+        )
+    }
+
+    var isManuallyReassigned: Bool {
+        speakerAssignmentSource == .manual && speakerID != originalSpeakerID
+    }
+
+    func assigningSpeaker(_ newSpeakerID: String?) -> MeetingTranscriptRecord {
+        if newSpeakerID == speakerID { return self }
+        var copy = self
+        if let newSpeakerID {
+            copy.speakerID = newSpeakerID
+            copy.speakerConfidence = nil
+            copy.speakerAssignmentSource = .manual
+        } else {
+            copy.speakerID = originalSpeakerID
+            copy.speakerConfidence = originalSpeakerConfidence
+            copy.speakerAssignmentSource = originalSpeakerAssignmentSource
+        }
+        return copy
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, source, speakerID, originalSpeakerID, speakerConfidence, speakerAssignmentSource
+        case originalSpeakerConfidence, originalSpeakerAssignmentSource, wordAttributions
+        case startFrame, endFrame, sampleRate, text, rawText, meanConfidence, minimumConfidence
+        case hasConfidenceSignal, riskEvidence
+    }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        id = try values.decode(UUID.self, forKey: .id)
+        source = try values.decode(MeetingAudioSource.self, forKey: .source)
+        speakerID = try values.decode(String.self, forKey: .speakerID)
+        originalSpeakerID = try values.decodeIfPresent(String.self, forKey: .originalSpeakerID) ?? speakerID
+        speakerConfidence = try values.decodeIfPresent(Double.self, forKey: .speakerConfidence)
+        speakerAssignmentSource = try values.decodeIfPresent(SpeakerAssignmentSource.self, forKey: .speakerAssignmentSource) ?? .sourceFallback
+        originalSpeakerConfidence = try values.decodeIfPresent(Double.self, forKey: .originalSpeakerConfidence) ?? speakerConfidence
+        originalSpeakerAssignmentSource = try values.decodeIfPresent(SpeakerAssignmentSource.self, forKey: .originalSpeakerAssignmentSource) ?? speakerAssignmentSource
+        wordAttributions = try values.decodeIfPresent([SpeakerWordAttribution].self, forKey: .wordAttributions) ?? []
+        startFrame = try values.decode(Int64.self, forKey: .startFrame)
+        endFrame = try values.decode(Int64.self, forKey: .endFrame)
+        sampleRate = try values.decode(Double.self, forKey: .sampleRate)
+        text = try values.decode(String.self, forKey: .text)
+        rawText = try values.decode(String.self, forKey: .rawText)
+        meanConfidence = try values.decodeIfPresent(Double.self, forKey: .meanConfidence)
+        minimumConfidence = try values.decodeIfPresent(Double.self, forKey: .minimumConfidence)
+        hasConfidenceSignal = try values.decode(Bool.self, forKey: .hasConfidenceSignal)
+        riskEvidence = try values.decode([String].self, forKey: .riskEvidence)
     }
 }
 
@@ -136,6 +219,7 @@ protocol MeetingStoring: Sendable {
     func updateManifest(_ manifest: MeetingManifest) async throws
     func appendTranscript(_ record: MeetingTranscriptRecord, meetingID: UUID) async throws
     func loadTranscript(meetingID: UUID) async throws -> [MeetingTranscriptRecord]
+    func reassignTranscript(_ recordID: UUID, meetingID: UUID, speakerID: String?) async throws
     func loadNotes(meetingID: UUID) async throws -> MeetingNotes
     func saveNotes(_ notes: MeetingNotes, meetingID: UUID) async throws
     func listMeetings() async throws -> [MeetingManifest]
@@ -262,6 +346,28 @@ actor FileMeetingStore: MeetingStoring {
             throw error
         } catch {
             throw MeetingStoreError.unreadable("loadTranscript")
+        }
+    }
+
+    func reassignTranscript(_ recordID: UUID, meetingID: UUID, speakerID: String?) throws {
+        var records = try loadTranscript(meetingID: meetingID)
+        guard let index = records.firstIndex(where: { $0.id == recordID }) else {
+            throw MeetingStoreError.notFound(recordID)
+        }
+        records[index] = records[index].assigningSpeaker(speakerID)
+        let url = meetingDirectory(meetingID).appendingPathComponent("transcript.ndjson")
+        do {
+            var data = Data()
+            for record in records {
+                data.append(try encoder.encode(record))
+                data.append(0x0A)
+            }
+            try atomicWriter(data, url)
+            try secureFile(url)
+        } catch let error as MeetingStoreError {
+            throw error
+        } catch {
+            throw MeetingStoreError.unwritable("rewriteTranscript")
         }
     }
 
