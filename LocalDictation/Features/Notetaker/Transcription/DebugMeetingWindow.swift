@@ -118,7 +118,10 @@ final class DebugMeetingModel: ObservableObject {
                 fail("Microphone access is off. Allow it in System Settings, then start again.", action: .microphoneSettings)
                 return
             }
-            let meeting = DebugMeetingSession(profile: selectedProfile) { [weak self] update in
+            let meeting = DebugMeetingSession(
+                profile: selectedProfile,
+                title: defaultMeetingTitle
+            ) { [weak self] update in
                 Task { @MainActor [weak self] in self?.receive(update) }
             }
             session = meeting
@@ -191,6 +194,11 @@ final class DebugMeetingModel: ObservableObject {
         }
     }
 
+    private var defaultMeetingTitle: String {
+        let source = selectedProcess?.name ?? "Meeting"
+        return "\(source) — \(Date().formatted(date: .abbreviated, time: .shortened))"
+    }
+
     private func receiveProcesses(_ processes: [MeetingProcessOption]) {
         processOptions = processes
         refreshingProcesses = false
@@ -219,16 +227,20 @@ final class DebugMeetingModel: ObservableObject {
             }
         case let .rows(value): rows = value
         case let .metrics(value): metrics = value
-        case let .finished(partial):
+        case let .finished(partial, persisted):
             updateElapsed()
             active = false
             paused = false
             finishing = false
             session = nil
             stopClock()
-            status = partial
-                ? "Partial transcript — some audio could not be processed."
-                : "Complete — transcript is held in memory."
+            if partial {
+                status = persisted
+                    ? "Partial transcript saved locally — some audio could not be processed."
+                    : "Partial transcript remains in memory — local storage failed."
+            } else {
+                status = persisted ? "Complete — transcript saved locally." : "Stopped — no transcript was saved."
+            }
         }
     }
 
@@ -276,6 +288,8 @@ final class DebugMeetingModel: ObservableObject {
             ("The selected audio app closed or changed. Refresh the list and choose it again.", .refreshProcesses)
         case DebugMeetingError.modelUnavailable:
             ("The selected local speech model is unavailable. Prepare it in Witness and try again.", nil)
+        case is MeetingStoreError:
+            ("The meeting could not be saved locally. Check available disk space and folder access, then try again.", nil)
         default:
             ("Witness could not start both audio sources. Check Zoom or Chrome, microphone and System Audio permissions.", .privacySettings)
         }

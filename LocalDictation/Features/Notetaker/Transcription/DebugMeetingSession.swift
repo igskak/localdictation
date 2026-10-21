@@ -6,7 +6,7 @@ enum DebugMeetingUpdate: Sendable {
     case status(String)
     case rows([MeetingTranscriptRow])
     case metrics(String)
-    case finished(partial: Bool)
+    case finished(partial: Bool, persisted: Bool)
 }
 
 /// Isolated manual test harness. It is never constructed by the live default.
@@ -16,6 +16,8 @@ actor DebugMeetingSession {
     private let system = SystemAudioCapture()
     private lazy var microphone = MeetingMicrophoneCapture(permission: permission)
     private let profile: LanguageProfile
+    private let title: String
+    private let persistence: MeetingPersistenceRecorder
     private let emit: @Sendable (DebugMeetingUpdate) -> Void
     private var stopRequested = false
     private var pauseRequested = false
@@ -23,12 +25,20 @@ actor DebugMeetingSession {
     private var paused = false
     private var captureFinished = false
     private var partial = false
+    private var storageFailed = false
     private var worker: LongFormTranscriber?
     private var startedAt: TimeInterval = 0
     private var captureEndedAt: TimeInterval?
 
-    init(profile: LanguageProfile, emit: @escaping @Sendable (DebugMeetingUpdate) -> Void) {
+    init(
+        profile: LanguageProfile,
+        title: String,
+        persistence: MeetingPersistenceRecorder = MeetingPersistenceRecorder(),
+        emit: @escaping @Sendable (DebugMeetingUpdate) -> Void
+    ) {
         self.profile = profile
+        self.title = title
+        self.persistence = persistence
         self.emit = emit
     }
 
@@ -37,8 +47,9 @@ actor DebugMeetingSession {
         let state = await engine.modelState(for: profile)
         guard state.isReady || state.canPrepareUnattended else { throw DebugMeetingError.modelUnavailable }
         if !state.isReady { try await engine.prepare(for: profile) }
-        guard !stopRequested else { emit(.finished(partial: false)); return }
+        guard !stopRequested else { emit(.finished(partial: false, persisted: false)); return }
         guard permission.currentAuthorization == .authorized else { throw MeetingMicrophoneError.permissionUnavailable }
+        try await persistence.begin(title: title, profile: profile)
         emit(.status("Starting system audio and microphone…"))
         let origin = AudioGetCurrentHostTime()
         do {
@@ -46,7 +57,8 @@ actor DebugMeetingSession {
             await Task.yield()
             guard !stopRequested else {
                 system.stop()
-                emit(.finished(partial: false))
+                await persistence.discardEmptyMeeting()
+                emit(.finished(partial: false, persisted: false))
                 return
             }
             let microphoneBuffer = try microphone.start(selection: .systemDefault)
@@ -61,6 +73,7 @@ actor DebugMeetingSession {
         } catch {
             system.stop()
             microphone.stop()
+            await persistence.discardEmptyMeeting()
             throw error
         }
     }
@@ -165,7 +178,23 @@ actor DebugMeetingSession {
         while true {
             do {
                 if try await worker.drainOne() {
-                    emit(.rows(await worker.assembler.rows))
+                    let rows = await worker.assembler.rows
+                    emit(.rows(rows))
+                    do {
+                        try await persistence.persist(rows: rows)
+                    } catch {
+                        storageFailed = true
+                        partial = true
+                        stopRequested = true
+                        if captureEndedAt == nil { captureEndedAt = ProcessInfo.processInfo.systemUptime }
+                        system.stop()
+                        microphone.stop()
+                        emit(.status("Local storage failed. Capture stopped; the visible transcript remains in memory."))
+                        while !captureFinished {
+                            try? await Task.sleep(for: .milliseconds(10))
+                        }
+                        break
+                    }
                     await emitMetrics(worker)
                 } else if captureFinished { break }
                 else { try await Task.sleep(for: .milliseconds(100)) }
@@ -185,7 +214,14 @@ actor DebugMeetingSession {
         }
         emit(.rows(await worker.assembler.rows))
         await emitMetrics(worker)
-        emit(.finished(partial: partial))
+        do {
+            try await persistence.finish(partial: partial)
+        } catch {
+            storageFailed = true
+            partial = true
+            emit(.status("The transcript remains in memory because the meeting could not be finalized on disk."))
+        }
+        emit(.finished(partial: partial, persisted: !storageFailed))
     }
     private func emitMetrics(_ worker: LongFormTranscriber) async {
         let metrics = await worker.metrics

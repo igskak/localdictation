@@ -1,6 +1,6 @@
 import Foundation
 
-enum MeetingPlatform: Sendable, Hashable {
+enum MeetingPlatform: String, Sendable, Hashable, Codable {
     case zoom
     case googleMeet
     case manual

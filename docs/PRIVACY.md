@@ -51,8 +51,10 @@ checker does not make a request until you press its button.
 ## The audio, and why it is not on that list
 
 Recognition runs on this Mac, in this process, against a model on this disk.
-Audio is held in memory for the length of an utterance and released when the
-next one begins or when you close the review; it is never written to disk, and
+Dictation audio is held in memory for the length of an utterance and released
+when the next one begins or when you close the review. Meeting-note audio is
+also memory-only: its microphone and selected-application buffers are released
+after local recognition. Neither kind of audio is written to disk, and
 `AGENTS.md` forbids adding a feature that writes it without an explicit opt-in.
 
 The dictionary (including explicit replacement phrases), the risk warnings,
@@ -74,6 +76,30 @@ diagnostics, telemetry, crash metadata, or a log line.
 Dictionary corrections are saved only when the user explicitly writes both
 the preferred term and its optional misrecognition in Settings. Witness does
 not learn corrections from dictations or from text in other applications.
+
+## Local meeting notes
+
+The Notetaker feature remains disabled in ordinary Release builds while it is
+tested. In a build where it is explicitly enabled, no meeting file is created
+by launch, process discovery or a meeting suggestion. Local persistence begins
+only after you press **Start meeting note**.
+
+Each note has its own owner-only directory under
+`~/Library/Application Support/Witness/Meetings`. It contains a versioned
+`manifest.json`, an append-only `transcript.ndjson`, and `notes.json`. The
+manifest holds the title, meeting identifier, start and end time, selected
+languages, source kind, completion state, and speaker display labels. Transcript
+lines hold the recognized text, timestamp, `You`/`Others` source attribution,
+and recognition confidence/risk evidence. These files contain no raw audio,
+meeting URL, imported participant list, or recording of any kind.
+
+Meeting files remain on this Mac until you permanently delete that meeting.
+Deletion removes the whole per-meeting directory, including manifest,
+transcript and notes; it cannot be undone. Search and text/Markdown export read
+these local files without sending their contents anywhere. A torn final
+transcript line after a crash is ignored while every preceding complete line is
+recovered. FileVault may protect the disk, but Witness does not describe these
+files as separately application-encrypted.
 
 ## The activation request, field by field
 

@@ -2,7 +2,7 @@ import AVFoundation
 import CoreAudio
 import Foundation
 
-enum MeetingAudioSource: Sendable, Hashable { case microphone, system }
+enum MeetingAudioSource: String, Sendable, Hashable, Codable { case microphone, system }
 
 struct MeetingAudioChunk: Sendable {
     let source: MeetingAudioSource
