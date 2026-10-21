@@ -169,6 +169,7 @@ extension View {
 struct LocalDictationApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var coordinator: DictationCoordinator
+    @StateObject private var notetakerStatus: NotetakerStatus
     private let notetaker: any NotetakerFacade
 
     init() {
@@ -178,6 +179,7 @@ struct LocalDictationApp: App {
         ApplicationSupportDirectory.prepare()
         let composition = ApplicationComposition.makeLive()
         _coordinator = StateObject(wrappedValue: composition.dictationCoordinator)
+        _notetakerStatus = StateObject(wrappedValue: composition.notetaker.status)
         notetaker = composition.notetaker
         // The delegate activates the coordinator once AppKit has finished
         // launching, so hotkey registration happens against a live event target.
@@ -195,8 +197,8 @@ struct LocalDictationApp: App {
             // label as a template image, so the alert is the symbol itself
             // rather than a badge drawn over one.
             Label(
-                "Witness",
-                systemImage: StatusPresentation(
+                notetakerStatus.accessibilityLabel,
+                systemImage: notetakerStatus.systemImage ?? StatusPresentation(
                     state: coordinator.state,
                     binding: coordinator.binding,
                     // Carried into the label since the app fetches the model

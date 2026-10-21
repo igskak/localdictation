@@ -135,4 +135,18 @@ final class NormalizedVoiceActivityTests: XCTestCase {
         let recording = utterance(speech(seconds: 3, amplitude: 0.016))
         XCTAssertFalse(UtteranceSummary(recording).heardSpeech)
     }
+
+    func testSignalMetricsAreContentFreeAndDeterministic() {
+        let metrics = AudioSignalMetrics.measure([0.5, -0.5, 0.5, -0.5])
+
+        XCTAssertEqual(metrics.rmsLevel, 0.5, accuracy: 0.000_001)
+        XCTAssertEqual(metrics.peakLevel, 0.5, accuracy: 0.000_001)
+        XCTAssertEqual(AudioSignalMetrics.measure([]), AudioSignalMetrics(rmsLevel: 0, peakLevel: 0))
+    }
+
+    func testTheSummaryCarriesWholeUtteranceRMS() {
+        let summary = UtteranceSummary(utterance([0.25, -0.25, 0.25, -0.25]))
+
+        XCTAssertEqual(summary.rmsLevel, 0.25, accuracy: 0.000_001)
+    }
 }

@@ -12,12 +12,47 @@ struct MeetingProcessOption: Identifiable, Hashable {
     var detail: String {
         isProducingOutput ? "Audio active · PID \(processID)" : "No audio now · PID \(processID)"
     }
+
+    fileprivate var normalizedIdentity: String {
+        "\(name) \(bundleIdentifier ?? "")".lowercased()
+    }
+}
+
+enum MeetingProcessSelection {
+    static func preferred(in options: [MeetingProcessOption]) -> MeetingProcessOption? {
+        options
+            .filter { score($0) > 0 }
+            .sorted {
+                let lhsScore = score($0)
+                let rhsScore = score($1)
+                if lhsScore != rhsScore { return lhsScore > rhsScore }
+                if $0.name != $1.name {
+                    return $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+                }
+                return $0.processID < $1.processID
+            }
+            .first
+    }
+
+    private static func score(_ option: MeetingProcessOption) -> Int {
+        let identity = option.normalizedIdentity
+        let isZoom = identity.contains("zoom")
+        let isChrome = identity.contains("chrome")
+        return switch (option.isProducingOutput, isZoom, isChrome) {
+        case (true, true, _): 500
+        case (true, _, true): 400
+        case (false, true, _): 300
+        case (false, _, true): 200
+        case (true, false, false): 100
+        case (false, false, false): 0
+        }
+    }
 }
 
 private enum MeetingFailureAction {
     case microphoneSettings
     case privacySettings
-    case refreshProcesses
+    case retryStart
 }
 
 @MainActor
@@ -25,13 +60,13 @@ final class DebugMeetingModel: ObservableObject {
     @Published var processOptions: [MeetingProcessOption] = []
     @Published var selectedProcessID: pid_t?
     @Published var language = "en"
-    @Published var status = "Choose the meeting app to start a local note."
+    @Published var status = "Ready. Press Record when your meeting starts."
     @Published var rows: [MeetingTranscriptRow] = []
     @Published var metrics = ""
     @Published var active = false
+    @Published var preparing = false
     @Published var paused = false
     @Published var finishing = false
-    @Published var refreshingProcesses = false
     @Published var elapsed: TimeInterval = 0
     @Published var failureMessage: String?
     @Published private var failureAction: MeetingFailureAction?
@@ -40,13 +75,24 @@ final class DebugMeetingModel: ObservableObject {
     private var generation = UUID()
     private let permission = AVCaptureMicrophonePermissionService()
     private let resolver: any MeetingProcessResolving
+    private let store: any MeetingStoring
+    private let menuBarStatus: NotetakerStatus
+    private let onMeetingFinished: (UUID?) -> Void
     private var clockTask: Task<Void, Never>?
     private var startedAt: Date?
     private var pausedAt: Date?
     private var accumulatedPause: TimeInterval = 0
 
-    init(resolver: any MeetingProcessResolving = CoreAudioMeetingProcessResolver()) {
+    init(
+        resolver: any MeetingProcessResolving = CoreAudioMeetingProcessResolver(),
+        store: any MeetingStoring = FileMeetingStore(),
+        menuBarStatus: NotetakerStatus = NotetakerStatus(),
+        onMeetingFinished: @escaping (UUID?) -> Void = { _ in }
+    ) {
         self.resolver = resolver
+        self.store = store
+        self.menuBarStatus = menuBarStatus
+        self.onMeetingFinished = onMeetingFinished
     }
 
     var selectedProcess: MeetingProcessOption? {
@@ -54,7 +100,7 @@ final class DebugMeetingModel: ObservableObject {
     }
 
     var canStart: Bool {
-        !active && !finishing && selectedProcessID != nil
+        !active && !finishing
     }
 
     var elapsedLabel: String {
@@ -62,40 +108,10 @@ final class DebugMeetingModel: ObservableObject {
         return String(format: "%02d:%02d:%02d", seconds / 3600, (seconds / 60) % 60, seconds % 60)
     }
 
-    func refreshProcesses() {
-        guard !refreshingProcesses, !active else { return }
-        refreshingProcesses = true
-        failureMessage = nil
-        failureAction = nil
-        let resolver = self.resolver
-        Task.detached(priority: .userInitiated) { [weak self] in
-            do {
-                let processes = try resolver.processes().map { process in
-                    let application = NSRunningApplication(processIdentifier: process.processID)
-                    return MeetingProcessOption(
-                        processID: process.processID,
-                        name: application?.localizedName ?? "Audio process",
-                        bundleIdentifier: application?.bundleIdentifier,
-                        isProducingOutput: process.isProducingOutput
-                    )
-                }.sorted { lhs, rhs in
-                    if lhs.isProducingOutput != rhs.isProducingOutput { return lhs.isProducingOutput }
-                    return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
-                }
-                await MainActor.run { self?.receiveProcesses(processes) }
-            } catch {
-                await MainActor.run {
-                    self?.refreshingProcesses = false
-                    self?.failureMessage = "Audio apps could not be listed. Play audio in Zoom or Chrome, then try again."
-                    self?.failureAction = .refreshProcesses
-                }
-            }
-        }
-    }
-
     func start() {
-        guard canStart, let processID = selectedProcessID else { return }
+        guard canStart else { return }
         active = true
+        preparing = true
         paused = false
         finishing = false
         failureMessage = nil
@@ -109,8 +125,22 @@ final class DebugMeetingModel: ObservableObject {
         beginClock()
         let currentGeneration = UUID()
         generation = currentGeneration
-        status = "Checking microphone access…"
+        menuBarStatus.update(.preparing)
+        status = "Finding Zoom or Chrome audio…"
         Task { [self] in
+            do {
+                let options = try await discoverProcesses()
+                guard active, generation == currentGeneration else { return }
+                receiveProcesses(options)
+            } catch {
+                fail("Witness could not inspect local audio apps. Check that Zoom or Chrome is open, then try again.", action: .retryStart)
+                return
+            }
+            guard let processID = selectedProcessID else {
+                fail("No meeting audio was found. Open Zoom or Chrome, then press Record again.", action: .retryStart)
+                return
+            }
+            status = "Checking microphone access…"
             let authorization = permission.currentAuthorization == .notDetermined
                 ? await permission.requestAccess() : permission.currentAuthorization
             guard active, generation == currentGeneration else { return }
@@ -118,9 +148,11 @@ final class DebugMeetingModel: ObservableObject {
                 fail("Microphone access is off. Allow it in System Settings, then start again.", action: .microphoneSettings)
                 return
             }
+            let persistence = MeetingPersistenceRecorder(store: store)
             let meeting = DebugMeetingSession(
                 profile: selectedProfile,
-                title: defaultMeetingTitle
+                title: defaultMeetingTitle,
+                persistence: persistence
             ) { [weak self] update in
                 Task { @MainActor [weak self] in self?.receive(update) }
             }
@@ -150,14 +182,18 @@ final class DebugMeetingModel: ObservableObject {
         guard let session else {
             generation = UUID()
             active = false
+            preparing = false
             paused = false
             finishing = false
             stopClock()
+            menuBarStatus.update(.idle)
             status = rows.isEmpty ? "Stopped — no audio was captured." : "Stopped — transcript is held in memory."
             return
         }
         finishing = true
+        preparing = false
         paused = false
+        menuBarStatus.update(.finishing)
         status = "Finishing the transcript…"
         Task { await session.stop() }
     }
@@ -166,7 +202,7 @@ final class DebugMeetingModel: ObservableObject {
         switch failureAction {
         case .microphoneSettings: "Open Microphone Settings"
         case .privacySettings: "Open Privacy & Security"
-        case .refreshProcesses: "Refresh audio apps"
+        case .retryStart: "Try Again"
         case nil: nil
         }
     }
@@ -178,8 +214,8 @@ final class DebugMeetingModel: ObservableObject {
         case .privacySettings:
             guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security") else { return }
             NSWorkspace.shared.open(url)
-        case .refreshProcesses:
-            refreshProcesses()
+        case .retryStart:
+            start()
         case nil:
             break
         }
@@ -199,18 +235,25 @@ final class DebugMeetingModel: ObservableObject {
         return "\(source) — \(Date().formatted(date: .abbreviated, time: .shortened))"
     }
 
+    private func discoverProcesses() async throws -> [MeetingProcessOption] {
+        let resolver = self.resolver
+        let processes = try await Task.detached(priority: .userInitiated) {
+            try resolver.processes()
+        }.value
+        return processes.map { process in
+            let application = NSRunningApplication(processIdentifier: process.processID)
+            return MeetingProcessOption(
+                processID: process.processID,
+                name: application?.localizedName ?? "Audio process",
+                bundleIdentifier: application?.bundleIdentifier,
+                isProducingOutput: process.isProducingOutput
+            )
+        }
+    }
+
     private func receiveProcesses(_ processes: [MeetingProcessOption]) {
         processOptions = processes
-        refreshingProcesses = false
-        if let selectedProcessID, processes.contains(where: { $0.processID == selectedProcessID }) { return }
-        let preferred = processes.first {
-            let identity = "\($0.name) \($0.bundleIdentifier ?? "")".lowercased()
-            return $0.isProducingOutput && (identity.contains("zoom") || identity.contains("chrome"))
-        }
-        selectedProcessID = preferred?.processID ?? processes.first(where: \.isProducingOutput)?.processID
-        if processes.isEmpty {
-            status = "No audio app is visible yet. Start playback in Zoom or Chrome and refresh."
-        }
+        selectedProcessID = MeetingProcessSelection.preferred(in: processes)?.processID
     }
 
     private func receive(_ update: DebugMeetingUpdate) {
@@ -218,28 +261,40 @@ final class DebugMeetingModel: ObservableObject {
         case let .status(value):
             status = value
             if value.hasPrefix("Recording") {
+                preparing = false
                 if let pausedAt { accumulatedPause += Date().timeIntervalSince(pausedAt) }
                 self.pausedAt = nil
                 paused = false
+                menuBarStatus.update(.recording)
             } else if value.hasPrefix("Paused") {
+                preparing = false
                 paused = true
                 pausedAt = Date()
+                menuBarStatus.update(.paused)
             }
         case let .rows(value): rows = value
         case let .metrics(value): metrics = value
         case let .finished(partial, persisted):
+            let finishedSession = session
             updateElapsed()
             active = false
+            preparing = false
             paused = false
             finishing = false
             session = nil
             stopClock()
             if partial {
+                menuBarStatus.update(.attention)
                 status = persisted
                     ? "Partial transcript saved locally — some audio could not be processed."
                     : "Partial transcript remains in memory — local storage failed."
             } else {
+                menuBarStatus.update(.idle)
                 status = persisted ? "Complete — transcript saved locally." : "Stopped — no transcript was saved."
+            }
+            Task {
+                let meetingID = await finishedSession?.meetingID
+                onMeetingFinished(meetingID)
             }
         }
     }
@@ -268,11 +323,13 @@ final class DebugMeetingModel: ObservableObject {
 
     private func fail(_ message: String, action: MeetingFailureAction? = nil) {
         active = false
+        preparing = false
         paused = false
         finishing = false
         stopClock()
         failureMessage = message
         failureAction = action
+        menuBarStatus.update(.attention)
         status = "Could not start the meeting note."
     }
 
@@ -285,7 +342,7 @@ final class DebugMeetingModel: ObservableObject {
         case MeetingMicrophoneError.noInput:
             ("No usable microphone was found. Connect or select an input, then start again.", .microphoneSettings)
         case SystemAudioCaptureError.processNotFound:
-            ("The selected audio app closed or changed. Refresh the list and choose it again.", .refreshProcesses)
+            ("Zoom or Chrome closed or changed while Witness was starting. Open the meeting and try again.", .retryStart)
         case DebugMeetingError.modelUnavailable:
             ("The selected local speech model is unavailable. Prepare it in Witness and try again.", nil)
         case is MeetingStoreError:
@@ -298,7 +355,14 @@ final class DebugMeetingModel: ObservableObject {
 
 struct DebugMeetingView: View {
     @ObservedObject var model: DebugMeetingModel
+    let openHistory: () -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var followsLatest = true
+
+    init(model: DebugMeetingModel, openHistory: @escaping () -> Void = {}) {
+        self.model = model
+        self.openHistory = openHistory
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -313,7 +377,6 @@ struct DebugMeetingView: View {
         }
         .frame(minWidth: 780, minHeight: 620)
         .witnessWindow()
-        .onAppear { model.refreshProcesses() }
     }
 
     private var header: some View {
@@ -328,11 +391,18 @@ struct DebugMeetingView: View {
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
                 .background(WitnessStyle.warning.opacity(0.12), in: Capsule())
+            Button(action: openHistory) {
+                Label("History", systemImage: "clock.arrow.circlepath")
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(WitnessStyle.muted)
+            .keyboardShortcut("h", modifiers: [.command, .shift])
+            .help("Open meeting note history")
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
                 Text(model.elapsedLabel)
                     .font(.system(.title3, design: .monospaced).weight(.semibold))
-                Text(model.active ? (model.paused ? "Paused" : model.finishing ? "Finishing" : "Recording") : "Local only")
+                Text(model.active ? (model.preparing ? "Starting" : model.paused ? "Paused" : model.finishing ? "Finishing" : "Recording") : "Local only")
                     .font(.caption)
                     .foregroundStyle(model.active ? WitnessStyle.accent : WitnessStyle.muted)
             }
@@ -346,13 +416,19 @@ struct DebugMeetingView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 statusCard
-                sourcePicker
-                languagePicker
-                sourceHealth
                 actionButtons
-                notice
                 if let failure = model.failureMessage { failureCard(failure) }
-                if !model.metrics.isEmpty { metricsCard }
+                automaticSourceNote
+                notice
+                DisclosureGroup("Recording details") {
+                    VStack(alignment: .leading, spacing: 16) {
+                        languagePicker
+                        sourceHealth
+                        if !model.metrics.isEmpty { metricsCard }
+                    }
+                    .padding(.top, 10)
+                }
+                .font(.callout.weight(.medium))
             }
             .padding(20)
         }
@@ -372,35 +448,17 @@ struct DebugMeetingView: View {
         .accessibilityLabel("Meeting status: \(model.status)")
     }
 
-    private var sourcePicker: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("Meeting audio").font(.headline)
-                Spacer()
-                Button {
-                    model.refreshProcesses()
-                } label: {
-                    Label(model.refreshingProcesses ? "Refreshing" : "Refresh", systemImage: "arrow.clockwise")
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(WitnessStyle.muted)
-                .disabled(model.refreshingProcesses || model.active)
-            }
-            Picker("Meeting audio", selection: $model.selectedProcessID) {
-                Text("Choose an app…").tag(pid_t?.none)
-                ForEach(model.processOptions) { process in
-                    Text("\(process.name) · PID \(process.processID)")
-                        .tag(pid_t?.some(process.processID))
-                }
-            }
-            .labelsHidden()
-            .disabled(model.active || model.refreshingProcesses)
-            if let process = model.selectedProcess {
-                Text(process.detail)
-                    .font(.caption)
-                    .foregroundStyle(process.isProducingOutput ? WitnessStyle.success : WitnessStyle.warning)
-            }
+    private var automaticSourceNote: some View {
+        Label {
+            Text("Witness automatically records your microphone and the open Zoom or Chrome meeting.")
+                .fixedSize(horizontal: false, vertical: true)
+        } icon: {
+            Image(systemName: "wand.and.stars")
+                .foregroundStyle(WitnessStyle.accent)
         }
+        .font(.callout)
+        .foregroundStyle(WitnessStyle.muted)
+        .accessibilityElement(children: .combine)
     }
 
     private var languagePicker: some View {
@@ -421,7 +479,7 @@ struct DebugMeetingView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Sources").font(.headline)
             sourceRow("You", detail: "System microphone", systemImage: "mic", available: true)
-            sourceRow("Others", detail: model.selectedProcess?.name ?? "Choose an audio app", systemImage: "waveform", available: model.selectedProcessID != nil)
+            sourceRow("Others", detail: model.selectedProcess?.name ?? "Selected automatically when recording", systemImage: "waveform", available: model.selectedProcessID != nil)
         }
     }
 
@@ -446,8 +504,18 @@ struct DebugMeetingView: View {
     }
 
     private var actionButtons: some View {
-        HStack(spacing: 8) {
-            if model.active {
+        Group {
+            if model.preparing {
+                HStack(spacing: 10) {
+                    ProgressView().controlSize(.small)
+                    Text("Starting local recording…")
+                        .font(.callout.weight(.medium))
+                    Spacer()
+                    Button("Cancel") { model.stop() }
+                        .buttonStyle(WitnessSecondaryButtonStyle())
+                }
+            } else if model.active {
+                HStack(spacing: 8) {
                 Button(model.paused ? "Resume" : "Pause") { model.togglePause() }
                     .buttonStyle(WitnessSecondaryButtonStyle())
                     .disabled(model.finishing)
@@ -455,11 +523,13 @@ struct DebugMeetingView: View {
                     .buttonStyle(WitnessPrimaryButtonStyle())
                     .disabled(model.finishing)
                     .keyboardShortcut(.return, modifiers: [.command])
+                }
             } else {
-                Button("Start meeting note") { model.start() }
+                Button("Record") { model.start() }
                     .buttonStyle(WitnessPrimaryButtonStyle())
                     .disabled(!model.canStart)
                     .keyboardShortcut(.return, modifiers: [.command])
+                    .accessibilityHint("Automatically records the microphone and meeting audio from Zoom or Chrome")
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -549,8 +619,12 @@ struct DebugMeetingView: View {
                 }
                 .onChange(of: model.rows.count) {
                     guard followsLatest, !model.rows.isEmpty else { return }
-                    withAnimation(.easeOut(duration: 0.18)) {
+                    if reduceMotion {
                         proxy.scrollTo(model.rows.count - 1, anchor: .bottom)
+                    } else {
+                        withAnimation(.easeOut(duration: 0.18)) {
+                            proxy.scrollTo(model.rows.count - 1, anchor: .bottom)
+                        }
                     }
                 }
                 .onChange(of: followsLatest) {
@@ -610,11 +684,10 @@ struct DebugMeetingView: View {
 }
 
 @MainActor
-final class DebugMeetingWindowController: NSObject, NSWindowDelegate {
+final class DebugMeetingWindowController: NSObject {
     private let model: DebugMeetingModel
+    var openHistory: () -> Void = {}
     private var window: NSWindow?
-    private var statusItem: NSStatusItem?
-    private var statusObservation: AnyCancellable?
 
     init(model: DebugMeetingModel = DebugMeetingModel()) {
         self.model = model
@@ -634,59 +707,66 @@ final class DebugMeetingWindowController: NSObject, NSWindowDelegate {
         )
         window.title = "Witness Meeting Note — Test Build"
         window.contentMinSize = NSSize(width: 780, height: 620)
-        window.contentViewController = NSHostingController(rootView: DebugMeetingView(model: model))
-        window.delegate = self
+        window.isReleasedWhenClosed = false
+        window.contentViewController = NSHostingController(rootView: DebugMeetingView(model: model, openHistory: { [weak self] in
+            self?.openHistory()
+        }))
         window.center()
-        window.makeKeyAndOrderFront(nil)
         self.window = window
-        installStatusItem()
+        window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
 
     func stop() { model.stop() }
-
-    func windowWillClose(_ notification: Notification) {
-        model.stop()
-        window = nil
-        if !model.active { removeStatusItem() }
-    }
-
-    private func installStatusItem() {
-        guard statusItem == nil else { return }
-        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        item.button?.title = "Meeting note"
-        item.button?.action = #selector(reopen)
-        item.button?.target = self
-        statusItem = item
-        statusObservation = model.$status.sink { [weak item] status in
-            Task { @MainActor in
-                if status.hasPrefix("Recording") { item?.button?.title = "● Recording" }
-                else if status.hasPrefix("Paused") { item?.button?.title = "Ⅱ Paused" }
-                else if status.hasPrefix("Finishing") { item?.button?.title = "Finishing…" }
-                else if status.localizedCaseInsensitiveContains("partial") { item?.button?.title = "Partial note" }
-                else { item?.button?.title = "Meeting note" }
-            }
-        }
-    }
-
-    private func removeStatusItem() {
-        if let statusItem { NSStatusBar.system.removeStatusItem(statusItem) }
-        statusItem = nil
-        statusObservation = nil
-    }
-
-    @objc private func reopen() { show() }
 }
 
 @MainActor
 final class DogfoodNotetakerFacade: NotetakerFacade {
-    private let window = DebugMeetingWindowController()
+    let status: NotetakerStatus
+    private let window: DebugMeetingWindowController
+    private let library: MeetingLibraryWindowController
+    private let recordingModel: DebugMeetingModel
+
+    init() {
+        let store = FileMeetingStore()
+        let status = NotetakerStatus()
+        let libraryModel = MeetingLibraryModel(store: store)
+        let recordingModel = DebugMeetingModel(store: store, menuBarStatus: status) { [weak libraryModel] meetingID in
+            Task { await libraryModel?.refresh(selecting: meetingID) }
+        }
+        let window = DebugMeetingWindowController(model: recordingModel)
+        let library = MeetingLibraryWindowController(model: libraryModel) { [weak window] in
+            window?.show()
+        }
+        window.openHistory = { [weak library] in library?.show() }
+        self.status = status
+        self.window = window
+        self.library = library
+        self.recordingModel = recordingModel
+    }
 
     var menuBarItem: NotetakerMenuItem? {
         NotetakerMenuItem(
-            title: "Start meeting note…",
-            systemImage: "note.text.badge.plus",
+            title: status.isActive ? "Open meeting note" : "Record meeting note…",
+            systemImage: status.isActive ? "record.circle" : "note.text.badge.plus",
             action: { [weak self] in self?.window.show() }
+        )
+    }
+
+    var historyMenuItem: NotetakerMenuItem? {
+        NotetakerMenuItem(
+            title: "Meeting note history…",
+            systemImage: "clock.arrow.circlepath",
+            action: { [weak self] in self?.library.show() }
+        )
+    }
+
+    var stopMenuItem: NotetakerMenuItem? {
+        guard status.isActive, status.state != .finishing else { return nil }
+        return NotetakerMenuItem(
+            title: "Stop meeting recording",
+            systemImage: "stop.circle",
+            action: { [weak self] in self?.recordingModel.stop() }
         )
     }
 

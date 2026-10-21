@@ -25,6 +25,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var paywall: PaywallWindowController?
     #if DEBUG || NOTETAKER_DOGFOOD
     private var debugMeetingWindow: DebugMeetingWindowController?
+    private var debugMeetingLibraryWindow: MeetingLibraryWindowController?
     #endif
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -41,6 +42,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #endif
         #if DEBUG || NOTETAKER_DOGFOOD
         let arguments = ProcessInfo.processInfo.arguments
+        #if DEBUG
+        if arguments.contains("--notetaker-library-harness") {
+            let model = MeetingLibraryModel.partialPreview()
+            let controller = MeetingLibraryWindowController(model: model, startMeeting: {})
+            debugMeetingLibraryWindow = controller
+            controller.show()
+            return
+        }
+        #endif
         if arguments.contains("--notetaker-meeting-harness") {
             let controller = DebugMeetingWindowController()
             debugMeetingWindow = controller

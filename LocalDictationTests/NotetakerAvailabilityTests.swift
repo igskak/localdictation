@@ -68,6 +68,25 @@ final class NotetakerAvailabilityTests: XCTestCase {
         XCTAssertEqual(builder.persistenceOpenCount, 1)
         XCTAssertNotNil(composition.notetaker.menuBarItem)
     }
+
+    func testMenuBarStatusRepresentsMeetingLifecycleWithoutAnotherStatusItem() {
+        let status = NotetakerStatus()
+        XCTAssertNil(status.systemImage)
+        XCTAssertFalse(status.isActive)
+
+        status.update(.recording)
+        XCTAssertEqual(status.systemImage, "record.circle.fill")
+        XCTAssertEqual(status.accessibilityLabel, "Witness is recording a meeting note")
+        XCTAssertTrue(status.isActive)
+
+        status.update(.finishing)
+        XCTAssertEqual(status.systemImage, "hourglass")
+        XCTAssertTrue(status.isActive)
+
+        status.update(.attention)
+        XCTAssertEqual(status.systemImage, "exclamationmark.triangle.fill")
+        XCTAssertFalse(status.isActive)
+    }
 }
 
 @MainActor
@@ -88,6 +107,8 @@ private final class SideEffectingNotetakerBuilder {
 
 @MainActor
 private final class TestNotetakerFacade: NotetakerFacade {
+    let status = NotetakerStatus()
+
     var menuBarItem: NotetakerMenuItem? {
         NotetakerMenuItem(title: "Test meeting note", systemImage: "note.text", action: {})
     }

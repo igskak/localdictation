@@ -42,6 +42,10 @@ actor DebugMeetingSession {
         self.emit = emit
     }
 
+    var meetingID: UUID? {
+        get async { await persistence.meetingID }
+    }
+
     func start(processID: pid_t) async throws {
         emit(.status("Preparing the local speech model…"))
         let state = await engine.modelState(for: profile)

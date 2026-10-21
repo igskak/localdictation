@@ -83,6 +83,13 @@ actor WhisperKitTranscriptionService: TranscriptionService {
 
     private static let modelRepo = "argmaxinc/whisperkit-coreml"
 
+    /// WhisperKit defaults to five full retries at rising temperatures. In a
+    /// real eight-second dictation that returned no words, those retries spent
+    /// 5.47 seconds after language selection and still ended empty. One retry
+    /// preserves a conservative recovery attempt without making weak input run
+    /// through four more increasingly hallucinatory decodes.
+    static let maximumTemperatureFallbacks = 1
+
     /// The variant this app ships against, and the one
     /// `SpeechModelDownloadSize.pinnedVariantBytes` was measured for.
     static let defaultModelVariant = "openai_whisper-large-v3-v20240930_turbo"
@@ -412,6 +419,8 @@ actor WhisperKitTranscriptionService: TranscriptionService {
         let decodedAt = Date()
         let reusedPasses = encoder?.reuse.endUtterance() ?? 0
         let fallbacks = results.reduce(0) { $0 + Int($1.timings.totalDecodingFallbacks) }
+        let segments = results.flatMap(\.segments)
+        let maximumNoSpeechProbability = segments.map(\.noSpeechProb).max()
 
         try Task.checkCancellation()
         lastDecodedLanguage = (language, Date())
@@ -425,12 +434,11 @@ actor WhisperKitTranscriptionService: TranscriptionService {
         // from a warm one.
         if logsInference {
             Log.transcription.info(
-                "Inference stages: language \(String(format: "%.2f", languageReadyAt.timeIntervalSince(started)), privacy: .public) s, decode \(String(format: "%.2f", decodedAt.timeIntervalSince(languageReadyAt)), privacy: .public) s, encoder passes reused \(reusedPasses, privacy: .public), fallbacks \(fallbacks, privacy: .public), idle \(idle.map { String(format: "%.0f s", $0) } ?? "first", privacy: .public)"
+                "Inference stages: language \(String(format: "%.2f", languageReadyAt.timeIntervalSince(started)), privacy: .public) s, decode \(String(format: "%.2f", decodedAt.timeIntervalSince(languageReadyAt)), privacy: .public) s, encoder passes reused \(reusedPasses, privacy: .public), fallbacks \(fallbacks, privacy: .public)/\(Self.maximumTemperatureFallbacks, privacy: .public), segments \(segments.count, privacy: .public), max no-speech \(maximumNoSpeechProbability.map { String(format: "%.3f", $0) } ?? "unavailable", privacy: .public), idle \(idle.map { String(format: "%.0f s", $0) } ?? "first", privacy: .public)"
             )
         }
 
         let processingDuration = Date().timeIntervalSince(started)
-        let segments = results.flatMap(\.segments)
 
         return Transcript.assemble(
             words: Self.words(from: segments),
@@ -524,11 +532,12 @@ actor WhisperKitTranscriptionService: TranscriptionService {
 
     /// Whisper decodes one language per pass, and since Phase 7 that language
     /// is always decided in advance.
-    private static func decodingOptions(pinnedTo language: SpeechLanguage) -> DecodingOptions {
+    static func decodingOptions(pinnedTo language: SpeechLanguage) -> DecodingOptions {
         DecodingOptions(
             verbose: false,
             task: .transcribe,
             language: language.rawValue,
+            temperatureFallbackCount: maximumTemperatureFallbacks,
             detectLanguage: false,
             skipSpecialTokens: true,
             wordTimestamps: true

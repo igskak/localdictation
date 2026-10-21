@@ -17,6 +17,57 @@ final class MeetingProcessResolverTests: XCTestCase {
             XCTAssertEqual($0 as? MeetingProcessError, .coreAudio(-1))
         }
     }
+
+    func testAutomaticSelectionPrefersAnActiveSupportedMeetingApp() {
+        let backgroundAudio = MeetingProcessOption(
+            processID: 100,
+            name: "Music",
+            bundleIdentifier: "com.apple.Music",
+            isProducingOutput: true
+        )
+        let chrome = MeetingProcessOption(
+            processID: 102,
+            name: "Google Chrome Helper",
+            bundleIdentifier: "com.google.Chrome.helper",
+            isProducingOutput: true
+        )
+        let zoom = MeetingProcessOption(
+            processID: 101,
+            name: "zoom.us",
+            bundleIdentifier: "us.zoom.xos",
+            isProducingOutput: true
+        )
+
+        XCTAssertEqual(MeetingProcessSelection.preferred(in: [backgroundAudio, chrome, zoom]), zoom)
+    }
+
+    func testAutomaticSelectionUsesAnOpenSupportedAppBeforeUnrelatedAudio() {
+        let backgroundAudio = MeetingProcessOption(
+            processID: 100,
+            name: "Music",
+            bundleIdentifier: "com.apple.Music",
+            isProducingOutput: true
+        )
+        let chrome = MeetingProcessOption(
+            processID: 102,
+            name: "Google Chrome",
+            bundleIdentifier: "com.google.Chrome",
+            isProducingOutput: false
+        )
+
+        XCTAssertEqual(MeetingProcessSelection.preferred(in: [backgroundAudio, chrome]), chrome)
+    }
+
+    func testAutomaticSelectionDoesNotChooseAnInactiveUnrelatedProcess() {
+        let inactive = MeetingProcessOption(
+            processID: 100,
+            name: "Finder",
+            bundleIdentifier: "com.apple.finder",
+            isProducingOutput: false
+        )
+
+        XCTAssertNil(MeetingProcessSelection.preferred(in: [inactive]))
+    }
 }
 
 private struct FakeMeetingProcessResolver: MeetingProcessResolving {

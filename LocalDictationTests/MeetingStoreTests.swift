@@ -1,3 +1,5 @@
+import AppKit
+import SwiftUI
 import XCTest
 @testable import Witness
 
@@ -189,6 +191,110 @@ final class MeetingStoreTests: XCTestCase {
         XCTAssertEqual(rows.map(\.text), ["still visible"])
         let stored = try await store.loadTranscript(meetingID: id)
         XCTAssertTrue(stored.isEmpty)
+    }
+
+    @MainActor
+    func testMeetingLibraryModelLoadsSearchesEditsExportsAndDeletesPartialMeeting() async throws {
+        let store = FileMeetingStore(rootURL: root)
+        var manifest = makeManifest(title: "Zoom technical test")
+        manifest.completionState = .partial
+        manifest.endedAt = manifest.startedAt.addingTimeInterval(3_600)
+        try await store.createMeeting(manifest)
+        try await store.appendTranscript(
+            MeetingTranscriptRecord(
+                source: .system,
+                speakerID: "others",
+                startFrame: 16_000,
+                endFrame: 24_000,
+                text: "Action item is local only",
+                rawText: "action item is local only",
+                meanConfidence: 0.7,
+                minimumConfidence: 0.5,
+                hasConfidenceSignal: true,
+                riskEvidence: ["low confidence"]
+            ),
+            meetingID: manifest.id
+        )
+
+        let model = MeetingLibraryModel(store: store)
+        await model.refresh()
+        XCTAssertEqual(model.phase, .content)
+        XCTAssertEqual(model.detailPhase, .content)
+        XCTAssertEqual(model.selectedID, manifest.id)
+        XCTAssertEqual(model.detail?.manifest.completionState, .partial)
+        XCTAssertEqual(model.detail?.transcript.count, 1)
+
+        model.searchText = "ACTION ITEM"
+        await model.search()
+        XCTAssertEqual(model.meetings.map(\.id), [manifest.id])
+
+        model.titleDraft = "Renamed local test"
+        await model.saveTitle()
+        let renamedManifest = try await store.loadManifest(id: manifest.id)
+        XCTAssertEqual(renamedManifest.title, "Renamed local test")
+        XCTAssertEqual(model.feedbackMessage, "Title saved locally.")
+
+        model.notesDraft = "Review the uncertain passage."
+        await model.saveNotes()
+        let savedNotes = try await store.loadNotes(meetingID: manifest.id)
+        XCTAssertEqual(savedNotes.text, "Review the uncertain passage.")
+
+        let exported = await model.export(.markdown)
+        XCTAssertEqual(exported?.suggestedName, "Renamed local test.md")
+        XCTAssertTrue(exported?.contents.contains("Action item is local only") == true)
+
+        await model.deleteSelected()
+        XCTAssertEqual(model.phase, .empty)
+        XCTAssertEqual(model.detailPhase, .noSelection)
+        let remainingMeetings = try await store.listMeetings()
+        XCTAssertTrue(remainingMeetings.isEmpty)
+    }
+
+    @MainActor
+    func testMeetingLibraryModelHasExplicitEmptyAndFailureStates() async throws {
+        let store = FileMeetingStore(rootURL: root)
+        let model = MeetingLibraryModel(store: store)
+        await model.refresh()
+        XCTAssertEqual(model.phase, .empty)
+        XCTAssertEqual(model.detailPhase, .noSelection)
+
+        let manifest = makeManifest()
+        try await store.createMeeting(manifest)
+        let manifestURL = root.appendingPathComponent(manifest.id.uuidString).appendingPathComponent("manifest.json")
+        try Data("not json".utf8).write(to: manifestURL, options: .atomic)
+        await model.refresh()
+        guard case let .failed(message) = model.phase else {
+            return XCTFail("Expected an explicit library failure state")
+        }
+        XCTAssertTrue(message.contains("damaged"))
+        XCTAssertEqual(model.detailPhase, .noSelection)
+    }
+
+    @MainActor
+    func testMeetingLibraryLaysOutEmptyLoadingPartialUnavailableAndErrorStates() {
+        var partial = makeManifest(title: "Partial technical test")
+        partial.completionState = .partial
+        let detail = MeetingLibraryDetail(
+            manifest: partial,
+            transcript: [makeRecord(text: "Visible uncertain transcript", start: 0)],
+            notes: MeetingNotes(text: "Local note")
+        )
+        let models = [
+            MeetingLibraryModel(previewPhase: .empty),
+            MeetingLibraryModel(previewPhase: .loading),
+            MeetingLibraryModel(previewPhase: .content, meetings: [partial], detail: detail),
+            MeetingLibraryModel(previewPhase: .failed("The selected local speech model is unavailable.")),
+            MeetingLibraryModel(previewPhase: .failed("The local meeting library could not be read."))
+        ]
+
+        for model in models {
+            let hosting = NSHostingView(rootView: MeetingLibraryView(model: model, startMeeting: {}))
+            hosting.frame = NSRect(x: 0, y: 0, width: 1_000, height: 680)
+            hosting.layoutSubtreeIfNeeded()
+            XCTAssertGreaterThan(hosting.fittingSize.width, 0)
+            XCTAssertGreaterThan(hosting.fittingSize.height, 0)
+            hosting.removeFromSuperview()
+        }
     }
 
     private enum TestFailure: Error { case expected }

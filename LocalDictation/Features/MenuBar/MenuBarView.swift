@@ -4,10 +4,12 @@ import SwiftUI
 struct MenuBarView: View {
     @EnvironmentObject private var coordinator: DictationCoordinator
     @Environment(\.openSettings) private var openSettings
+    @ObservedObject private var notetakerStatus: NotetakerStatus
     private let notetaker: any NotetakerFacade
 
     init(notetaker: any NotetakerFacade = UnavailableNotetakerFacade()) {
         self.notetaker = notetaker
+        _notetakerStatus = ObservedObject(wrappedValue: notetaker.status)
     }
 
     private var presentation: StatusPresentation {
@@ -35,6 +37,18 @@ struct MenuBarView: View {
             header
 
             if let item = notetaker.menuBarItem {
+                Button(action: item.action) {
+                    Label(item.title, systemImage: item.systemImage)
+                }
+            }
+
+            if let item = notetaker.historyMenuItem {
+                Button(action: item.action) {
+                    Label(item.title, systemImage: item.systemImage)
+                }
+            }
+
+            if let item = notetaker.stopMenuItem {
                 Button(action: item.action) {
                     Label(item.title, systemImage: item.systemImage)
                 }
@@ -269,9 +283,10 @@ private struct LastUtteranceView: View {
                 .font(.caption)
             Text(
                 String(
-                    format: "%.2f s · %d frames · peak %.2f",
+                    format: "%.2f s · %d frames · rms %.3f · peak %.2f",
                     summary.duration,
                     summary.frameCount,
+                    summary.rmsLevel,
                     summary.peakLevel
                 )
             )

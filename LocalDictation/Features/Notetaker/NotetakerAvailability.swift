@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 
 /// The single product gate for the Notetaker subsystem.
@@ -27,20 +28,79 @@ struct NotetakerMenuItem {
     let action: () -> Void
 }
 
-/// The only Notetaker surface visible to the existing application shell.
-/// Later slices can put their coordinator behind this boundary without adding
+enum NotetakerActivityState: Sendable, Equatable {
+    case idle
+    case preparing
+    case recording
+    case paused
+    case finishing
+    case attention
+}
+
+/// Observable presentation shared by the Notetaker implementation and the
+/// app's existing menu-bar item. Keeping the state here avoids creating a
+/// second `NSStatusItem`, whose scene lifetime can race AppKit while the
+/// MenuBarExtra that launched the meeting window is closing.
+@MainActor
+final class NotetakerStatus: ObservableObject {
+    @Published private(set) var state: NotetakerActivityState = .idle
+
+    var isActive: Bool {
+        switch state {
+        case .preparing, .recording, .paused, .finishing: true
+        case .idle, .attention: false
+        }
+    }
+
+    var systemImage: String? {
+        switch state {
+        case .idle: nil
+        case .preparing, .finishing: "hourglass"
+        case .recording: "record.circle.fill"
+        case .paused: "pause.circle.fill"
+        case .attention: "exclamationmark.triangle.fill"
+        }
+    }
+
+    var accessibilityLabel: String {
+        switch state {
+        case .idle: "Witness"
+        case .preparing: "Witness is preparing a meeting note"
+        case .recording: "Witness is recording a meeting note"
+        case .paused: "Witness meeting recording is paused"
+        case .finishing: "Witness is finishing a meeting note"
+        case .attention: "Witness meeting note needs attention"
+        }
+    }
+
+    func update(_ state: NotetakerActivityState) {
+        self.state = state
+    }
+}
+
+/// The only Notetaker surfaces visible to the existing application shell.
+/// The recording and history actions stay behind this boundary without adding
 /// meeting states or effects to `DictationCoordinator`.
 @MainActor
 protocol NotetakerFacade: AnyObject {
+    var status: NotetakerStatus { get }
     var menuBarItem: NotetakerMenuItem? { get }
+    var historyMenuItem: NotetakerMenuItem? { get }
+    var stopMenuItem: NotetakerMenuItem? { get }
     func activate()
     func deactivate()
+}
+
+extension NotetakerFacade {
+    var historyMenuItem: NotetakerMenuItem? { nil }
+    var stopMenuItem: NotetakerMenuItem? { nil }
 }
 
 /// Disabled means no UI and no lifecycle work. In particular, this type owns
 /// no permission, detection, persistence, audio, or model dependency.
 @MainActor
 final class UnavailableNotetakerFacade: NotetakerFacade {
+    let status = NotetakerStatus()
     var menuBarItem: NotetakerMenuItem? { nil }
 
     func activate() {}

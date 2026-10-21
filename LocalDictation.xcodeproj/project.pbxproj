@@ -43,6 +43,7 @@
 		A110AEADE1AF2F7E6C908CF4 /* DebugMeetingSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C5A11C400996FC6B944072E /* DebugMeetingSession.swift */; };
 		B77835A83AE36218236822A3 /* DebugMeetingWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02AB83B76A35DA020DF66865 /* DebugMeetingWindow.swift */; };
 		FB175EFB02235C74F112057F /* LongFormTranscriber.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE5D04756402138CACD96C08 /* LongFormTranscriber.swift */; };
+		DAD73096B38360AAB3F90A20 /* MeetingLibraryWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2B3F163D2412423D0A3F538 /* MeetingLibraryWindow.swift */; };
 		0048B0D0CCB41CFB38947732 /* MeetingTranscriptAssembler.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8B9C09DB21B73731A18B7FE /* MeetingTranscriptAssembler.swift */; };
 		4D56DBAD849C4B425ADFFC8C /* FirstRunReadyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A82116905B08FDE2AD0BAFE7 /* FirstRunReadyView.swift */; };
 		D027F225CF196FFE19418759 /* LanguageSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 127FF204D665A5A417C088FB /* LanguageSetupView.swift */; };
@@ -316,6 +317,7 @@
 		3C5A11C400996FC6B944072E /* DebugMeetingSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugMeetingSession.swift; sourceTree = "<group>"; };
 		02AB83B76A35DA020DF66865 /* DebugMeetingWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugMeetingWindow.swift; sourceTree = "<group>"; };
 		CE5D04756402138CACD96C08 /* LongFormTranscriber.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LongFormTranscriber.swift; sourceTree = "<group>"; };
+		D2B3F163D2412423D0A3F538 /* MeetingLibraryWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingLibraryWindow.swift; sourceTree = "<group>"; };
 		C8B9C09DB21B73731A18B7FE /* MeetingTranscriptAssembler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingTranscriptAssembler.swift; sourceTree = "<group>"; };
 		A82116905B08FDE2AD0BAFE7 /* FirstRunReadyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirstRunReadyView.swift; sourceTree = "<group>"; };
 		127FF204D665A5A417C088FB /* LanguageSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LanguageSetupView.swift; sourceTree = "<group>"; };
@@ -658,6 +660,7 @@
 				3C5A11C400996FC6B944072E /* DebugMeetingSession.swift */,
 				02AB83B76A35DA020DF66865 /* DebugMeetingWindow.swift */,
 				CE5D04756402138CACD96C08 /* LongFormTranscriber.swift */,
+				D2B3F163D2412423D0A3F538 /* MeetingLibraryWindow.swift */,
 				C8B9C09DB21B73731A18B7FE /* MeetingTranscriptAssembler.swift */,
 			);
 			path = Transcription;
@@ -1293,6 +1296,7 @@
 				A110AEADE1AF2F7E6C908CF4 /* DebugMeetingSession.swift in Sources */,
 				B77835A83AE36218236822A3 /* DebugMeetingWindow.swift in Sources */,
 				FB175EFB02235C74F112057F /* LongFormTranscriber.swift in Sources */,
+				DAD73096B38360AAB3F90A20 /* MeetingLibraryWindow.swift in Sources */,
 				0048B0D0CCB41CFB38947732 /* MeetingTranscriptAssembler.swift in Sources */,
 				4D56DBAD849C4B425ADFFC8C /* FirstRunReadyView.swift in Sources */,
 				D027F225CF196FFE19418759 /* LanguageSetupView.swift in Sources */,

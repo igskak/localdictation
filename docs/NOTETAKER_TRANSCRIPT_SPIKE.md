@@ -20,8 +20,10 @@ This remains an internal test path, not a released meeting recorder. The
 command-line Debug harness has Start and Stop; the dogfood build below adds the
 native test interface. Neither is a substitute for a consented hardware test.
 Headphones are the supported test configuration; echo
-on speakers has not been measured. Closing the window requests a stop. The harness displays inference time divided
-by captured meeting time, audio real-time factor, maximum queue delay, peak
+on speakers has not been measured. In the dogfood build, closing the meeting
+window leaves an active recording running; the separate `Meeting recording`
+menu-bar item reopens, pauses/resumes or stops it. The harness displays
+inference time divided by captured meeting time, audio real-time factor, maximum queue delay, peak
 queue depth, process peak resident memory, skipped silent windows and detected
 lost intervals. These are local engineering diagnostics, not validated
 benchmark results. A lost interval is a detected callback/queue discontinuity,
@@ -41,9 +43,14 @@ The dogfood window is opened from `Start meeting note…` in the Witness menu.
 It lists Core Audio processes, prefers active Zoom or Chrome processes, accepts
 one verified transcript language, supports Start/Pause/Resume/Stop, displays
 source health and elapsed captured time, and keeps the live transcript and
-technical metrics in memory. The reminder about applicable recording rules is
-informational and does not block Start. No bot joins the meeting and Witness
-does not send a participant notification.
+technical metrics in memory. Completed and partial transcripts are stored
+locally without audio. `Meeting note history…` opens the searchable local
+library, where a tester can rename a note, edit notes, inspect transcript and
+raw recognition differences, export text or Markdown, and permanently delete
+the meeting after confirmation. Empty, loading, partial and failure states are
+explicit. The reminder about applicable recording rules is informational and
+does not block Start. No bot joins the meeting and Witness does not send a
+participant notification.
 
 The ordinary build omits `NOTETAKER_DOGFOOD`, so its composition root remains
 disabled and constructs none of this UI or its system-facing dependencies.
