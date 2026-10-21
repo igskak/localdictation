@@ -36,6 +36,10 @@ struct MenuBarView: View {
 
             header
 
+            if let suggestion = notetaker.suggestion {
+                MeetingSuggestionCard(suggestion: suggestion)
+            }
+
             if let item = notetaker.menuBarItem {
                 Button(action: item.action) {
                     Label(item.title, systemImage: item.systemImage)
@@ -250,6 +254,37 @@ struct MenuBarView: View {
         case .active: WitnessStyle.accent
         case .warning: WitnessStyle.warning
         }
+    }
+}
+
+private struct MeetingSuggestionCard: View {
+    let suggestion: NotetakerSuggestion
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label(suggestion.title, systemImage: "video.badge.waveform")
+                .font(.headline)
+                .foregroundStyle(WitnessStyle.ink)
+            Text(suggestion.detail)
+                .font(.callout)
+                .foregroundStyle(WitnessStyle.muted)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("Witness never starts recording automatically and does not notify other participants.")
+                .font(.caption)
+                .foregroundStyle(WitnessStyle.muted)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 8) {
+                Button("Start note", action: suggestion.start)
+                    .buttonStyle(WitnessPrimaryButtonStyle())
+                    .accessibilityHint("Starts local microphone and meeting audio recording")
+                Button("Dismiss", action: suggestion.dismiss)
+                    .buttonStyle(WitnessSecondaryButtonStyle())
+                    .accessibilityHint("Hides this suggestion and starts its cooldown")
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .witnessCard(.accent)
+        .accessibilityElement(children: .contain)
     }
 }
 

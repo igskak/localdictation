@@ -74,6 +74,11 @@ final class NotetakerAvailabilityTests: XCTestCase {
         XCTAssertNil(status.systemImage)
         XCTAssertFalse(status.isActive)
 
+        status.update(.suggestion)
+        XCTAssertEqual(status.systemImage, "note.text.badge.plus")
+        XCTAssertEqual(status.accessibilityLabel, "Witness found a possible meeting")
+        XCTAssertFalse(status.isActive)
+
         status.update(.recording)
         XCTAssertEqual(status.systemImage, "record.circle.fill")
         XCTAssertEqual(status.accessibilityLabel, "Witness is recording a meeting note")

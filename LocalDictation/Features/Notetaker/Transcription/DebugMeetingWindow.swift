@@ -55,6 +55,11 @@ private enum MeetingFailureAction {
     case retryStart
 }
 
+enum CallEndNotice: Equatable {
+    case grace(secondsRemaining: Int)
+    case paused
+}
+
 @MainActor
 final class DebugMeetingModel: ObservableObject {
     @Published var processOptions: [MeetingProcessOption] = []
@@ -69,7 +74,12 @@ final class DebugMeetingModel: ObservableObject {
     @Published var finishing = false
     @Published var elapsed: TimeInterval = 0
     @Published var failureMessage: String?
+    @Published private(set) var callEndNotice: CallEndNotice?
     @Published private var failureAction: MeetingFailureAction?
+
+    var onRecordingStarted: (MeetingCandidate) -> Void = { _ in }
+    var onRecordingFinished: () -> Void = {}
+    var onKeepRecording: () -> Void = {}
 
     private var session: DebugMeetingSession?
     private var generation = UUID()
@@ -82,6 +92,8 @@ final class DebugMeetingModel: ObservableObject {
     private var startedAt: Date?
     private var pausedAt: Date?
     private var accumulatedPause: TimeInterval = 0
+    private var captureStartReported = false
+    private(set) var autoPausedByCallEnd = false
 
     init(
         resolver: any MeetingProcessResolving = CoreAudioMeetingProcessResolver(),
@@ -108,7 +120,7 @@ final class DebugMeetingModel: ObservableObject {
         return String(format: "%02d:%02d:%02d", seconds / 3600, (seconds / 60) % 60, seconds % 60)
     }
 
-    func start() {
+    func start(preferredProcessID: pid_t? = nil) {
         guard canStart else { return }
         active = true
         preparing = true
@@ -116,6 +128,9 @@ final class DebugMeetingModel: ObservableObject {
         finishing = false
         failureMessage = nil
         failureAction = nil
+        callEndNotice = nil
+        autoPausedByCallEnd = false
+        captureStartReported = false
         rows = []
         metrics = ""
         elapsed = 0
@@ -131,7 +146,7 @@ final class DebugMeetingModel: ObservableObject {
             do {
                 let options = try await discoverProcesses()
                 guard active, generation == currentGeneration else { return }
-                receiveProcesses(options)
+                receiveProcesses(options, preferredProcessID: preferredProcessID)
             } catch {
                 fail("Witness could not inspect local audio apps. Check that Zoom or Chrome is open, then try again.", action: .retryStart)
                 return
@@ -169,6 +184,8 @@ final class DebugMeetingModel: ObservableObject {
 
     func togglePause() {
         guard let session, active, !finishing else { return }
+        callEndNotice = nil
+        autoPausedByCallEnd = false
         if paused {
             status = "Resuming…"
             Task { await session.resume() }
@@ -179,6 +196,8 @@ final class DebugMeetingModel: ObservableObject {
     }
 
     func stop() {
+        callEndNotice = nil
+        autoPausedByCallEnd = false
         guard let session else {
             generation = UUID()
             active = false
@@ -251,9 +270,14 @@ final class DebugMeetingModel: ObservableObject {
         }
     }
 
-    private func receiveProcesses(_ processes: [MeetingProcessOption]) {
+    private func receiveProcesses(_ processes: [MeetingProcessOption], preferredProcessID: pid_t?) {
         processOptions = processes
-        selectedProcessID = MeetingProcessSelection.preferred(in: processes)?.processID
+        if let preferredProcessID,
+           processes.contains(where: { $0.processID == preferredProcessID }) {
+            selectedProcessID = preferredProcessID
+        } else {
+            selectedProcessID = MeetingProcessSelection.preferred(in: processes)?.processID
+        }
     }
 
     private func receive(_ update: DebugMeetingUpdate) {
@@ -266,11 +290,20 @@ final class DebugMeetingModel: ObservableObject {
                 self.pausedAt = nil
                 paused = false
                 menuBarStatus.update(.recording)
+                if !captureStartReported,
+                   let selectedProcess,
+                   let candidate = MeetingCandidateDetector().candidate(for: selectedProcess) {
+                    captureStartReported = true
+                    onRecordingStarted(candidate)
+                }
             } else if value.hasPrefix("Paused") {
                 preparing = false
                 paused = true
                 pausedAt = Date()
                 menuBarStatus.update(.paused)
+                if autoPausedByCallEnd {
+                    status = "Meeting audio ended. Recording is paused; this note can resume."
+                }
             }
         case let .rows(value): rows = value
         case let .metrics(value): metrics = value
@@ -282,7 +315,11 @@ final class DebugMeetingModel: ObservableObject {
             paused = false
             finishing = false
             session = nil
+            callEndNotice = nil
+            autoPausedByCallEnd = false
+            captureStartReported = false
             stopClock()
+            onRecordingFinished()
             if partial {
                 menuBarStatus.update(.attention)
                 status = persisted
@@ -326,11 +363,46 @@ final class DebugMeetingModel: ObservableObject {
         preparing = false
         paused = false
         finishing = false
+        callEndNotice = nil
+        autoPausedByCallEnd = false
+        captureStartReported = false
         stopClock()
         failureMessage = message
         failureAction = action
         menuBarStatus.update(.attention)
         status = "Could not start the meeting note."
+    }
+
+    func showCallEndGrace(secondsRemaining: Int) {
+        guard active, !finishing, !paused else { return }
+        callEndNotice = .grace(secondsRemaining: max(secondsRemaining, 0))
+    }
+
+    func pauseForCallEnd() {
+        guard let session, active, !finishing, !paused else { return }
+        autoPausedByCallEnd = true
+        callEndNotice = .paused
+        status = "Meeting audio ended. Pausing this note…"
+        Task { await session.pause() }
+    }
+
+    func resumeAfterFalseStop() {
+        guard let session, active, !finishing, autoPausedByCallEnd else {
+            callEndNotice = nil
+            return
+        }
+        callEndNotice = nil
+        autoPausedByCallEnd = false
+        status = "Meeting audio returned. Resuming the same note…"
+        Task { await session.resume() }
+    }
+
+    func keepRecording() {
+        onKeepRecording()
+    }
+
+    func clearCallEndNotice() {
+        callEndNotice = nil
     }
 
     private func failure(for error: Error) -> (message: String, action: MeetingFailureAction?) {
@@ -416,6 +488,7 @@ struct DebugMeetingView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 statusCard
+                if let notice = model.callEndNotice { callEndCard(notice) }
                 actionButtons
                 if let failure = model.failureMessage { failureCard(failure) }
                 automaticSourceNote
@@ -459,6 +532,30 @@ struct DebugMeetingView: View {
         .font(.callout)
         .foregroundStyle(WitnessStyle.muted)
         .accessibilityElement(children: .combine)
+    }
+
+    private func callEndCard(_ notice: CallEndNotice) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("Meeting audio disappeared", systemImage: "waveform.slash")
+                .font(.headline)
+                .foregroundStyle(WitnessStyle.warning)
+            switch notice {
+            case let .grace(secondsRemaining):
+                Text("Witness is waiting up to \(secondsRemaining) seconds before pausing. If audio returns, this note continues automatically.")
+                    .font(.callout)
+                    .fixedSize(horizontal: false, vertical: true)
+            case .paused:
+                Text("Capture is paused, not finalized. If the call returns, Witness resumes this same note.")
+                    .font(.callout)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Button("Keep recording") { model.keepRecording() }
+                .buttonStyle(WitnessSecondaryButtonStyle())
+                .accessibilityHint("Cancels call-end detection for this note and resumes it if paused")
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .witnessCard(.warning)
+        .accessibilityElement(children: .contain)
     }
 
     private var languagePicker: some View {
@@ -723,9 +820,11 @@ final class DebugMeetingWindowController: NSObject {
 @MainActor
 final class DogfoodNotetakerFacade: NotetakerFacade {
     let status: NotetakerStatus
+    private(set) var suggestion: NotetakerSuggestion?
     private let window: DebugMeetingWindowController
     private let library: MeetingLibraryWindowController
     private let recordingModel: DebugMeetingModel
+    private var detection: MeetingDetectionCoordinator?
 
     init() {
         let store = FileMeetingStore()
@@ -743,6 +842,19 @@ final class DogfoodNotetakerFacade: NotetakerFacade {
         self.window = window
         self.library = library
         self.recordingModel = recordingModel
+        let detection = MeetingDetectionCoordinator(model: recordingModel) { [weak self] candidate in
+            self?.presentSuggestion(for: candidate)
+        }
+        self.detection = detection
+        recordingModel.onRecordingStarted = { [weak detection] candidate in
+            detection?.recordingStarted(candidate: candidate)
+        }
+        recordingModel.onRecordingFinished = { [weak detection] in
+            detection?.recordingFinished()
+        }
+        recordingModel.onKeepRecording = { [weak detection] in
+            detection?.keepRecording()
+        }
     }
 
     var menuBarItem: NotetakerMenuItem? {
@@ -770,6 +882,45 @@ final class DogfoodNotetakerFacade: NotetakerFacade {
         )
     }
 
-    func activate() {}
-    func deactivate() { window.stop() }
+    func activate() { detection?.activate() }
+
+    func deactivate() {
+        detection?.deactivate()
+        window.stop()
+    }
+
+    private func presentSuggestion(for candidate: MeetingCandidate?) {
+        guard let candidate else {
+            suggestion = nil
+            if status.state == .suggestion {
+                status.update(.idle)
+            } else {
+                status.update(status.state)
+            }
+            return
+        }
+        suggestion = NotetakerSuggestion(
+            platform: candidate.platform,
+            start: { [weak self] in self?.startSuggestedMeeting() },
+            dismiss: { [weak self] in self?.dismissSuggestion() }
+        )
+        if status.state == .idle || status.state == .suggestion {
+            status.update(.suggestion)
+        } else {
+            status.update(status.state)
+        }
+    }
+
+    private func startSuggestedMeeting() {
+        guard let candidate = detection?.acceptSuggestion() else { return }
+        suggestion = nil
+        window.show()
+        recordingModel.start(preferredProcessID: candidate.processIdentifier)
+    }
+
+    private func dismissSuggestion() {
+        detection?.dismissSuggestion()
+        suggestion = nil
+        if status.state == .suggestion { status.update(.idle) }
+    }
 }

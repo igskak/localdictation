@@ -28,8 +28,32 @@ struct NotetakerMenuItem {
     let action: () -> Void
 }
 
+@MainActor
+struct NotetakerSuggestion {
+    let platform: MeetingPlatform
+    let start: () -> Void
+    let dismiss: () -> Void
+
+    var title: String {
+        switch platform {
+        case .zoom: "Zoom call detected"
+        case .googleMeet: "Possible Google Meet call"
+        case .manual: "Meeting detected"
+        }
+    }
+
+    var detail: String {
+        switch platform {
+        case .zoom: "Create a local note from your microphone and Zoom audio?"
+        case .googleMeet: "Chrome is playing audio. If this is a Meet call, Witness can create a local note."
+        case .manual: "Create a local meeting note?"
+        }
+    }
+}
+
 enum NotetakerActivityState: Sendable, Equatable {
     case idle
+    case suggestion
     case preparing
     case recording
     case paused
@@ -48,13 +72,14 @@ final class NotetakerStatus: ObservableObject {
     var isActive: Bool {
         switch state {
         case .preparing, .recording, .paused, .finishing: true
-        case .idle, .attention: false
+        case .idle, .suggestion, .attention: false
         }
     }
 
     var systemImage: String? {
         switch state {
         case .idle: nil
+        case .suggestion: "note.text.badge.plus"
         case .preparing, .finishing: "hourglass"
         case .recording: "record.circle.fill"
         case .paused: "pause.circle.fill"
@@ -65,6 +90,7 @@ final class NotetakerStatus: ObservableObject {
     var accessibilityLabel: String {
         switch state {
         case .idle: "Witness"
+        case .suggestion: "Witness found a possible meeting"
         case .preparing: "Witness is preparing a meeting note"
         case .recording: "Witness is recording a meeting note"
         case .paused: "Witness meeting recording is paused"
@@ -84,6 +110,7 @@ final class NotetakerStatus: ObservableObject {
 @MainActor
 protocol NotetakerFacade: AnyObject {
     var status: NotetakerStatus { get }
+    var suggestion: NotetakerSuggestion? { get }
     var menuBarItem: NotetakerMenuItem? { get }
     var historyMenuItem: NotetakerMenuItem? { get }
     var stopMenuItem: NotetakerMenuItem? { get }
@@ -92,6 +119,7 @@ protocol NotetakerFacade: AnyObject {
 }
 
 extension NotetakerFacade {
+    var suggestion: NotetakerSuggestion? { nil }
     var historyMenuItem: NotetakerMenuItem? { nil }
     var stopMenuItem: NotetakerMenuItem? { nil }
 }
