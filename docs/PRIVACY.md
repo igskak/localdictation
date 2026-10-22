@@ -96,6 +96,13 @@ meeting URL, imported participant list, or recording of any kind. Renaming or
 reassigning a speaker is local to that meeting and can be reset to the original
 attribution.
 
+The diarization dogfood build bundles its model and performs speaker separation
+locally on the already captured in-memory system/process-tap audio. It does not
+download a model at runtime, upload audio or derived embeddings, or write either
+to disk. Only anonymous speaker IDs, timestamps, and local confidence evidence
+may be added to the transcript file. If the model is unavailable or fails, the
+meeting note continues with the `You`/`Others` attribution.
+
 Meeting files remain on this Mac until you permanently delete that meeting.
 Deletion removes the whole per-meeting directory, including manifest,
 transcript and notes; it cannot be undone. Search and text/Markdown export read

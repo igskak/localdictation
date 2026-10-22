@@ -68,6 +68,7 @@ final class DebugMeetingModel: ObservableObject {
     @Published var status = "Ready. Press Record when your meeting starts."
     @Published var rows: [MeetingTranscriptRow] = []
     @Published var metrics = ""
+    @Published var diarizationState: DiarizationDisplayState = .unavailable
     @Published var active = false
     @Published var preparing = false
     @Published var paused = false
@@ -133,6 +134,7 @@ final class DebugMeetingModel: ObservableObject {
         captureStartReported = false
         rows = []
         metrics = ""
+        diarizationState = .unavailable
         elapsed = 0
         accumulatedPause = 0
         pausedAt = nil
@@ -305,6 +307,8 @@ final class DebugMeetingModel: ObservableObject {
                     status = "Meeting audio ended. Recording is paused; this note can resume."
                 }
             }
+        case let .diarization(value):
+            diarizationState = value
         case let .rows(value): rows = value
         case let .metrics(value): metrics = value
         case let .finished(partial, persisted):
@@ -577,6 +581,22 @@ struct DebugMeetingView: View {
             Text("Sources").font(.headline)
             sourceRow("You", detail: "System microphone", systemImage: "mic", available: true)
             sourceRow("Others", detail: model.selectedProcess?.name ?? "Selected automatically when recording", systemImage: "waveform", available: model.selectedProcessID != nil)
+            sourceRow(
+                "Speaker separation",
+                detail: diarizationDetail,
+                systemImage: "person.2.wave.2",
+                available: model.diarizationState == .active
+            )
+        }
+    }
+
+    private var diarizationDetail: String {
+        switch model.diarizationState {
+        case .unavailable: "Starts with recording"
+        case .preparing: "Loading the bundled local model"
+        case .active: "Nemotron 3 · local · 10.6 s model window"
+        case .fallback: "Model unavailable — using You/Others"
+        case .failed: "Stopped safely — using You/Others"
         }
     }
 
@@ -740,9 +760,16 @@ struct DebugMeetingView: View {
                 .foregroundStyle(WitnessStyle.faint)
                 .frame(width: 46, alignment: .leading)
             VStack(alignment: .leading, spacing: 5) {
-                Text(row.speaker)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(row.source == .microphone ? WitnessStyle.accent : WitnessStyle.success)
+                HStack(spacing: 6) {
+                    Text(row.speaker)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(row.source == .microphone ? WitnessStyle.accent : WitnessStyle.success)
+                    if let confidence = row.speakerConfidence {
+                        Text("\(Int((confidence * 100).rounded()))%")
+                            .font(.caption2.monospacedDigit())
+                            .foregroundStyle(confidence >= 0.6 ? WitnessStyle.muted : WitnessStyle.warning)
+                    }
+                }
                 Text(row.text)
                     .font(.body)
                     .textSelection(.enabled)
@@ -882,7 +909,12 @@ final class DogfoodNotetakerFacade: NotetakerFacade {
         )
     }
 
-    func activate() { detection?.activate() }
+    func activate() {
+        detection?.activate()
+        Task(priority: .utility) {
+            await ProductionDiarizationFactory.warmUpIfAvailable()
+        }
+    }
 
     func deactivate() {
         detection?.deactivate()

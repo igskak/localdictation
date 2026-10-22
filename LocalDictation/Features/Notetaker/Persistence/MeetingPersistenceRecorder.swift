@@ -36,6 +36,18 @@ actor MeetingPersistenceRecorder {
         }
     }
 
+    /// Reconciles delayed local speaker hypotheses after the diarizer flushes
+    /// its final context. The recognized text is unchanged and the file swap is
+    /// atomic, while live append-only writes still provide crash recovery.
+    func replace(rows: [MeetingTranscriptRow]) async throws {
+        guard let manifest else { return }
+        try await store.replaceTranscript(
+            rows.map(MeetingTranscriptRecord.init(row:)),
+            meetingID: manifest.id
+        )
+        persistedRowCount = rows.count
+    }
+
     func finish(partial: Bool, at date: Date = Date()) async throws {
         guard var manifest else { return }
         manifest.endedAt = date

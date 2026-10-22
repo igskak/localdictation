@@ -79,6 +79,100 @@ struct SpeakerAttributionAligner: Sendable {
     }
 }
 
+/// Turns the word-level result into visible speaker runs without rewriting the
+/// recognized words. If even one visible token cannot be attributed, the
+/// original row is retained with a segment-level hypothesis instead of
+/// dropping or inventing text.
+struct SpeakerAttributedRowBuilder: Sendable {
+    private struct MatchedWord {
+        let token: TranscriptToken
+        let attribution: SpeakerWordAttribution
+    }
+
+    func rows(
+        from row: MeetingTranscriptRow,
+        turns: [DiarizedSpeakerTurn],
+        sampleRate: Double = AudioTargetFormat.sampleRate
+    ) -> [MeetingTranscriptRow] {
+        guard let alignment = SpeakerAttributionAligner().align(
+            row: row,
+            turns: turns,
+            sampleRate: sampleRate
+        ) else { return [row] }
+        guard row.source == .system else { return [row] }
+
+        let visibleRange = visibleOffsets(row: row)
+        let visibleTokens = row.original.tokens.filter {
+            $0.range.upperBound > visibleRange.lowerBound && $0.range.lowerBound < visibleRange.upperBound
+        }
+        var remaining = alignment.words
+        let matched: [MatchedWord] = visibleTokens.compactMap { token in
+            let start = row.startFrame + Int64((max(token.start, 0) * sampleRate).rounded())
+            let end = row.startFrame + Int64((max(token.end, token.start) * sampleRate).rounded())
+            guard let index = remaining.firstIndex(where: {
+                $0.startFrame == start && $0.endFrame == max(end, start + 1) && $0.text == token.text
+            }) else { return nil }
+            return MatchedWord(token: token, attribution: remaining.remove(at: index))
+        }
+
+        guard !visibleTokens.isEmpty, matched.count == visibleTokens.count else {
+            return [row.attributed(
+                speakerID: alignment.speakerID,
+                confidence: alignment.confidence,
+                words: alignment.words
+            )]
+        }
+
+        var groups: [[MatchedWord]] = []
+        for word in matched {
+            if groups.last?.last?.attribution.speakerID == word.attribution.speakerID {
+                groups[groups.count - 1].append(word)
+            } else {
+                groups.append([word])
+            }
+        }
+        guard groups.count > 1 else {
+            return [row.attributed(
+                speakerID: alignment.speakerID,
+                confidence: alignment.confidence,
+                words: alignment.words
+            )]
+        }
+
+        let characters = Array(row.original.text)
+        return groups.enumerated().compactMap { index, group in
+            guard let first = group.first, let last = group.last else { return nil }
+            let lower = max(first.token.range.lowerBound, visibleRange.lowerBound)
+            let nextLower = groups.indices.contains(index + 1)
+                ? groups[index + 1][0].token.range.lowerBound
+                : visibleRange.upperBound
+            let upper = min(max(nextLower, lower), characters.count)
+            guard lower < upper else { return nil }
+            let text = String(characters[lower..<upper]).trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !text.isEmpty else { return nil }
+            let words = group.map(\.attribution)
+            let confidence = words.reduce(0) { $0 + $1.confidence } / Double(words.count)
+            return row.attributed(
+                speakerID: first.attribution.speakerID,
+                confidence: confidence,
+                words: words,
+                startFrame: first.attribution.startFrame,
+                endFrame: last.attribution.endFrame,
+                text: text
+            )
+        }
+    }
+
+    private func visibleOffsets(row: MeetingTranscriptRow) -> Range<Int> {
+        guard let range = row.original.text.range(of: row.text, options: .backwards) else {
+            return 0..<row.original.text.count
+        }
+        let lower = row.original.text.distance(from: row.original.text.startIndex, to: range.lowerBound)
+        let upper = row.original.text.distance(from: row.original.text.startIndex, to: range.upperBound)
+        return lower..<upper
+    }
+}
+
 protocol SpeakerDiarizationService: Sendable {
     mutating func ingest(_ chunk: MeetingAudioChunk) -> [DiarizedSpeakerTurn]
     mutating func finish() -> [DiarizedSpeakerTurn]

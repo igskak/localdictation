@@ -251,16 +251,19 @@ final class MeetingLibraryModel: ObservableObject {
         return value.isEmpty ? "Meeting note" : value
     }
 
-    static let editableSpeakerIDs = ["you", "others", "speaker-1", "speaker-2", "speaker-3"]
+    static let editableSpeakerIDs = ["you", "others"] + (1...8).map { "speaker-\($0)" }
 
     static func defaultSpeakerName(_ speakerID: String) -> String {
         switch speakerID {
-        case "you": "You"
-        case "others": "Others"
-        case "speaker-1": "Speaker 1"
-        case "speaker-2": "Speaker 2"
-        case "speaker-3": "Speaker 3"
-        default: speakerID
+        case "you": return "You"
+        case "others": return "Others"
+        default:
+            if let number = speakerID.split(separator: "-").last,
+               speakerID.hasPrefix("speaker-"),
+               Int(number) != nil {
+                return "Speaker \(number)"
+            }
+            return speakerID
         }
     }
 

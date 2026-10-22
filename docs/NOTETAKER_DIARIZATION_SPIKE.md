@@ -12,11 +12,11 @@ first-party Swift source in the app and uses only the already captured in-memory
 16 kHz mono system-audio chunks. There is therefore no new third-party SDK or
 model licence to approve in this implementation.
 
-FluidAudio and other diarization SDKs remain intentionally unintegrated. Before
-one can be considered, record the exact SDK commit, every transitive licence,
-the model source and licence, redistribution terms, model size, and whether the
-implementation can release audio incrementally. A requirement to persist the
-whole recording is a privacy decision, not an engineering shortcut.
+Slice 6 itself adds no SDK. The separate Slice 6.1 dogfood build now integrates
+a pinned FluidAudio/Nemotron candidate with notices and hash-verified weights;
+see `docs/NOTETAKER_DIARIZATION_MODEL_SLICE.md`. That experiment does not change
+this slice's production gate. A requirement to persist the whole recording
+would still be a privacy decision, not an engineering shortcut.
 
 ## Experiment
 
@@ -54,9 +54,10 @@ category. Aggregate accuracy cannot hide a weak category.
 
 These are not zeroes. No licensed, consented real-speech corpus was supplied for
 this slice, and synthesized tones are only a deterministic plumbing test. The
-quality gate therefore fails, so the test build keeps automatic `You`/`Others`.
-The meeting library does allow an explicit user to assign `Speaker 1/2/3`, rename
-those labels, and restore the original attribution.
+quality gate therefore fails for ordinary Release builds, which keep automatic
+`You`/`Others`. A Slice 6.1 dogfood DMG deliberately enables numbered labels to
+collect the missing evidence. The meeting library allows the user to assign or
+rename `Speaker 1...8` and restore the original attribution.
 
 ## Verification
 
@@ -66,3 +67,11 @@ fail-closed behavior, backward-compatible transcript decoding, atomic manual
 reassignment, rename/export behavior, and restoration of original attribution.
 The normal Xcode test suite and an ad-hoc dogfood DMG build remain the slice
 release checks.
+
+## Follow-up
+
+Model selection, licence approval, guarded integration, and corpus measurement
+are the separate **Slice 6.1**. See
+`docs/NOTETAKER_DIARIZATION_MODEL_SLICE.md`. Slice 6 remains complete without a
+third-party model; automatic numbered speakers remain dogfood-only until the
+follow-up slice passes its gates.

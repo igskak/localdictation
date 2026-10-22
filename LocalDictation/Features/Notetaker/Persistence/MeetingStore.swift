@@ -104,7 +104,10 @@ struct MeetingTranscriptRecord: Codable, Sendable, Equatable, Identifiable {
     init(row: MeetingTranscriptRow) {
         self.init(
             source: row.source,
-            speakerID: row.source == .microphone ? "you" : "others",
+            speakerID: row.speakerID,
+            speakerConfidence: row.speakerConfidence,
+            speakerAssignmentSource: row.speakerAssignmentSource,
+            wordAttributions: row.wordAttributions,
             startFrame: row.startFrame,
             endFrame: row.endFrame,
             text: row.text,
@@ -218,6 +221,7 @@ protocol MeetingStoring: Sendable {
     func loadManifest(id: UUID) async throws -> MeetingManifest
     func updateManifest(_ manifest: MeetingManifest) async throws
     func appendTranscript(_ record: MeetingTranscriptRecord, meetingID: UUID) async throws
+    func replaceTranscript(_ records: [MeetingTranscriptRecord], meetingID: UUID) async throws
     func loadTranscript(meetingID: UUID) async throws -> [MeetingTranscriptRecord]
     func reassignTranscript(_ recordID: UUID, meetingID: UUID, speakerID: String?) async throws
     func loadNotes(meetingID: UUID) async throws -> MeetingNotes
@@ -329,6 +333,32 @@ actor FileMeetingStore: MeetingStoring {
         }
     }
 
+    func replaceTranscript(_ records: [MeetingTranscriptRecord], meetingID: UUID) throws {
+        try writeTranscript(records, meetingID: meetingID, operation: "replaceTranscript")
+    }
+
+    private func writeTranscript(
+        _ records: [MeetingTranscriptRecord],
+        meetingID: UUID,
+        operation: String
+    ) throws {
+        let url = meetingDirectory(meetingID).appendingPathComponent("transcript.ndjson")
+        guard fileManager.fileExists(atPath: url.path) else { throw MeetingStoreError.notFound(meetingID) }
+        do {
+            var data = Data()
+            for record in records {
+                data.append(try encoder.encode(record))
+                data.append(0x0A)
+            }
+            try atomicWriter(data, url)
+            try secureFile(url)
+        } catch let error as MeetingStoreError {
+            throw error
+        } catch {
+            throw MeetingStoreError.unwritable(operation)
+        }
+    }
+
     func loadTranscript(meetingID: UUID) throws -> [MeetingTranscriptRecord] {
         let url = meetingDirectory(meetingID).appendingPathComponent("transcript.ndjson")
         guard fileManager.fileExists(atPath: url.path) else { throw MeetingStoreError.notFound(meetingID) }
@@ -355,20 +385,7 @@ actor FileMeetingStore: MeetingStoring {
             throw MeetingStoreError.notFound(recordID)
         }
         records[index] = records[index].assigningSpeaker(speakerID)
-        let url = meetingDirectory(meetingID).appendingPathComponent("transcript.ndjson")
-        do {
-            var data = Data()
-            for record in records {
-                data.append(try encoder.encode(record))
-                data.append(0x0A)
-            }
-            try atomicWriter(data, url)
-            try secureFile(url)
-        } catch let error as MeetingStoreError {
-            throw error
-        } catch {
-            throw MeetingStoreError.unwritable("rewriteTranscript")
-        }
+        try writeTranscript(records, meetingID: meetingID, operation: "rewriteTranscript")
     }
 
     func loadNotes(meetingID: UUID) throws -> MeetingNotes {

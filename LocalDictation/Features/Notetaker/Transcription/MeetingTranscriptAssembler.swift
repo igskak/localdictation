@@ -15,7 +15,67 @@ struct MeetingTranscriptRow: Sendable, Equatable {
     let endFrame: Int64
     let text: String
     let original: Transcript
-    var speaker: String { source == .microphone ? "You" : "Others" }
+    let speakerID: String
+    let speakerConfidence: Double?
+    let speakerAssignmentSource: SpeakerAssignmentSource
+    let wordAttributions: [SpeakerWordAttribution]
+
+    init(
+        source: MeetingAudioSource,
+        startFrame: Int64,
+        endFrame: Int64,
+        text: String,
+        original: Transcript,
+        speakerID: String? = nil,
+        speakerConfidence: Double? = nil,
+        speakerAssignmentSource: SpeakerAssignmentSource = .sourceFallback,
+        wordAttributions: [SpeakerWordAttribution] = []
+    ) {
+        self.source = source
+        self.startFrame = startFrame
+        self.endFrame = endFrame
+        self.text = text
+        self.original = original
+        self.speakerID = speakerID ?? (source == .microphone ? "you" : "others")
+        self.speakerConfidence = speakerConfidence
+        self.speakerAssignmentSource = speakerAssignmentSource
+        self.wordAttributions = wordAttributions
+    }
+
+    var speaker: String {
+        switch speakerID {
+        case "you": "You"
+        case "others": "Others"
+        default:
+            if let number = speakerID.split(separator: "-").last,
+               speakerID.hasPrefix("speaker-") {
+                "Speaker \(number)"
+            } else {
+                speakerID
+            }
+        }
+    }
+
+    func attributed(
+        speakerID: String,
+        confidence: Double,
+        words: [SpeakerWordAttribution],
+        startFrame: Int64? = nil,
+        endFrame: Int64? = nil,
+        text: String? = nil
+    ) -> MeetingTranscriptRow {
+        MeetingTranscriptRow(
+            source: source,
+            startFrame: startFrame ?? self.startFrame,
+            endFrame: endFrame ?? self.endFrame,
+            text: text ?? self.text,
+            original: original,
+            speakerID: speakerID,
+            speakerConfidence: min(max(confidence, 0), 1),
+            speakerAssignmentSource: .diarization,
+            wordAttributions: words
+        )
+    }
 }
 
 /// Only strips time-aligned token matches that are identical apart from

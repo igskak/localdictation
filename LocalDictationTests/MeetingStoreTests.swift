@@ -79,6 +79,48 @@ final class MeetingStoreTests: XCTestCase {
         XCTAssertEqual(loaded, records)
     }
 
+    func testAtomicTranscriptReplacementReconcilesDelayedSpeakerEvidence() async throws {
+        let store = FileMeetingStore(rootURL: root)
+        let manifest = makeManifest()
+        try await store.createMeeting(manifest)
+        try await store.appendTranscript(
+            makeRecord(source: .system, text: "First live row", start: 0),
+            meetingID: manifest.id
+        )
+        let reconciled = [
+            MeetingTranscriptRecord(
+                source: .system,
+                speakerID: "speaker-1",
+                speakerConfidence: 0.8,
+                speakerAssignmentSource: .diarization,
+                startFrame: 0,
+                endFrame: 8_000,
+                text: "First",
+                meanConfidence: 0.9,
+                minimumConfidence: 0.9,
+                hasConfidenceSignal: true
+            ),
+            MeetingTranscriptRecord(
+                source: .system,
+                speakerID: "speaker-2",
+                speakerConfidence: 0.7,
+                speakerAssignmentSource: .diarization,
+                startFrame: 8_000,
+                endFrame: 16_000,
+                text: "live row",
+                meanConfidence: 0.9,
+                minimumConfidence: 0.9,
+                hasConfidenceSignal: true
+            )
+        ]
+
+        try await store.replaceTranscript(reconciled, meetingID: manifest.id)
+
+        let loaded = try await store.loadTranscript(meetingID: manifest.id)
+        XCTAssertEqual(loaded, reconciled)
+        XCTAssertEqual(try permissions(transcriptURL(manifest.id)), 0o600)
+    }
+
     func testUnknownFutureFieldsAreIgnored() async throws {
         let store = FileMeetingStore(rootURL: root)
         let manifest = makeManifest()
