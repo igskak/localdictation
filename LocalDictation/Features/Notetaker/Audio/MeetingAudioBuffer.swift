@@ -84,13 +84,30 @@ final class MeetingAudioBuffer: @unchecked Sendable {
 
     /// Call off the real-time thread. Every call copies at most one bounded slot.
     func take() -> SystemAudioChunk? {
+        // Reserve the oldest slot while it is still counted as occupied, then
+        // copy it without holding the lock. The single producer cannot wrap
+        // around and overwrite an occupied read slot, and the documented
+        // single consumer cannot reserve it twice. Keeping allocation and the
+        // sample copy outside this critical section matters: the real-time
+        // producer uses trylock and must never lose audio merely because the
+        // consumer is materializing an Array.
         os_unfair_lock_lock(&lock)
-        defer { os_unfair_lock_unlock(&lock) }
-        guard count > 0 else { return nil }
+        guard count > 0 else {
+            os_unfair_lock_unlock(&lock)
+            return nil
+        }
+        let reservedIndex = readIndex
         let slot = slots[readIndex]
-        let samples = Array(UnsafeBufferPointer(start: storage + readIndex * maximumFrames, count: slot.count))
+        os_unfair_lock_unlock(&lock)
+
+        let samples = Array(UnsafeBufferPointer(start: storage + reservedIndex * maximumFrames,
+                                                count: slot.count))
+
+        os_unfair_lock_lock(&lock)
+        precondition(readIndex == reservedIndex && count > 0)
         readIndex = (readIndex + 1) % capacity
         count -= 1
+        os_unfair_lock_unlock(&lock)
         return SystemAudioChunk(sequence: slot.sequence, hostTime: slot.hostTime, sampleRate: sampleRate, samples: samples)
     }
 

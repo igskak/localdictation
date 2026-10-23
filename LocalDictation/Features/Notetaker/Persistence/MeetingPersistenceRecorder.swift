@@ -48,10 +48,11 @@ actor MeetingPersistenceRecorder {
         persistedRowCount = rows.count
     }
 
-    func finish(partial: Bool, at date: Date = Date()) async throws {
+    func finish(partial: Bool, issueCodes: [String] = [], at date: Date = Date()) async throws {
         guard var manifest else { return }
         manifest.endedAt = date
         manifest.completionState = partial ? .partial : .completed
+        manifest.partialIssueCodes = partial && !issueCodes.isEmpty ? issueCodes : nil
         try await store.updateManifest(manifest)
         self.manifest = manifest
     }

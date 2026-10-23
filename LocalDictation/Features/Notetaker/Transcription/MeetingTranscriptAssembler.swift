@@ -56,6 +56,15 @@ struct MeetingTranscriptRow: Sendable, Equatable {
         }
     }
 
+    /// Low-confidence recognition remains visible as model evidence, but must
+    /// never be presented with the same certainty as supported speech.
+    var recognitionNeedsReview: Bool {
+        MeetingRecognitionQualityPolicy.needsReview(
+            meanConfidence: original.meanConfidence,
+            hasConfidenceSignal: original.hasConfidenceSignal
+        )
+    }
+
     func attributed(
         speakerID: String,
         confidence: Double,
@@ -75,6 +84,67 @@ struct MeetingTranscriptRow: Sendable, Equatable {
             speakerAssignmentSource: .diarization,
             wordAttributions: words
         )
+    }
+}
+
+enum MeetingRecognitionQualityPolicy {
+    /// Reuses the confidence threshold already calibrated and documented by
+    /// the product's risk pipeline instead of inventing a Notetaker-only rule.
+    static let confidenceThreshold = RiskWeights.default.confidenceThreshold
+
+    static func needsReview(meanConfidence: Double?, hasConfidenceSignal: Bool) -> Bool {
+        guard hasConfidenceSignal, let meanConfidence else { return true }
+        return meanConfidence <= confidenceThreshold
+    }
+}
+
+/// Presentation-only grouping. Recognition windows remain separate evidence
+/// for persistence, confidence and overlap repair, while adjacent passages by
+/// one speaker read as a natural turn instead of timer-shaped cards.
+struct MeetingTranscriptPresentationGroup: Sendable, Equatable {
+    private(set) var rows: [MeetingTranscriptRow]
+
+    init(row: MeetingTranscriptRow) { rows = [row] }
+
+    var source: MeetingAudioSource { rows[0].source }
+    var speakerID: String { rows[0].speakerID }
+    var speaker: String { rows[0].speaker }
+    var startFrame: Int64 { rows[0].startFrame }
+    var endFrame: Int64 { rows.map(\.endFrame).max() ?? rows[0].endFrame }
+    var recognitionNeedsReview: Bool { rows.contains(where: \.recognitionNeedsReview) }
+    var text: String { rows.map(\.text).joined(separator: " ") }
+
+    fileprivate mutating func append(_ row: MeetingTranscriptRow) { rows.append(row) }
+}
+
+enum MeetingTranscriptPresentation {
+    /// Long uninterrupted monologues are periodically split for scanability,
+    /// but never at the recognition window cadence. Uncertain model guesses
+    /// get their own card so the warning sits next to the affected text.
+    static let maximumGroupFrames: Int64 = 45 * 16_000
+    static let maximumGapFrames: Int64 = 2 * 16_000
+
+    static func groups(from rows: [MeetingTranscriptRow]) -> [MeetingTranscriptPresentationGroup] {
+        var result: [MeetingTranscriptPresentationGroup] = []
+        for row in rows {
+            guard var current = result.last else {
+                result.append(MeetingTranscriptPresentationGroup(row: row))
+                continue
+            }
+            let sameTurn = current.source == row.source
+                && current.speakerID == row.speakerID
+                && current.recognitionNeedsReview == row.recognitionNeedsReview
+                && row.startFrame <= current.endFrame + maximumGapFrames
+                && row.endFrame - current.startFrame <= maximumGroupFrames
+            guard sameTurn else {
+                result.append(MeetingTranscriptPresentationGroup(row: row))
+                continue
+            }
+            result.removeLast()
+            current.append(row)
+            result.append(current)
+        }
+        return result
     }
 }
 

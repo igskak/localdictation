@@ -16,36 +16,64 @@ enum LongFormTranscriptionError: Error, Equatable {
     case cancelled
 }
 
-/// One source is windowed independently. On a gap, processing stops rather
-/// than inventing silence or treating the surviving audio as complete.
+/// One source is windowed independently. A process tap can be sparse while its
+/// app is silent and macOS may delay microphone delivery during system UI such
+/// as screenshots. A forward gap closes the current window and starts another
+/// at the real host-time position. No silence is invented.
 struct MeetingWindowBuilder {
     let source: MeetingAudioSource
     let windowFrames: Int
     let overlapFrames: Int
+    let initialWindowFrames: Int
     private var startFrame: Int64?
     private var samples: [Float] = []
     private var hasEmittedWindow = false
 
-    init(source: MeetingAudioSource, windowFrames: Int = 400_000, overlapFrames: Int = 32_000) {
-        precondition(windowFrames > 0 && overlapFrames >= 0 && overlapFrames < windowFrames)
+    /// Live recognition answers after eight seconds, then uses twelve seconds
+    /// of context with a four-second overlap. This keeps first-result latency
+    /// unchanged while giving every later boundary enough left context to
+    /// avoid decoding a clipped phrase as an unrelated short utterance.
+    init(source: MeetingAudioSource) {
+        self.init(source: source, windowFrames: 192_000, overlapFrames: 64_000, initialWindowFrames: 128_000)
+    }
+
+    /// Explicit sizes keep deterministic tests and probes independent of the
+    /// production live-window policy.
+    init(source: MeetingAudioSource, windowFrames: Int, overlapFrames: Int) {
+        self.init(source: source, windowFrames: windowFrames, overlapFrames: overlapFrames,
+                  initialWindowFrames: windowFrames)
+    }
+
+    init(source: MeetingAudioSource, windowFrames: Int, overlapFrames: Int, initialWindowFrames: Int) {
+        precondition(windowFrames > 0 && overlapFrames >= 0 && overlapFrames < initialWindowFrames
+                     && initialWindowFrames <= windowFrames)
         self.source = source
         self.windowFrames = windowFrames
         self.overlapFrames = overlapFrames
+        self.initialWindowFrames = initialWindowFrames
     }
 
     mutating func append(_ chunk: MeetingAudioChunk) throws -> [MeetingRecognitionAudio] {
         guard chunk.source == source, chunk.sampleRate == 16_000, chunk.samples.count <= windowFrames else { throw LongFormTranscriptionError.invalidFormat }
+        var result: [MeetingRecognitionAudio] = []
         if let startFrame {
             let expected = startFrame + Int64(samples.count)
-            guard abs(chunk.startFrame - expected) <= 2 else { throw LongFormTranscriptionError.missingAudio }
+            let delta = chunk.startFrame - expected
+            if abs(delta) > 2 {
+                guard delta > 0 else { throw LongFormTranscriptionError.missingAudio }
+                if let window = flush() { result.append(window) }
+                self.startFrame = chunk.startFrame
+            }
         } else {
             startFrame = chunk.startFrame
         }
         samples.append(contentsOf: chunk.samples)
-        var result: [MeetingRecognitionAudio] = []
-        while samples.count >= windowFrames, let start = startFrame {
-            result.append(MeetingRecognitionAudio(source: source, startFrame: start, samples: Array(samples.prefix(windowFrames))))
-            let advance = windowFrames - overlapFrames
+        while let start = startFrame {
+            let requiredFrames = hasEmittedWindow ? windowFrames : initialWindowFrames
+            guard samples.count >= requiredFrames else { break }
+            result.append(MeetingRecognitionAudio(source: source, startFrame: start,
+                                                  samples: Array(samples.prefix(requiredFrames))))
+            let advance = requiredFrames - overlapFrames
             samples.removeFirst(advance)
             startFrame = start + Int64(advance)
             hasEmittedWindow = true
@@ -54,11 +82,20 @@ struct MeetingWindowBuilder {
     }
 
     mutating func finish() -> MeetingRecognitionAudio? {
-        guard let startFrame, !samples.isEmpty,
-              !hasEmittedWindow || samples.count > overlapFrames else { return nil }
-        let result = MeetingRecognitionAudio(source: source, startFrame: startFrame, samples: samples)
+        flush()
+    }
+
+    private mutating func flush() -> MeetingRecognitionAudio? {
+        let result: MeetingRecognitionAudio?
+        if let startFrame, !samples.isEmpty,
+           !hasEmittedWindow || samples.count > overlapFrames {
+            result = MeetingRecognitionAudio(source: source, startFrame: startFrame, samples: samples)
+        } else {
+            result = nil
+        }
         samples = []
-        self.startFrame = nil
+        startFrame = nil
+        hasEmittedWindow = false
         return result
     }
 }

@@ -3,6 +3,7 @@ import Foundation
 enum MeetingPlatform: String, Sendable, Hashable, Codable {
     case zoom
     case googleMeet
+    case safari
     case manual
 }
 

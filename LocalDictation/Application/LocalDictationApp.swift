@@ -232,13 +232,14 @@ struct ApplicationComposition {
     static func make(
         notetakerAvailability: NotetakerAvailability,
         makeDictationCoordinator: () -> DictationCoordinator,
-        makeAvailableNotetaker: () -> any NotetakerFacade
+        makeAvailableNotetaker: (DictationCoordinator) -> any NotetakerFacade
     ) -> ApplicationComposition {
-        ApplicationComposition(
-            dictationCoordinator: makeDictationCoordinator(),
+        let coordinator = makeDictationCoordinator()
+        return ApplicationComposition(
+            dictationCoordinator: coordinator,
             notetaker: NotetakerCompositionRoot.make(
                 availability: notetakerAvailability,
-                buildAvailableSubsystem: makeAvailableNotetaker
+                buildAvailableSubsystem: { makeAvailableNotetaker(coordinator) }
             )
         )
     }
@@ -252,7 +253,11 @@ struct ApplicationComposition {
             // A normal Release never invokes this closure. The separately
             // built dogfood DMG enables it with NOTETAKER_DOGFOOD so the
             // testable UI cannot accidentally ship in the public build.
-            makeAvailableNotetaker: DogfoodNotetakerFacade.init
+            makeAvailableNotetaker: { coordinator in
+                DogfoodNotetakerFacade(languageProfileProvider: { [weak coordinator] in
+                    coordinator?.languageProfile ?? .default
+                })
+            }
         )
     }
 }

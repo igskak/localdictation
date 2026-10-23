@@ -7,7 +7,14 @@ enum DebugMeetingUpdate: Sendable {
     case diarization(DiarizationDisplayState)
     case rows([MeetingTranscriptRow])
     case metrics(String)
-    case finished(partial: Bool, persisted: Bool)
+    case finished(partial: Bool, persisted: Bool, issues: [MeetingPartialIssue])
+}
+
+enum MeetingPartialIssue: String, Sendable, Hashable, CaseIterable {
+    case audioIntervalMissed
+    case captureStopped
+    case transcriptionStopped
+    case localStorageFailed
 }
 
 /// Isolated manual test harness. It is never constructed by the live default.
@@ -28,6 +35,7 @@ actor DebugMeetingSession {
     private var captureFinished = false
     private var partial = false
     private var storageFailed = false
+    private var partialIssues: Set<MeetingPartialIssue> = []
     private var worker: LongFormTranscriber?
     private var startedAt: TimeInterval = 0
     private var captureEndedAt: TimeInterval?
@@ -60,7 +68,7 @@ actor DebugMeetingSession {
         let state = await engine.modelState(for: profile)
         guard state.isReady || state.canPrepareUnattended else { throw DebugMeetingError.modelUnavailable }
         if !state.isReady { try await engine.prepare(for: profile) }
-        guard !stopRequested else { emit(.finished(partial: false, persisted: false)); return }
+        guard !stopRequested else { emit(.finished(partial: false, persisted: false, issues: [])); return }
         emit(.status("Preparing local speaker separation…"))
         emit(.diarization(.preparing))
         do {
@@ -71,7 +79,7 @@ actor DebugMeetingSession {
             diarizationEnabled = false
             emit(.diarization(.fallback))
         }
-        guard !stopRequested else { emit(.finished(partial: false, persisted: false)); return }
+        guard !stopRequested else { emit(.finished(partial: false, persisted: false, issues: [])); return }
         guard permission.currentAuthorization == .authorized else { throw MeetingMicrophoneError.permissionUnavailable }
         try await persistence.begin(title: title, profile: profile)
         emit(.status("Starting system audio and microphone…"))
@@ -82,7 +90,7 @@ actor DebugMeetingSession {
             guard !stopRequested else {
                 system.stop()
                 await persistence.discardEmptyMeeting()
-                emit(.finished(partial: false, persisted: false))
+                emit(.finished(partial: false, persisted: false, issues: []))
                 return
             }
             let microphoneBuffer = try microphone.start(selection: .systemDefault)
@@ -124,6 +132,8 @@ actor DebugMeetingSession {
                       _ worker: LongFormTranscriber) async {
         var systemWindows = MeetingWindowBuilder(source: .system)
         var microphoneWindows = MeetingWindowBuilder(source: .microphone)
+        var reportedDroppedCallbacks: Int64 = 0
+        var warnedAboutAudioLoss = false
         do {
             while true {
                 if pauseRequested, !paused {
@@ -171,9 +181,15 @@ actor DebugMeetingSession {
                 let systemStats = systemBuffer.snapshot()
                 let microphoneStats = microphoneBuffer.snapshot()
                 let droppedCallbacks = systemStats.droppedCallbacks + microphoneStats.droppedCallbacks
-                guard droppedCallbacks == 0 else {
-                    await worker.recordLostIntervals(Int(droppedCallbacks))
-                    throw LongFormTranscriptionError.missingAudio
+                if droppedCallbacks > reportedDroppedCallbacks {
+                    await worker.recordLostIntervals(Int(droppedCallbacks - reportedDroppedCallbacks))
+                    reportedDroppedCallbacks = droppedCallbacks
+                    partial = true
+                    partialIssues.insert(.audioIntervalMissed)
+                    if !warnedAboutAudioLoss {
+                        warnedAboutAudioLoss = true
+                        emit(.status("Recording — a short audio interval was missed; capture is continuing."))
+                    }
                 }
                 if stopRequested {
                     for (processor, source) in [(systemProcessor, MeetingAudioSource.system), (microphoneProcessor, MeetingAudioSource.microphone)] {
@@ -190,13 +206,19 @@ actor DebugMeetingSession {
                 try await Task.sleep(for: .milliseconds(50))
             }
         } catch {
+            let category = meetingPipelineFailureCategory(error)
+            Log.audio.error("Meeting capture stopped early: \(category, privacy: .public)")
             partial = true
+            partialIssues.insert(.captureStopped)
             if await worker.metrics.lostIntervals == 0 {
                 await worker.recordLostIntervals()
             }
             if captureEndedAt == nil { captureEndedAt = ProcessInfo.processInfo.systemUptime }
             system.stop()
             microphone.stop()
+            await finishDiarization()
+            if let window = systemWindows.finish() { try? await worker.enqueue(window) }
+            if let window = microphoneWindows.finish() { try? await worker.enqueue(window) }
             emit(.status("Capture stopped early. The transcript is partial."))
         }
         captureFinished = true
@@ -213,6 +235,7 @@ actor DebugMeetingSession {
                     } catch {
                         storageFailed = true
                         partial = true
+                        partialIssues.insert(.localStorageFailed)
                         stopRequested = true
                         if captureEndedAt == nil { captureEndedAt = ProcessInfo.processInfo.systemUptime }
                         system.stop()
@@ -227,7 +250,10 @@ actor DebugMeetingSession {
                 } else if captureFinished { break }
                 else { try await Task.sleep(for: .milliseconds(100)) }
             } catch {
+                let category = meetingPipelineFailureCategory(error)
+                Log.transcription.error("Meeting transcription stopped early: \(category, privacy: .public)")
                 partial = true
+                partialIssues.insert(.transcriptionStopped)
                 stopRequested = true
                 if captureEndedAt == nil { captureEndedAt = ProcessInfo.processInfo.systemUptime }
                 system.stop()
@@ -257,13 +283,16 @@ actor DebugMeetingSession {
             } else if !storageFailed {
                 try await persistence.persist(rows: finalRows)
             }
-            try await persistence.finish(partial: partial)
+            let orderedIssues = MeetingPartialIssue.allCases.filter(partialIssues.contains)
+            try await persistence.finish(partial: partial, issueCodes: orderedIssues.map(\.rawValue))
         } catch {
             storageFailed = true
             partial = true
+            partialIssues.insert(.localStorageFailed)
             emit(.status("The transcript remains in memory because the meeting could not be finalized on disk."))
         }
-        emit(.finished(partial: partial, persisted: !storageFailed))
+        let orderedIssues = MeetingPartialIssue.allCases.filter(partialIssues.contains)
+        emit(.finished(partial: partial, persisted: !storageFailed, issues: orderedIssues))
     }
 
     private func ingestDiarization(_ chunk: MeetingAudioChunk) async {
@@ -333,3 +362,27 @@ actor DebugMeetingSession {
 }
 
 enum DebugMeetingError: Error { case modelUnavailable }
+
+private func meetingPipelineFailureCategory(_ error: Error) -> String {
+    switch error {
+    case let failure as SystemAudioCaptureError:
+        switch failure {
+        case .processNotFound: "system_audio_process_not_found"
+        case .unsupportedFormat: "system_audio_unsupported_format"
+        case .invalidState: "system_audio_invalid_state"
+        case .discontinuity: "system_audio_discontinuity"
+        case let .coreAudio(status): "system_audio_core_audio_\(status)"
+        }
+    case let failure as LongFormTranscriptionError:
+        switch failure {
+        case .invalidFormat: "transcription_invalid_format"
+        case .missingAudio: "transcription_missing_audio"
+        case .backlogFull: "transcription_backlog_full"
+        case .alreadyProcessing: "transcription_already_processing"
+        case .modelNotReady: "transcription_model_not_ready"
+        case .cancelled: "transcription_cancelled"
+        }
+    default:
+        String(reflecting: type(of: error))
+    }
+}

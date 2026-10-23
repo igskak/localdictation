@@ -6,6 +6,55 @@ struct MeetingApplicationSnapshot: Sendable, Equatable {
     let localizedName: String
     let bundleIdentifier: String?
     let isProducingOutput: Bool
+    let isUsingInput: Bool
+    let isFrontmost: Bool
+
+    init(
+        processIdentifier: pid_t,
+        localizedName: String,
+        bundleIdentifier: String?,
+        isProducingOutput: Bool,
+        isUsingInput: Bool = false,
+        isFrontmost: Bool = false
+    ) {
+        self.processIdentifier = processIdentifier
+        self.localizedName = localizedName
+        self.bundleIdentifier = bundleIdentifier
+        self.isProducingOutput = isProducingOutput
+        self.isUsingInput = isUsingInput
+        self.isFrontmost = isFrontmost
+    }
+}
+
+enum MeetingApplicationKind: Sendable, Equatable {
+    case zoom
+    case chrome
+    case safari
+    case other
+
+    static func classify(name: String, bundleIdentifier: String?) -> Self {
+        let normalizedName = name.lowercased()
+        let bundle = bundleIdentifier?.lowercased()
+        if bundle == "us.zoom.xos"
+            || bundle?.hasPrefix("us.zoom.") == true
+            || normalizedName == "zoom.us"
+            || normalizedName.hasPrefix("zoom ") {
+            return .zoom
+        }
+        if bundle?.hasPrefix("com.google.chrome") == true
+            || normalizedName == "google chrome"
+            || normalizedName.hasPrefix("google chrome helper") {
+            return .chrome
+        }
+        if bundle == "com.apple.safari"
+            || bundle?.hasPrefix("com.apple.safari.") == true
+            || bundle?.hasPrefix("com.apple.safaritechnologypreview") == true
+            || normalizedName == "safari"
+            || normalizedName.hasPrefix("safari ") {
+            return .safari
+        }
+        return .other
+    }
 }
 
 protocol MeetingApplicationDetecting: Sendable {
@@ -16,13 +65,11 @@ protocol MeetingApplicationDetecting: Sendable {
 /// meeting title, URL, or participant information is inspected.
 struct ZoomMeetingDetectionAdapter: MeetingApplicationDetecting {
     func candidate(for snapshot: MeetingApplicationSnapshot) -> MeetingCandidate? {
-        let name = snapshot.localizedName.lowercased()
-        let bundle = snapshot.bundleIdentifier?.lowercased()
-        let isZoom = bundle == "us.zoom.xos"
-            || bundle?.hasPrefix("us.zoom.") == true
-            || name == "zoom.us"
-            || name.hasPrefix("zoom ")
-        guard snapshot.isProducingOutput, isZoom else { return nil }
+        guard snapshot.isProducingOutput,
+              MeetingApplicationKind.classify(
+                name: snapshot.localizedName,
+                bundleIdentifier: snapshot.bundleIdentifier
+              ) == .zoom else { return nil }
         return MeetingCandidate(
             platform: .zoom,
             processIdentifier: snapshot.processIdentifier,
@@ -36,13 +83,31 @@ struct ZoomMeetingDetectionAdapter: MeetingApplicationDetecting {
 /// adapter permission-free, but intentionally limits its confidence.
 struct ChromeMeetDetectionAdapter: MeetingApplicationDetecting {
     func candidate(for snapshot: MeetingApplicationSnapshot) -> MeetingCandidate? {
-        let name = snapshot.localizedName.lowercased()
-        let isChrome = snapshot.bundleIdentifier?.lowercased().hasPrefix("com.google.chrome") == true
-            || name == "google chrome"
-            || name.hasPrefix("google chrome helper")
-        guard snapshot.isProducingOutput, isChrome else { return nil }
+        guard snapshot.isProducingOutput,
+              MeetingApplicationKind.classify(
+                name: snapshot.localizedName,
+                bundleIdentifier: snapshot.bundleIdentifier
+              ) == .chrome else { return nil }
         return MeetingCandidate(
             platform: .googleMeet,
+            processIdentifier: snapshot.processIdentifier,
+            confidence: .probable
+        )
+    }
+}
+
+/// Safari output is enough to offer a possible browser-call suggestion, but it
+/// does not reveal which tab or service is producing that audio. Keep the
+/// confidence probable and never label it as a confirmed Google Meet call.
+struct SafariMeetingDetectionAdapter: MeetingApplicationDetecting {
+    func candidate(for snapshot: MeetingApplicationSnapshot) -> MeetingCandidate? {
+        guard snapshot.isProducingOutput,
+              MeetingApplicationKind.classify(
+                name: snapshot.localizedName,
+                bundleIdentifier: snapshot.bundleIdentifier
+              ) == .safari else { return nil }
+        return MeetingCandidate(
+            platform: .safari,
             processIdentifier: snapshot.processIdentifier,
             confidence: .probable
         )
@@ -52,12 +117,17 @@ struct ChromeMeetDetectionAdapter: MeetingApplicationDetecting {
 struct MeetingCandidateDetector: Sendable {
     private let zoom = ZoomMeetingDetectionAdapter()
     private let meet = ChromeMeetDetectionAdapter()
+    private let safari = SafariMeetingDetectionAdapter()
 
     func candidate(in snapshots: [MeetingApplicationSnapshot]) -> MeetingCandidate? {
-        let candidates = snapshots.flatMap { snapshot in
-            [zoom.candidate(for: snapshot), meet.candidate(for: snapshot)].compactMap { $0 }
+        let candidates = snapshots.flatMap { snapshot -> [(MeetingCandidate, MeetingApplicationSnapshot)] in
+            [
+                zoom.candidate(for: snapshot),
+                meet.candidate(for: snapshot),
+                safari.candidate(for: snapshot)
+            ].compactMap { candidate in candidate.map { ($0, snapshot) } }
         }
-        return candidates.sorted(by: precedes).first
+        return candidates.sorted(by: precedes).first?.0
     }
 
     func candidate(for option: MeetingProcessOption) -> MeetingCandidate? {
@@ -67,22 +137,31 @@ struct MeetingCandidateDetector: Sendable {
             processIdentifier: option.processID,
             localizedName: option.name,
             bundleIdentifier: option.bundleIdentifier,
-            isProducingOutput: true
+            isProducingOutput: true,
+            isUsingInput: option.isUsingInput,
+            isFrontmost: option.isFrontmost
         )])
     }
 
-    private func precedes(_ lhs: MeetingCandidate, _ rhs: MeetingCandidate) -> Bool {
-        if lhs.confidence != rhs.confidence { return rank(lhs.confidence) > rank(rhs.confidence) }
-        if lhs.platform != rhs.platform { return lhs.platform.rawValue < rhs.platform.rawValue }
-        return (lhs.processIdentifier ?? 0) < (rhs.processIdentifier ?? 0)
+    private func precedes(
+        _ lhs: (MeetingCandidate, MeetingApplicationSnapshot),
+        _ rhs: (MeetingCandidate, MeetingApplicationSnapshot)
+    ) -> Bool {
+        let lhsRank = rank(lhs.0, snapshot: lhs.1)
+        let rhsRank = rank(rhs.0, snapshot: rhs.1)
+        if lhsRank != rhsRank { return lhsRank > rhsRank }
+        return (lhs.0.processIdentifier ?? 0) < (rhs.0.processIdentifier ?? 0)
     }
 
-    private func rank(_ confidence: DetectionConfidence) -> Int {
-        switch confidence {
+    private func rank(_ candidate: MeetingCandidate, snapshot: MeetingApplicationSnapshot) -> Int {
+        let confidence = switch candidate.confidence {
         case .possible: 1
         case .probable: 2
         case .confirmed: 3
         }
+        let microphone = snapshot.isUsingInput ? 100 : 0
+        let frontmost = snapshot.isFrontmost ? 10 : 0
+        return confidence * 1_000 + microphone + frontmost
     }
 }
 
@@ -133,6 +212,14 @@ struct MeetingSuggestionPolicy: Sendable, Equatable {
         return candidate
     }
 
+    /// A timed-out panel is suppressed like a dismissal, but is not evidence
+    /// that detection was wrong and therefore must not affect FP metrics.
+    mutating func suppress(at now: TimeInterval) {
+        guard let candidate = visibleCandidate else { return }
+        dismissedAt[candidate.platform] = now
+        visibleCandidate = nil
+    }
+
     mutating func accept() -> MeetingCandidate? {
         defer { visibleCandidate = nil }
         return visibleCandidate
@@ -148,19 +235,19 @@ enum CallEndGuardAction: Sendable, Equatable {
     case none
     case beganGrace
     case cancelledGrace
-    case pauseSameNote
-    case resumeSameNote
+    case suggestStop
+    case dismissStopSuggestion
 }
 
 enum CallEndGuardState: Sendable, Equatable {
     case monitoring
     case grace(deadline: TimeInterval)
-    case pausedSameNote
+    case suggestingStop
     case ignoredForSession
 }
 
-/// Pure call-end policy. Expiry pauses capture instead of finalizing the note,
-/// which is what makes a false stop recoverable without creating a new note.
+/// Pure call-end policy. Missing audio can only suggest an explicit user action;
+/// it never pauses or finalizes a recording on its own.
 struct CallEndGuard: Sendable, Equatable {
     let gracePeriod: TimeInterval
     private(set) var state: CallEndGuardState = .monitoring
@@ -180,18 +267,18 @@ struct CallEndGuard: Sendable, Equatable {
             state = .monitoring
             return .cancelledGrace
         case let (.grace(deadline), false) where now >= deadline:
-            state = .pausedSameNote
-            return .pauseSameNote
-        case (.grace, false), (.pausedSameNote, false):
+            state = .suggestingStop
+            return .suggestStop
+        case (.grace, false), (.suggestingStop, false):
             return .none
-        case (.pausedSameNote, true):
+        case (.suggestingStop, true):
             state = .monitoring
-            return .resumeSameNote
+            return .dismissStopSuggestion
         }
     }
 
-    mutating func keepRecording() -> CallEndGuardAction {
-        let action: CallEndGuardAction = state == .pausedSameNote ? .resumeSameNote : .cancelledGrace
+    mutating func continueRecording() -> CallEndGuardAction {
+        let action: CallEndGuardAction = state == .suggestingStop ? .dismissStopSuggestion : .cancelledGrace
         state = .ignoredForSession
         return action
     }
@@ -231,23 +318,61 @@ struct MeetingDetectionCounts: Codable, Sendable, Equatable {
 }
 
 struct MeetingDetectionMetrics: Codable, Sendable, Equatable {
-    static let currentSchemaVersion = 1
+    static let currentSchemaVersion = 2
     let schemaVersion: Int
     var zoom: MeetingDetectionCounts
     var googleMeet: MeetingDetectionCounts
+    var safari: MeetingDetectionCounts
 
-    init(zoom: MeetingDetectionCounts = .init(), googleMeet: MeetingDetectionCounts = .init()) {
+    init(
+        zoom: MeetingDetectionCounts = .init(),
+        googleMeet: MeetingDetectionCounts = .init(),
+        safari: MeetingDetectionCounts = .init()
+    ) {
         schemaVersion = Self.currentSchemaVersion
         self.zoom = zoom
         self.googleMeet = googleMeet
+        self.safari = safari
     }
 
     mutating func record(_ evaluation: MeetingDetectionEvaluation, platform: MeetingPlatform) {
         switch platform {
         case .zoom: zoom.record(evaluation)
         case .googleMeet: googleMeet.record(evaluation)
+        case .safari: safari.record(evaluation)
         case .manual: break
         }
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case schemaVersion
+        case zoom
+        case googleMeet
+        case safari
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let encodedVersion = try container.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? 1
+        guard encodedVersion <= Self.currentSchemaVersion else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .schemaVersion,
+                in: container,
+                debugDescription: "Unsupported meeting detection metrics schema"
+            )
+        }
+        schemaVersion = Self.currentSchemaVersion
+        zoom = try container.decodeIfPresent(MeetingDetectionCounts.self, forKey: .zoom) ?? .init()
+        googleMeet = try container.decodeIfPresent(MeetingDetectionCounts.self, forKey: .googleMeet) ?? .init()
+        safari = try container.decodeIfPresent(MeetingDetectionCounts.self, forKey: .safari) ?? .init()
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(Self.currentSchemaVersion, forKey: .schemaVersion)
+        try container.encode(zoom, forKey: .zoom)
+        try container.encode(googleMeet, forKey: .googleMeet)
+        try container.encode(safari, forKey: .safari)
     }
 }
 
@@ -297,12 +422,14 @@ actor LocalMeetingDetectionMetricsRecorder {
 @MainActor
 final class MeetingDetectionCoordinator {
     typealias SuggestionHandler = (MeetingCandidate?) -> Void
+    typealias CallEndSuggestionHandler = (Bool) -> Void
 
     private weak var model: DebugMeetingModel?
     private let resolver: any MeetingProcessResolving
     private let detector: MeetingCandidateDetector
     private let metrics: LocalMeetingDetectionMetricsRecorder
     private let onSuggestion: SuggestionHandler
+    private let onCallEndSuggestion: CallEndSuggestionHandler
     private var pollingTask: Task<Void, Never>?
     private var graceTask: Task<Void, Never>?
     private var suggestionPolicy: MeetingSuggestionPolicy
@@ -317,7 +444,8 @@ final class MeetingDetectionCoordinator {
         detector: MeetingCandidateDetector = MeetingCandidateDetector(),
         metrics: LocalMeetingDetectionMetricsRecorder = LocalMeetingDetectionMetricsRecorder(),
         suggestionPolicy: MeetingSuggestionPolicy = MeetingSuggestionPolicy(),
-        onSuggestion: @escaping SuggestionHandler
+        onSuggestion: @escaping SuggestionHandler,
+        onCallEndSuggestion: @escaping CallEndSuggestionHandler = { _ in }
     ) {
         self.model = model
         self.resolver = resolver
@@ -325,6 +453,7 @@ final class MeetingDetectionCoordinator {
         self.metrics = metrics
         self.suggestionPolicy = suggestionPolicy
         self.onSuggestion = onSuggestion
+        self.onCallEndSuggestion = onCallEndSuggestion
     }
 
     func activate() {
@@ -347,7 +476,7 @@ final class MeetingDetectionCoordinator {
         latestCandidate = nil
         acceptedCandidate = nil
         callEndGuard = CallEndGuard()
-        model?.clearCallEndNotice()
+        onCallEndSuggestion(false)
         onSuggestion(nil)
     }
 
@@ -361,6 +490,11 @@ final class MeetingDetectionCoordinator {
         guard let candidate = suggestionPolicy.dismiss(at: ProcessInfo.processInfo.systemUptime) else { return }
         onSuggestion(nil)
         Task { await metrics.record(.falsePositive, platform: candidate.platform) }
+    }
+
+    func expireSuggestion() {
+        suggestionPolicy.suppress(at: ProcessInfo.processInfo.systemUptime)
+        onSuggestion(nil)
     }
 
     func recordingStarted(candidate: MeetingCandidate) {
@@ -385,14 +519,13 @@ final class MeetingDetectionCoordinator {
         graceTask?.cancel()
         graceTask = nil
         callEndGuard = CallEndGuard()
-        model?.clearCallEndNotice()
+        onCallEndSuggestion(false)
     }
 
-    func keepRecording() {
+    func continueRecording() {
         graceTask?.cancel()
         graceTask = nil
-        handle(callEndGuard.keepRecording())
-        model?.clearCallEndNotice()
+        handle(callEndGuard.continueRecording())
     }
 
     private func poll() async {
@@ -406,17 +539,20 @@ final class MeetingDetectionCoordinator {
             return MeetingApplicationSnapshot(
                 processIdentifier: process.processID,
                 localizedName: application?.localizedName ?? "",
-                bundleIdentifier: application?.bundleIdentifier,
-                isProducingOutput: process.isProducingOutput
+                bundleIdentifier: process.bundleIdentifier ?? application?.bundleIdentifier,
+                isProducingOutput: process.isProducingOutput,
+                isUsingInput: process.isUsingInput,
+                isFrontmost: application?.isActive == true
             )
         }
         latestCandidate = detector.candidate(in: snapshots)
 
         if let activeCandidate {
             let signalPresent = snapshots.contains {
-                $0.processIdentifier == activeCandidate.processIdentifier && $0.isProducingOutput
+                $0.processIdentifier == activeCandidate.processIdentifier
+                    && ($0.isProducingOutput || $0.isUsingInput)
             }
-            guard model?.paused != true || model?.autoPausedByCallEnd == true else { return }
+            guard model?.paused != true else { return }
             handle(callEndGuard.observe(
                 signalPresent: signalPresent,
                 at: ProcessInfo.processInfo.systemUptime
@@ -432,24 +568,21 @@ final class MeetingDetectionCoordinator {
     private func handle(_ action: CallEndGuardAction) {
         switch action {
         case .none:
-            if let remaining = callEndGuard.secondsRemaining(at: ProcessInfo.processInfo.systemUptime) {
-                model?.showCallEndGrace(secondsRemaining: remaining)
-            }
+            break
         case .beganGrace:
             scheduleGraceExpiry()
-            model?.showCallEndGrace(secondsRemaining: Int(callEndGuard.gracePeriod))
         case .cancelledGrace:
             graceTask?.cancel()
             graceTask = nil
-            model?.clearCallEndNotice()
-        case .pauseSameNote:
+            onCallEndSuggestion(false)
+        case .suggestStop:
             graceTask?.cancel()
             graceTask = nil
-            model?.pauseForCallEnd()
-        case .resumeSameNote:
+            onCallEndSuggestion(true)
+        case .dismissStopSuggestion:
             graceTask?.cancel()
             graceTask = nil
-            model?.resumeAfterFalseStop()
+            onCallEndSuggestion(false)
         }
     }
 
@@ -458,7 +591,7 @@ final class MeetingDetectionCoordinator {
         let duration = callEndGuard.gracePeriod
         graceTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(duration))
-            guard !Task.isCancelled, let self else { return }
+            guard !Task.isCancelled, let self, self.model?.paused != true else { return }
             self.handle(self.callEndGuard.observe(
                 signalPresent: false,
                 at: ProcessInfo.processInfo.systemUptime

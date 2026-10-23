@@ -58,6 +58,59 @@ final class MeetingProcessResolverTests: XCTestCase {
         XCTAssertEqual(MeetingProcessSelection.preferred(in: [backgroundAudio, chrome]), chrome)
     }
 
+    func testAutomaticSelectionUsesActiveSafariBeforeInactiveChrome() {
+        let chrome = MeetingProcessOption(
+            processID: 102,
+            name: "Google Chrome",
+            bundleIdentifier: "com.google.Chrome",
+            isProducingOutput: false
+        )
+        let safari = MeetingProcessOption(
+            processID: 103,
+            name: "Safari",
+            bundleIdentifier: "com.apple.Safari",
+            isProducingOutput: true
+        )
+
+        XCTAssertEqual(MeetingProcessSelection.preferred(in: [chrome, safari]), safari)
+    }
+
+    func testFrontmostBrowserWinsWhenChromeAndSafariBothPlayAudio() {
+        let chrome = MeetingProcessOption(
+            processID: 102,
+            name: "Google Chrome",
+            bundleIdentifier: "com.google.Chrome",
+            isProducingOutput: true
+        )
+        let safari = MeetingProcessOption(
+            processID: 103,
+            name: "Safari",
+            bundleIdentifier: "com.apple.Safari",
+            isProducingOutput: true,
+            isFrontmost: true
+        )
+
+        XCTAssertEqual(MeetingProcessSelection.preferred(in: [chrome, safari]), safari)
+    }
+
+    func testBrowserUsingMicrophoneWinsOverAnotherAudibleBrowser() {
+        let chrome = MeetingProcessOption(
+            processID: 102,
+            name: "Google Chrome",
+            bundleIdentifier: "com.google.Chrome",
+            isProducingOutput: true
+        )
+        let safari = MeetingProcessOption(
+            processID: 103,
+            name: "Safari",
+            bundleIdentifier: "com.apple.Safari",
+            isProducingOutput: true,
+            isUsingInput: true
+        )
+
+        XCTAssertEqual(MeetingProcessSelection.preferred(in: [chrome, safari]), safari)
+    }
+
     func testAutomaticSelectionDoesNotChooseAnInactiveUnrelatedProcess() {
         let inactive = MeetingProcessOption(
             processID: 100,

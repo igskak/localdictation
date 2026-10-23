@@ -94,11 +94,47 @@ final class MeetingTranscriptAssemblerTests: XCTestCase {
         XCTAssertEqual(assembler.rows.map { $0.original.detectedLanguage }, fixtures.map { $0.2 })
     }
 
+    func testPresentationCombinesAdjacentSupportedWindowsIntoSpeakerTurns() {
+        var assembler = MeetingTranscriptAssembler()
+        assembler.append(window(.microphone, start: 0, end: 128_000, text: "first phrase",
+                                words: [("first", 0..<5, 0, 0.5), ("phrase", 6..<12, 0.5, 1)]))
+        assembler.append(window(.microphone, start: 64_000, end: 256_000, text: "second phrase",
+                                words: [("second", 0..<6, 4, 4.5), ("phrase", 7..<13, 4.5, 5)]))
+
+        let groups = MeetingTranscriptPresentation.groups(from: assembler.rows)
+
+        XCTAssertEqual(groups.count, 1)
+        XCTAssertEqual(groups[0].text, "first phrase second phrase")
+        XCTAssertFalse(groups[0].recognitionNeedsReview)
+    }
+
+    func testLowConfidenceGuessIsSeparatedAndMarkedForReview() {
+        var assembler = MeetingTranscriptAssembler()
+        assembler.append(window(.microphone, start: 0, end: 128_000, text: "supported",
+                                words: [("supported", 0..<9, 0, 0.5)], confidence: 0.9))
+        assembler.append(window(.microphone, start: 64_000, end: 192_000, text: "Tima kasih",
+                                words: [("Tima", 0..<4, 0, 0.5), ("kasih", 5..<10, 0.5, 1)],
+                                confidence: 0.25))
+
+        let groups = MeetingTranscriptPresentation.groups(from: assembler.rows)
+
+        XCTAssertEqual(groups.map(\.text), ["supported", "Tima kasih"])
+        XCTAssertEqual(groups.map(\.recognitionNeedsReview), [false, true])
+        XCTAssertTrue(MeetingTranscriptRecord(row: assembler.rows[1]).riskEvidence.contains("low-confidence recognition"))
+    }
+
+    func testMissingConfidenceSignalIsNeverPresentedAsCertain() {
+        XCTAssertTrue(MeetingRecognitionQualityPolicy.needsReview(meanConfidence: nil, hasConfidenceSignal: false))
+        XCTAssertFalse(MeetingRecognitionQualityPolicy.needsReview(meanConfidence: 0.8, hasConfidenceSignal: true))
+    }
+
     private func window(_ source: MeetingAudioSource, start: Int64, end: Int64, text: String,
                         words: [(String, Range<Int>, Double, Double)],
                         profile: LanguageProfile = .english,
-                        language: SpeechLanguage = .english) -> MeetingTranscriptWindow {
-        let tokens = words.map { TranscriptToken(text: $0.0, range: $0.1, start: $0.2, end: $0.3, confidence: 0.8) }
+                        language: SpeechLanguage = .english,
+                        confidence: Double = 0.8) -> MeetingTranscriptWindow {
+        let tokens = words.map { TranscriptToken(text: $0.0, range: $0.1, start: $0.2, end: $0.3,
+                                                 confidence: confidence) }
         let transcript = Transcript(text: text, tokens: tokens, profile: profile, detectedLanguage: language,
                                     audioDuration: Double(end-start)/16_000, processingDuration: 0, engineIdentifier: "test")
         return MeetingTranscriptWindow(source: source, startFrame: start, endFrame: end, transcript: transcript)

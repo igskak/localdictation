@@ -699,7 +699,9 @@ private struct MeetingTranscriptRecordView: View {
         return String(format: "%02d:%02d", seconds / 60, seconds % 60)
     }
 
-    private var needsReview: Bool { !row.riskEvidence.isEmpty || row.rawText != row.text }
+    private var needsReview: Bool {
+        row.recognitionNeedsReview || !row.riskEvidence.isEmpty || row.rawText != row.text
+    }
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -744,13 +746,15 @@ private struct MeetingTranscriptRecordView: View {
                             .foregroundStyle(WitnessStyle.muted)
                     }
                     if needsReview {
-                        Label("Review", systemImage: "exclamationmark.triangle")
+                        Label(row.recognitionNeedsReview ? "Low confidence" : "Review",
+                              systemImage: "exclamationmark.triangle")
                             .font(.caption2.weight(.medium))
                             .foregroundStyle(WitnessStyle.warning)
                     }
                 }
-                Text(row.text)
+                Text(row.recognitionNeedsReview ? "Model guess: \(row.text)" : row.text)
                     .font(.body)
+                    .foregroundStyle(row.recognitionNeedsReview ? WitnessStyle.muted : Color.primary)
                     .textSelection(.enabled)
                     .fixedSize(horizontal: false, vertical: true)
                 if row.rawText != row.text {

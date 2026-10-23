@@ -309,6 +309,22 @@ final class MeetingStoreTests: XCTestCase {
         XCTAssertTrue(stored.isEmpty)
     }
 
+    func testRecorderPersistsContentFreePartialIssueCodes() async throws {
+        let store = FileMeetingStore(rootURL: root)
+        let recorder = MeetingPersistenceRecorder(store: store)
+        let id = try await recorder.begin(title: "Partial", profile: .russian, at: Date(timeIntervalSince1970: 0))
+
+        try await recorder.finish(
+            partial: true,
+            issueCodes: [MeetingPartialIssue.audioIntervalMissed.rawValue],
+            at: Date(timeIntervalSince1970: 10)
+        )
+
+        let manifest = try await store.loadManifest(id: id)
+        XCTAssertEqual(manifest.completionState, .partial)
+        XCTAssertEqual(manifest.partialIssueCodes, ["audioIntervalMissed"])
+    }
+
     @MainActor
     func testMeetingLibraryModelLoadsSearchesEditsExportsAndDeletesPartialMeeting() async throws {
         let store = FileMeetingStore(rootURL: root)

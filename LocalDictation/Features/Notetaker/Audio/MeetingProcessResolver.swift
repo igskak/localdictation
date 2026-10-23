@@ -6,6 +6,22 @@ struct MeetingAudioProcess: Sendable, Equatable {
     let processID: pid_t
     let audioObjectID: AudioObjectID
     let isProducingOutput: Bool
+    let isUsingInput: Bool
+    let bundleIdentifier: String?
+
+    init(
+        processID: pid_t,
+        audioObjectID: AudioObjectID,
+        isProducingOutput: Bool,
+        isUsingInput: Bool = false,
+        bundleIdentifier: String? = nil
+    ) {
+        self.processID = processID
+        self.audioObjectID = audioObjectID
+        self.isProducingOutput = isProducingOutput
+        self.isUsingInput = isUsingInput
+        self.bundleIdentifier = bundleIdentifier
+    }
 }
 
 protocol MeetingProcessResolving: Sendable {
@@ -47,7 +63,14 @@ struct CoreAudioMeetingProcessResolver: MeetingProcessResolving {
         return ids.compactMap { id in
             guard let pid: pid_t = try? value(id, kAudioProcessPropertyPID),
                   let running: UInt32 = try? value(id, kAudioProcessPropertyIsRunningOutput) else { return nil }
-            return MeetingAudioProcess(processID: pid, audioObjectID: id, isProducingOutput: running != 0)
+            let usingInput: UInt32 = (try? value(id, kAudioProcessPropertyIsRunningInput)) ?? 0
+            return MeetingAudioProcess(
+                processID: pid,
+                audioObjectID: id,
+                isProducingOutput: running != 0,
+                isUsingInput: usingInput != 0,
+                bundleIdentifier: try? stringValue(id, kAudioProcessPropertyBundleID)
+            )
         }
     }
 
@@ -58,6 +81,17 @@ struct CoreAudioMeetingProcessResolver: MeetingProcessResolving {
         try check(AudioObjectGetPropertyData(id, &address, 0, nil, &size, &result))
         guard size == MemoryLayout<T>.size else { throw MeetingProcessError.malformedProcessList }
         return result
+    }
+
+    private func stringValue(_ id: AudioObjectID, _ selector: AudioObjectPropertySelector) throws -> String {
+        var address = property(selector)
+        var result: CFString = "" as CFString
+        var size = UInt32(MemoryLayout<CFString>.size)
+        try withUnsafeMutablePointer(to: &result) {
+            try check(AudioObjectGetPropertyData(id, &address, 0, nil, &size, $0))
+        }
+        guard size == MemoryLayout<CFString>.size else { throw MeetingProcessError.malformedProcessList }
+        return result as String
     }
 
     private func property(_ selector: AudioObjectPropertySelector) -> AudioObjectPropertyAddress {

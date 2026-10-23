@@ -25,7 +25,7 @@ final class NotetakerAvailabilityTests: XCTestCase {
                 dictationBuildCount += 1
                 return coordinator
             },
-            makeAvailableNotetaker: builder.build
+            makeAvailableNotetaker: { _ in builder.build() }
         )
 
         XCTAssertEqual(dictationBuildCount, 1)
@@ -59,7 +59,7 @@ final class NotetakerAvailabilityTests: XCTestCase {
         let composition = ApplicationComposition.make(
             notetakerAvailability: .enabled,
             makeDictationCoordinator: { coordinator },
-            makeAvailableNotetaker: builder.build
+            makeAvailableNotetaker: { _ in builder.build() }
         )
 
         XCTAssertEqual(builder.buildCount, 1)
@@ -67,6 +67,38 @@ final class NotetakerAvailabilityTests: XCTestCase {
         XCTAssertEqual(builder.detectorStartCount, 1)
         XCTAssertEqual(builder.persistenceOpenCount, 1)
         XCTAssertNotNil(composition.notetaker.menuBarItem)
+    }
+
+    func testEnabledCompositionPassesTheAccountCoordinatorToTheNotetakerBuilder() {
+        let coordinator = DictationCoordinator(
+            permissionService: FakeMicrophonePermissionService(authorization: .authorized),
+            hotkeyService: FakeHotkeyService(),
+            captureService: FakeAudioCaptureService()
+        )
+        var receivedCoordinator: DictationCoordinator?
+
+        _ = ApplicationComposition.make(
+            notetakerAvailability: .enabled,
+            makeDictationCoordinator: { coordinator },
+            makeAvailableNotetaker: { received in
+                receivedCoordinator = received
+                return TestNotetakerFacade()
+            }
+        )
+
+        XCTAssertTrue(receivedCoordinator === coordinator)
+    }
+
+    func testMeetingModelReadsTheCurrentAccountLanguageProfile() {
+        var accountProfile = LanguageProfile(.russian, .ukrainian, .english)
+        let model = DebugMeetingModel(languageProfileProvider: { accountProfile })
+
+        XCTAssertEqual(model.languageProfile, accountProfile)
+
+        accountProfile = LanguageProfile(.ukrainian, .german)
+        model.refreshLanguageProfile()
+
+        XCTAssertEqual(model.languageProfile, accountProfile)
     }
 
     func testMenuBarStatusRepresentsMeetingLifecycleWithoutAnotherStatusItem() {

@@ -20,12 +20,18 @@ pause/stop. Failures are reduced to content-free categories, including an
 actionable `permission-denied` category. It does not save audio or produce a
 recording for listening.
 
-Chrome may render audio for several tabs in the selected process; the tap does
-not guarantee capture of one Meet tab. Zoom and Chrome can use helper processes,
+The bounded single-producer/single-consumer buffer reserves its oldest slot
+under the lock but materializes the consumer's Swift array after releasing it.
+The real-time producer therefore does not drop a callback merely because the
+consumer is allocating or copying an already occupied slot; overflow and truly
+unusable callbacks remain observable through the same counters.
+
+Chrome and Safari may render audio for several tabs in the selected process;
+the tap does not guarantee capture of one meeting tab. Zoom and browsers can use helper processes,
 so the audio process ID must be identified through Core Audio rather than
 assuming the UI application's PID.
 
-Manual results are **not yet measured**. Validate Zoom and Chrome separately,
+Manual results are **not yet measured**. Validate Zoom, Chrome, and Safari separately,
 including a 60-minute session, pause/resume, stop, device changes, sleep/wake,
 mute and permission revocation before considering the spike verified. Callback
 counts alone cannot establish intelligibility or identify silent gaps. The

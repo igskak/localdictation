@@ -12,13 +12,77 @@ final class LongFormTranscriberTests: XCTestCase {
         XCTAssertNil(builder.finish())
     }
 
-    func testAudioGapIsReportedBeforeAnyDataIsAccepted() throws {
+    func testForwardMicrophoneGapClosesAWindowWithoutInventingSilence() throws {
         var builder = MeetingWindowBuilder(source: .microphone, windowFrames: 10, overlapFrames: 2)
         _ = try builder.append(chunk(start: 0, values: [1, 2]))
-        XCTAssertThrowsError(try builder.append(chunk(start: 9, values: [3]))) {
+
+        let closed = try builder.append(chunk(start: 9, values: [3]))
+
+        XCTAssertEqual(closed.first?.startFrame, 0)
+        XCTAssertEqual(closed.first?.samples, [1, 2])
+        XCTAssertEqual(builder.finish()?.startFrame, 9)
+    }
+
+    func testBackwardAudioOverlapIsReportedBeforeDataIsAccepted() throws {
+        var builder = MeetingWindowBuilder(source: .microphone, windowFrames: 10, overlapFrames: 2)
+        _ = try builder.append(chunk(start: 10, values: [1, 2]))
+        XCTAssertThrowsError(try builder.append(chunk(start: 1, values: [3]))) {
             XCTAssertEqual($0 as? LongFormTranscriptionError, .missingAudio)
         }
         XCTAssertEqual(builder.finish()?.samples, [1, 2])
+    }
+
+    func testDefaultLiveWindowEmitsAfterEightSeconds() throws {
+        var builder = MeetingWindowBuilder(source: .microphone)
+        let almostEightSeconds = [Float](repeating: 0.1, count: 127_999)
+
+        XCTAssertTrue(try builder.append(chunk(start: 0, values: almostEightSeconds)).isEmpty)
+        let first = try builder.append(chunk(start: 127_999, values: [0.1]))
+
+        XCTAssertEqual(first.count, 1)
+        XCTAssertEqual(first.first?.samples.count, 128_000)
+    }
+
+    func testDefaultRollingWindowAddsFourSecondsOfLeftContextWithoutIncreasingUpdateCadence() throws {
+        var builder = MeetingWindowBuilder(source: .microphone)
+        let first = try builder.append(chunk(start: 0, values: [Float](repeating: 0.1, count: 128_000)))
+        XCTAssertEqual(first.map(\.samples.count), [128_000])
+        XCTAssertEqual(first.first?.startFrame, 0)
+
+        let beforeNextUpdate = try builder.append(
+            chunk(start: 128_000, values: [Float](repeating: 0.1, count: 127_999))
+        )
+        XCTAssertTrue(beforeNextUpdate.isEmpty)
+        let next = try builder.append(chunk(start: 255_999, values: [0.1]))
+
+        XCTAssertEqual(next.map(\.samples.count), [192_000])
+        XCTAssertEqual(next.first?.startFrame, 64_000)
+    }
+
+    func testDefaultFinalTailIncludesFourSecondsOfPriorContext() throws {
+        var builder = MeetingWindowBuilder(source: .microphone)
+        _ = try builder.append(chunk(start: 0, values: [Float](repeating: 0.1, count: 128_000)))
+        _ = try builder.append(chunk(start: 128_000, values: [0.2]))
+
+        let tail = try XCTUnwrap(builder.finish())
+        XCTAssertEqual(tail.startFrame, 64_000)
+        XCTAssertEqual(tail.samples.count, 64_001)
+        XCTAssertEqual(tail.samples.last, 0.2)
+    }
+
+    func testSparseSystemAudioClosesAWindowWithoutInventingSilence() throws {
+        var builder = MeetingWindowBuilder(source: .system, windowFrames: 10, overlapFrames: 2)
+        _ = try builder.append(chunk(source: .system, start: 0, values: [1, 2]))
+
+        let closed = try builder.append(chunk(source: .system, start: 32_000, values: [3, 4]))
+
+        XCTAssertEqual(closed.count, 1)
+        XCTAssertEqual(closed.first?.startFrame, 0)
+        XCTAssertEqual(closed.first?.samples, [1, 2])
+        let tail = builder.finish()
+        XCTAssertEqual(tail?.startFrame, 32_000)
+        XCTAssertEqual(tail?.samples, [3, 4])
+        XCTAssertNil(builder.finish())
     }
 
     func testBoundedQueueAndFairSourceOrder() async throws {
@@ -119,8 +183,12 @@ final class LongFormTranscriberTests: XCTestCase {
         XCTAssertEqual(metrics.lostIntervals, 1)
     }
 
-    private func chunk(start: Int64, values: [Float]) -> MeetingAudioChunk {
-        MeetingAudioChunk(source: .microphone, sequence: 0, startFrame: start, sampleRate: 16_000, samples: values, isFinal: false)
+    private func chunk(
+        source: MeetingAudioSource = .microphone,
+        start: Int64,
+        values: [Float]
+    ) -> MeetingAudioChunk {
+        MeetingAudioChunk(source: source, sequence: 0, startFrame: start, sampleRate: 16_000, samples: values, isFinal: false)
     }
 }
 

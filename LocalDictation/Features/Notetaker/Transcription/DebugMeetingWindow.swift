@@ -7,14 +7,32 @@ struct MeetingProcessOption: Identifiable, Hashable {
     let name: String
     let bundleIdentifier: String?
     let isProducingOutput: Bool
+    let isUsingInput: Bool
+    let isFrontmost: Bool
+
+    init(
+        processID: pid_t,
+        name: String,
+        bundleIdentifier: String?,
+        isProducingOutput: Bool,
+        isUsingInput: Bool = false,
+        isFrontmost: Bool = false
+    ) {
+        self.processID = processID
+        self.name = name
+        self.bundleIdentifier = bundleIdentifier
+        self.isProducingOutput = isProducingOutput
+        self.isUsingInput = isUsingInput
+        self.isFrontmost = isFrontmost
+    }
 
     var id: pid_t { processID }
     var detail: String {
         isProducingOutput ? "Audio active · PID \(processID)" : "No audio now · PID \(processID)"
     }
 
-    fileprivate var normalizedIdentity: String {
-        "\(name) \(bundleIdentifier ?? "")".lowercased()
+    var applicationKind: MeetingApplicationKind {
+        MeetingApplicationKind.classify(name: name, bundleIdentifier: bundleIdentifier)
     }
 }
 
@@ -35,16 +53,15 @@ enum MeetingProcessSelection {
     }
 
     private static func score(_ option: MeetingProcessOption) -> Int {
-        let identity = option.normalizedIdentity
-        let isZoom = identity.contains("zoom")
-        let isChrome = identity.contains("chrome")
-        return switch (option.isProducingOutput, isZoom, isChrome) {
-        case (true, true, _): 500
-        case (true, _, true): 400
-        case (false, true, _): 300
-        case (false, _, true): 200
-        case (true, false, false): 100
-        case (false, false, false): 0
+        let frontmost = option.isFrontmost ? 50 : 0
+        let microphone = option.isUsingInput ? 100 : 0
+        return switch (option.isProducingOutput, option.applicationKind) {
+        case (true, .zoom): 900 + microphone
+        case (true, .chrome), (true, .safari): 700 + microphone + frontmost
+        case (false, .zoom): 400 + microphone
+        case (false, .chrome), (false, .safari): 300 + microphone + frontmost
+        case (true, .other): 100
+        case (false, .other): 0
         }
     }
 }
@@ -55,16 +72,11 @@ private enum MeetingFailureAction {
     case retryStart
 }
 
-enum CallEndNotice: Equatable {
-    case grace(secondsRemaining: Int)
-    case paused
-}
-
 @MainActor
 final class DebugMeetingModel: ObservableObject {
     @Published var processOptions: [MeetingProcessOption] = []
     @Published var selectedProcessID: pid_t?
-    @Published var language = "en"
+    @Published private(set) var languageProfile: LanguageProfile
     @Published var status = "Ready. Press Record when your meeting starts."
     @Published var rows: [MeetingTranscriptRow] = []
     @Published var metrics = ""
@@ -75,12 +87,10 @@ final class DebugMeetingModel: ObservableObject {
     @Published var finishing = false
     @Published var elapsed: TimeInterval = 0
     @Published var failureMessage: String?
-    @Published private(set) var callEndNotice: CallEndNotice?
     @Published private var failureAction: MeetingFailureAction?
 
     var onRecordingStarted: (MeetingCandidate) -> Void = { _ in }
     var onRecordingFinished: () -> Void = {}
-    var onKeepRecording: () -> Void = {}
 
     private var session: DebugMeetingSession?
     private var generation = UUID()
@@ -88,20 +98,23 @@ final class DebugMeetingModel: ObservableObject {
     private let resolver: any MeetingProcessResolving
     private let store: any MeetingStoring
     private let menuBarStatus: NotetakerStatus
+    private let languageProfileProvider: @MainActor () -> LanguageProfile
     private let onMeetingFinished: (UUID?) -> Void
     private var clockTask: Task<Void, Never>?
     private var startedAt: Date?
     private var pausedAt: Date?
     private var accumulatedPause: TimeInterval = 0
     private var captureStartReported = false
-    private(set) var autoPausedByCallEnd = false
 
     init(
+        languageProfileProvider: @escaping @MainActor () -> LanguageProfile = { .default },
         resolver: any MeetingProcessResolving = CoreAudioMeetingProcessResolver(),
         store: any MeetingStoring = FileMeetingStore(),
         menuBarStatus: NotetakerStatus = NotetakerStatus(),
         onMeetingFinished: @escaping (UUID?) -> Void = { _ in }
     ) {
+        self.languageProfileProvider = languageProfileProvider
+        languageProfile = languageProfileProvider()
         self.resolver = resolver
         self.store = store
         self.menuBarStatus = menuBarStatus
@@ -123,14 +136,14 @@ final class DebugMeetingModel: ObservableObject {
 
     func start(preferredProcessID: pid_t? = nil) {
         guard canStart else { return }
+        refreshLanguageProfile()
+        let sessionProfile = languageProfile
         active = true
         preparing = true
         paused = false
         finishing = false
         failureMessage = nil
         failureAction = nil
-        callEndNotice = nil
-        autoPausedByCallEnd = false
         captureStartReported = false
         rows = []
         metrics = ""
@@ -143,18 +156,18 @@ final class DebugMeetingModel: ObservableObject {
         let currentGeneration = UUID()
         generation = currentGeneration
         menuBarStatus.update(.preparing)
-        status = "Finding Zoom or Chrome audio…"
+        status = "Finding Zoom, Chrome, or Safari audio…"
         Task { [self] in
             do {
                 let options = try await discoverProcesses()
                 guard active, generation == currentGeneration else { return }
                 receiveProcesses(options, preferredProcessID: preferredProcessID)
             } catch {
-                fail("Witness could not inspect local audio apps. Check that Zoom or Chrome is open, then try again.", action: .retryStart)
+                fail("Witness could not inspect local audio apps. Check that Zoom, Chrome, or Safari is open, then try again.", action: .retryStart)
                 return
             }
             guard let processID = selectedProcessID else {
-                fail("No meeting audio was found. Open Zoom or Chrome, then press Record again.", action: .retryStart)
+                fail("No meeting audio was found. Open Zoom, Chrome, or Safari, then press Record again.", action: .retryStart)
                 return
             }
             status = "Checking microphone access…"
@@ -167,7 +180,7 @@ final class DebugMeetingModel: ObservableObject {
             }
             let persistence = MeetingPersistenceRecorder(store: store)
             let meeting = DebugMeetingSession(
-                profile: selectedProfile,
+                profile: sessionProfile,
                 title: defaultMeetingTitle,
                 persistence: persistence
             ) { [weak self] update in
@@ -186,8 +199,6 @@ final class DebugMeetingModel: ObservableObject {
 
     func togglePause() {
         guard let session, active, !finishing else { return }
-        callEndNotice = nil
-        autoPausedByCallEnd = false
         if paused {
             status = "Resuming…"
             Task { await session.resume() }
@@ -198,8 +209,6 @@ final class DebugMeetingModel: ObservableObject {
     }
 
     func stop() {
-        callEndNotice = nil
-        autoPausedByCallEnd = false
         guard let session else {
             generation = UUID()
             active = false
@@ -242,13 +251,11 @@ final class DebugMeetingModel: ObservableObject {
         }
     }
 
-    private var selectedProfile: LanguageProfile {
-        switch language {
-        case "de": .german
-        case "ru": .russian
-        case "uk": .ukrainian
-        default: .english
-        }
+    /// Sample the app profile between meetings. Once capture starts, the local
+    /// decoder keeps that profile stable until the note is finished.
+    func refreshLanguageProfile() {
+        guard !active else { return }
+        languageProfile = languageProfileProvider()
     }
 
     private var defaultMeetingTitle: String {
@@ -263,11 +270,24 @@ final class DebugMeetingModel: ObservableObject {
         }.value
         return processes.map { process in
             let application = NSRunningApplication(processIdentifier: process.processID)
+            let bundleIdentifier = process.bundleIdentifier ?? application?.bundleIdentifier
+            let kind = MeetingApplicationKind.classify(
+                name: application?.localizedName ?? "",
+                bundleIdentifier: bundleIdentifier
+            )
+            let fallbackName = switch kind {
+            case .zoom: "Zoom"
+            case .chrome: "Google Chrome"
+            case .safari: "Safari"
+            case .other: "Audio process"
+            }
             return MeetingProcessOption(
                 processID: process.processID,
-                name: application?.localizedName ?? "Audio process",
-                bundleIdentifier: application?.bundleIdentifier,
-                isProducingOutput: process.isProducingOutput
+                name: application?.localizedName ?? fallbackName,
+                bundleIdentifier: bundleIdentifier,
+                isProducingOutput: process.isProducingOutput,
+                isUsingInput: process.isUsingInput,
+                isFrontmost: application?.isActive == true
             )
         }
     }
@@ -303,15 +323,12 @@ final class DebugMeetingModel: ObservableObject {
                 paused = true
                 pausedAt = Date()
                 menuBarStatus.update(.paused)
-                if autoPausedByCallEnd {
-                    status = "Meeting audio ended. Recording is paused; this note can resume."
-                }
             }
         case let .diarization(value):
             diarizationState = value
         case let .rows(value): rows = value
         case let .metrics(value): metrics = value
-        case let .finished(partial, persisted):
+        case let .finished(partial, persisted, issues):
             let finishedSession = session
             updateElapsed()
             active = false
@@ -319,16 +336,12 @@ final class DebugMeetingModel: ObservableObject {
             paused = false
             finishing = false
             session = nil
-            callEndNotice = nil
-            autoPausedByCallEnd = false
             captureStartReported = false
             stopClock()
             onRecordingFinished()
             if partial {
                 menuBarStatus.update(.attention)
-                status = persisted
-                    ? "Partial transcript saved locally — some audio could not be processed."
-                    : "Partial transcript remains in memory — local storage failed."
+                status = partialCompletionStatus(persisted: persisted, issues: issues)
             } else {
                 menuBarStatus.update(.idle)
                 status = persisted ? "Complete — transcript saved locally." : "Stopped — no transcript was saved."
@@ -338,6 +351,20 @@ final class DebugMeetingModel: ObservableObject {
                 onMeetingFinished(meetingID)
             }
         }
+    }
+
+    private func partialCompletionStatus(persisted: Bool, issues: [MeetingPartialIssue]) -> String {
+        guard persisted else { return "Partial transcript remains in memory — local storage failed." }
+        if issues.contains(.transcriptionStopped) {
+            return "Partial transcript saved locally — recognition stopped before every passage was processed."
+        }
+        if issues.contains(.captureStopped) {
+            return "Partial transcript saved locally — audio capture stopped before the meeting ended."
+        }
+        if issues.contains(.audioIntervalMissed) {
+            return "Partial transcript saved locally — a short audio interval was missed."
+        }
+        return "Partial transcript saved locally — some audio could not be processed."
     }
 
     private func beginClock() {
@@ -367,46 +394,12 @@ final class DebugMeetingModel: ObservableObject {
         preparing = false
         paused = false
         finishing = false
-        callEndNotice = nil
-        autoPausedByCallEnd = false
         captureStartReported = false
         stopClock()
         failureMessage = message
         failureAction = action
         menuBarStatus.update(.attention)
         status = "Could not start the meeting note."
-    }
-
-    func showCallEndGrace(secondsRemaining: Int) {
-        guard active, !finishing, !paused else { return }
-        callEndNotice = .grace(secondsRemaining: max(secondsRemaining, 0))
-    }
-
-    func pauseForCallEnd() {
-        guard let session, active, !finishing, !paused else { return }
-        autoPausedByCallEnd = true
-        callEndNotice = .paused
-        status = "Meeting audio ended. Pausing this note…"
-        Task { await session.pause() }
-    }
-
-    func resumeAfterFalseStop() {
-        guard let session, active, !finishing, autoPausedByCallEnd else {
-            callEndNotice = nil
-            return
-        }
-        callEndNotice = nil
-        autoPausedByCallEnd = false
-        status = "Meeting audio returned. Resuming the same note…"
-        Task { await session.resume() }
-    }
-
-    func keepRecording() {
-        onKeepRecording()
-    }
-
-    func clearCallEndNotice() {
-        callEndNotice = nil
     }
 
     private func failure(for error: Error) -> (message: String, action: MeetingFailureAction?) {
@@ -418,13 +411,13 @@ final class DebugMeetingModel: ObservableObject {
         case MeetingMicrophoneError.noInput:
             ("No usable microphone was found. Connect or select an input, then start again.", .microphoneSettings)
         case SystemAudioCaptureError.processNotFound:
-            ("Zoom or Chrome closed or changed while Witness was starting. Open the meeting and try again.", .retryStart)
+            ("Zoom, Chrome, or Safari closed or changed while Witness was starting. Open the meeting and try again.", .retryStart)
         case DebugMeetingError.modelUnavailable:
             ("The selected local speech model is unavailable. Prepare it in Witness and try again.", nil)
         case is MeetingStoreError:
             ("The meeting could not be saved locally. Check available disk space and folder access, then try again.", nil)
         default:
-            ("Witness could not start both audio sources. Check Zoom or Chrome, microphone and System Audio permissions.", .privacySettings)
+            ("Witness could not start both audio sources. Check the meeting app, microphone and System Audio permissions.", .privacySettings)
         }
     }
 }
@@ -492,14 +485,13 @@ struct DebugMeetingView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 statusCard
-                if let notice = model.callEndNotice { callEndCard(notice) }
                 actionButtons
                 if let failure = model.failureMessage { failureCard(failure) }
                 automaticSourceNote
                 notice
                 DisclosureGroup("Recording details") {
                     VStack(alignment: .leading, spacing: 16) {
-                        languagePicker
+                        languageProfileSummary
                         sourceHealth
                         if !model.metrics.isEmpty { metricsCard }
                     }
@@ -527,7 +519,7 @@ struct DebugMeetingView: View {
 
     private var automaticSourceNote: some View {
         Label {
-            Text("Witness automatically records your microphone and the open Zoom or Chrome meeting.")
+            Text("Witness automatically records your microphone and the open Zoom, Chrome, or Safari meeting.")
                 .fixedSize(horizontal: false, vertical: true)
         } icon: {
             Image(systemName: "wand.and.stars")
@@ -538,42 +530,20 @@ struct DebugMeetingView: View {
         .accessibilityElement(children: .combine)
     }
 
-    private func callEndCard(_ notice: CallEndNotice) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Label("Meeting audio disappeared", systemImage: "waveform.slash")
-                .font(.headline)
-                .foregroundStyle(WitnessStyle.warning)
-            switch notice {
-            case let .grace(secondsRemaining):
-                Text("Witness is waiting up to \(secondsRemaining) seconds before pausing. If audio returns, this note continues automatically.")
-                    .font(.callout)
-                    .fixedSize(horizontal: false, vertical: true)
-            case .paused:
-                Text("Capture is paused, not finalized. If the call returns, Witness resumes this same note.")
-                    .font(.callout)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Button("Keep recording") { model.keepRecording() }
-                .buttonStyle(WitnessSecondaryButtonStyle())
-                .accessibilityHint("Cancels call-end detection for this note and resumes it if paused")
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .witnessCard(.warning)
-        .accessibilityElement(children: .contain)
-    }
-
-    private var languagePicker: some View {
+    private var languageProfileSummary: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Transcript language").font(.headline)
-            Picker("Transcript language", selection: $model.language) {
-                Text("English").tag("en")
-                Text("Deutsch").tag("de")
-                Text("Русский").tag("ru")
-                Text("Українська").tag("uk")
-            }
-            .labelsHidden()
-            .disabled(model.active)
+            Text("Transcript languages").font(.headline)
+            Text(model.languageProfile.displayName)
+                .font(.callout.weight(.medium))
+                .foregroundStyle(WitnessStyle.ink)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("Uses your Witness language profile. Change it in Settings before starting a meeting.")
+                .font(.caption)
+                .foregroundStyle(WitnessStyle.muted)
+                .fixedSize(horizontal: false, vertical: true)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Transcript languages: \(model.languageProfile.displayName). Uses your Witness language profile.")
     }
 
     private var sourceHealth: some View {
@@ -646,7 +616,7 @@ struct DebugMeetingView: View {
                     .buttonStyle(WitnessPrimaryButtonStyle())
                     .disabled(!model.canStart)
                     .keyboardShortcut(.return, modifiers: [.command])
-                    .accessibilityHint("Automatically records the microphone and meeting audio from Zoom or Chrome")
+                    .accessibilityHint("Automatically records the microphone and meeting audio from Zoom, Chrome, or Safari")
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -695,11 +665,12 @@ struct DebugMeetingView: View {
     }
 
     private var transcript: some View {
-        VStack(spacing: 0) {
+        let groups = MeetingTranscriptPresentation.groups(from: model.rows)
+        return VStack(spacing: 0) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Live transcript").font(.headline)
-                    Text("Recognition is delayed and may change at overlapping boundaries.")
+                    Text("Recognition is assembled locally into speaker turns. Uncertain model guesses are marked.")
                         .font(.caption)
                         .foregroundStyle(WitnessStyle.muted)
                 }
@@ -713,65 +684,84 @@ struct DebugMeetingView: View {
             Divider().overlay(WitnessStyle.line)
             ScrollViewReader { proxy in
                 ScrollView {
-                    if model.rows.isEmpty {
+                    if groups.isEmpty {
                         VStack(spacing: 10) {
-                            Image(systemName: "text.bubble")
-                                .font(.system(size: 32, weight: .light))
-                                .foregroundStyle(WitnessStyle.faint)
-                                .accessibilityHidden(true)
-                            Text("Transcript will appear here").font(.headline)
-                            Text("Start a note, then speak or play meeting audio.")
-                                .font(.callout)
-                                .foregroundStyle(WitnessStyle.muted)
+                            if model.active {
+                                ProgressView()
+                                    .controlSize(.small)
+                                    .accessibilityLabel("Listening for speech")
+                                Text(model.preparing ? "Preparing local recognition…" : "Listening for speech…")
+                                    .font(.headline)
+                                Text("The first live text normally appears after about 8–10 seconds of speech.")
+                                    .font(.callout)
+                                    .foregroundStyle(WitnessStyle.muted)
+                                    .multilineTextAlignment(.center)
+                            } else {
+                                Image(systemName: "text.bubble")
+                                    .font(.system(size: 32, weight: .light))
+                                    .foregroundStyle(WitnessStyle.faint)
+                                    .accessibilityHidden(true)
+                                Text("Transcript will appear here").font(.headline)
+                                Text("Start a note, then speak or play meeting audio.")
+                                    .font(.callout)
+                                    .foregroundStyle(WitnessStyle.muted)
+                            }
                         }
+                        .padding(.horizontal, 24)
                         .frame(maxWidth: .infinity, minHeight: 360)
                     } else {
                         LazyVStack(alignment: .leading, spacing: 12) {
-                            ForEach(Array(model.rows.enumerated()), id: \.offset) { index, row in
-                                transcriptRow(row).id(index)
+                            ForEach(Array(groups.enumerated()), id: \.offset) { index, group in
+                                transcriptGroup(group).id(index)
                             }
                         }
                         .padding(20)
                     }
                 }
-                .onChange(of: model.rows.count) {
-                    guard followsLatest, !model.rows.isEmpty else { return }
+                .onChange(of: groups.count) {
+                    guard followsLatest, !groups.isEmpty else { return }
                     if reduceMotion {
-                        proxy.scrollTo(model.rows.count - 1, anchor: .bottom)
+                        proxy.scrollTo(groups.count - 1, anchor: .bottom)
                     } else {
                         withAnimation(.easeOut(duration: 0.18)) {
-                            proxy.scrollTo(model.rows.count - 1, anchor: .bottom)
+                            proxy.scrollTo(groups.count - 1, anchor: .bottom)
                         }
                     }
                 }
                 .onChange(of: followsLatest) {
-                    guard followsLatest, !model.rows.isEmpty else { return }
-                    proxy.scrollTo(model.rows.count - 1, anchor: .bottom)
+                    guard followsLatest, !groups.isEmpty else { return }
+                    proxy.scrollTo(groups.count - 1, anchor: .bottom)
                 }
             }
         }
         .background(WitnessStyle.raisedSurface.opacity(0.34))
     }
 
-    private func transcriptRow(_ row: MeetingTranscriptRow) -> some View {
+    private func transcriptGroup(_ group: MeetingTranscriptPresentationGroup) -> some View {
         HStack(alignment: .top, spacing: 12) {
-            Text(timestamp(row.startFrame))
+            Text(timestamp(group.startFrame))
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(WitnessStyle.faint)
                 .frame(width: 46, alignment: .leading)
             VStack(alignment: .leading, spacing: 5) {
                 HStack(spacing: 6) {
-                    Text(row.speaker)
+                    Text(group.speaker)
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(row.source == .microphone ? WitnessStyle.accent : WitnessStyle.success)
-                    if let confidence = row.speakerConfidence {
+                        .foregroundStyle(group.source == .microphone ? WitnessStyle.accent : WitnessStyle.success)
+                    if let confidence = group.rows.compactMap(\.speakerConfidence).min() {
                         Text("\(Int((confidence * 100).rounded()))%")
                             .font(.caption2.monospacedDigit())
                             .foregroundStyle(confidence >= 0.6 ? WitnessStyle.muted : WitnessStyle.warning)
                     }
+                    if group.recognitionNeedsReview {
+                        Label("Low confidence", systemImage: "exclamationmark.triangle.fill")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(WitnessStyle.warning)
+                    }
                 }
-                Text(row.text)
+                Text(group.recognitionNeedsReview ? "Model guess: \(group.text)" : group.text)
                     .font(.body)
+                    .foregroundStyle(group.recognitionNeedsReview ? WitnessStyle.muted : .primary)
                     .textSelection(.enabled)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -781,10 +771,15 @@ struct DebugMeetingView: View {
         .background(WitnessStyle.surface, in: RoundedRectangle(cornerRadius: WitnessStyle.cornerRadius))
         .overlay {
             RoundedRectangle(cornerRadius: WitnessStyle.cornerRadius)
-                .stroke(WitnessStyle.line, lineWidth: 1)
+                .stroke(group.recognitionNeedsReview ? WitnessStyle.warning.opacity(0.55) : WitnessStyle.line,
+                        lineWidth: 1)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(row.speaker), \(timestamp(row.startFrame)): \(row.text)")
+        .accessibilityLabel(
+            "\(group.speaker), \(timestamp(group.startFrame)): "
+            + (group.recognitionNeedsReview ? "Low confidence model guess: " : "")
+            + group.text
+        )
     }
 
     private func timestamp(_ frame: Int64) -> String {
@@ -818,6 +813,7 @@ final class DebugMeetingWindowController: NSObject {
     }
 
     func show() {
+        model.refreshLanguageProfile()
         if let window {
             window.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
@@ -844,6 +840,183 @@ final class DebugMeetingWindowController: NSObject {
     func stop() { model.stop() }
 }
 
+private enum MeetingPromptMode: Equatable {
+    case start
+    case finish
+}
+
+private struct MeetingPromptView: View {
+    let title: String
+    let detail: String
+    let systemImage: String
+    let primaryTitle: String
+    let secondaryTitle: String
+    let isDestructive: Bool
+    let primaryAction: () -> Void
+    let secondaryAction: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 12) {
+                WitnessIconTile(
+                    systemImage: systemImage,
+                    tint: isDestructive ? WitnessStyle.warning : WitnessStyle.accent
+                )
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.headline)
+                        .foregroundStyle(WitnessStyle.ink)
+                    Text(detail)
+                        .font(.callout)
+                        .foregroundStyle(WitnessStyle.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            HStack(spacing: 8) {
+                Button(primaryTitle, action: primaryAction)
+                    .buttonStyle(WitnessPrimaryButtonStyle())
+                    .accessibilityHint(isDestructive
+                        ? "Stops capture and saves the local meeting note"
+                        : "Starts local microphone and meeting audio recording")
+                Button(secondaryTitle, action: secondaryAction)
+                    .buttonStyle(WitnessSecondaryButtonStyle())
+            }
+        }
+        .padding(18)
+        .frame(width: 380)
+        .witnessWindow()
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(title)
+    }
+}
+
+/// A compact, non-activating decision surface. It stays above the meeting app
+/// without stealing keyboard focus. The start suggestion expires quietly;
+/// stopping a recording always requires an explicit user action.
+@MainActor
+private final class MeetingPromptPanelController {
+    private var panel: NSPanel?
+    private var mode: MeetingPromptMode?
+    private var autoDismissTask: Task<Void, Never>?
+
+    func showStart(_ suggestion: NotetakerSuggestion, timeout: @escaping () -> Void) {
+        present(
+            mode: .start,
+            title: suggestion.title,
+            detail: suggestion.detail,
+            systemImage: "video.badge.waveform",
+            primaryTitle: "Start recording",
+            secondaryTitle: "Not now",
+            isDestructive: false,
+            primaryAction: suggestion.start,
+            secondaryAction: suggestion.dismiss
+        )
+        autoDismissTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(5))
+            guard !Task.isCancelled, let self, self.mode == .start else { return }
+            self.autoDismissTask = nil
+            self.panel?.orderOut(nil)
+            self.mode = nil
+            timeout()
+        }
+    }
+
+    func showFinish(stop: @escaping () -> Void, continueRecording: @escaping () -> Void) {
+        present(
+            mode: .finish,
+            title: "Has the meeting ended?",
+            detail: "Meeting audio has been quiet for a while. Witness is still recording and will only stop when you choose.",
+            systemImage: "waveform.slash",
+            primaryTitle: "Stop recording",
+            secondaryTitle: "Keep recording",
+            isDestructive: true,
+            primaryAction: stop,
+            secondaryAction: continueRecording
+        )
+    }
+
+    func dismiss(_ expectedMode: MeetingPromptMode? = nil) {
+        if let expectedMode, mode != expectedMode { return }
+        autoDismissTask?.cancel()
+        autoDismissTask = nil
+        panel?.orderOut(nil)
+        mode = nil
+    }
+
+    private func present(
+        mode: MeetingPromptMode,
+        title: String,
+        detail: String,
+        systemImage: String,
+        primaryTitle: String,
+        secondaryTitle: String,
+        isDestructive: Bool,
+        primaryAction: @escaping () -> Void,
+        secondaryAction: @escaping () -> Void
+    ) {
+        autoDismissTask?.cancel()
+        autoDismissTask = nil
+        let dismissingPrimary = { [weak self] in
+            self?.dismiss(mode)
+            primaryAction()
+        }
+        let dismissingSecondary = { [weak self] in
+            self?.dismiss(mode)
+            secondaryAction()
+        }
+        let view = MeetingPromptView(
+            title: title,
+            detail: detail,
+            systemImage: systemImage,
+            primaryTitle: primaryTitle,
+            secondaryTitle: secondaryTitle,
+            isDestructive: isDestructive,
+            primaryAction: dismissingPrimary,
+            secondaryAction: dismissingSecondary
+        )
+        let panel = panel ?? makePanel()
+        panel.contentViewController = NSHostingController(rootView: view)
+        panel.setContentSize(NSSize(width: 380, height: panel.contentView?.fittingSize.height ?? 170))
+        position(panel)
+        self.panel = panel
+        self.mode = mode
+        panel.orderFrontRegardless()
+    }
+
+    private func makePanel() -> NSPanel {
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 380, height: 170),
+            styleMask: [.titled, .fullSizeContentView, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        panel.titleVisibility = .hidden
+        panel.titlebarAppearsTransparent = true
+        panel.isFloatingPanel = true
+        panel.becomesKeyOnlyIfNeeded = true
+        panel.hidesOnDeactivate = false
+        panel.isMovableByWindowBackground = true
+        panel.isReleasedWhenClosed = false
+        panel.level = .floating
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        panel.standardWindowButton(.closeButton)?.isHidden = true
+        panel.standardWindowButton(.miniaturizeButton)?.isHidden = true
+        panel.standardWindowButton(.zoomButton)?.isHidden = true
+        return panel
+    }
+
+    private func position(_ panel: NSPanel) {
+        guard let screen = NSScreen.main ?? NSScreen.screens.first else { return }
+        let visible = screen.visibleFrame
+        let frame = panel.frame
+        panel.setFrameOrigin(NSPoint(
+            x: visible.maxX - frame.width - 24,
+            y: visible.minY + 24
+        ))
+    }
+}
+
 @MainActor
 final class DogfoodNotetakerFacade: NotetakerFacade {
     let status: NotetakerStatus
@@ -851,13 +1024,18 @@ final class DogfoodNotetakerFacade: NotetakerFacade {
     private let window: DebugMeetingWindowController
     private let library: MeetingLibraryWindowController
     private let recordingModel: DebugMeetingModel
+    private let prompt = MeetingPromptPanelController()
     private var detection: MeetingDetectionCoordinator?
 
-    init() {
+    init(languageProfileProvider: @escaping @MainActor () -> LanguageProfile = { .default }) {
         let store = FileMeetingStore()
         let status = NotetakerStatus()
         let libraryModel = MeetingLibraryModel(store: store)
-        let recordingModel = DebugMeetingModel(store: store, menuBarStatus: status) { [weak libraryModel] meetingID in
+        let recordingModel = DebugMeetingModel(
+            languageProfileProvider: languageProfileProvider,
+            store: store,
+            menuBarStatus: status
+        ) { [weak libraryModel] meetingID in
             Task { await libraryModel?.refresh(selecting: meetingID) }
         }
         let window = DebugMeetingWindowController(model: recordingModel)
@@ -869,18 +1047,21 @@ final class DogfoodNotetakerFacade: NotetakerFacade {
         self.window = window
         self.library = library
         self.recordingModel = recordingModel
-        let detection = MeetingDetectionCoordinator(model: recordingModel) { [weak self] candidate in
-            self?.presentSuggestion(for: candidate)
-        }
+        let detection = MeetingDetectionCoordinator(
+            model: recordingModel,
+            onSuggestion: { [weak self] candidate in
+                self?.presentSuggestion(for: candidate)
+            },
+            onCallEndSuggestion: { [weak self] visible in
+                self?.presentCallEndSuggestion(visible)
+            }
+        )
         self.detection = detection
         recordingModel.onRecordingStarted = { [weak detection] candidate in
             detection?.recordingStarted(candidate: candidate)
         }
         recordingModel.onRecordingFinished = { [weak detection] in
             detection?.recordingFinished()
-        }
-        recordingModel.onKeepRecording = { [weak detection] in
-            detection?.keepRecording()
         }
     }
 
@@ -910,6 +1091,7 @@ final class DogfoodNotetakerFacade: NotetakerFacade {
     }
 
     func activate() {
+        recordingModel.refreshLanguageProfile()
         detection?.activate()
         Task(priority: .utility) {
             await ProductionDiarizationFactory.warmUpIfAvailable()
@@ -918,12 +1100,14 @@ final class DogfoodNotetakerFacade: NotetakerFacade {
 
     func deactivate() {
         detection?.deactivate()
+        prompt.dismiss()
         window.stop()
     }
 
     private func presentSuggestion(for candidate: MeetingCandidate?) {
         guard let candidate else {
             suggestion = nil
+            prompt.dismiss(.start)
             if status.state == .suggestion {
                 status.update(.idle)
             } else {
@@ -936,6 +1120,9 @@ final class DogfoodNotetakerFacade: NotetakerFacade {
             start: { [weak self] in self?.startSuggestedMeeting() },
             dismiss: { [weak self] in self?.dismissSuggestion() }
         )
+        if let suggestion {
+            prompt.showStart(suggestion, timeout: { [weak self] in self?.expireSuggestion() })
+        }
         if status.state == .idle || status.state == .suggestion {
             status.update(.suggestion)
         } else {
@@ -946,6 +1133,7 @@ final class DogfoodNotetakerFacade: NotetakerFacade {
     private func startSuggestedMeeting() {
         guard let candidate = detection?.acceptSuggestion() else { return }
         suggestion = nil
+        prompt.dismiss(.start)
         window.show()
         recordingModel.start(preferredProcessID: candidate.processIdentifier)
     }
@@ -953,6 +1141,24 @@ final class DogfoodNotetakerFacade: NotetakerFacade {
     private func dismissSuggestion() {
         detection?.dismissSuggestion()
         suggestion = nil
+        prompt.dismiss(.start)
         if status.state == .suggestion { status.update(.idle) }
+    }
+
+    private func expireSuggestion() {
+        detection?.expireSuggestion()
+        suggestion = nil
+        if status.state == .suggestion { status.update(.idle) }
+    }
+
+    private func presentCallEndSuggestion(_ visible: Bool) {
+        guard visible, status.state == .recording else {
+            prompt.dismiss(.finish)
+            return
+        }
+        prompt.showFinish(
+            stop: { [weak self] in self?.recordingModel.stop() },
+            continueRecording: { [weak self] in self?.detection?.continueRecording() }
+        )
     }
 }

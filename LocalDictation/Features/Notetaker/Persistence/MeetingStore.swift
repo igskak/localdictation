@@ -18,6 +18,9 @@ struct MeetingManifest: Codable, Sendable, Equatable, Identifiable {
     let sourcePlatform: MeetingPlatform
     var completionState: MeetingCompletionState
     var speakerDisplayNames: [String: String]
+    /// Content-free local diagnostic categories for a partial note. Optional
+    /// keeps schema-1 manifests written by earlier test builds readable.
+    var partialIssueCodes: [String]?
 
     init(
         id: UUID = UUID(),
@@ -27,7 +30,8 @@ struct MeetingManifest: Codable, Sendable, Equatable, Identifiable {
         selectedLanguages: [SpeechLanguage],
         sourcePlatform: MeetingPlatform,
         completionState: MeetingCompletionState = .recording,
-        speakerDisplayNames: [String: String] = ["you": "You", "others": "Others"]
+        speakerDisplayNames: [String: String] = ["you": "You", "others": "Others"],
+        partialIssueCodes: [String]? = nil
     ) {
         schemaVersion = Self.currentSchemaVersion
         self.id = id
@@ -38,6 +42,7 @@ struct MeetingManifest: Codable, Sendable, Equatable, Identifiable {
         self.sourcePlatform = sourcePlatform
         self.completionState = completionState
         self.speakerDisplayNames = speakerDisplayNames
+        self.partialIssueCodes = partialIssueCodes
     }
 }
 
@@ -114,7 +119,8 @@ struct MeetingTranscriptRecord: Codable, Sendable, Equatable, Identifiable {
             rawText: row.original.text,
             meanConfidence: row.original.meanConfidence,
             minimumConfidence: row.original.minimumConfidence,
-            hasConfidenceSignal: row.original.hasConfidenceSignal
+            hasConfidenceSignal: row.original.hasConfidenceSignal,
+            riskEvidence: row.recognitionNeedsReview ? ["low-confidence recognition"] : []
         )
     }
 
@@ -131,7 +137,15 @@ struct MeetingTranscriptRecord: Codable, Sendable, Equatable, Identifiable {
             rawText: row.original.text,
             meanConfidence: row.original.meanConfidence,
             minimumConfidence: row.original.minimumConfidence,
-            hasConfidenceSignal: row.original.hasConfidenceSignal
+            hasConfidenceSignal: row.original.hasConfidenceSignal,
+            riskEvidence: row.recognitionNeedsReview ? ["low-confidence recognition"] : []
+        )
+    }
+
+    var recognitionNeedsReview: Bool {
+        MeetingRecognitionQualityPolicy.needsReview(
+            meanConfidence: meanConfidence,
+            hasConfidenceSignal: hasConfidenceSignal
         )
     }
 

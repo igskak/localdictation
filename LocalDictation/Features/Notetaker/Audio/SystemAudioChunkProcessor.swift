@@ -47,11 +47,27 @@ final class SystemAudioChunkProcessor {
             if let source = values.baseAddress { channel.update(from: source, count: values.count) }
         }
         let hostNanos = AudioConvertHostTimeToNanos(chunk.hostTime)
-        if let previousSequence, chunk.sequence != previousSequence + 1 { throw SystemAudioCaptureError.discontinuity }
+        if let previousSequence, chunk.sequence != previousSequence + 1 {
+            // The bounded capture queue reports the loss separately. Keep the
+            // session alive, preserve the gap on the host-time timeline, and
+            // let the UI/metrics mark the note partial instead of discarding
+            // everything captured after one delayed callback.
+            guard chunk.sequence > previousSequence else { throw SystemAudioCaptureError.discontinuity }
+            nextChunkStartsAtHostTime = true
+        }
         if let expected = expectedInputEndNanos {
             let delta = hostNanos >= expected ? hostNanos - expected : expected - hostNanos
             let tolerance = UInt64((2e9 / chunk.sampleRate).rounded(.up))
-            guard delta <= tolerance else { throw SystemAudioCaptureError.discontinuity }
+            if delta > tolerance {
+                // A process tap may stop delivering callbacks while an app is
+                // silent. The callback sequence remains continuous, so this is
+                // a real timeline gap rather than dropped audio. Re-anchor the
+                // next system chunk instead of terminating the whole meeting.
+                // Sequence continuity proves the callback itself was not
+                // dropped. Both a sparse process tap and a temporarily delayed
+                // microphone callback can therefore continue at host time.
+                nextChunkStartsAtHostTime = true
+            }
         }
         let start = previousSequence == nil || nextChunkStartsAtHostTime
             ? Self.frame(hostTime: chunk.hostTime, originHostTime: originHostTime)

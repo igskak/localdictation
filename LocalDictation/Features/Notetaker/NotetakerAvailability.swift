@@ -38,6 +38,7 @@ struct NotetakerSuggestion {
         switch platform {
         case .zoom: "Zoom call detected"
         case .googleMeet: "Possible Google Meet call"
+        case .safari: "Possible Safari call"
         case .manual: "Meeting detected"
         }
     }
@@ -46,6 +47,7 @@ struct NotetakerSuggestion {
         switch platform {
         case .zoom: "Create a local note from your microphone and Zoom audio?"
         case .googleMeet: "Chrome is playing audio. If this is a Meet call, Witness can create a local note."
+        case .safari: "Safari is playing audio. If this is a call, Witness can create a local note."
         case .manual: "Create a local meeting note?"
         }
     }
