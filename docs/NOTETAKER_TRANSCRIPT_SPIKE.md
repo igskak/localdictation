@@ -10,10 +10,20 @@ target meeting application is producing audio to find its Core Audio PID.
 
 It captures microphone and a single Core Audio process on one host-time clock,
 keeps raw audio only in bounded memory, and labels transcript rows `You` and
-`Others`. Recognition emits its first eight-second window, then uses twelve
-seconds of context with a four-second overlap. The first live text therefore
-still normally appears after roughly 8–10 seconds, while later and final
-phrases have enough left context to avoid timer-clipped short hypotheses.
+`Others`. Recognition windows do not overlap and end in a pause: after eight
+seconds a window waits for 300 ms that are quiet relative to its own speech
+and is cut in the middle of them; without a pause it is cut at its quietest
+stretch at twenty seconds. The first live text therefore still normally
+appears after roughly 8–10 seconds, and no phrase is recognised twice. Fixed
+twelve-second windows with a four-second overlap repeated 16–22% of the words
+in the 23.10 dogfood meeting.
+Each source keeps its own timeline the way a recorder writes a track: a chunk
+starts where the previous one ended, and host time only corrects the position.
+Within 20 ms the sample count wins, a late chunk is padded with up to 250 ms of
+silence, a longer hole starts at its host-time position, and a chunk that
+claims audio already handed out loses the overlap. A device clock drifting
+from the host clock is therefore never fatal; on 23.10 one backward correction
+after 29 minutes ended the meeting as `transcription_missing_audio`.
 Each meeting takes the complete ordered language profile from Witness settings
 when recording starts. There is no separate Note Taker language choice and no
 hidden English default; a settings change applies to the next meeting instead
@@ -34,8 +44,14 @@ live view and history. The process tap may include other Chrome tabs.
 This remains an internal test path, not a released meeting recorder. The
 command-line Debug harness has Start and Stop; the dogfood build below adds the
 native test interface. Neither is a substitute for a consented hardware test.
-Headphones are the supported test configuration; echo
-on speakers has not been measured. In the dogfood build, closing the meeting
+Headphones are the supported test configuration. On speakers the
+meeting microphone opens with Apple voice processing (other apps are ducked as
+little as the unit allows) and falls back to the direct input if it will not
+open; the log says which. A microphone row is then removed as echo when at
+least 60% of its words were recognised in system audio within two seconds,
+and the metrics count the removed rows. The live file keeps every row for
+crash recovery; the final transcript is the filtered one. How much echo voice
+processing cancels from another app's playback has not been measured. In the dogfood build, closing the meeting
 window leaves an active recording running; the separate `Meeting recording`
 menu-bar item reopens, pauses/resumes or stops it. The harness displays
 inference time divided by captured meeting time, audio real-time factor, maximum queue delay, peak

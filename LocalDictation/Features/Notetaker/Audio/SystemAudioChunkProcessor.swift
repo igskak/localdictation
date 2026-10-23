@@ -13,6 +13,82 @@ struct MeetingAudioChunk: Sendable {
     let isFinal: Bool
 }
 
+/// One source's 16 kHz timeline, kept the way a recorder writes a track: a
+/// chunk starts where the previous one ended, and host time only corrects
+/// that position. The device clock and the host clock drift apart by tens of
+/// milliseconds over half an hour, and a process tap stops delivering while
+/// its app is silent, so a disagreement is never an error:
+///
+/// - within `driftToleranceFrames` the sample count wins;
+/// - a late chunk is preceded by silence up to `paddingLimitFrames`, so a
+///   clock correction does not split a sentence into two windows;
+/// - a longer hole starts the chunk at its host-time position, and the window
+///   builder closes the window there instead of inventing silence;
+/// - a chunk that claims audio already handed out loses that overlap, which
+///   resynchronises a device clock that runs fast;
+/// - a jump back of more than `clockResetFrames` means the device restarted
+///   its clock: the audio is kept and the timeline continues.
+///
+/// On 23.10 a meeting ended after 29 minutes because one backward correction
+/// was treated as missing audio.
+struct MeetingTimeline: Sendable, Equatable {
+    enum Correction: Sendable, Equatable {
+        case none
+        case padded(frames: Int)
+        case trimmed(frames: Int)
+        case gap(frames: Int64)
+        case clockReset(frames: Int64)
+    }
+
+    struct Placement: Sendable, Equatable {
+        let startFrame: Int64
+        let paddingFrames: Int
+        let trimmedFrames: Int
+        let correction: Correction
+    }
+
+    static let driftToleranceFrames: Int64 = 320
+    static let paddingLimitFrames: Int64 = 4_000
+    static let clockResetFrames: Int64 = 32_000
+
+    private(set) var nextFrame: Int64?
+    private var hostOffset: Int64 = 0
+
+    /// The next chunk starts at its host-time position, as after a pause.
+    mutating func reanchor() {
+        nextFrame = nil
+    }
+
+    mutating func place(hostFrame rawHostFrame: Int64, frameCount: Int) -> Placement {
+        let hostFrame = rawHostFrame + hostOffset
+        let placement: Placement
+        if let next = nextFrame {
+            let drift = hostFrame - next
+            if abs(drift) <= Self.driftToleranceFrames {
+                placement = Placement(startFrame: next, paddingFrames: 0, trimmedFrames: 0, correction: .none)
+            } else if drift > Self.paddingLimitFrames {
+                placement = Placement(startFrame: hostFrame, paddingFrames: 0, trimmedFrames: 0,
+                                      correction: .gap(frames: drift))
+            } else if drift > 0 {
+                placement = Placement(startFrame: next, paddingFrames: Int(drift), trimmedFrames: 0,
+                                      correction: .padded(frames: Int(drift)))
+            } else if -drift > Self.clockResetFrames {
+                hostOffset += -drift
+                placement = Placement(startFrame: next, paddingFrames: 0, trimmedFrames: 0,
+                                      correction: .clockReset(frames: -drift))
+            } else {
+                let trimmed = min(Int(-drift), frameCount)
+                placement = Placement(startFrame: next, paddingFrames: 0, trimmedFrames: trimmed,
+                                      correction: .trimmed(frames: trimmed))
+            }
+        } else {
+            placement = Placement(startFrame: hostFrame, paddingFrames: 0, trimmedFrames: 0, correction: .none)
+        }
+        nextFrame = placement.startFrame + Int64(placement.paddingFrames + frameCount - placement.trimmedFrames)
+        return placement
+    }
+}
+
 /// Consumed off the IO thread. Host time is shared with the microphone source;
 /// conversion and allocation never occur in the Core Audio callback.
 final class SystemAudioChunkProcessor {
@@ -20,11 +96,8 @@ final class SystemAudioChunkProcessor {
     private let source: MeetingAudioSource
     private let originHostTime: UInt64
     private let converter: AudioFormatConverter
-    private var nextFrame: Int64 = 0
+    private var timeline = MeetingTimeline()
     private var nextSequence: UInt64 = 0
-    private var previousSequence: UInt64?
-    private var expectedInputEndNanos: UInt64?
-    private var nextChunkStartsAtHostTime = false
     private var finished = false
 
     init(buffer: MeetingAudioBuffer, inputSampleRate: Double, originHostTime: UInt64, source: MeetingAudioSource = .system) throws {
@@ -37,56 +110,37 @@ final class SystemAudioChunkProcessor {
         self.converter = try AudioFormatConverter(inputFormat: format)
     }
 
+    /// Returns the next placed chunk, or nil once the queue is empty. A chunk
+    /// whose audio was already handed out entirely is skipped, not returned.
     func take() throws -> MeetingAudioChunk? {
-        guard !finished, let chunk = buffer.take() else { return nil }
-        guard chunk.sampleRate == converter.inputFormat.sampleRate,
-              let input = AVAudioPCMBuffer(pcmFormat: converter.inputFormat, frameCapacity: AVAudioFrameCount(max(chunk.samples.count, 1))),
-              let channel = input.floatChannelData?[0] else { throw SystemAudioCaptureError.unsupportedFormat }
-        input.frameLength = AVAudioFrameCount(chunk.samples.count)
-        chunk.samples.withUnsafeBufferPointer { values in
-            if let source = values.baseAddress { channel.update(from: source, count: values.count) }
-        }
-        let hostNanos = AudioConvertHostTimeToNanos(chunk.hostTime)
-        if let previousSequence, chunk.sequence != previousSequence + 1 {
-            // The bounded capture queue reports the loss separately. Keep the
-            // session alive, preserve the gap on the host-time timeline, and
-            // let the UI/metrics mark the note partial instead of discarding
-            // everything captured after one delayed callback.
-            guard chunk.sequence > previousSequence else { throw SystemAudioCaptureError.discontinuity }
-            nextChunkStartsAtHostTime = true
-        }
-        if let expected = expectedInputEndNanos {
-            let delta = hostNanos >= expected ? hostNanos - expected : expected - hostNanos
-            let tolerance = UInt64((2e9 / chunk.sampleRate).rounded(.up))
-            if delta > tolerance {
-                // A process tap may stop delivering callbacks while an app is
-                // silent. The callback sequence remains continuous, so this is
-                // a real timeline gap rather than dropped audio. Re-anchor the
-                // next system chunk instead of terminating the whole meeting.
-                // Sequence continuity proves the callback itself was not
-                // dropped. Both a sparse process tap and a temporarily delayed
-                // microphone callback can therefore continue at host time.
-                nextChunkStartsAtHostTime = true
+        while !finished, let chunk = buffer.take() {
+            guard chunk.sampleRate == converter.inputFormat.sampleRate,
+                  let input = AVAudioPCMBuffer(pcmFormat: converter.inputFormat, frameCapacity: AVAudioFrameCount(max(chunk.samples.count, 1))),
+                  let channel = input.floatChannelData?[0] else { throw SystemAudioCaptureError.unsupportedFormat }
+            input.frameLength = AVAudioFrameCount(chunk.samples.count)
+            chunk.samples.withUnsafeBufferPointer { values in
+                if let source = values.baseAddress { channel.update(from: source, count: values.count) }
             }
+            let frames = try converter.convert(input)
+            nextSequence = chunk.sequence + 1
+            let placement = timeline.place(
+                hostFrame: Self.frame(hostTime: chunk.hostTime, originHostTime: originHostTime),
+                frameCount: frames.count
+            )
+            report(placement.correction)
+            var samples = [Float](repeating: 0, count: placement.paddingFrames)
+            samples.append(contentsOf: frames.dropFirst(placement.trimmedFrames))
+            guard !samples.isEmpty else { continue }
+            return MeetingAudioChunk(source: source, sequence: chunk.sequence, startFrame: placement.startFrame,
+                                     sampleRate: converter.outputFormat.sampleRate, samples: samples, isFinal: false)
         }
-        let start = previousSequence == nil || nextChunkStartsAtHostTime
-            ? Self.frame(hostTime: chunk.hostTime, originHostTime: originHostTime)
-            : nextFrame
-        nextChunkStartsAtHostTime = false
-        let frames = try converter.convert(input)
-        nextFrame = start + Int64(frames.count)
-        nextSequence = chunk.sequence + 1
-        previousSequence = chunk.sequence
-        expectedInputEndNanos = hostNanos + UInt64((Double(chunk.samples.count) / chunk.sampleRate * 1e9).rounded())
-        return MeetingAudioChunk(source: source, sequence: chunk.sequence, startFrame: start,
-                                 sampleRate: converter.outputFormat.sampleRate, samples: Array(frames), isFinal: false)
+        return nil
     }
 
     /// Pause is an intentional hole, not lost audio. The first resumed chunk
     /// keeps its host-time position while sequence checking stays intact.
     func prepareForResume() {
-        expectedInputEndNanos = nil
-        nextChunkStartsAtHostTime = true
+        timeline.reanchor()
     }
 
     /// Call after the device is stopped and every queued buffer has been read.
@@ -94,8 +148,26 @@ final class SystemAudioChunkProcessor {
         guard !finished, buffer.snapshot().queuedChunks == 0 else { throw SystemAudioCaptureError.invalidState }
         finished = true
         let tail = try converter.drain()
-        return MeetingAudioChunk(source: source, sequence: nextSequence, startFrame: nextFrame,
+        return MeetingAudioChunk(source: source, sequence: nextSequence, startFrame: timeline.nextFrame ?? 0,
                                  sampleRate: converter.outputFormat.sampleRate, samples: Array(tail), isFinal: true)
+    }
+
+    /// Gaps are routine for a sparse process tap, so only corrections that
+    /// change audio are worth a line in the log.
+    private func report(_ correction: MeetingTimeline.Correction) {
+        let milliseconds = { (frames: Int64) in frames * 1_000 / Int64(AudioTargetFormat.sampleRate) }
+        switch correction {
+        case .none:
+            break
+        case let .gap(frames):
+            Log.audio.debug("Meeting \(self.source.rawValue, privacy: .public) timeline gap: \(milliseconds(frames), privacy: .public) ms")
+        case let .padded(frames):
+            Log.audio.info("Meeting \(self.source.rawValue, privacy: .public) timeline padded \(milliseconds(Int64(frames)), privacy: .public) ms of silence")
+        case let .trimmed(frames):
+            Log.audio.info("Meeting \(self.source.rawValue, privacy: .public) timeline trimmed \(milliseconds(Int64(frames)), privacy: .public) ms of overlap")
+        case let .clockReset(frames):
+            Log.audio.notice("Meeting \(self.source.rawValue, privacy: .public) device clock jumped back \(milliseconds(frames), privacy: .public) ms; audio kept")
+        }
     }
 
     private static func frame(hostTime: UInt64, originHostTime: UInt64) -> Int64 {

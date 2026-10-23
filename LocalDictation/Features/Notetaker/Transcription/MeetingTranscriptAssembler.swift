@@ -250,3 +250,51 @@ struct MeetingTranscriptAssembler: Sendable {
         String(text.filter { !$0.isPunctuation })
     }
 }
+
+/// A Mac without headphones plays the other participants through its speakers,
+/// and its microphone hears them. Voice processing cancels most of that; this
+/// removes what remains at the transcript level. A microphone row is an echo
+/// when at least `matchRatio` of its words were recognised in system audio
+/// during the same seconds. The system row keeps those words, so nothing that
+/// was said disappears, and a row too short to judge stays.
+///
+/// On 23.10, 49 of 168 "You" rows were other people's speech heard this way.
+enum MeetingEchoFilter {
+    static let matchRatio = 0.6
+    static let minimumWords = 4
+    /// The microphone hears the speakers a few milliseconds late, and the two
+    /// sources cut their windows at different pauses.
+    static let toleranceFrames: Int64 = 2 * 16_000
+
+    static func removingEcho(from rows: [MeetingTranscriptRow]) -> (rows: [MeetingTranscriptRow], removed: Int) {
+        let system = rows.filter { $0.source == .system }
+        guard !system.isEmpty else { return (rows, 0) }
+        var kept: [MeetingTranscriptRow] = []
+        kept.reserveCapacity(rows.count)
+        var removed = 0
+        for row in rows {
+            guard row.source == .microphone else { kept.append(row); continue }
+            let words = Self.words(row.text)
+            guard words.count >= minimumWords else { kept.append(row); continue }
+            var heard = Set<String>()
+            for other in system where other.endFrame >= row.startFrame - toleranceFrames
+                && other.startFrame <= row.endFrame + toleranceFrames {
+                heard.formUnion(Self.words(other.text))
+            }
+            let matched = words.filter(heard.contains).count
+            if Double(matched) / Double(words.count) >= matchRatio {
+                removed += 1
+            } else {
+                kept.append(row)
+            }
+        }
+        return (kept, removed)
+    }
+
+    static func words(_ text: String) -> [String] {
+        text.lowercased()
+            .replacingOccurrences(of: "ё", with: "е")
+            .split { !$0.isLetter && !$0.isNumber }
+            .map(String.init)
+    }
+}

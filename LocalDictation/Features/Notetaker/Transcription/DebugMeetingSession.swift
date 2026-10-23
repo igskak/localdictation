@@ -44,6 +44,7 @@ actor DebugMeetingSession {
     private var diarizationTurns: [DiarizedSpeakerTurn] = []
     private var publishedRows: [MeetingTranscriptRow] = []
     private var publishedBaseRowCount = 0
+    private var echoRowsRemoved = 0
 
     init(
         profile: LanguageProfile,
@@ -94,6 +95,8 @@ actor DebugMeetingSession {
                 return
             }
             let microphoneBuffer = try microphone.start(selection: .systemDefault)
+            let voiceProcessing = microphone.usesVoiceProcessing ? "on" : "off"
+            Log.audio.info("Meeting microphone voice processing: \(voiceProcessing, privacy: .public)")
             let systemProcessor = try SystemAudioChunkProcessor(buffer: systemBuffer, inputSampleRate: systemBuffer.sampleRate, originHostTime: origin)
             let microphoneProcessor = try SystemAudioChunkProcessor(buffer: microphoneBuffer, inputSampleRate: microphoneBuffer.sampleRate, originHostTime: origin, source: .microphone)
             let worker = LongFormTranscriber(engine: engine, profile: profile)
@@ -229,7 +232,9 @@ actor DebugMeetingSession {
             do {
                 if try await worker.drainOne() {
                     let rows = attributedRows(from: await worker.assembler.rows)
-                    emit(.rows(rows))
+                    // The live file keeps every row for crash recovery; the
+                    // echo filter shapes what is read, and the final replace.
+                    emit(.rows(withoutEcho(rows)))
                     do {
                         try await persistence.persist(rows: rows)
                     } catch {
@@ -267,21 +272,18 @@ actor DebugMeetingSession {
             }
         }
         let baseRows = await worker.assembler.rows
-        if diarizationEnabled, !diarizationFailed {
-            // Earlier live rows may have arrived before the model's right
-            // context. Rebuild their attribution once from the complete set of
-            // final turns; recognized text and source evidence remain intact.
-            publishedRows = []
-            publishedBaseRowCount = 0
-        }
-        let finalRows = attributedRows(from: baseRows)
+        // Earlier live rows may have arrived before the model's right context
+        // or before a row of the other source that sorts ahead of them.
+        // Rebuild once from the complete set; recognized text and source
+        // evidence remain intact.
+        publishedRows = []
+        publishedBaseRowCount = 0
+        let finalRows = withoutEcho(attributedRows(from: baseRows))
         emit(.rows(finalRows))
         await emitMetrics(worker)
         do {
-            if diarizationEnabled, !diarizationFailed, !storageFailed {
+            if !storageFailed {
                 try await persistence.replace(rows: finalRows)
-            } else if !storageFailed {
-                try await persistence.persist(rows: finalRows)
             }
             let orderedIssues = MeetingPartialIssue.allCases.filter(partialIssues.contains)
             try await persistence.finish(partial: partial, issueCodes: orderedIssues.map(\.rawValue))
@@ -293,6 +295,12 @@ actor DebugMeetingSession {
         }
         let orderedIssues = MeetingPartialIssue.allCases.filter(partialIssues.contains)
         emit(.finished(partial: partial, persisted: !storageFailed, issues: orderedIssues))
+    }
+
+    private func withoutEcho(_ rows: [MeetingTranscriptRow]) -> [MeetingTranscriptRow] {
+        let filtered = MeetingEchoFilter.removingEcho(from: rows)
+        echoRowsRemoved = filtered.removed
+        return filtered.rows
     }
 
     private func ingestDiarization(_ chunk: MeetingAudioChunk) async {
@@ -344,7 +352,7 @@ actor DebugMeetingSession {
         let realTimeFactor = metrics.realTimeFactor.map { String(format: "%.2f", $0) } ?? "n/a"
         let diarizationRTF = diarizationMetrics.realTimeFactor.map { String(format: "%.3f", $0) } ?? "n/a"
         let text = String(
-            format: "ASR RTF: %@; inference / meeting time: %.2f; diarization RTF: %@; diarization load: %.2f s; speaker turns: %d; diarization discontinuities: %d; peak queue: %d; max queue delay: %.1f s; peak process memory: %.0f MB; silent windows: %d; lost intervals: %d",
+            format: "ASR RTF: %@; inference / meeting time: %.2f; diarization RTF: %@; diarization load: %.2f s; speaker turns: %d; diarization discontinuities: %d; peak queue: %d; max queue delay: %.1f s; peak process memory: %.0f MB; silent windows: %d; lost intervals: %d; echo rows removed: %d",
             realTimeFactor,
             metrics.inferenceSeconds / elapsed,
             diarizationRTF,
@@ -355,7 +363,8 @@ actor DebugMeetingSession {
             metrics.maximumQueueDelay,
             resident,
             metrics.skippedSilentWindows,
-            metrics.lostIntervals
+            metrics.lostIntervals,
+            echoRowsRemoved
         )
         emit(.metrics(text))
     }
@@ -376,7 +385,6 @@ private func meetingPipelineFailureCategory(_ error: Error) -> String {
     case let failure as LongFormTranscriptionError:
         switch failure {
         case .invalidFormat: "transcription_invalid_format"
-        case .missingAudio: "transcription_missing_audio"
         case .backlogFull: "transcription_backlog_full"
         case .alreadyProcessing: "transcription_already_processing"
         case .modelNotReady: "transcription_model_not_ready"

@@ -2,18 +2,55 @@ import XCTest
 @testable import Witness
 
 final class LongFormTranscriberTests: XCTestCase {
-    func testWindowBoundariesOverlapAndFinalTail() throws {
-        var builder = MeetingWindowBuilder(source: .microphone, windowFrames: 6, overlapFrames: 2)
-        XCTAssertEqual(try builder.append(chunk(start: 0, values: [0, 1, 2])).count, 0)
-        let first = try builder.append(chunk(start: 3, values: [3, 4, 5]))
-        XCTAssertEqual(first.first?.samples, [0, 1, 2, 3, 4, 5])
-        let second = try builder.append(chunk(start: 6, values: [6, 7, 8, 9]))
-        XCTAssertEqual(second.first?.samples, [4, 5, 6, 7, 8, 9])
-        XCTAssertNil(builder.finish())
+    func testWindowEndsInTheMiddleOfAPauseAndTheNextOneStartsThere() throws {
+        var builder = smallBuilder()
+        XCTAssertTrue(try builder.append(chunk(start: 0, values: speech(frames: 12))).isEmpty)
+
+        let closed = try builder.append(chunk(start: 12 * 320, values: silence(frames: 3) + speech(frames: 5)))
+
+        let first = try XCTUnwrap(closed.first)
+        XCTAssertEqual(closed.count, 1)
+        XCTAssertEqual(first.startFrame, 0)
+        XCTAssertEqual(first.samples.count, 13 * 320)
+        let tail = try XCTUnwrap(builder.finish())
+        XCTAssertEqual(tail.startFrame, first.endFrame, "windows must neither overlap nor leave a hole")
+        XCTAssertEqual(tail.samples.count, 7 * 320)
+    }
+
+    func testPauseBeforeTheMinimumDoesNotEndTheWindow() throws {
+        var builder = smallBuilder()
+        let early = speech(frames: 3) + silence(frames: 3) + speech(frames: 10)
+        XCTAssertTrue(try builder.append(chunk(start: 0, values: early)).isEmpty)
+
+        let closed = try builder.append(chunk(start: 16 * 320, values: silence(frames: 2)))
+
+        XCTAssertEqual(closed.map(\.samples.count), [17 * 320])
+    }
+
+    func testSpeechWithoutAPauseIsCutAtItsQuietestStretchAtTheMaximum() throws {
+        var builder = smallBuilder()
+        let values = speech(frames: 20) + speech(frames: 2, level: 0.2) + speech(frames: 8)
+
+        let windows = try builder.append(chunk(start: 0, values: values))
+
+        XCTAssertEqual(windows.map(\.samples.count), [21 * 320])
+        XCTAssertEqual(builder.finish()?.startFrame, 21 * 320)
+    }
+
+    func testBackwardOverlapIsTrimmedInsteadOfEndingTheMeeting() throws {
+        var builder = smallBuilder()
+        _ = try builder.append(chunk(start: 10, values: [1, 2]))
+
+        XCTAssertNoThrow(try builder.append(chunk(start: 9, values: [7, 7, 7, 8])))
+        XCTAssertTrue(try builder.append(chunk(start: 5, values: [7, 7])).isEmpty)
+
+        let tail = try XCTUnwrap(builder.finish())
+        XCTAssertEqual(tail.startFrame, 10)
+        XCTAssertEqual(tail.samples, [1, 2, 8])
     }
 
     func testForwardMicrophoneGapClosesAWindowWithoutInventingSilence() throws {
-        var builder = MeetingWindowBuilder(source: .microphone, windowFrames: 10, overlapFrames: 2)
+        var builder = smallBuilder()
         _ = try builder.append(chunk(start: 0, values: [1, 2]))
 
         let closed = try builder.append(chunk(start: 9, values: [3]))
@@ -23,55 +60,8 @@ final class LongFormTranscriberTests: XCTestCase {
         XCTAssertEqual(builder.finish()?.startFrame, 9)
     }
 
-    func testBackwardAudioOverlapIsReportedBeforeDataIsAccepted() throws {
-        var builder = MeetingWindowBuilder(source: .microphone, windowFrames: 10, overlapFrames: 2)
-        _ = try builder.append(chunk(start: 10, values: [1, 2]))
-        XCTAssertThrowsError(try builder.append(chunk(start: 1, values: [3]))) {
-            XCTAssertEqual($0 as? LongFormTranscriptionError, .missingAudio)
-        }
-        XCTAssertEqual(builder.finish()?.samples, [1, 2])
-    }
-
-    func testDefaultLiveWindowEmitsAfterEightSeconds() throws {
-        var builder = MeetingWindowBuilder(source: .microphone)
-        let almostEightSeconds = [Float](repeating: 0.1, count: 127_999)
-
-        XCTAssertTrue(try builder.append(chunk(start: 0, values: almostEightSeconds)).isEmpty)
-        let first = try builder.append(chunk(start: 127_999, values: [0.1]))
-
-        XCTAssertEqual(first.count, 1)
-        XCTAssertEqual(first.first?.samples.count, 128_000)
-    }
-
-    func testDefaultRollingWindowAddsFourSecondsOfLeftContextWithoutIncreasingUpdateCadence() throws {
-        var builder = MeetingWindowBuilder(source: .microphone)
-        let first = try builder.append(chunk(start: 0, values: [Float](repeating: 0.1, count: 128_000)))
-        XCTAssertEqual(first.map(\.samples.count), [128_000])
-        XCTAssertEqual(first.first?.startFrame, 0)
-
-        let beforeNextUpdate = try builder.append(
-            chunk(start: 128_000, values: [Float](repeating: 0.1, count: 127_999))
-        )
-        XCTAssertTrue(beforeNextUpdate.isEmpty)
-        let next = try builder.append(chunk(start: 255_999, values: [0.1]))
-
-        XCTAssertEqual(next.map(\.samples.count), [192_000])
-        XCTAssertEqual(next.first?.startFrame, 64_000)
-    }
-
-    func testDefaultFinalTailIncludesFourSecondsOfPriorContext() throws {
-        var builder = MeetingWindowBuilder(source: .microphone)
-        _ = try builder.append(chunk(start: 0, values: [Float](repeating: 0.1, count: 128_000)))
-        _ = try builder.append(chunk(start: 128_000, values: [0.2]))
-
-        let tail = try XCTUnwrap(builder.finish())
-        XCTAssertEqual(tail.startFrame, 64_000)
-        XCTAssertEqual(tail.samples.count, 64_001)
-        XCTAssertEqual(tail.samples.last, 0.2)
-    }
-
     func testSparseSystemAudioClosesAWindowWithoutInventingSilence() throws {
-        var builder = MeetingWindowBuilder(source: .system, windowFrames: 10, overlapFrames: 2)
+        var builder = smallBuilder(source: .system)
         _ = try builder.append(chunk(source: .system, start: 0, values: [1, 2]))
 
         let closed = try builder.append(chunk(source: .system, start: 32_000, values: [3, 4]))
@@ -83,6 +73,32 @@ final class LongFormTranscriberTests: XCTestCase {
         XCTAssertEqual(tail?.startFrame, 32_000)
         XCTAssertEqual(tail?.samples, [3, 4])
         XCTAssertNil(builder.finish())
+    }
+
+    func testDefaultLiveWindowWaitsEightSecondsAndThenForAPause() throws {
+        var builder = MeetingWindowBuilder(source: .microphone)
+        XCTAssertTrue(try builder.append(chunk(start: 0, values: speech(frames: 399, level: 0.1))).isEmpty)
+
+        let first = try builder.append(chunk(start: 399 * 320, values: silence(frames: 20)))
+
+        XCTAssertEqual(first.map(\.startFrame), [0])
+        XCTAssertEqual(first.first?.samples.count, 406 * 320)
+    }
+
+    func testDefaultLiveWindowNeverExceedsTwentySecondsOfUnbrokenSpeech() throws {
+        var builder = MeetingWindowBuilder(source: .microphone)
+        var windows: [MeetingRecognitionAudio] = []
+        for second in 0..<45 {
+            windows += try builder.append(chunk(start: Int64(second) * 16_000, values: speech(frames: 50, level: 0.1)))
+        }
+        if let tail = builder.finish() { windows.append(tail) }
+
+        XCTAssertGreaterThanOrEqual(windows.count, 3)
+        XCTAssertTrue(windows.dropLast().allSatisfy { (128_000...320_000).contains($0.samples.count) })
+        XCTAssertEqual(windows.map(\.samples.count).reduce(0, +), 45 * 16_000)
+        for (previous, next) in zip(windows, windows.dropFirst()) {
+            XCTAssertEqual(next.startFrame, previous.endFrame)
+        }
     }
 
     func testBoundedQueueAndFairSourceOrder() async throws {
@@ -181,6 +197,19 @@ final class LongFormTranscriberTests: XCTestCase {
         XCTAssertEqual(queued, 0)
         XCTAssertTrue(rows.isEmpty)
         XCTAssertEqual(metrics.lostIntervals, 1)
+    }
+
+    /// Ten-frame minimum, thirty-frame maximum, two-frame pause.
+    private func smallBuilder(source: MeetingAudioSource = .microphone) -> MeetingWindowBuilder {
+        MeetingWindowBuilder(source: source, minimumFrames: 10 * 320, maximumFrames: 30 * 320, pauseFrames: 2 * 320)
+    }
+
+    private func speech(frames: Int, level: Float = 0.5) -> [Float] {
+        (0..<(frames * 320)).map { $0.isMultiple(of: 2) ? level : -level }
+    }
+
+    private func silence(frames: Int) -> [Float] {
+        [Float](repeating: 0, count: frames * 320)
     }
 
     private func chunk(

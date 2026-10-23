@@ -9,7 +9,6 @@ struct MeetingRecognitionAudio: Sendable {
 
 enum LongFormTranscriptionError: Error, Equatable {
     case invalidFormat
-    case missingAudio
     case backlogFull
     case alreadyProcessing
     case modelNotReady
@@ -20,63 +19,71 @@ enum LongFormTranscriptionError: Error, Equatable {
 /// app is silent and macOS may delay microphone delivery during system UI such
 /// as screenshots. A forward gap closes the current window and starts another
 /// at the real host-time position. No silence is invented.
+///
+/// Windows do not overlap. Each one ends in a pause: after `minimumFrames` the
+/// builder waits for `pauseFrames` that are quiet relative to the window's own
+/// speech and cuts in the middle of them. Without such a pause it cuts at the
+/// quietest stretch once `maximumFrames` is reached. Overlapping fixed windows
+/// recognised the same words twice with different spellings, which no
+/// boundary repair could reconcile: on 23.10 16-22% of the words repeated.
 struct MeetingWindowBuilder {
     let source: MeetingAudioSource
-    let windowFrames: Int
-    let overlapFrames: Int
-    let initialWindowFrames: Int
+    let minimumFrames: Int
+    let maximumFrames: Int
+    let pauseFrames: Int
     private var startFrame: Int64?
     private var samples: [Float] = []
-    private var hasEmittedWindow = false
+    /// Mean square of every complete `energyFrame` in `samples`.
+    private var energies: [Float] = []
 
-    /// Live recognition answers after eight seconds, then uses twelve seconds
-    /// of context with a four-second overlap. This keeps first-result latency
-    /// unchanged while giving every later boundary enough left context to
-    /// avoid decoding a clipped phrase as an unrelated short utterance.
+    static let energyFrame = 320
+    /// A pause is at least this much quieter than the window's loud speech.
+    static let pauseRatio: Float = 0.01
+    /// Below this mean square a frame is a pause whatever the speech level.
+    static let silenceFloor: Float = 0.000_004
+
+    /// The first result arrives after about eight seconds, as before; every
+    /// window stays well inside the model's thirty-second context.
     init(source: MeetingAudioSource) {
-        self.init(source: source, windowFrames: 192_000, overlapFrames: 64_000, initialWindowFrames: 128_000)
+        self.init(source: source, minimumFrames: 128_000, maximumFrames: 320_000, pauseFrames: 4_800)
     }
 
     /// Explicit sizes keep deterministic tests and probes independent of the
-    /// production live-window policy.
-    init(source: MeetingAudioSource, windowFrames: Int, overlapFrames: Int) {
-        self.init(source: source, windowFrames: windowFrames, overlapFrames: overlapFrames,
-                  initialWindowFrames: windowFrames)
-    }
-
-    init(source: MeetingAudioSource, windowFrames: Int, overlapFrames: Int, initialWindowFrames: Int) {
-        precondition(windowFrames > 0 && overlapFrames >= 0 && overlapFrames < initialWindowFrames
-                     && initialWindowFrames <= windowFrames)
+    /// production live-window policy. Sizes are whole energy frames.
+    init(source: MeetingAudioSource, minimumFrames: Int, maximumFrames: Int, pauseFrames: Int) {
+        precondition(minimumFrames > 0 && minimumFrames <= maximumFrames
+                     && pauseFrames >= Self.energyFrame && pauseFrames < minimumFrames
+                     && [minimumFrames, maximumFrames, pauseFrames].allSatisfy { $0 % Self.energyFrame == 0 })
         self.source = source
-        self.windowFrames = windowFrames
-        self.overlapFrames = overlapFrames
-        self.initialWindowFrames = initialWindowFrames
+        self.minimumFrames = minimumFrames
+        self.maximumFrames = maximumFrames
+        self.pauseFrames = pauseFrames
     }
 
     mutating func append(_ chunk: MeetingAudioChunk) throws -> [MeetingRecognitionAudio] {
-        guard chunk.source == source, chunk.sampleRate == 16_000, chunk.samples.count <= windowFrames else { throw LongFormTranscriptionError.invalidFormat }
+        guard chunk.source == source, chunk.sampleRate == 16_000, chunk.samples.count <= maximumFrames else { throw LongFormTranscriptionError.invalidFormat }
         var result: [MeetingRecognitionAudio] = []
+        var incoming = chunk.samples[...]
+        var incomingStart = chunk.startFrame
         if let startFrame {
             let expected = startFrame + Int64(samples.count)
-            let delta = chunk.startFrame - expected
-            if abs(delta) > 2 {
-                guard delta > 0 else { throw LongFormTranscriptionError.missingAudio }
+            let delta = incomingStart - expected
+            if delta > 2 {
                 if let window = flush() { result.append(window) }
-                self.startFrame = chunk.startFrame
+                self.startFrame = incomingStart
+            } else if delta < -2 {
+                // The timeline already resynchronises a fast device clock;
+                // anything still overlapping here was heard once already.
+                incoming = incoming.dropFirst(Int(min(-delta, Int64(incoming.count))))
+                incomingStart = expected
             }
         } else {
-            startFrame = chunk.startFrame
+            startFrame = incomingStart
         }
-        samples.append(contentsOf: chunk.samples)
-        while let start = startFrame {
-            let requiredFrames = hasEmittedWindow ? windowFrames : initialWindowFrames
-            guard samples.count >= requiredFrames else { break }
-            result.append(MeetingRecognitionAudio(source: source, startFrame: start,
-                                                  samples: Array(samples.prefix(requiredFrames))))
-            let advance = requiredFrames - overlapFrames
-            samples.removeFirst(advance)
-            startFrame = start + Int64(advance)
-            hasEmittedWindow = true
+        guard !incoming.isEmpty else { return result }
+        appendSamples(incoming)
+        while let cut = cutFrame() {
+            result.append(emit(frames: cut))
         }
         return result
     }
@@ -85,17 +92,83 @@ struct MeetingWindowBuilder {
         flush()
     }
 
+    private mutating func appendSamples(_ values: ArraySlice<Float>) {
+        let completeBefore = samples.count / Self.energyFrame
+        samples.append(contentsOf: values)
+        let completeAfter = samples.count / Self.energyFrame
+        guard completeAfter > completeBefore else { return }
+        samples.withUnsafeBufferPointer { buffer in
+            for frame in completeBefore..<completeAfter {
+                var sum: Float = 0
+                for value in buffer[(frame * Self.energyFrame)..<((frame + 1) * Self.energyFrame)] {
+                    sum += value * value
+                }
+                energies.append(sum / Float(Self.energyFrame))
+            }
+        }
+    }
+
+    /// The frame index to cut at, or nil while the window should keep growing.
+    private func cutFrame() -> Int? {
+        guard samples.count >= minimumFrames else { return nil }
+        let run = pauseFrames / Self.energyFrame
+        let minimumEnergyFrames = minimumFrames / Self.energyFrame
+        let maximumEnergyFrames = maximumFrames / Self.energyFrame
+        let searchEnd = min(energies.count, maximumEnergyFrames)
+        // A pause may begin slightly before the minimum as long as it ends after it.
+        let firstRunStart = max(minimumEnergyFrames - run, 0)
+        guard searchEnd - firstRunStart >= run else { return nil }
+
+        let sorted = energies[..<searchEnd].sorted()
+        let loud = sorted[min(sorted.count - 1, sorted.count * 9 / 10)]
+        let threshold = max(Self.silenceFloor, loud * Self.pauseRatio)
+        var quietRun = 0
+        for index in 0..<searchEnd {
+            quietRun = energies[index] <= threshold ? quietRun + 1 : 0
+            let runStart = index - run + 1
+            if quietRun >= run, runStart >= firstRunStart {
+                return (runStart + run / 2) * Self.energyFrame
+            }
+        }
+        guard samples.count >= maximumFrames else { return nil }
+
+        // Without a pause the window still never ends before the minimum.
+        let fallbackStart = minimumEnergyFrames
+        guard searchEnd - fallbackStart >= run else { return maximumFrames }
+        var best = fallbackStart
+        var bestEnergy = Float.greatestFiniteMagnitude
+        var windowEnergy = energies[fallbackStart..<(fallbackStart + run)].reduce(0, +)
+        for runStart in fallbackStart...(searchEnd - run) {
+            if runStart > fallbackStart {
+                windowEnergy += energies[runStart + run - 1] - energies[runStart - 1]
+            }
+            if windowEnergy < bestEnergy {
+                bestEnergy = windowEnergy
+                best = runStart
+            }
+        }
+        return (best + run / 2) * Self.energyFrame
+    }
+
+    private mutating func emit(frames: Int) -> MeetingRecognitionAudio {
+        let start = startFrame ?? 0
+        let window = MeetingRecognitionAudio(source: source, startFrame: start, samples: Array(samples.prefix(frames)))
+        samples.removeFirst(frames)
+        energies.removeFirst(frames / Self.energyFrame)
+        startFrame = start + Int64(frames)
+        return window
+    }
+
     private mutating func flush() -> MeetingRecognitionAudio? {
         let result: MeetingRecognitionAudio?
-        if let startFrame, !samples.isEmpty,
-           !hasEmittedWindow || samples.count > overlapFrames {
+        if let startFrame, !samples.isEmpty {
             result = MeetingRecognitionAudio(source: source, startFrame: startFrame, samples: samples)
         } else {
             result = nil
         }
         samples = []
+        energies = []
         startFrame = nil
-        hasEmittedWindow = false
         return result
     }
 }

@@ -128,6 +128,56 @@ final class MeetingTranscriptAssemblerTests: XCTestCase {
         XCTAssertFalse(MeetingRecognitionQualityPolicy.needsReview(meanConfidence: 0.8, hasConfidenceSignal: true))
     }
 
+    func testEchoFilterRemovesAMicrophoneRowThatRepeatsSystemAudio() {
+        // From the 23.10 meeting: a colleague's sentence through the speakers.
+        let rows = [
+            row(.system, start: 444 * 16_000, end: 458 * 16_000,
+                text: "Я люблю щось нове дивитись. У мене є такий пункт, що я не"),
+            row(.microphone, start: 446 * 16_000, end: 458 * 16_000,
+                text: "Я люблю щось нове дивитись. В мене, знаєте, навіть є такий пункт"),
+        ]
+
+        let filtered = MeetingEchoFilter.removingEcho(from: rows)
+
+        XCTAssertEqual(filtered.rows.map(\.source), [.system])
+        XCTAssertEqual(filtered.removed, 1)
+    }
+
+    func testEchoFilterKeepsTheUsersOwnSpeechDuringOtherPeoplesSpeech() {
+        let rows = [
+            row(.system, start: 491 * 16_000, end: 503 * 16_000, text: "Це правда. Літати, нехай це буде повільно"),
+            row(.microphone, start: 486 * 16_000, end: 498 * 16_000, text: "Так ти обрала літати. Прикольно, гатча"),
+        ]
+
+        let filtered = MeetingEchoFilter.removingEcho(from: rows)
+
+        XCTAssertEqual(filtered.rows.count, 2)
+        XCTAssertEqual(filtered.removed, 0)
+    }
+
+    func testEchoFilterNeedsTheSameSecondsAndEnoughWords() {
+        let sentence = "давайте по всім пройдемося тоді"
+        let rows = [
+            row(.system, start: 0, end: 5 * 16_000, text: sentence),
+            row(.microphone, start: 60 * 16_000, end: 65 * 16_000, text: sentence),
+            row(.microphone, start: 0, end: 2 * 16_000, text: "давайте тоді"),
+        ]
+
+        let filtered = MeetingEchoFilter.removingEcho(from: rows)
+
+        XCTAssertEqual(filtered.rows.count, 3)
+    }
+
+    func testEchoFilterLeavesAMeetingWithoutSystemRowsUntouched() {
+        let rows = [row(.microphone, start: 0, end: 16_000, text: "перевірка зв'язку один два три")]
+        XCTAssertEqual(MeetingEchoFilter.removingEcho(from: rows).rows, rows)
+    }
+
+    private func row(_ source: MeetingAudioSource, start: Int64, end: Int64, text: String) -> MeetingTranscriptRow {
+        let original = window(source, start: start, end: end, text: text, words: []).transcript
+        return MeetingTranscriptRow(source: source, startFrame: start, endFrame: end, text: text, original: original)
+    }
+
     private func window(_ source: MeetingAudioSource, start: Int64, end: Int64, text: String,
                         words: [(String, Range<Int>, Double, Double)],
                         profile: LanguageProfile = .english,

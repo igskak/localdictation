@@ -18,15 +18,42 @@ final class MeetingMicrophoneCapture {
         self.permission = permission
     }
 
+    /// Whether the running segment cancels what the Mac plays. Without it the
+    /// microphone hears the other participants through the speakers and the
+    /// transcript credits their words to "You".
+    private(set) var usesVoiceProcessing = false
+
     func start(selection: AudioInputSelection) throws -> MeetingAudioBuffer {
         guard unit == nil else { throw SystemAudioCaptureError.invalidState }
         guard permission.currentAuthorization == .authorized else { throw MeetingMicrophoneError.permissionUnavailable }
         guard let resolved = SystemAudioInput.resolve(selection, among: hardware.availableInputDevices(), defaultID: hardware.defaultInputDeviceID()) else {
             throw MeetingMicrophoneError.noInput
         }
+        // Voice processing is pickier about formats than the plain unit and
+        // which combination it accepts depends on the device, so it is asked
+        // twice with decreasing demands. If it will not open, the meeting still
+        // records through the direct path; the transcript filter then removes
+        // echoed rows on its own.
+        var failures: [String] = []
+        for setsPlaybackFormat in [true, false] {
+            do {
+                let buffer = try open(device: resolved.device.id, voiceProcessing: true, setsPlaybackFormat: setsPlaybackFormat)
+                usesVoiceProcessing = true
+                return buffer
+            } catch {
+                failures.append("\(error)")
+            }
+        }
+        Log.audio.notice("Meeting voice processing would not open (\(failures.joined(separator: "; "), privacy: .public)); the microphone records directly")
+        let buffer = try open(device: resolved.device.id, voiceProcessing: false, setsPlaybackFormat: false)
+        usesVoiceProcessing = false
+        return buffer
+    }
+
+    private func open(device: AudioDeviceID, voiceProcessing: Bool, setsPlaybackFormat: Bool) throws -> MeetingAudioBuffer {
         var description = AudioComponentDescription(componentType: kAudioUnitType_Output,
-            componentSubType: kAudioUnitSubType_HALOutput, componentManufacturer: kAudioUnitManufacturer_Apple,
-            componentFlags: 0, componentFlagsMask: 0)
+            componentSubType: voiceProcessing ? kAudioUnitSubType_VoiceProcessingIO : kAudioUnitSubType_HALOutput,
+            componentManufacturer: kAudioUnitManufacturer_Apple, componentFlags: 0, componentFlagsMask: 0)
         guard let component = AudioComponentFindNext(nil, &description) else { throw MeetingMicrophoneError.noInput }
         var instance: AudioUnit?
         try check(AudioComponentInstanceNew(component, &instance))
@@ -34,10 +61,12 @@ final class MeetingMicrophoneCapture {
         unit = instance
         do {
             var on: UInt32 = 1
-            var off: UInt32 = 0
+            // Voice processing needs its output half: it is fed silence and
+            // gives the canceller the device it plays to.
+            var playback: UInt32 = voiceProcessing ? 1 : 0
             try check(AudioUnitSetProperty(instance, kAudioOutputUnitProperty_EnableIO, kAudioUnitScope_Input, 1, &on, 4))
-            try check(AudioUnitSetProperty(instance, kAudioOutputUnitProperty_EnableIO, kAudioUnitScope_Output, 0, &off, 4))
-            var deviceID = resolved.device.id
+            try check(AudioUnitSetProperty(instance, kAudioOutputUnitProperty_EnableIO, kAudioUnitScope_Output, 0, &playback, 4))
+            var deviceID = device
             try check(AudioUnitSetProperty(instance, kAudioOutputUnitProperty_CurrentDevice, kAudioUnitScope_Global, 0, &deviceID, 4))
             var hardwareFormat = AudioStreamBasicDescription()
             var formatSize = UInt32(MemoryLayout<AudioStreamBasicDescription>.size)
@@ -48,8 +77,19 @@ final class MeetingMicrophoneCapture {
             }
             var clientFormat = format.streamDescription.pointee
             try check(AudioUnitSetProperty(instance, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Output, 1, &clientFormat, UInt32(MemoryLayout<AudioStreamBasicDescription>.size)))
-            var channel: Int32 = 0
-            try check(AudioUnitSetProperty(instance, kAudioOutputUnitProperty_ChannelMap, kAudioUnitScope_Output, 1, &channel, 4))
+            if voiceProcessing {
+                if setsPlaybackFormat {
+                    try check(AudioUnitSetProperty(instance, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, 0, &clientFormat, UInt32(MemoryLayout<AudioStreamBasicDescription>.size)))
+                }
+                // By default voice processing ducks every other app, which
+                // would make the call itself quieter while we record it.
+                var ducking = AUVoiceIOOtherAudioDuckingConfiguration(mEnableAdvancedDucking: false, mDuckingLevel: .min)
+                try check(AudioUnitSetProperty(instance, kAUVoiceIOProperty_OtherAudioDuckingConfiguration, kAudioUnitScope_Global, 0, &ducking, UInt32(MemoryLayout<AUVoiceIOOtherAudioDuckingConfiguration>.size)))
+            } else {
+                // Voice processing does its own channel handling and rejects a map.
+                var channel: Int32 = 0
+                try check(AudioUnitSetProperty(instance, kAudioOutputUnitProperty_ChannelMap, kAudioUnitScope_Output, 1, &channel, 4))
+            }
             var maximum: UInt32 = 0
             var maximumSize: UInt32 = 4
             try check(AudioUnitGetProperty(instance, kAudioUnitProperty_MaximumFramesPerSlice, kAudioUnitScope_Global, 0, &maximum, &maximumSize))
@@ -60,6 +100,10 @@ final class MeetingMicrophoneCapture {
             context = callbackContext
             var callback = AURenderCallbackStruct(inputProc: meetingMicrophoneIOProc, inputProcRefCon: Unmanaged.passUnretained(callbackContext).toOpaque())
             try check(AudioUnitSetProperty(instance, kAudioOutputUnitProperty_SetInputCallback, kAudioUnitScope_Global, 0, &callback, UInt32(MemoryLayout<AURenderCallbackStruct>.size)))
+            if voiceProcessing {
+                var silence = AURenderCallbackStruct(inputProc: meetingMicrophoneSilenceProc, inputProcRefCon: nil)
+                try check(AudioUnitSetProperty(instance, kAudioUnitProperty_SetRenderCallback, kAudioUnitScope_Input, 0, &silence, UInt32(MemoryLayout<AURenderCallbackStruct>.size)))
+            }
             try check(AudioUnitInitialize(instance))
             initialized = true
             try check(AudioOutputUnitStart(instance))
@@ -110,6 +154,16 @@ private final class MicrophoneCallbackContext {
     init(unit: AudioUnit, pcm: AVAudioPCMBuffer, buffer: MeetingAudioBuffer) {
         self.unit = unit; self.pcm = pcm; self.buffer = buffer
     }
+}
+
+private let meetingMicrophoneSilenceProc: AURenderCallback = { _, flags, _, _, _, data in
+    if let data {
+        for buffer in UnsafeMutableAudioBufferListPointer(data) {
+            if let bytes = buffer.mData { memset(bytes, 0, Int(buffer.mDataByteSize)) }
+        }
+    }
+    flags.pointee.insert(.unitRenderAction_OutputIsSilence)
+    return noErr
 }
 
 private let meetingMicrophoneIOProc: AURenderCallback = { ref, flags, time, _, frames, _ in
