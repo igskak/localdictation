@@ -31,6 +31,8 @@ enum SpeechModelNotice: Sendable, Equatable {
     case failed(String)
     /// The wait is over, said to the person who pressed during it.
     case ready(hotkey: String)
+    /// A file is being transcribed and the engine is busy with it.
+    case transcribingFile
 
     /// The one notice that is good news, and the one nobody is waiting to
     /// dismiss: it stays up until they do.
@@ -44,6 +46,7 @@ enum SpeechModelNotice: Sendable, Equatable {
         case .preparing, .starting: L10n.string("The speech model is still arriving")
         case .failed: L10n.string("The speech model is not ready")
         case .ready: L10n.string("Ready to dictate")
+        case .transcribingFile: L10n.string("Witness is transcribing a file")
         }
     }
 
@@ -83,6 +86,8 @@ enum SpeechModelNotice: Sendable, Equatable {
             )
         case let .ready(hotkey):
             return L10n.format("The speech model is ready. Hold %@ and speak — the text lands where your cursor is.", hotkey)
+        case .transcribingFile:
+            return L10n.string("Nothing was recorded — the speech engine is busy with the file you chose. Dictation works again when it is done. You can cancel the file from its window.")
         }
     }
 
@@ -91,6 +96,7 @@ enum SpeechModelNotice: Sendable, Equatable {
         case .preparing, .starting: "arrow.down.circle"
         case .failed: "exclamationmark.triangle"
         case .ready: "checkmark.circle"
+        case .transcribingFile: "waveform"
         }
     }
 
@@ -103,6 +109,7 @@ enum SpeechModelNotice: Sendable, Equatable {
         case .starting: "model:startingDownload"
         case .failed: "model:failed"
         case .ready: "model:ready"
+        case .transcribingFile: "model:busyWithFile"
         }
     }
 

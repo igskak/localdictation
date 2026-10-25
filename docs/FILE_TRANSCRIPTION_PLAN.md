@@ -306,6 +306,52 @@ Decided and recorded:
 - DOCX, SRT, QDA-timestamp exports. Replay a row from the original file.
 - German and English strings in `Localizable.xcstrings`.
 
+**F3 result (2026-10-25).** Built:
+
+- **Entry points.** *Transcribe audio file…* and *Transcripts* in the menu bar
+  window; one window that is a drop target and a Choose file… button while
+  idle, a progress panel (file name, bar, elapsed, about how long is left,
+  Cancel) while a file runs, and a named explanation when it could not. The
+  menu bar symbol changes while a file runs. When a file finishes the window
+  closes and the library opens on its note.
+- **Dictation and files share one engine.** `DictationCoordinator` answers a
+  press during a file with the notice "Witness is transcribing a file" and
+  records nothing, in the same panel and on the same path as the wait for the
+  speech model. A locked Mac gets the paywall instead of a file; a finished
+  file that produced text counts as the first dictation does
+  (`recordSuccessfulDictation`), starting the ungated window and the trial.
+- **Library.** File notes show the file name and duration in the header; each
+  passage has a play button that decodes that stretch of the original again
+  and says so if the file has moved. The manifest keeps `sourceFile`
+  (name, path, duration) as an optional field, so earlier notes still decode.
+- **Exports.** DOCX (AppKit's own writer, no dependency), SRT, text with
+  timestamps, plus the existing text and Markdown. All use the current
+  speaker names and the stored text. Uncertain passages keep a visible
+  `[check this passage]` mark in text, Markdown, timestamped text and DOCX
+  (highlighted); SRT has none because it would be shown on screen.
+  SRT cues are two lines of at most 42 characters, with a row's time shared
+  between its cues by length.
+- **German and English** for every new string and for the library surface, in
+  `Localizable.xcstrings` (`Tools/add_localizations.py` adds entries without
+  reformatting the file).
+
+Timestamped text is `Speaker: #hh:mm:ss-d# text`, one line per turn. The
+syntax `#hh:mm:ss-x#` is the one MAXQDA documents for f4/f5 transcripts and
+ATLAS.ti lists among the timestamp formats it reads (their help pages, checked
+2026-10-25). Not verified: an actual import into either program, and MAXQDA's
+note that it recognises stamps at the end of a paragraph, whereas this puts the
+stamp where the turn starts. Until someone imports a file, the menu says "Text
+with timestamps" and neither the app nor the site names a program.
+
+Not built, deliberately: editing the text of a row (the stored record keeps
+one text and the raw recognition; speakers, titles and notes are editable);
+the "no meeting while a file runs" rule in the other direction (meetings are
+absent from the ordinary build, and `isMeetingActive` is `false` in it; wire it
+before the dogfood facade and files are ever enabled together); batch queues.
+The library's own English wording is still meeting-centric ("Meeting title",
+"Start meeting note" hidden for files) and wants a pass before the library is
+presented as the home of transcripts.
+
 ### F4 — release
 
 - New compile-time flag `FILE_TRANSCRIPTION`, independent of

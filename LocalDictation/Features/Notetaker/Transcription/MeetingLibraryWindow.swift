@@ -23,7 +23,18 @@ struct MeetingLibraryDetail: Equatable {
 
 struct MeetingExportDocument: Equatable {
     let suggestedName: String
-    let contents: String
+    let data: Data
+
+    init(suggestedName: String, data: Data) {
+        self.suggestedName = suggestedName
+        self.data = data
+    }
+
+    init(suggestedName: String, contents: String) {
+        self.init(suggestedName: suggestedName, data: Data(contents.utf8))
+    }
+
+    var contents: String { String(decoding: data, as: UTF8.self) }
 }
 
 @MainActor
@@ -41,6 +52,7 @@ final class MeetingLibraryModel: ObservableObject {
     let loadsOnAppear: Bool
 
     private let store: any MeetingStoring
+    private let fragmentPlayer = FileFragmentPlayer()
     private var listGeneration = UUID()
     private var detailGeneration = UUID()
 
@@ -199,13 +211,25 @@ final class MeetingLibraryModel: ObservableObject {
     func export(_ format: MeetingExportFormat) async -> MeetingExportDocument? {
         guard let detail else { return nil }
         do {
-            let contents = try await store.export(meetingID: detail.manifest.id, format: format)
+            let data = try await store.exportData(meetingID: detail.manifest.id, format: format)
             let base = Self.safeFilename(detail.manifest.title)
-            let suffix = format == .markdown ? "md" : "txt"
-            return MeetingExportDocument(suggestedName: "\(base).\(suffix)", contents: contents)
+            return MeetingExportDocument(suggestedName: "\(base).\(format.fileExtension)", data: data)
         } catch {
             feedbackMessage = Self.message(for: error)
             return nil
+        }
+    }
+
+    /// Plays one passage of a file note again from the original file. Witness
+    /// keeps no audio, so a file that has moved is said so rather than skipped.
+    func replay(_ record: MeetingTranscriptRecord) async {
+        guard let file = detail?.manifest.sourceFile else { return }
+        do {
+            try await fragmentPlayer.play(file: file, startFrame: record.startFrame, endFrame: record.endFrame)
+        } catch FragmentReplayError.fileMissing {
+            feedbackMessage = "The original file could not be found. It may have been moved or deleted."
+        } catch {
+            feedbackMessage = "This passage could not be played from the original file."
         }
     }
 
@@ -291,7 +315,9 @@ final class MeetingLibraryModel: ObservableObject {
 
 struct MeetingLibraryView: View {
     @ObservedObject var model: MeetingLibraryModel
-    let startMeeting: () -> Void
+    /// Nil where meetings cannot be recorded, as in a build that only
+    /// transcribes files; the toolbar then has no way to start one.
+    let startMeeting: (() -> Void)?
     @State private var section = MeetingLibrarySection.notes
     @State private var meetingPendingDeletion: MeetingManifest?
     @State private var searchTask: Task<Void, Never>?
@@ -307,11 +333,13 @@ struct MeetingLibraryView: View {
         .witnessWindow()
         .toolbar {
             ToolbarItemGroup {
-                Button(action: startMeeting) {
-                    Label("Start meeting note", systemImage: "record.circle")
+                if let startMeeting {
+                    Button(action: startMeeting) {
+                        Label("Start meeting note", systemImage: "record.circle")
+                    }
+                    .keyboardShortcut("n", modifiers: [.command, .shift])
+                    .help("Start a new meeting note")
                 }
-                .keyboardShortcut("n", modifiers: [.command, .shift])
-                .help("Start a new meeting note")
                 Button {
                     Task { await model.refresh() }
                 } label: {
@@ -363,10 +391,12 @@ struct MeetingLibraryView: View {
                 case .empty:
                     stateView(
                         model.searchText.isEmpty ? "No meeting notes yet" : "No matching meeting notes",
-                        detail: model.searchText.isEmpty ? "Start a note when your call begins." : "Try another title or transcript phrase.",
+                        detail: model.searchText.isEmpty
+                            ? (startMeeting == nil ? "Choose “Transcribe audio file…” in the Witness menu." : "Start a note when your call begins.")
+                            : "Try another title or transcript phrase.",
                         symbol: "note.text"
                     ) {
-                        if model.searchText.isEmpty {
+                        if model.searchText.isEmpty, let startMeeting {
                             Button("Start meeting note", action: startMeeting)
                                 .buttonStyle(WitnessSecondaryButtonStyle())
                         }
@@ -468,12 +498,22 @@ struct MeetingLibraryView: View {
             }
             HStack(spacing: 10) {
                 Label(detail.manifest.startedAt.formatted(date: .abbreviated, time: .shortened), systemImage: "calendar")
+                if let file = detail.manifest.sourceFile {
+                    Label(file.name, systemImage: "waveform")
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .help(file.name)
+                    Label(Self.durationText(file.durationSeconds), systemImage: "clock")
+                }
                 Label(detail.manifest.completionState.label, systemImage: detail.manifest.completionState.symbol)
                     .foregroundStyle(detail.manifest.completionState == .partial ? WitnessStyle.warning : WitnessStyle.success)
                 Spacer()
                 Menu {
                     Button("Plain text (.txt)") { export(.plainText) }
                     Button("Markdown (.md)") { export(.markdown) }
+                    Button("Word document (.docx)") { export(.docx) }
+                    Button("Subtitles (.srt)") { export(.srt) }
+                    Button("Text with timestamps (.txt)") { export(.timestampedText) }
                 } label: {
                     Label("Export", systemImage: "square.and.arrow.up")
                 }
@@ -546,7 +586,8 @@ struct MeetingLibraryView: View {
                                 },
                                 originalSpeaker: detail.manifest.speakerDisplayNames[row.originalSpeakerID] ?? MeetingLibraryModel.defaultSpeakerName(row.originalSpeakerID),
                                 assign: { speakerID in Task { await model.assignSpeaker(recordID: row.id, speakerID: speakerID) } },
-                                restore: { Task { await model.assignSpeaker(recordID: row.id, speakerID: nil) } }
+                                restore: { Task { await model.assignSpeaker(recordID: row.id, speakerID: nil) } },
+                                replay: detail.manifest.sourceFile == nil ? nil : { Task { await model.replay(row) } }
                             )
                         }
                     }
@@ -597,6 +638,13 @@ struct MeetingLibraryView: View {
         .accessibilityHint("Expands controls for renaming You, Others, and numbered speakers")
     }
 
+    private static func durationText(_ seconds: Double) -> String {
+        let total = max(Int(seconds.rounded()), 0)
+        return total >= 3600
+            ? String(format: "%d:%02d:%02d", total / 3600, (total / 60) % 60, total % 60)
+            : String(format: "%d:%02d", total / 60, total % 60)
+    }
+
     private func export(_ format: MeetingExportFormat) {
         Task {
             guard let document = await model.export(format) else { return }
@@ -605,7 +653,7 @@ struct MeetingLibraryView: View {
             panel.canCreateDirectories = true
             guard panel.runModal() == .OK, let url = panel.url else { return }
             do {
-                try document.contents.write(to: url, atomically: true, encoding: .utf8)
+                try document.data.write(to: url, options: .atomic)
                 model.reportExportSaved()
             } catch {
                 model.reportExportFailure()
@@ -693,6 +741,8 @@ private struct MeetingTranscriptRecordView: View {
     let originalSpeaker: String
     let assign: (String) -> Void
     let restore: () -> Void
+    /// Present only for a note made from a file, which can be played again.
+    var replay: (() -> Void)?
 
     private var timestamp: String {
         let seconds = max(Int(Double(row.startFrame) / max(row.sampleRate, 1)), 0)
@@ -705,10 +755,21 @@ private struct MeetingTranscriptRecordView: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            Text(timestamp)
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(WitnessStyle.faint)
-                .frame(width: 46, alignment: .leading)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(timestamp)
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(WitnessStyle.faint)
+                if let replay {
+                    Button(action: replay) {
+                        Image(systemName: "play.circle")
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(WitnessStyle.muted)
+                    .help("Play this passage from the original file")
+                    .accessibilityLabel("Play this passage from the original file")
+                }
+            }
+            .frame(width: 46, alignment: .leading)
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
                     Menu {
@@ -797,12 +858,14 @@ private extension MeetingCompletionState {
 @MainActor
 final class MeetingLibraryWindowController: NSObject {
     let model: MeetingLibraryModel
-    private let startMeeting: () -> Void
+    private let startMeeting: (() -> Void)?
+    private let windowTitle: String
     private var window: NSWindow?
 
-    init(model: MeetingLibraryModel, startMeeting: @escaping () -> Void) {
+    init(model: MeetingLibraryModel, startMeeting: (() -> Void)?, windowTitle: String = "Witness Meeting Notes — Test Build") {
         self.model = model
         self.startMeeting = startMeeting
+        self.windowTitle = windowTitle
     }
 
     func show(selecting meetingID: UUID? = nil) {
@@ -818,7 +881,7 @@ final class MeetingLibraryWindowController: NSObject {
             backing: .buffered,
             defer: false
         )
-        window.title = "Witness Meeting Notes — Test Build"
+        window.title = windowTitle
         window.contentMinSize = NSSize(width: 900, height: 620)
         window.isReleasedWhenClosed = false
         window.contentViewController = NSHostingController(rootView: MeetingLibraryView(model: model, startMeeting: startMeeting))

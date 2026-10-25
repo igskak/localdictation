@@ -6,9 +6,11 @@ struct MenuBarView: View {
     @Environment(\.openSettings) private var openSettings
     @ObservedObject private var notetakerStatus: NotetakerStatus
     private let notetaker: any NotetakerFacade
+    private let fileTranscription: FileTranscriptionFeature?
 
-    init(notetaker: any NotetakerFacade = UnavailableNotetakerFacade()) {
+    init(notetaker: any NotetakerFacade = UnavailableNotetakerFacade(), fileTranscription: FileTranscriptionFeature? = nil) {
         self.notetaker = notetaker
+        self.fileTranscription = fileTranscription
         _notetakerStatus = ObservedObject(wrappedValue: notetaker.status)
     }
 
@@ -43,6 +45,19 @@ struct MenuBarView: View {
             if let item = notetaker.menuBarItem {
                 Button(action: item.action) {
                     Label(item.title, systemImage: item.systemImage)
+                }
+            }
+
+            if let fileTranscription {
+                Button {
+                    fileTranscription.coordinator.presentWindow()
+                } label: {
+                    Label("Transcribe audio file…", systemImage: "waveform.badge.plus")
+                }
+                Button {
+                    fileTranscription.showLibrary()
+                } label: {
+                    Label("Transcripts", systemImage: "text.book.closed")
                 }
             }
 

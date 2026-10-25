@@ -566,12 +566,12 @@
         }
       }
     },
-    "Send nine events about setup and the trial": {
+    "Send twelve events about setup, the trial and files": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Neun Ereignisse zur Einrichtung und zur Testphase senden"
+            "value": "Zwölf Ereignisse zur Einrichtung, zur Testphase und zu Dateien senden"
           }
         }
       }
@@ -1206,12 +1206,12 @@
         }
       }
     },
-    "Nothing you dictate ever leaves this Mac. Nine events about setting it up and about the trial do — the install, the speech model arriving or failing to, a press that finds it still arriving, a refused microphone, the trial starting, the email ask, and the offers — with no more than an app version, a macOS version, and a random number made at install. Settings → Privacy turns them off.": {
+    "Nothing you dictate ever leaves this Mac, and neither does any file you transcribe. Twelve events about setting it up, about the trial and about files do — the install, the speech model arriving or failing to, a press that finds it still arriving, a refused microphone, the trial starting, the email ask, the offers, and a file starting, finishing (with its length as a rough bucket) or failing — with no more than an app version, a macOS version, and a random number made at install. Settings → Privacy turns them off.": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nichts von dem, was du diktierst, verlässt diesen Mac. Gesendet werden neun Ereignisse zur Einrichtung und zur Testphase: die Installation, das Eintreffen des Sprachmodells oder dessen Scheitern, ein Tastendruck, der noch darauf trifft, ein abgelehntes Mikrofon, der Start der Testphase, die Abfrage der E-Mail-Adresse und das Anzeigen der Angebote – jeweils nur mit App-Version, macOS-Version und einer bei der Installation erzeugten Zufallsnummer. Unter Einstellungen → Datenschutz kannst du dies deaktivieren."
+            "value": "Nichts von dem, was du diktierst, verlässt diesen Mac, und auch keine Datei, die du transkribierst. Gesendet werden zwölf Ereignisse zur Einrichtung, zur Testphase und zu Dateien: die Installation, das Eintreffen des Sprachmodells oder dessen Scheitern, ein Tastendruck, der noch darauf trifft, ein abgelehntes Mikrofon, der Start der Testphase, die Abfrage der E-Mail-Adresse, das Anzeigen der Angebote sowie der Beginn, der Abschluss (mit der Länge als grobe Stufe) oder das Scheitern einer Datei – jeweils nur mit App-Version, macOS-Version und einer bei der Installation erzeugten Zufallsnummer. Unter Einstellungen → Datenschutz kannst du dies deaktivieren."
           }
         }
       }
@@ -2877,7 +2877,89 @@
     "Manage subscription": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Abonnement verwalten"}}}},
     "Opens a page in your browser where you can cancel, change the card, or download invoices. You sign in there with the email address you paid with.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Öffnet eine Seite im Browser, auf der du kündigen, die Karte ändern oder Rechnungen laden kannst. Dort meldest du dich mit der E-Mail-Adresse an, mit der du bezahlt hast."}}}},
     "Check for updates automatically": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Automatisch nach Updates suchen"}}}},
-    "Once a day Witness asks GitHub whether a newer signed version exists, and offers it if so. Nothing is installed until you confirm. You can also check yourself with the button above.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Einmal am Tag fragt Witness bei GitHub nach, ob es eine neuere signierte Version gibt, und bietet sie dir an. Installiert wird erst nach deiner Bestätigung. Du kannst auch selbst mit der Taste oben suchen."}}}}
+    "Once a day Witness asks GitHub whether a newer signed version exists, and offers it if so. Nothing is installed until you confirm. You can also check yourself with the button above.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Einmal am Tag fragt Witness bei GitHub nach, ob es eine neuere signierte Version gibt, und bietet sie dir an. Installiert wird erst nach deiner Bestätigung. Du kannst auch selbst mit der Taste oben suchen."}}}},
+    "Speaker": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sprecher"}}}},
+    "[check this passage]": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"[Stelle prüfen]"}}}},
+    "Notes": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Notizen"}}}},
+    "Witness can transcribe m4a, mp3, wav, aiff, caf, mp4 and mov files.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Witness kann m4a-, mp3-, wav-, aiff-, caf-, mp4- und mov-Dateien transkribieren."}}}},
+    "Finish the dictation or meeting that is running first, then choose the file again.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Beende zuerst das laufende Diktat oder die laufende Besprechung und wähle die Datei dann erneut."}}}},
+    "The speech model is not ready yet. The menu bar shows how far it has got; choose the file again when it is.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Sprachmodell ist noch nicht bereit. Die Menüleiste zeigt, wie weit es ist. Wähle die Datei dann erneut."}}}},
+    "This file has no audio track.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Diese Datei hat keine Tonspur."}}}},
+    "This file is copy-protected, so Witness cannot read its audio.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Diese Datei ist kopiergeschützt, deshalb kann Witness ihren Ton nicht lesen."}}}},
+    "This file contains no audio.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Diese Datei enthält keinen Ton."}}}},
+    "Witness could not read this file. It may be damaged or in a format macOS cannot open.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Witness konnte diese Datei nicht lesen. Sie ist vielleicht beschädigt oder in einem Format, das macOS nicht öffnen kann."}}}},
+    "Recognition stopped before the file was finished. Nothing was saved. Try again; if it repeats, restart Witness.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die Erkennung wurde beendet, bevor die Datei fertig war. Es wurde nichts gespeichert. Versuche es noch einmal; wenn es sich wiederholt, starte Witness neu."}}}},
+    "The transcript could not be saved on this Mac. Check free disk space and try again.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Transkript konnte nicht auf diesem Mac gespeichert werden. Prüfe den freien Speicherplatz und versuche es erneut."}}}},
+    "Cancelled. Nothing was saved.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Abgebrochen. Es wurde nichts gespeichert."}}}},
+    "Witness is transcribing a file": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Witness transkribiert gerade eine Datei"}}}},
+    "Nothing was recorded — the speech engine is busy with the file you chose. Dictation works again when it is done. You can cancel the file from its window.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Es wurde nichts aufgenommen: Die Spracherkennung ist mit der gewählten Datei beschäftigt. Diktieren geht wieder, sobald sie fertig ist. Du kannst die Datei im zugehörigen Fenster abbrechen."}}}},
+    "Witness Transcripts": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Witness Transkripte"}}}},
+    "Transcribe audio file": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Audiodatei transkribieren"}}}},
+    "Transcribe audio file…": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Audiodatei transkribieren …"}}}},
+    "Transcripts": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Transkripte"}}}},
+    "Choose an audio or video file to transcribe": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Wähle eine Audio- oder Videodatei zum Transkribieren"}}}},
+    "About %@ left": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch etwa %@"}}}},
+    "Estimating time left…": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Restzeit wird geschätzt …"}}}},
+    "%lld min": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%lld Min."}}}},
+    "%lld h %lld min": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%lld Std. %lld Min."}}}},
+    "Transcribe an audio or video file": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Audio- oder Videodatei transkribieren"}}}},
+    "Drop a file here, or choose one. Witness reads it where it is, recognises it on this Mac, and keeps only the transcript.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Ziehe eine Datei hierher oder wähle eine aus. Witness liest sie dort, wo sie liegt, erkennt sie auf diesem Mac und behält nur das Transkript."}}}},
+    "Choose file…": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Datei wählen …"}}}},
+    "m4a, mp3, wav, aiff, caf, mp4, mov": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"m4a, mp3, wav, aiff, caf, mp4, mov"}}}},
+    "Progress": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Fortschritt"}}}},
+    "Preparing the speech model and reading the file…": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Sprachmodell wird vorbereitet und die Datei gelesen …"}}}},
+    "Dictation is paused until this is done. The file never leaves this Mac.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Diktieren ist pausiert, bis das hier fertig ist. Die Datei verlässt diesen Mac nie."}}}},
+    "The file was not transcribed": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die Datei wurde nicht transkribiert"}}}},
+    "Choose another file": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Andere Datei wählen"}}}},
+    "Word document (.docx)": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Word-Dokument (.docx)"}}}},
+    "Subtitles (.srt)": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Untertitel (.srt)"}}}},
+    "Text with timestamps (.txt)": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Text mit Zeitmarken (.txt)"}}}},
+    "Plain text (.txt)": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Reiner Text (.txt)"}}}},
+    "Markdown (.md)": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Markdown (.md)"}}}},
+    "Export": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Exportieren"}}}},
+    "Export a copy without changing the local note": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Eine Kopie exportieren, ohne die lokale Notiz zu ändern"}}}},
+    "Play this passage from the original file": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Diese Stelle aus der Originaldatei abspielen"}}}},
+    "Try Again": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Erneut versuchen"}}}},
+    "Delete Permanently": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Endgültig löschen"}}}},
+    "Permanently delete this meeting note": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Diese Notiz endgültig löschen"}}}},
+    "Refresh library": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Bibliothek aktualisieren"}}}},
+    "Refresh the local meeting library": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die lokale Bibliothek aktualisieren"}}}},
+    "Start meeting note": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Besprechungsnotiz starten"}}}},
+    "Start a new meeting note": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Eine neue Besprechungsnotiz starten"}}}},
+    "Meeting title": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Titel"}}}},
+    "Save title": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Titel speichern"}}}},
+    "Save notes": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Notizen speichern"}}}},
+    "Your notes": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Deine Notizen"}}}},
+    "Saved only on this Mac.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Nur auf diesem Mac gespeichert."}}}},
+    "Meeting notes": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Notizen"}}}},
+    "MEETING NOTES": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"NOTIZEN"}}}},
+    "Meeting note history": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Verlauf"}}}},
+    "Meeting content": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Inhalt"}}}},
+    "Meeting unavailable": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Notiz nicht verfügbar"}}}},
+    "Select a meeting note": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Wähle eine Notiz aus"}}}},
+    "Opening meeting note…": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Notiz wird geöffnet …"}}}},
+    "Loading meeting notes…": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Notizen werden geladen …"}}}},
+    "Library unavailable": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Bibliothek nicht verfügbar"}}}},
+    "No transcript was saved": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Es wurde kein Transkript gespeichert"}}}},
+    "Speaker labels": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sprecherbezeichnungen"}}}},
+    "Reset labels": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Zurücksetzen"}}}},
+    "Save labels": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Bezeichnungen speichern"}}}},
+    "Automatic numbered speakers remain off until the local corpus quality gate passes. You can label passages manually; the original attribution is always retained.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Automatisch nummerierte Sprecher bleiben aus, bis die lokale Qualitätsprüfung bestanden ist. Du kannst Stellen von Hand zuordnen; die ursprüngliche Zuordnung bleibt immer erhalten."}}}},
+    "Partial transcript — some audio could not be processed. Review uncertain passages before relying on it.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Unvollständiges Transkript: Ein Teil des Tons konnte nicht verarbeitet werden. Prüfe unsichere Stellen, bevor du dich darauf verlässt."}}}},
+    "Choose a different speaker for this passage": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Anderen Sprecher für diese Stelle wählen"}}}},
+    "Expands controls for renaming You, Others, and numbered speakers": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Blendet die Felder zum Umbenennen der Sprecher ein"}}}},
+    "Edited · original %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Bearbeitet · ursprünglich %@"}}}},
+    "Inferred %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Vermutet %@"}}}},
+    "Recognized: %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Erkannt: %@"}}}},
+    "Restore original: %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Original wiederherstellen: %@"}}}},
+    "“%@” and its transcript and notes will be permanently removed from this Mac.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"„%@“ mit Transkript und Notizen wird endgültig von diesem Mac entfernt."}}}},
+    "Model guess: %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Vermutung des Modells: %@"}}}},
+    "Low confidence": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Geringe Sicherheit"}}}},
+    "Choose “Transcribe audio file…” in the Witness menu.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Wähle „Audiodatei transkribieren …“ im Witness-Menü."}}}},
+    "No meeting notes yet": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch keine Notizen"}}}},
+    "No matching meeting notes": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Keine passenden Notizen"}}}},
+    "Start a note when your call begins.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Starte eine Notiz, wenn dein Gespräch beginnt."}}}},
+    "Try another title or transcript phrase.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Versuche einen anderen Titel oder Ausdruck aus dem Transkript."}}}}
   },
   "version": "1.0"
 }

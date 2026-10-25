@@ -152,6 +152,11 @@ final class DictationCoordinator: ObservableObject {
     /// price actually reached a screen.
     @Published private(set) var paywallRequests = 0
 
+    /// True while a file is being transcribed. The one speech engine is busy
+    /// with the file for as long as it takes, so a press is answered rather
+    /// than queued behind it.
+    private(set) var isFileTranscriptionRunning = false
+
     /// Whether the buyer has made the two declarations a digital-goods sale
     /// needs before the key is handed over immediately.
     ///
@@ -703,6 +708,14 @@ final class DictationCoordinator: ObservableObject {
             return
         }
 
+        // The engine is busy with a whole file. Answered like the model wait:
+        // nothing is recorded, and the state machine is not touched.
+        if isFileTranscriptionRunning {
+            speechModelNotice = .transcribingFile
+            Log.transcription.info("Press answered while a file is being transcribed")
+            return
+        }
+
         guard apply(.hotkeyPressed) else { return }
         activeCleanupLevel = cleanupLevel
 
@@ -994,6 +1007,31 @@ final class DictationCoordinator: ObservableObject {
     func dismissSpeechModelNotice() {
         guard speechModelNotice != nil else { return }
         speechModelNotice = nil
+    }
+
+    // MARK: - File transcription host
+
+    var sharedTranscriptionService: (any TranscriptionService)? { transcriptionService }
+    var isDictationBusy: Bool { state.isBusy }
+    var isLockedForFileTranscription: Bool { entitlement.lock != nil }
+
+    func setFileTranscriptionRunning(_ running: Bool) {
+        isFileTranscriptionRunning = running
+        if !running, speechModelNotice == .transcribingFile { speechModelNotice = nil }
+    }
+
+    /// A file counts as a use of the product under the same rules as a first
+    /// dictation: it starts the ungated window and the trial.
+    func noteFileTranscriptionProduced() {
+        entitlementService?.recordSuccessfulDictation()
+    }
+
+    func reportFileTranscription(_ event: TelemetryEvent) {
+        entitlementService?.noteFileTranscription(event)
+    }
+
+    func requestPaywallForFileTranscription() {
+        paywallRequests += 1
     }
 
     // MARK: - Transcription

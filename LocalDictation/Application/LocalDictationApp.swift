@@ -170,7 +170,9 @@ struct LocalDictationApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var coordinator: DictationCoordinator
     @StateObject private var notetakerStatus: NotetakerStatus
+    @StateObject private var fileStatus: FileTranscriptionStatus
     private let notetaker: any NotetakerFacade
+    private let fileTranscription: FileTranscriptionFeature?
 
     init() {
         // Before `makeLive`, which is what constructs the stores: the folder has
@@ -181,6 +183,8 @@ struct LocalDictationApp: App {
         _coordinator = StateObject(wrappedValue: composition.dictationCoordinator)
         _notetakerStatus = StateObject(wrappedValue: composition.notetaker.status)
         notetaker = composition.notetaker
+        _fileStatus = StateObject(wrappedValue: composition.fileTranscriptionStatus)
+        fileTranscription = composition.fileTranscription
         // The delegate activates the coordinator once AppKit has finished
         // launching, so hotkey registration happens against a live event target.
         AppDelegate.coordinator = composition.dictationCoordinator
@@ -189,7 +193,7 @@ struct LocalDictationApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            MenuBarView(notetaker: notetaker)
+            MenuBarView(notetaker: notetaker, fileTranscription: fileTranscription)
                 .environmentObject(coordinator)
         } label: {
             // The indicator lives here because this is the one place that is on
@@ -197,8 +201,8 @@ struct LocalDictationApp: App {
             // label as a template image, so the alert is the symbol itself
             // rather than a badge drawn over one.
             Label(
-                notetakerStatus.accessibilityLabel,
-                systemImage: notetakerStatus.systemImage ?? StatusPresentation(
+                fileStatus.accessibilityLabel ?? notetakerStatus.accessibilityLabel,
+                systemImage: fileStatus.systemImage ?? notetakerStatus.systemImage ?? StatusPresentation(
                     state: coordinator.state,
                     binding: coordinator.binding,
                     // Carried into the label since the app fetches the model
@@ -228,27 +232,39 @@ struct LocalDictationApp: App {
 struct ApplicationComposition {
     let dictationCoordinator: DictationCoordinator
     let notetaker: any NotetakerFacade
+    /// Nil when file transcription is not part of the build. The status exists
+    /// either way so the menu bar item has nothing optional to observe.
+    let fileTranscription: FileTranscriptionFeature?
+    let fileTranscriptionStatus: FileTranscriptionStatus
 
     static func make(
         notetakerAvailability: NotetakerAvailability,
+        fileTranscriptionAvailability: FileTranscriptionAvailability = .disabled,
         makeDictationCoordinator: () -> DictationCoordinator,
         makeAvailableNotetaker: (DictationCoordinator) -> any NotetakerFacade
     ) -> ApplicationComposition {
         let coordinator = makeDictationCoordinator()
+        let status = FileTranscriptionStatus()
         return ApplicationComposition(
             dictationCoordinator: coordinator,
             notetaker: NotetakerCompositionRoot.make(
                 availability: notetakerAvailability,
                 buildAvailableSubsystem: { makeAvailableNotetaker(coordinator) }
-            )
+            ),
+            fileTranscription: fileTranscriptionAvailability == .enabled
+                ? FileTranscriptionFeature(host: coordinator, status: status, makeDiarizer: { FileSpeakerPolicy.diarizer() })
+                : nil,
+            fileTranscriptionStatus: status
         )
     }
 
     static func makeLive(
-        notetakerAvailability: NotetakerAvailability = .liveDefault
+        notetakerAvailability: NotetakerAvailability = .liveDefault,
+        fileTranscriptionAvailability: FileTranscriptionAvailability = .liveDefault
     ) -> ApplicationComposition {
         make(
             notetakerAvailability: notetakerAvailability,
+            fileTranscriptionAvailability: fileTranscriptionAvailability,
             makeDictationCoordinator: DictationCoordinator.makeLive,
             // A normal Release never invokes this closure. The separately
             // built dogfood DMG enables it with NOTETAKER_DOGFOOD so the
