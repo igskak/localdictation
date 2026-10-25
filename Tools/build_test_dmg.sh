@@ -16,6 +16,12 @@ compilation_conditions='$(inherited) WITNESS_PHASE_9_1_PREVIEW'
 if [ "${NOTETAKER_DOGFOOD:-0}" = 1 ]; then
     compilation_conditions="$compilation_conditions NOTETAKER_DOGFOOD NOTETAKER_DIARIZATION"
 fi
+# Automatic speaker numbers for transcribed files: off in every ordinary build
+# until the F2 gate has data (docs/FILE_TRANSCRIPTION_PLAN.md). A dogfood build
+# can switch them on to look at the result; they need the bundled model above.
+if [ "${NOTETAKER_DOGFOOD:-0}" = 1 ] && [ "${FILE_SPEAKER_LABELS:-0}" = 1 ]; then
+    compilation_conditions="$compilation_conditions FILE_SPEAKER_LABELS"
+fi
 build_args+=(SWIFT_ACTIVE_COMPILATION_CONDITIONS="$compilation_conditions")
 
 xcodebuild "${build_args[@]}" ${package_args[@]+"${package_args[@]}"} build
