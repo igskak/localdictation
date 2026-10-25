@@ -34,6 +34,43 @@ enum TelemetryEvent: Sendable, Equatable {
     case paywallShown(PaywallTrigger)
     case checkoutOpened(Offer)
     case entitlementLapsed(LicenseKind)
+    /// A person chose a file to transcribe. Nothing about the file travels.
+    case fileTranscriptionStarted
+    /// A file was transcribed, with the length of its audio in four buckets.
+    case fileTranscriptionCompleted(FileLength)
+    /// A file was not, and which of seven kinds of problem it was.
+    case fileTranscriptionFailed(FileFailure)
+
+    /// How long the file's audio was, in buckets and never in seconds: a
+    /// length is a property of one recording, and the funnel question is only
+    /// whether people bring interviews or voice memos.
+    enum FileLength: String, Sendable, Equatable {
+        case underFiveMinutes
+        case underThirtyMinutes
+        case underTwoHours
+        case overTwoHours
+
+        init(seconds: TimeInterval) {
+            switch seconds {
+            case ..<300: self = .underFiveMinutes
+            case ..<1800: self = .underThirtyMinutes
+            case ..<7200: self = .underTwoHours
+            default: self = .overTwoHours
+            }
+        }
+    }
+
+    /// The same closed set `FileTranscriptionFailure` is made of, minus the
+    /// refusals that happen before anything runs and the person's own cancel.
+    enum FileFailure: String, Sendable, Equatable, CaseIterable {
+        case unreadable
+        case noAudioTrack
+        case protectedContent
+        case empty
+        case modelUnavailable
+        case recognitionStopped
+        case storageFailed
+    }
 
     enum ActivationFailureReason: String, Sendable, Equatable {
         case notConfigured
@@ -107,6 +144,9 @@ enum TelemetryEvent: Sendable, Equatable {
         case .paywallShown: "paywall_shown"
         case .checkoutOpened: "checkout_opened"
         case .entitlementLapsed: "entitlement_lapsed"
+        case .fileTranscriptionStarted: "file_transcription_started"
+        case .fileTranscriptionCompleted: "file_transcription_completed"
+        case .fileTranscriptionFailed: "file_transcription_failed"
         }
     }
 
@@ -121,7 +161,9 @@ enum TelemetryEvent: Sendable, Equatable {
         case let .checkoutOpened(offer): offer.rawValue
         case let .modelReady(wait): wait.rawValue
         case let .modelFailed(reason): reason.rawValue
-        case .installed, .trialStarted, .activationRequested, .activationSucceeded,
+        case let .fileTranscriptionCompleted(length): length.rawValue
+        case let .fileTranscriptionFailed(reason): reason.rawValue
+        case .fileTranscriptionStarted, .installed, .trialStarted, .activationRequested, .activationSucceeded,
              .modelDownloadStarted, .dictationBlockedByModel, .microphoneDenied: nil
         }
     }
@@ -197,7 +239,17 @@ struct LocalOnlyTelemetryService: ProductTelemetryService {
 // MARK: - What may leave, and what may not
 
 extension TelemetryEvent {
-    /// The nine events that answer the two questions this transport exists for.
+    /// The twelve events that answer the three questions this transport exists for.
+    ///
+    /// The third question is whether people use the file feature at all, how
+    /// long their files are, and what stops them: `file_transcription_started`
+    /// as the denominator, `file_transcription_completed` with the length of
+    /// the audio in four buckets, and `file_transcription_failed` with one of
+    /// seven kinds. Unlike the setup milestones these are sent for every file:
+    /// the count of files is the thing being measured. None of them carries a
+    /// file name, a type, a language, a path or a word of the transcript.
+    ///
+    /// The first two questions:
     ///
     /// The first question was the wall: how many people reach it and how many
     /// get past it. That is `trial_started` as the denominator, `paywall_shown`
@@ -235,7 +287,10 @@ extension TelemetryEvent {
         "microphone_denied",
         "trial_started",
         "activation_requested",
-        "paywall_shown"
+        "paywall_shown",
+        "file_transcription_started",
+        "file_transcription_completed",
+        "file_transcription_failed"
     ]
 
     var isTransmitted: Bool { Self.transmitted.contains(name) }

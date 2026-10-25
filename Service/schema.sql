@@ -87,16 +87,18 @@ CREATE TABLE IF NOT EXISTS rate_counters (
     window_start INTEGER NOT NULL
 );
 
--- The nine funnel events the app may send, and the only table here with no
+-- The twelve funnel events the app may send, and the only table here with no
 -- email in it at all. Three are about the wall at the end of the trial; six are
 -- about setup, from the install to the first dictation, and were added when
--- nothing in this table could say why downloads never became trials.
+-- nothing in this table could say why downloads never became trials; three
+-- are about file transcription (`migrations/002-file-transcription-events.sql`).
 --
 -- The `CHECK` is the third copy of a list that also lives in
 -- `src/events.js` and in the app's `TelemetryEvent.transmitted`. Widening it on
 -- a database that already exists is a rebuild, because SQLite cannot alter a
 -- constraint: `migrations/001-setup-funnel-events.sql` is that rebuild, and it
--- is what a deployed service runs instead of this file.
+-- is what a deployed service runs instead of this file, and 002 is the same
+-- rebuild for the file events.
 --
 -- `install_id` is a random value the app makes at install. It is not derived
 -- from the Mac, so it cannot be joined to `device_slots.device` or to anything
@@ -118,7 +120,10 @@ CREATE TABLE IF NOT EXISTS product_events (
                        'microphone_denied',
                        'trial_started',
                        'activation_requested',
-                       'paywall_shown'
+                       'paywall_shown',
+                       'file_transcription_started',
+                       'file_transcription_completed',
+                       'file_transcription_failed'
                    )),
     qualifier      TEXT,
     app_version    TEXT NOT NULL,

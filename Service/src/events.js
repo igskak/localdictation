@@ -1,4 +1,4 @@
-// POST /v1/events — the nine facts about the funnel, and nothing else.
+// POST /v1/events — the twelve facts about the funnel, and nothing else.
 //
 // `docs/PHASE_8_DECISIONS.md` D7 shipped the first release transmitting
 // nothing. This route is the reversal, and it stays the narrowest thing that
@@ -10,6 +10,12 @@
 //      `installed`, `model_download_started`, `model_ready`, `model_failed`,
 //      `dictation_blocked_by_model`, `microphone_denied`.
 //
+// The third group answers whether file transcription is used, how long the
+// files are and what stops them: `file_transcription_started`,
+// `file_transcription_completed` (with the length of the audio as a bucket) and
+// `file_transcription_failed` (with one of seven kinds). None carries a file
+// name, type, path or language.
+//
 // The second group was added when eight genuine downloads had produced no
 // `trial_started` at all and nothing in the data could say whether the app had
 // ever launched, whether the 1.6 GB had ever arrived, or whether people were
@@ -17,7 +23,7 @@
 //
 // The allowlists below are the second half of a boundary whose first half is in
 // the app — `TelemetryEvent.transmitted`, an enum with no free-form field in
-// it. Keeping both means a build that starts sending a tenth event is refused
+// it. Keeping both means a build that starts sending a thirteenth event is refused
 // here rather than quietly collected, which is the only version of this promise
 // that survives a mistake in a client nobody can update.
 
@@ -31,9 +37,12 @@ export const ALLOWED_EVENTS = new Set([
   "trial_started",
   "activation_requested",
   "paywall_shown",
+  "file_transcription_started",
+  "file_transcription_completed",
+  "file_transcription_failed",
 ]);
 
-/// Three events carry one, and only from these fixed sets. Everything else in
+/// Five events carry one, and only from these fixed sets. Everything else in
 /// the app's qualifier vocabulary belongs to events this route does not accept.
 ///
 /// `model_ready` carries a bucket rather than a duration: the app never sends a
@@ -43,6 +52,16 @@ export const ALLOWED_QUALIFIERS = {
   paywall_shown: new Set(["activationRequired", "trialExpired", "licenseExpired", "updateRequired"]),
   model_ready: new Set(["underOneMinute", "underFiveMinutes", "underFifteenMinutes", "overFifteenMinutes"]),
   model_failed: new Set(["network", "storage", "other"]),
+  file_transcription_completed: new Set(["underFiveMinutes", "underThirtyMinutes", "underTwoHours", "overTwoHours"]),
+  file_transcription_failed: new Set([
+    "unreadable",
+    "noAudioTrack",
+    "protectedContent",
+    "empty",
+    "modelUnavailable",
+    "recognitionStopped",
+    "storageFailed",
+  ]),
 };
 
 /// Ninety days. Long enough to compare a cohort against the fortnight after it,

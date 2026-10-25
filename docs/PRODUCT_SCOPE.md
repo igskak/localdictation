@@ -34,6 +34,7 @@ The selection is explicit and ordered: the first language is preferred, and it d
 - Global push-to-talk and toggle recording modes.
 - Local microphone capture and VAD.
 - Local STT.
+- Transcribing one audio or video file the person chooses (m4a, mp3, wav, aiff, caf, mp4, mov), locally, into a note with timestamps, marked uncertain passages and exports. See `docs/FILE_TRANSCRIPTION_PLAN.md`. No automatic speaker labels, batches, links or meeting capture.
 - Raw transcript plus selectable Verbatim, Conservative, and deterministic
   Clean modes. Clean adds explicit spoken commands and corrections, adjacent
   repetition removal, plain-text lists, typed values, and presentation-only

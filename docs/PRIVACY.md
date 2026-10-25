@@ -22,15 +22,15 @@ into, and nothing derived from any of them. There is no account and no sign-in.
 The following requests can leave. Activation follows your action, and for a
 subscription it repeats by itself about once a month; update checks run once a
 day unless you switch them off; the model download occurs when its files are
-missing; nine events about setting the app up and about the trial can be
-switched off in Settings → Privacy:
+missing; twelve events about setting the app up, about the trial and about
+transcribing files can be switched off in Settings → Privacy:
 
 | What | When | To whom | Why |
 | --- | --- | --- | --- |
 | A request for the speech model, and one for the list of its files and their sizes | The first launch, automatically, and any later one where the model is missing — or when you press **Get the speech model** | Hugging Face, WhisperKit's host | Fetching a static file, and knowing how large it is so the progress bar can say how much is left. One way — nothing is uploaded, and neither request carries an identifier of you or this Mac |
 | Your email address and a device identifier | You press **Send me a key** or **Send my key**; and, while an annual subscription runs, automatically in the background once its key is in its last week, which is about once a month | The Witness activation service, at `api.witnessmac.com` | Issuing a licence key for this Mac, and replacing a subscription key before it runs out. A subscription key lasts thirty days so that a cancellation or refund takes effect within a month |
 | A licence key you already hold | You press **Remove from this Mac** | The same service | Freeing one of the two Macs your licence covers |
-| Nine events about setup and the trial, each with an app version, a macOS major and minor version, and a random number made at install | The app is installed, the speech model starts arriving, arrives or fails, a press finds it still arriving, the microphone is refused, a trial starts, the app asks for an email, or it puts the offers on screen — unless you turned this off | The same service, at `api.witnessmac.com` | Counting how many installations reach a first dictation, and how many people reach the wall and get past it |
+| Twelve events about setup, the trial and file transcription, each with an app version, a macOS major and minor version, and a random number made at install | The app is installed, the speech model starts arriving, arrives or fails, a press finds it still arriving, the microphone is refused, a trial starts, the app asks for an email, it puts the offers on screen, you choose a file to transcribe, a file is finished (with the length of its audio as one of four buckets), or a file fails (with one of seven kinds of problem) — unless you turned this off | The same service, at `api.witnessmac.com` | Counting how many installations reach a first dictation, how many people reach the wall and get past it, and whether file transcription is used and what stops it |
 | Update catalogue HTTPS request: requested URL, IP address, User-Agent with Witness name/version and Sparkle version | You press **Check for updates** in Settings, and once a day while **Check for updates automatically** in Settings is on, which it is by default | GitHub Releases | Looking for a newer signed version, and offering it to you if there is one |
 | Signed update file HTTPS request: requested URL, IP address, User-Agent | You confirm an offered update | GitHub Releases | Downloading the chosen version for installation |
 
@@ -116,6 +116,38 @@ transcript line after a crash is ignored while every preceding complete line is
 recovered. FileVault may protect the disk, but Witness does not describe these
 files as separately application-encrypted.
 
+## Files you transcribe
+
+Choosing **Transcribe audio file…** (or dropping a file on its window) reads
+one audio or video file that you named. Witness opens it where it is, with
+macOS's own decoder, and recognises it on this Mac with the same local model as
+dictation. The file is not copied, uploaded, moved or changed, and no audio from
+it is written anywhere: the decoded sound lives in memory for a few windows at a
+time and is released as each is recognised. There is no network code in this
+path.
+
+What is kept is the transcript, as a local note in the same
+`~/Library/Application Support/Witness/Meetings` folder and with the same
+files as a meeting note (see above). The note's `manifest.json` additionally
+holds **the file's name, its full path and the length of its audio**, so the
+note can say where it came from and so a passage can be played again from the
+original. If the file has moved, playing it fails with a message; nothing is
+searched for. Cancelling a run, or a run that fails, writes no note at all.
+
+Playing a passage decodes that stretch of the original again, plays it, and
+drops it. Exports (text, Markdown, Word, subtitles and timestamped text) are
+written only where you save them. Passages the recognition is unsure of keep a
+visible mark in every format that has room for one; subtitles have none, because
+a mark there would appear on screen.
+
+Speaker names are labels you assign; numbered speakers are not detected
+automatically in this version. Deleting a note removes its directory, including
+the stored path.
+
+Three of the product events above concern files and are described under
+"Product events, field by field". They carry no file name, type, path,
+language, speaker, word or exact length.
+
 ## The activation request, field by field
 
 `LocalDictation/Services/Licensing/HTTPActivationBackend.swift`
@@ -183,7 +215,7 @@ event says "a lifetime licence was sold for €99" and not who bought it.
 `Service/test/analytics.test.mjs` asserts the exact set of fields that leave, and
 that an address handed to it by mistake is dropped rather than sent.
 
-The service also passes on, to the same PostHog project, each of the nine
+The service also passes on, to the same PostHog project, each of the twelve
 product events described under "Product events, field by field" below, at the
 moment it accepts and stores one. That is what puts the stretch between a
 download and a first dictation on the same dashboard as the website's visits and
@@ -218,7 +250,7 @@ PostHog events. The service refuses to send to any PostHog host outside the EU.
 | The payment provider's order id | Reconciling a payment, and invoices | As long as tax law requires |
 | Your IP address, as a counter | Rate limiting, against abuse | 24 hours, as a count and not as a log |
 | Provider identifiers for your purchase | Matching a later renewal or refund to your licence rather than to somebody else's | The life of the licence |
-| The nine product events above, as rows carrying only the five fields named | Counting the funnel | 90 days, then deleted — `Service/src/events.js`, and a test asserts the sweep |
+| The twelve product events above, as rows carrying only the five fields named | Counting the funnel | 90 days, then deleted — `Service/src/events.js`, and a test asserts the sweep |
 
 The licence key itself is not stored. It is reproduced from the fields above
 when you ask for it again, which is also why asking twice gives you the same key
@@ -238,9 +270,9 @@ against a signature, with no connection.
 
 `LocalDictation/Services/Telemetry/ProductTelemetryService.swift`
 
-The app builds fifteen events about setting itself up and about the licensing
-funnel. **Nine of them are sent. The other six are written to the local log and
-go nowhere**, which is what every earlier version of this app did with all of
+The app builds eighteen events about setting itself up, about the licensing
+funnel and about transcribing files. **Twelve of them are sent. The other six are
+written to the local log and go nowhere**, which is what every earlier version of this app did with all of
 them — `docs/PHASE_8_DECISIONS.md` D7 recorded that decision and
 `docs/REFINEMENTS.md` records reversing it, first for the three about the trial
 and then for the six about setup.
@@ -256,6 +288,12 @@ and then for the six about setup.
 | `trial_started` | Your first successful dictation — the moment the three ungated days start |
 | `activation_requested` | You press **Send me a key** or **Send my key** |
 | `paywall_shown` | The app puts the offers on screen, with which of the four reasons it did |
+| `file_transcription_started` | You chose a file to transcribe and a run began |
+| `file_transcription_completed` | A file was transcribed, with the length of its audio as one of four buckets |
+| `file_transcription_failed` | A file was not transcribed, with one of seven kinds of problem |
+
+**The three about files are sent for every file**, because the number of files
+is the thing they count. They say nothing about which file.
 
 **The six about setup are sent at most once for each installation, ever.** That
 is a promise about what this can be used for, not a detail. The speech model is
@@ -280,7 +318,7 @@ Each one is this, and nothing else:
 {"app_version":"0.3.0","event":"trial_started","install_id":"<a random UUID>","system_version":"15.0"}
 ```
 
-Three events add a fifth field, `qualifier`, and each draws it from its own
+Five events add a fifth field, `qualifier`, and each draws it from its own
 fixed set of words:
 
 - `paywall_shown`: `activationRequired`, `trialExpired`, `licenseExpired`,
@@ -290,7 +328,13 @@ fixed set of words:
   duration is a fact about one Mac on one connection and a bucket is all a
   count needs;
 - `model_failed`: `network`, `storage`, `other` — no filename, no path, and no
-  message from the system.
+  message from the system;
+- `file_transcription_completed`: `underFiveMinutes`, `underThirtyMinutes`,
+  `underTwoHours`, `overTwoHours` — the length of the file's audio as a bucket,
+  never a number of seconds;
+- `file_transcription_failed`: `unreadable`, `noAudioTrack`, `protectedContent`,
+  `empty`, `modelUnavailable`, `recognitionStopped`, `storageFailed` — the kind
+  of problem, never the file's name, type or path.
 
 There is no sixth field, and
 `PrivacyDisclosureTests.testEveryFieldTheAppCanSendIsNamedInTheDocument` fails
@@ -310,7 +354,7 @@ if one is added without this document naming it.
   name or qualifier outside the lists above.
 
 **Turning it off.** Settings → Privacy, one switch, which is on when the app is
-installed. Off means none of the nine is sent and nothing else about the app
+installed. Off means none of the twelve is sent and nothing else about the app
 changes — not the trial, not the dictation, not the licence.
 
 Two of them can happen before you have read that sentence, and saying so is

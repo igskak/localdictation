@@ -147,7 +147,7 @@ test("an event carries the licence id, the allowlisted properties, and no addres
   assert.equal(JSON.stringify(body).includes(MAC), false, "a device identifier reached PostHog");
 });
 
-test("only the six business events and the nine app events can be sent", async () => {
+test("only the six business events and the twelve app events can be sent", async () => {
   const { analytics, sent } = recorder();
   await analytics.capture("identify", "lic_1", {});
   await analytics.capture("$pageview", "lic_1", {});

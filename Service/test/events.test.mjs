@@ -1,6 +1,6 @@
 // The event route, held to the list rather than to its intentions.
 //
-// Every assertion here is a sentence in `docs/PRIVACY.md`: nine event names,
+// Every assertion here is a sentence in `docs/PRIVACY.md`: twelve event names,
 // five fields, no address, ninety days. The route is the half of that boundary
 // this repository can still change after a build has shipped, which is why it
 // validates what a client already validated.
@@ -60,13 +60,16 @@ test("an event is accepted, stored, and answered without a body worth reading", 
   assert.equal(stored[0].system_version, "15.0");
 });
 
-test("all nine of the listed events are accepted and nothing else is", async () => {
+test("all twelve of the listed events are accepted and nothing else is", async () => {
   const env = makeEnv();
   assert.deepEqual(
     [...ALLOWED_EVENTS].sort(),
     [
       "activation_requested",
       "dictation_blocked_by_model",
+      "file_transcription_completed",
+      "file_transcription_failed",
+      "file_transcription_started",
       "installed",
       "microphone_denied",
       "model_download_started",
@@ -303,9 +306,15 @@ test("an event with no qualifier sends no qualifier property", async () => {
   assert.equal("qualifier" in sent[0].body.properties, false);
 });
 
-test("every one of the nine listed events is forwarded under its own name", async () => {
+test("every one of the twelve listed events is forwarded under its own name", async () => {
   const { sent, run } = forwarding();
-  const qualifiers = { paywall_shown: "trialExpired", model_ready: "underOneMinute", model_failed: "other" };
+  const qualifiers = {
+    paywall_shown: "trialExpired",
+    model_ready: "underOneMinute",
+    model_failed: "other",
+    file_transcription_completed: "underTwoHours",
+    file_transcription_failed: "unreadable",
+  };
   for (const event of ALLOWED_EVENTS) await run(body({ event, qualifier: qualifiers[event] }));
   assert.deepEqual(sent.map((s) => s.body.event).sort(), [...ALLOWED_EVENTS].sort());
 });

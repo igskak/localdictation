@@ -73,7 +73,7 @@ struct FirstRunReadyView: View {
                     Image(systemName: "shield.checkered")
                         .foregroundStyle(WitnessStyle.success)
                         .accessibilityHidden(true)
-                    Text(verbatim: L10n.string("Nothing you dictate ever leaves this Mac. Nine events about setting it up and about the trial do — the install, the speech model arriving or failing to, a press that finds it still arriving, a refused microphone, the trial starting, the email ask, and the offers — with no more than an app version, a macOS version, and a random number made at install. Settings → Privacy turns them off."))
+                    Text(verbatim: L10n.string("Nothing you dictate ever leaves this Mac, and neither does any file you transcribe. Twelve events about setting it up, about the trial and about files do — the install, the speech model arriving or failing to, a press that finds it still arriving, a refused microphone, the trial starting, the email ask, the offers, and a file starting, finishing (with its length as a rough bucket) or failing — with no more than an app version, a macOS version, and a random number made at install. Settings → Privacy turns them off."))
                         .font(.caption)
                         .foregroundStyle(WitnessStyle.muted)
                         .fixedSize(horizontal: false, vertical: true)

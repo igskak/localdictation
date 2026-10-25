@@ -286,6 +286,12 @@ final class EntitlementService {
         reevaluate()
     }
 
+    /// Reports a file transcription fact. The three events are enum cases with
+    /// closed qualifiers; see `TelemetryEvent`.
+    func noteFileTranscription(_ event: TelemetryEvent) {
+        telemetry.send(event)
+    }
+
     func noteCheckoutOpened(_ offer: TelemetryEvent.Offer) {
         telemetry.send(.checkoutOpened(offer))
     }

@@ -6,7 +6,7 @@
 // sit on the same dashboard as the website's visits and downloads, so the whole
 // path from an ad to money is one screen — as counts over time, not as people.
 //
-// And the nine events the app itself sends to `/v1/events`, passed on exactly as
+// And the twelve events the app itself sends to `/v1/events`, passed on exactly as
 // they were accepted, so that the stretch between a download and a first
 // dictation is on that same screen. They carry the install's own random id,
 // which is the only way to count installs rather than events, and the three

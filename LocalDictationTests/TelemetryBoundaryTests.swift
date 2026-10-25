@@ -70,7 +70,12 @@ final class TelemetryBoundaryTests: XCTestCase {
     /// The gate, on the event rather than on the call site. A transport that
     /// decides per caller is a transport that sends the eighth event the day
     /// somebody adds a call in the wrong place.
-    func testOnlyTheNineFunnelEventsAreTransmitted() {
+    func testOnlyTheTwelveFunnelEventsAreTransmitted() {
+        XCTAssertEqual(TelemetryEvent.transmitted.count, 12)
+        XCTAssertTrue(TelemetryEvent.fileTranscriptionStarted.isTransmitted)
+        XCTAssertTrue(TelemetryEvent.fileTranscriptionCompleted(.underTwoHours).isTransmitted)
+        XCTAssertTrue(TelemetryEvent.fileTranscriptionFailed(.unreadable).isTransmitted)
+
         XCTAssertTrue(TelemetryEvent.trialStarted.isTransmitted)
         XCTAssertTrue(TelemetryEvent.activationRequested.isTransmitted)
         XCTAssertTrue(TelemetryEvent.paywallShown(.trialExpired).isTransmitted)

@@ -1,7 +1,9 @@
 # File transcription — implementation plan
 
-Status: F0 done 2026-10-25 (merge commit `8fca788` on
-`claude/file-transcription-stages-11a7ec`); F1 onward in progress. This document is the implementation
+Status: F0-F4 built 2026-10-25 on `claude/file-transcription-stages-11a7ec`.
+Open before a release: the list under "F4 result". Not merged into `main`.
+
+This document is the implementation
 contract for transcribing an existing audio or video file into text with
 Witness. It builds on the Notetaker work on
 `claude/notetaker-baseline-update-0a65bb` (14 commits on top of `main` at
@@ -369,6 +371,50 @@ presented as the home of transcripts.
 - Release gate: F1 metrics recorded, F2 decision recorded, dictation
   regression suite passes, a notarized build transcribes a 60-minute German
   interview end to end on a clean Mac.
+
+**F4 result (2026-10-25), and what is still the owner's before a release.**
+Built:
+
+- **Flag.** `FILE_TRANSCRIPTION` is set for Release in the project's build
+  settings (and is always on in Debug); `FileTranscriptionAvailability` is its
+  single gate, independent of `NOTETAKER_DOGFOOD`. The ordinary build has file
+  transcription and the library it needs, and no system-audio capture, meeting
+  detection or diarizer. `FileTranscriptionCompositionTests` asserts that
+  enabling files leaves the meeting facade off.
+- **Telemetry.** Three enum events, `file_transcription_started`,
+  `file_transcription_completed` (audio length as `underFiveMinutes`,
+  `underThirtyMinutes`, `underTwoHours` or `overTwoHours`) and
+  `file_transcription_failed` (`unreadable`, `noAudioTrack`, `protectedContent`,
+  `empty`, `modelUnavailable`, `recognitionStopped`, `storageFailed`). A cancel
+  and the refusals before a file is touched send nothing. They go through the
+  same five-field body, the same Settings → Privacy switch and the same
+  90-day retention as the other nine; unlike the setup milestones they are
+  sent for every file, because the number of files is what they count. The
+  service allow-list, schema and a rebuild migration are in `Service/`.
+- **Disclosure.** `docs/PRIVACY.md` (new section "Files you transcribe", the
+  table row, the event table, the qualifier lists, "twelve" throughout), the
+  first-run privacy sentence and the Settings switch label, in English and
+  German. `PrivacyDisclosureTests` and `TelemetryBoundaryTests` now assert
+  twelve.
+- **Website.** The MacWhisper comparison and the comparison hub said Witness
+  does not transcribe files, make subtitles or detect speakers. They now say
+  what is true: single files, exports including SRT, no automatic speaker
+  detection, no batches, meetings or links. That change is a branch of the
+  website repository (`claude/witness-transcribes-files`, one commit,
+  `npm test` passes) and is **not** merged: it must go live together with the
+  release, not before.
+
+Before the release, in this order (none of these can be done from here):
+
+1. Run `Service/migrations/002-file-transcription-events.sql` on the remote D1
+   database, then deploy the Worker. The other order loses events silently.
+2. Publish the privacy page from `docs/PRIVACY.md` (`/datenschutz`) before the
+   version ships, as the document itself requires.
+3. Notarize and, on a clean Mac, transcribe a 60-minute German interview end
+   to end, including the first-run model preparation (10-18 minutes were seen).
+4. Record real-speech word error rate on consented recordings, or keep every
+   accuracy claim off the site and the ad.
+5. Merge the website branch with the release.
 
 ## Out of scope for the first release
 
