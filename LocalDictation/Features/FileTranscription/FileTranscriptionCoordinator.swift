@@ -41,6 +41,27 @@ final class FileTranscriptionStatus: ObservableObject {
     var accessibilityLabel: String? { isRunning ? L10n.string("Witness is transcribing a file") : nil }
 }
 
+/// The model step a run is waiting on, with the moment it was first seen.
+struct FileModelWait: Equatable {
+    let preparation: ModelPreparation
+    let since: Date
+
+    /// What the person reads. The phases that count bytes say how far they are;
+    /// the compilation, which Core ML does not measure, says how long it has
+    /// been seen to take instead of inventing a percentage.
+    var message: String {
+        switch preparation.phase {
+        case .downloading, .loading:
+            TranscriptionModelState.preparing(preparation).label
+        case .compilingForThisSystem:
+            L10n.string("macOS is preparing the speech model for this Mac. This happens once per macOS version and takes several minutes, on some Macs a quarter of an hour or more. macOS does not say how far it has got, so there is no percentage; the clock shows that it is still running. You can cancel and come back to it.")
+        }
+    }
+
+    /// Only a download is counted in something, so only it gets a bar.
+    var fraction: Double? { preparation.phase == .downloading ? preparation.progress : nil }
+}
+
 enum FileTranscriptionPhase: Equatable {
     case idle
     case running(fileName: String, progress: FileTranscriptionProgress?)
@@ -53,6 +74,10 @@ enum FileTranscriptionPhase: Equatable {
 final class FileTranscriptionCoordinator: ObservableObject {
     static let supportedExtensions: Set<String> = ["m4a", "mp3", "wav", "aif", "aiff", "caf", "mp4", "mov"]
 
+    /// While the model is being made ready for this run: what the engine says it
+    /// is doing and since when. Nil once the first passage has been recognised,
+    /// and whenever the model was already there.
+    @Published private(set) var modelWait: FileModelWait?
     @Published private(set) var phase: FileTranscriptionPhase = .idle {
         didSet { status.isRunning = isRunning }
     }
@@ -66,6 +91,7 @@ final class FileTranscriptionCoordinator: ObservableObject {
     var openResult: (UUID) -> Void
     var showWindow: () -> Void
     private var task: Task<Void, Never>?
+    private var waitPolling: Task<Void, Never>?
     private var session: FileTranscriptionSession?
 
     init(
@@ -134,6 +160,7 @@ final class FileTranscriptionCoordinator: ObservableObject {
             }
         )
         self.session = session
+        startPollingModel(engine: engine, profile: host.languageProfile)
         task = Task { [weak self] in
             do {
                 let result = try await session.run()
@@ -159,7 +186,33 @@ final class FileTranscriptionCoordinator: ObservableObject {
 
     // MARK: -
 
+    /// Core ML reports no progress while it compiles the model for this Mac, so
+    /// the most that can honestly be shown is which step it is in and a clock.
+    /// The engine already knows the step; this only asks it twice a second until
+    /// the first passage is recognised.
+    private func startPollingModel(engine: any TranscriptionService, profile: LanguageProfile) {
+        waitPolling?.cancel()
+        waitPolling = Task { [weak self] in
+            while !Task.isCancelled {
+                let state = await engine.modelState(for: profile)
+                guard !Task.isCancelled, let self, self.isRunning else { return }
+                if case let .preparing(preparation) = state {
+                    let since = self.modelWait?.since ?? Date()
+                    self.modelWait = FileModelWait(preparation: preparation, since: since)
+                } else {
+                    self.modelWait = nil
+                }
+                try? await Task.sleep(for: .milliseconds(500))
+            }
+        }
+    }
+
     private func receive(_ progress: FileTranscriptionProgress) {
+        if modelWait != nil || waitPolling != nil {
+            waitPolling?.cancel()
+            waitPolling = nil
+            modelWait = nil
+        }
         guard case let .running(name, previous) = phase else { return }
         if let previous, previous.recognisedFrames > progress.recognisedFrames { return }
         phase = .running(fileName: name, progress: progress)
@@ -180,6 +233,9 @@ final class FileTranscriptionCoordinator: ObservableObject {
     }
 
     private func endRun() {
+        waitPolling?.cancel()
+        waitPolling = nil
+        modelWait = nil
         host?.setFileRunning(false)
         task = nil
         session = nil

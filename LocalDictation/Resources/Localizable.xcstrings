@@ -2959,7 +2959,10 @@
     "No meeting notes yet": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch keine Notizen"}}}},
     "No matching meeting notes": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Keine passenden Notizen"}}}},
     "Start a note when your call begins.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Starte eine Notiz, wenn dein Gespräch beginnt."}}}},
-    "Try another title or transcript phrase.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Versuche einen anderen Titel oder Ausdruck aus dem Transkript."}}}}
+    "Try another title or transcript phrase.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Versuche einen anderen Titel oder Ausdruck aus dem Transkript."}}}},
+    "macOS is preparing the speech model for this Mac. This happens once per macOS version and takes several minutes, on some Macs a quarter of an hour or more. macOS does not say how far it has got, so there is no percentage; the clock shows that it is still running. You can cancel and come back to it.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"macOS bereitet das Sprachmodell für diesen Mac vor. Das passiert einmal pro macOS-Version und dauert einige Minuten, auf manchen Macs eine Viertelstunde oder länger. macOS meldet nicht, wie weit es ist, deshalb gibt es keine Prozentanzeige; die Uhr zeigt, dass es noch läuft. Du kannst abbrechen und später wiederkommen."}}}},
+    "Preparing the speech model": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sprachmodell wird vorbereitet"}}}},
+    "Reading the file and recognising the first passage…": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Datei wird gelesen und die erste Passage erkannt …"}}}}
   },
   "version": "1.0"
 }

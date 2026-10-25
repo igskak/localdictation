@@ -281,6 +281,48 @@ final class FileTranscriptionCoordinatorTests: XCTestCase {
         XCTAssertEqual(TelemetryEvent.FileFailure.allCases.count, 7)
     }
 
+    func testWhileTheModelCompilesTheWindowHasTheStepAndAClockThatStopsAtTheFirstPassage() async throws {
+        // The coordinator holds its host weakly, so the test has to hold it.
+        let (coordinator, host, engine) = make()
+        defer { withExtendedLifetime(host) {} }
+        engine.setResult(transcript("Text."))
+        engine.setModelState(.preparing(ModelPreparation(phase: .compilingForThisSystem)))
+        let gate = engine.blockNextPreparation()
+
+        coordinator.start(url: URL(fileURLWithPath: "/tmp/interview.m4a"))
+        try await waitUntil("the model wait to appear") { coordinator.modelWait != nil }
+        let wait = try XCTUnwrap(coordinator.modelWait)
+        XCTAssertEqual(wait.preparation.phase, .compilingForThisSystem)
+        XCTAssertNil(wait.fraction, "Core ML reports no percentage, so none is invented")
+        XCTAssertTrue(wait.message.contains("macOS"))
+
+        try await Task.sleep(for: .milliseconds(700))
+        XCTAssertEqual(coordinator.modelWait?.since, wait.since, "the clock keeps its start while the step lasts")
+
+        gate.open()
+        try await waitUntil("the run to finish") { !coordinator.isRunning }
+        XCTAssertNil(coordinator.modelWait)
+    }
+
+    func testADownloadInFlightShowsARealFraction() {
+        let wait = FileModelWait(preparation: ModelPreparation(phase: .downloading, progress: 0.4), since: Date())
+        XCTAssertEqual(wait.fraction ?? 0, 0.4, accuracy: 0.001)
+        XCTAssertNil(FileModelWait(preparation: ModelPreparation(phase: .loading), since: Date()).fraction)
+    }
+
+    func testAModelThatIsAlreadyPreparingIsJoinedNotRefused() async throws {
+        let (coordinator, host, engine) = make()
+        engine.setResult(transcript("Text."))
+        engine.setModelState(.preparing(ModelPreparation(phase: .loading)))
+
+        coordinator.start(url: URL(fileURLWithPath: "/tmp/a.m4a"))
+        try await waitUntil { !coordinator.isRunning }
+
+        XCTAssertEqual(coordinator.phase, .idle)
+        XCTAssertEqual(host.producedText, 1)
+        XCTAssertGreaterThanOrEqual(engine.prepareCount, 1)
+    }
+
     func testALockedMacShowsThePaywallAndRunsNothing() {
         let (coordinator, host, engine) = make()
         host.locked = true
@@ -376,10 +418,10 @@ final class FileTranscriptionCoordinatorTests: XCTestCase {
                    audioDuration: 1, processingDuration: 0, engineIdentifier: "fake")
     }
 
-    private func waitUntil(_ condition: () -> Bool) async throws {
+    private func waitUntil(_ what: String = "the condition", _ condition: () -> Bool) async throws {
         let deadline = Date().addingTimeInterval(20)
         while !condition() {
-            guard Date() < deadline else { return XCTFail("timed out") }
+            guard Date() < deadline else { return XCTFail("timed out waiting for \(what)") }
             try await Task.sleep(for: .milliseconds(10))
         }
     }

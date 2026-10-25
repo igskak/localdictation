@@ -140,7 +140,12 @@ actor FileTranscriptionSession {
         var peak = footprint()
 
         let state = await engine.modelState(for: profile)
-        guard state.isReady || state.canPrepareUnattended else { throw FileTranscriptionFailure.modelUnavailable }
+        // A model that is already preparing (launch started it) or that failed
+        // once is joined or retried: the engine coalesces concurrent calls.
+        // Only a model that needs the person's approval to download is refused.
+        guard state.isReady || state.isPreparing || state.canPrepareUnattended || isFailed(state) else {
+            throw FileTranscriptionFailure.modelUnavailable
+        }
         if !state.isReady {
             do { try await engine.prepare(for: profile) } catch { throw FileTranscriptionFailure.modelUnavailable }
         }
@@ -235,6 +240,11 @@ actor FileTranscriptionSession {
             meetingID: meetingID, rows: rows, metrics: metrics,
             speakersLabelled: diarizationActive, diarization: diarizationMetrics
         )
+    }
+
+    private func isFailed(_ state: TranscriptionModelState) -> Bool {
+        if case .failed = state { return true }
+        return false
     }
 
     // MARK: - Speakers

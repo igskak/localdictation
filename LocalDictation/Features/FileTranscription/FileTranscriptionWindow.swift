@@ -20,7 +20,7 @@ struct FileTranscriptionView: View {
             }
         }
         .padding(28)
-        .frame(width: 460, height: 330)
+        .frame(width: 460, height: 360)
         .witnessWindow()
         .onDrop(of: [.fileURL], isTargeted: $isTargeted) { providers in
             guard !coordinator.isRunning, let provider = providers.first else { return false }
@@ -79,9 +79,26 @@ struct FileTranscriptionView: View {
                 }
                 .font(.callout)
                 .foregroundStyle(WitnessStyle.muted)
+            } else if let wait = coordinator.modelWait {
+                if let fraction = wait.fraction {
+                    ProgressView(value: fraction).progressViewStyle(.linear)
+                } else {
+                    ProgressView().progressViewStyle(.linear)
+                }
+                HStack {
+                    Text("Preparing the speech model").font(.callout.weight(.medium))
+                    Spacer()
+                    TimelineView(.periodic(from: wait.since, by: 1)) { context in
+                        Text(Self.clock(context.date.timeIntervalSince(wait.since))).monospacedDigit()
+                    }
+                }
+                Text(wait.message)
+                    .font(.callout)
+                    .foregroundStyle(WitnessStyle.muted)
+                    .fixedSize(horizontal: false, vertical: true)
             } else {
                 ProgressView().progressViewStyle(.linear)
-                Text("Preparing the speech model and reading the file…")
+                Text("Reading the file and recognising the first passage…")
                     .font(.callout)
                     .foregroundStyle(WitnessStyle.muted)
             }
@@ -160,7 +177,7 @@ final class FileTranscriptionWindowController: NSObject {
             return
         }
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 460, height: 330),
+            contentRect: NSRect(x: 0, y: 0, width: 460, height: 360),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false
