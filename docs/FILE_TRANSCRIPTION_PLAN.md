@@ -261,6 +261,40 @@ is recognition wall time per second of audio, model preparation excluded.
   `Speaker 1…8` manually, and the site and the ad do not mention automatic
   speaker detection.
 
+**F2 result (2026-10-25).** Built: the session takes an optional streaming
+diarizer, feeds it the same one-second chunks the windows are cut from, and
+builds rows with the existing `SpeakerAttributionAligner` and
+`SpeakerAttributedRowBuilder`. Speakers are named `Speaker 1…8` in the
+manifest and can be renamed or reassigned in the library. Any failure,
+whether the model cannot prepare or inference stops halfway, drops the labels
+for the **whole file** and says so in the result (`speakersLabelled = false`):
+labels for the first half of a recording and none for the rest would read as a
+finding. Tests use a scripted diarizer for the three paths (labelled,
+cannot prepare, fails at minute five).
+
+**The quality gate was not measured, and the decision is the plan's failure
+path.** It needs at least ten consented two- and three-person interviews and
+ten scored minutes per language at or below 20 % speaker error. There are no
+consented recordings, and synthetic two-voice speech (voices that differ in
+every feature a diarizer uses) would pass a test it says nothing about. The
+Core ML model is also not on this Mac: `Tools/prepare_nemotron3_model.sh`
+downloads it from Hugging Face, and that was not done without being asked.
+
+Decided and recorded:
+
+- **No automatic speaker labels in the ordinary build.** `FileSpeakerPolicy`
+  hands the session no diarizer unless the build sets `FILE_SPEAKER_LABELS`
+  (which also needs `NOTETAKER_DIARIZATION` and the bundled model, as the
+  dogfood DMG has). People assign speakers by hand; the library already
+  supports it and its help text says automatic numbering is off.
+- **The model is not bundled in the Release DMG.** No size change, no new
+  third-party notice beyond what the merge already carries, no update path to
+  maintain. Revisit when the gate has data.
+- **The site and the ad do not mention automatic speaker detection.** The
+  comparison page says the opposite, in the website branch.
+- Still open: whether FluidAudio's offline path beats feeding the streaming
+  adapter on whole files. It is unmeasured.
+
 ### F3 — product UI and exports
 
 - Menu item `Transcribe audio file…`, drop target, `NSOpenPanel` limited to
