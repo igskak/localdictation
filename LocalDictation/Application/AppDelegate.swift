@@ -5,6 +5,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Set by `LocalDictationApp` during scene construction so the delegate can
     /// drive launch, activation, and termination hooks.
     static weak var coordinator: DictationCoordinator?
+    static weak var notetaker: (any NotetakerFacade)?
 
     /// Owns the floating review panel for the lifetime of the app. It has to
     /// live somewhere outside the menu bar scene: the review has to be able to
@@ -22,6 +23,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// another application, and there is no menu bar window open to host the
     /// answer.
     private var paywall: PaywallWindowController?
+    #if DEBUG || NOTETAKER_DOGFOOD
+    private var debugMeetingWindow: DebugMeetingWindowController?
+    private var debugMeetingLibraryWindow: MeetingLibraryWindowController?
+    #endif
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -35,6 +40,43 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         #endif
+        #if DEBUG || NOTETAKER_DOGFOOD
+        let arguments = ProcessInfo.processInfo.arguments
+        #if DEBUG
+        if arguments.contains("--notetaker-library-harness") {
+            let model = MeetingLibraryModel.partialPreview()
+            let controller = MeetingLibraryWindowController(model: model, startMeeting: {})
+            debugMeetingLibraryWindow = controller
+            controller.show()
+            return
+        }
+        #endif
+        if arguments.contains("--notetaker-meeting-harness") {
+            let controller = DebugMeetingWindowController()
+            debugMeetingWindow = controller
+            controller.show()
+            return
+        }
+        #endif
+        #if DEBUG
+        if arguments.contains("--notetaker-audio-processes") {
+            Task.detached {
+                let succeeded = DebugSystemAudioProbe.printProcessInventory()
+                await MainActor.run { exit(succeeded ? 0 : 1) }
+            }
+            return
+        }
+        if let index = arguments.firstIndex(of: "--notetaker-audio-spike"),
+           arguments.count > index + 2,
+           let processID = pid_t(arguments[index + 1]), processID > 0,
+           let seconds = Int(arguments[index + 2]), seconds > 0, seconds <= 7200 {
+            Task.detached {
+                let succeeded = DebugSystemAudioProbe.run(processID: processID, durationSeconds: seconds, exercisePause: arguments.contains("--notetaker-spike-pause"))
+                await MainActor.run { exit(succeeded ? 0 : 1) }
+            }
+            return
+        }
+        #endif
         Log.application.info("Witness launched as a menu bar utility")
         if let coordinator = Self.coordinator {
             reviewPanel = ReviewPanelController(coordinator: coordinator)
@@ -45,6 +87,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             paywall = PaywallWindowController(coordinator: coordinator)
         }
         Self.coordinator?.activate()
+        Self.notetaker?.activate()
         // After `activate`, which is what reads the settings file: whether the
         // question has been answered is a fact from disk, not an assumption
         // about how new this installation is.
@@ -97,6 +140,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        Self.notetaker?.deactivate()
         Self.coordinator?.deactivate()
     }
 }

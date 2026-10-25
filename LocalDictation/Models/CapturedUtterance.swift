@@ -29,12 +29,40 @@ struct CapturedUtterance: Sendable, Equatable {
     var containsSpeech: Bool { voiceActivity.speechStart != nil }
 }
 
+/// Content-free levels computed once a recording has left the real-time path.
+///
+/// Peak alone cannot distinguish one click from a sentence. RMS makes an empty
+/// recognition diagnosable without retaining or logging any audio samples.
+struct AudioSignalMetrics: Sendable, Equatable {
+    let rmsLevel: Float
+    let peakLevel: Float
+
+    static func measure(_ samples: [Float]) -> AudioSignalMetrics {
+        guard !samples.isEmpty else { return AudioSignalMetrics(rmsLevel: 0, peakLevel: 0) }
+
+        var squaredSum: Double = 0
+        var peak: Float = 0
+        var finiteSampleCount = 0
+        for sample in samples where sample.isFinite {
+            squaredSum += Double(sample) * Double(sample)
+            peak = max(peak, abs(sample))
+            finiteSampleCount += 1
+        }
+        guard finiteSampleCount > 0 else { return AudioSignalMetrics(rmsLevel: 0, peakLevel: 0) }
+        return AudioSignalMetrics(
+            rmsLevel: Float((squaredSum / Double(finiteSampleCount)).squareRoot()),
+            peakLevel: peak
+        )
+    }
+}
+
 /// Non-content summary of the last utterance, safe to show in the UI and to log.
 struct UtteranceSummary: Sendable, Equatable {
     let duration: TimeInterval
     let frameCount: Int
     let sampleRate: Double
     let peakLevel: Float
+    let rmsLevel: Float
     let droppedFrameCount: Int
     let speechStart: TimeInterval?
     let trailingSilence: TimeInterval
@@ -50,10 +78,12 @@ struct UtteranceSummary: Sendable, Equatable {
     /// `heardSpeech` defaults to the live detector's own answer. The dictation
     /// path passes the normalized one.
     init(_ utterance: CapturedUtterance, heardSpeech: Bool? = nil) {
+        let signal = AudioSignalMetrics.measure(utterance.samples)
         duration = utterance.duration
         frameCount = utterance.frameCount
         sampleRate = utterance.sampleRate
         peakLevel = utterance.peakLevel
+        rmsLevel = signal.rmsLevel
         droppedFrameCount = utterance.droppedFrameCount
         speechStart = utterance.voiceActivity.speechStart
         trailingSilence = utterance.voiceActivity.trailingSilence
