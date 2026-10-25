@@ -287,10 +287,22 @@ actor FileTranscriptionSession {
         diarizationTurns = []
     }
 
+    /// Rows are cut into readable turns first, then labelled from turns that
+    /// have been smoothed and, for a whole file, checked for plausibility. When
+    /// the check refuses, the rows stay unlabelled and `speakersLabelled` says
+    /// so: a wall of "Speaker 1" with stray words under other numbers would be
+    /// worse than none.
     private func attributed(_ rows: [MeetingTranscriptRow]) -> [MeetingTranscriptRow] {
-        guard diarizationActive else { return rows }
+        let readable = SentenceRowSplitter().split(rows)
+        guard diarizationActive else { return readable }
+        let refinement = SpeakerLabelPolicy.standard.refine(diarizationTurns, finished: true)
+        guard refinement.isReliable else {
+            Log.transcription.info("Speaker labels withheld for a file: \(refinement.doubt?.rawValue ?? "unknown", privacy: .public)")
+            diarizationActive = false
+            return readable
+        }
         let builder = SpeakerAttributedRowBuilder()
-        return rows.flatMap { builder.rows(from: $0, turns: diarizationTurns) }
+        return readable.flatMap { builder.rows(from: $0, turns: refinement.turns) }
     }
 
     /// "speaker-3" is shown as "Speaker 3" until the person renames it.

@@ -108,6 +108,14 @@ to disk. Only anonymous speaker IDs, timestamps, and local confidence evidence
 may be added to the transcript file. If the model is unavailable or fails, the
 meeting note continues with the `You`/`Others` attribution.
 
+When the Notetaker is enabled and Accessibility is granted, it also reads the
+meeting application's own window (Zoom, Meet, Teams) about twice a second for
+the display name that application shows next to whoever is speaking. Those names
+are stored in the note like the words are: in the manifest's speaker labels and
+as the label of the passages they were shown for. Nothing else in the window is
+kept, and nothing is sent anywhere. Without the permission the call keeps
+`You`/`Others` and, where it is enabled, the acoustic labels.
+
 Meeting files remain on this Mac until you permanently delete that meeting.
 Deletion removes the whole per-meeting directory, including manifest,
 transcript and notes; it cannot be undone. Search and text/Markdown export read

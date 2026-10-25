@@ -426,6 +426,58 @@ Before the release, in this order (none of these can be done from here):
    accuracy claim off the site and the ad.
 5. Merge the website branch with the release.
 
+## First real file (2026-10-25) and what changed
+
+The first real recording (50 minutes, one room microphone, Ukrainian, Russian
+and English mixed, several people) came back badly, and the numbers say where:
+
+- **Speakers.** 94% of the time on one speaker, 342 speaker changes in 489
+  rows, 273 rows under two seconds (the median row of the second speaker was one
+  word), mean model confidence 0.27 with 53% of words below 0.3. The streaming
+  Nemotron model is built for a live call; this was a finished mixed recording.
+- **Interface (my fault).** 362 of 489 rows showed "Recognized:" with the text
+  of the whole 20-second window under a one-word fragment, because splitting a
+  window by speaker kept the window's raw text on every fragment. Rows were also
+  15-28 s paragraphs, not turns, and every weak guess was printed as
+  "Inferred 27%".
+- **Recognition.** Poor on this audio ("Хіло, хіло, живу"). The cause is not
+  established. The model in use is large-v3 **turbo** (decoder cut from 32 to 4
+  layers), not full large-v3; whether that, the per-window language choice among
+  four languages, or the audio itself is responsible has not been measured.
+
+Applied (all in tests, none of it tuned on consented data):
+
+- `SpeakerLabelPolicy`: joins turns of one voice across gaps up to 1 s, absorbs
+  turns under 3 s and speakers under 5% of the time, and for a finished
+  recording withholds all labels when one voice has more than 90% of the speech
+  or the model's mean confidence is under 0.35. The thresholds are judgement.
+  On the first file it would have returned no labels.
+- Fragments of a split window keep their own raw text (`rawSlice`); the
+  library says "Speaker uncertain" below 0.4 instead of a percentage.
+- `SentenceRowSplitter`: file rows are cut at sentence ends using the words' own
+  times, in parts of at least about 6 s, so replay plays what the row says.
+- Calls: the same smoothing for the live view, the refusal only for the finished
+  call; and **application names** for remote speakers. `MeetingSpeakerPoller`
+  reads the meeting window's Accessibility tree twice a second
+  (`ActiveSpeakerNameParser` knows labels such as "Talking: Name"), a row takes
+  the name shown for 60% of it, names become `speaker-N` with the real name as
+  the label, and when names exist they replace the acoustic labels. The finished
+  call also reports how well the acoustic labels agree with the names
+  (`SpeakerAgreement`), which is the first measurement of the model that needs no
+  hand-made reference. **The label patterns are unverified**: nothing was run
+  against a live Zoom or Meet window. `--notetaker-ax-probe PID` (Debug) prints
+  what a meeting window really contains so they can be corrected.
+
+Not done, and why:
+
+- Offline whole-file diarization (FluidAudio's pyannote-style pipeline) and
+  post-call refinement: they need ~0.1 GB of models that were not downloaded.
+- The recognition experiment: full large-v3, Parakeet TDT v3 (also in FluidAudio,
+  ~0.5 GB, 25 languages including Ukrainian and Russian) against the current
+  turbo on this file, with a hand-corrected 3-minute reference. Needs the
+  downloads (~1-3 GB for full Whisper) and the reference text.
+- Wiring a bigger model or a second engine into the product.
+
 ## Out of scope for the first release
 
 - Batch queues of many files, folder watching.

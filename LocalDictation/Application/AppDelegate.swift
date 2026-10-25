@@ -66,6 +66,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return
         }
+        // Prints what the tree of a running meeting application contains and
+        // which labels the active-speaker patterns recognise, so the patterns can
+        // be corrected against a real Zoom or Meet window.
+        if let index = arguments.firstIndex(of: "--notetaker-ax-probe"),
+           arguments.count > index + 1, let processID = pid_t(arguments[index + 1]), processID > 0 {
+            Task.detached {
+                guard AXIsProcessTrusted() else {
+                    print("Accessibility is not granted to this build.")
+                    await MainActor.run { exit(1) }
+                    return
+                }
+                for label in AXActiveSpeakerReader.labels(processID: processID, nodeLimit: 2_000) where label.count <= 120 {
+                    let name = ActiveSpeakerNameParser.name(in: label).map { "  -> speaker: \($0)" } ?? ""
+                    print(label.replacingOccurrences(of: "\n", with: " ") + name)
+                }
+                await MainActor.run { exit(0) }
+            }
+            return
+        }
         if arguments.contains("--notetaker-audio-processes") {
             Task.detached {
                 let succeeded = DebugSystemAudioProbe.printProcessInventory()

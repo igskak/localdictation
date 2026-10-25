@@ -3,6 +3,8 @@ import Foundation
 enum SpeakerAssignmentSource: String, Codable, Sendable, Equatable {
     case sourceFallback
     case diarization
+    /// The name the meeting application showed as the active speaker.
+    case application
     case manual
 }
 
@@ -158,7 +160,8 @@ struct SpeakerAttributedRowBuilder: Sendable {
                 words: words,
                 startFrame: first.attribution.startFrame,
                 endFrame: last.attribution.endFrame,
-                text: text
+                text: text,
+                rawSlice: text
             )
         }
     }

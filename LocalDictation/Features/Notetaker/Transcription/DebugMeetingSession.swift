@@ -45,6 +45,11 @@ actor DebugMeetingSession {
     private var publishedRows: [MeetingTranscriptRow] = []
     private var publishedBaseRowCount = 0
     private var echoRowsRemoved = 0
+    private var speakerPoller: MeetingSpeakerPoller?
+    private var speakerTimeline = ActiveSpeakerTimeline()
+    private var speakerRoster = ActiveSpeakerRoster()
+    private var publishedNamedRows: [MeetingTranscriptRow] = []
+    private var speakerAgreement: Double?
 
     init(
         profile: LanguageProfile,
@@ -102,6 +107,7 @@ actor DebugMeetingSession {
             let worker = LongFormTranscriber(engine: engine, profile: profile)
             self.worker = worker
             startedAt = ProcessInfo.processInfo.systemUptime
+            startSpeakerPolling(processID: processID)
             emit(.status("Recording — local audio is kept in memory."))
             Task { await pump(systemProcessor, microphoneProcessor, systemBuffer, microphoneBuffer, worker) }
             Task { await transcribe(worker) }
@@ -115,6 +121,7 @@ actor DebugMeetingSession {
 
     func stop() {
         stopRequested = true
+        speakerPoller?.stop()
         emit(.status("Finishing the transcript…"))
     }
 
@@ -271,19 +278,22 @@ actor DebugMeetingSession {
                 break
             }
         }
+        speakerPoller?.stop()
         let baseRows = await worker.assembler.rows
         // Earlier live rows may have arrived before the model's right context
         // or before a row of the other source that sorts ahead of them.
         // Rebuild once from the complete set; recognized text and source
         // evidence remain intact.
         publishedRows = []
+        publishedNamedRows = []
         publishedBaseRowCount = 0
-        let finalRows = withoutEcho(attributedRows(from: baseRows))
+        let finalRows = withoutEcho(attributedRows(from: baseRows, finished: true))
         emit(.rows(finalRows))
         await emitMetrics(worker)
         do {
             if !storageFailed {
                 try await persistence.replace(rows: finalRows)
+                if namesInUse { try await persistence.mergeSpeakerNames(speakerRoster.displayNames) }
             }
             let orderedIssues = MeetingPartialIssue.allCases.filter(partialIssues.contains)
             try await persistence.finish(partial: partial, issueCodes: orderedIssues.map(\.rawValue))
@@ -301,6 +311,21 @@ actor DebugMeetingSession {
         let filtered = MeetingEchoFilter.removingEcho(from: rows)
         echoRowsRemoved = filtered.removed
         return filtered.rows
+    }
+
+    /// Reads who the meeting application highlights, twice a second, for as long
+    /// as the call is captured. Silent when Accessibility is not granted.
+    private func startSpeakerPolling(processID: pid_t) {
+        let poller = MeetingSpeakerPoller(reader: AXActiveSpeakerReader(processID: processID))
+        speakerPoller = poller
+        poller.start { [weak self] name in
+            Task { [weak self] in await self?.recordActiveSpeaker(name) }
+        }
+    }
+
+    private func recordActiveSpeaker(_ name: String?) {
+        let seconds = max(ProcessInfo.processInfo.systemUptime - startedAt, 0)
+        speakerTimeline.record(ActiveSpeakerSample(frame: Int64(seconds * 16_000), name: name))
     }
 
     private func ingestDiarization(_ chunk: MeetingAudioChunk) async {
@@ -325,22 +350,46 @@ actor DebugMeetingSession {
         }
     }
 
-    private func attributedRows(from baseRows: [MeetingTranscriptRow]) -> [MeetingTranscriptRow] {
+    private func attributedRows(from baseRows: [MeetingTranscriptRow], finished: Bool = false) -> [MeetingTranscriptRow] {
         if baseRows.count < publishedBaseRowCount {
             publishedRows = []
+            publishedNamedRows = []
             publishedBaseRowCount = 0
         }
-        guard baseRows.count > publishedBaseRowCount else { return publishedRows }
+        guard baseRows.count > publishedBaseRowCount else { return namesInUse ? publishedNamedRows : publishedRows }
         let builder = SpeakerAttributedRowBuilder()
+        // Smoothed turns, and for the finished call a refusal to label at all
+        // when the model's own evidence is weak. The live view only smooths.
+        let refinement = SpeakerLabelPolicy.standard.refine(diarizationTurns, finished: finished)
         for row in baseRows.dropFirst(publishedBaseRowCount) {
             if diarizationEnabled, row.source == .system {
-                publishedRows.append(contentsOf: builder.rows(from: row, turns: diarizationTurns))
+                publishedRows.append(contentsOf: builder.rows(from: row, turns: refinement.turns))
             } else {
                 publishedRows.append(row)
             }
+            publishedNamedRows.append(namedRow(row))
         }
         publishedBaseRowCount = baseRows.count
-        return publishedRows
+        if finished, namesInUse {
+            speakerAgreement = SpeakerAgreement.purity(acoustic: publishedRows, named: publishedNamedRows)
+        }
+        return namesInUse ? publishedNamedRows : publishedRows
+    }
+
+    /// True once the meeting application has named anybody. From then on the
+    /// application's names are what the call shows; the acoustic labels are kept
+    /// only to measure how well they agree.
+    private var namesInUse: Bool { !speakerTimeline.isEmpty }
+
+    private func namedRow(_ row: MeetingTranscriptRow) -> MeetingTranscriptRow {
+        guard row.source == .system,
+              let name = speakerTimeline.name(from: row.startFrame, to: row.endFrame),
+              let speakerID = speakerRoster.speakerID(for: name) else { return row }
+        return MeetingTranscriptRow(
+            source: row.source, startFrame: row.startFrame, endFrame: row.endFrame, text: row.text,
+            original: row.original, speakerID: speakerID, speakerConfidence: nil,
+            speakerAssignmentSource: .application, wordAttributions: [], rawSlice: row.rawSlice
+        )
     }
 
     private func emitMetrics(_ worker: LongFormTranscriber) async {
@@ -351,8 +400,10 @@ actor DebugMeetingSession {
         let resident = getrusage(RUSAGE_SELF, &usage) == 0 ? Double(usage.ru_maxrss) / 1_048_576 : 0
         let realTimeFactor = metrics.realTimeFactor.map { String(format: "%.2f", $0) } ?? "n/a"
         let diarizationRTF = diarizationMetrics.realTimeFactor.map { String(format: "%.3f", $0) } ?? "n/a"
+        let agreement = speakerAgreement.map { String(format: "%.0f%%", $0 * 100) } ?? "n/a"
         let text = String(
-            format: "ASR RTF: %@; inference / meeting time: %.2f; diarization RTF: %@; diarization load: %.2f s; speaker turns: %d; diarization discontinuities: %d; peak queue: %d; max queue delay: %.1f s; peak process memory: %.0f MB; silent windows: %d; lost intervals: %d; echo rows removed: %d",
+            format: "speaker agreement with the application: %@; ASR RTF: %@; inference / meeting time: %.2f; diarization RTF: %@; diarization load: %.2f s; speaker turns: %d; diarization discontinuities: %d; peak queue: %d; max queue delay: %.1f s; peak process memory: %.0f MB; silent windows: %d; lost intervals: %d; echo rows removed: %d",
+            agreement,
             realTimeFactor,
             metrics.inferenceSeconds / elapsed,
             diarizationRTF,

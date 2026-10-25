@@ -796,11 +796,20 @@ private struct MeetingTranscriptRecordView: View {
                     .fixedSize()
                     .accessibilityLabel("Speaker: \(speaker)")
                     .accessibilityHint("Choose a different speaker for this passage")
-                    if row.speakerAssignmentSource == .diarization, let confidence = row.speakerConfidence {
+                    if row.speakerAssignmentSource == .diarization, let confidence = row.speakerConfidence, confidence < 0.4 {
+                        Text("Speaker uncertain")
+                            .font(.caption2)
+                            .foregroundStyle(WitnessStyle.warning)
+                            .accessibilityLabel("The speaker for this passage is uncertain")
+                    } else if row.speakerAssignmentSource == .diarization, let confidence = row.speakerConfidence {
                         Text("Inferred \(confidence.formatted(.percent.precision(.fractionLength(0))))")
                             .font(.caption2)
                             .foregroundStyle(WitnessStyle.muted)
                             .accessibilityLabel("Inferred speaker confidence \(confidence.formatted(.percent))")
+                    } else if row.speakerAssignmentSource == .application {
+                        Text("Named by the meeting window")
+                            .font(.caption2)
+                            .foregroundStyle(WitnessStyle.muted)
                     } else if row.isManuallyReassigned {
                         Text("Edited · original \(originalSpeaker)")
                             .font(.caption2)

@@ -57,6 +57,14 @@ actor MeetingPersistenceRecorder {
         persistedRowCount = rows.count
     }
 
+    /// Adds names the meeting application supplied, keeping the existing labels.
+    func mergeSpeakerNames(_ names: [String: String]) async throws {
+        guard var manifest, !names.isEmpty else { return }
+        manifest.speakerDisplayNames.merge(names) { _, new in new }
+        try await store.updateManifest(manifest)
+        self.manifest = manifest
+    }
+
     func finish(partial: Bool, issueCodes: [String] = [], at date: Date = Date()) async throws {
         guard var manifest else { return }
         manifest.endedAt = date
