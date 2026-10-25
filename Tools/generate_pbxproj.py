@@ -293,7 +293,11 @@ def main():
     # Swift package sections are hand-maintained in the project file; copy them
     # through unchanged when they exist so adding a source file cannot silently
     # unlink a dependency.
-    for name in ("XCRemoteSwiftPackageReference", "XCSwiftPackageProductDependency"):
+    for name in (
+        "XCLocalSwiftPackageReference",
+        "XCRemoteSwiftPackageReference",
+        "XCSwiftPackageProductDependency",
+    ):
         body = optional_section(existing, name)
         if body:
             output.append("\n")

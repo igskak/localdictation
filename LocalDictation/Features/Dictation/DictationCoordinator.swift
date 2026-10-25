@@ -833,7 +833,7 @@ final class DictationCoordinator: ObservableObject {
             lastUtteranceSamples = utterance.samples
             #endif
             Log.audio.info(
-                "Utterance completed: \(String(format: "%.2f", summary.duration)) s at \(Int(summary.sampleRate)) Hz, dropped \(summary.droppedFrameCount), reason \(summary.endReason.rawValue, privacy: .public)"
+                "Utterance completed: \(String(format: "%.2f", summary.duration), privacy: .public) s at \(Int(summary.sampleRate), privacy: .public) Hz, rms \(String(format: "%.5f", summary.rmsLevel), privacy: .public), peak \(String(format: "%.5f", summary.peakLevel), privacy: .public), heard speech \(summary.heardSpeech, privacy: .public), dropped \(summary.droppedFrameCount, privacy: .public), reason \(summary.endReason.rawValue, privacy: .public)"
             )
         }
 

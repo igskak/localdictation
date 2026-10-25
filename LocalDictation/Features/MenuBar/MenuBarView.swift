@@ -4,6 +4,13 @@ import SwiftUI
 struct MenuBarView: View {
     @EnvironmentObject private var coordinator: DictationCoordinator
     @Environment(\.openSettings) private var openSettings
+    @ObservedObject private var notetakerStatus: NotetakerStatus
+    private let notetaker: any NotetakerFacade
+
+    init(notetaker: any NotetakerFacade = UnavailableNotetakerFacade()) {
+        self.notetaker = notetaker
+        _notetakerStatus = ObservedObject(wrappedValue: notetaker.status)
+    }
 
     private var presentation: StatusPresentation {
         StatusPresentation(
@@ -28,6 +35,28 @@ struct MenuBarView: View {
             }
 
             header
+
+            if let suggestion = notetaker.suggestion {
+                MeetingSuggestionCard(suggestion: suggestion)
+            }
+
+            if let item = notetaker.menuBarItem {
+                Button(action: item.action) {
+                    Label(item.title, systemImage: item.systemImage)
+                }
+            }
+
+            if let item = notetaker.historyMenuItem {
+                Button(action: item.action) {
+                    Label(item.title, systemImage: item.systemImage)
+                }
+            }
+
+            if let item = notetaker.stopMenuItem {
+                Button(action: item.action) {
+                    Label(item.title, systemImage: item.systemImage)
+                }
+            }
 
             if coordinator.state == .recording || coordinator.state == .finishing {
                 RecordingLevelView(snapshot: coordinator.diagnostics.snapshot)
@@ -228,6 +257,37 @@ struct MenuBarView: View {
     }
 }
 
+private struct MeetingSuggestionCard: View {
+    let suggestion: NotetakerSuggestion
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label(suggestion.title, systemImage: "video.badge.waveform")
+                .font(.headline)
+                .foregroundStyle(WitnessStyle.ink)
+            Text(suggestion.detail)
+                .font(.callout)
+                .foregroundStyle(WitnessStyle.muted)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("Witness never starts recording automatically and does not notify other participants.")
+                .font(.caption)
+                .foregroundStyle(WitnessStyle.muted)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 8) {
+                Button("Start note", action: suggestion.start)
+                    .buttonStyle(WitnessPrimaryButtonStyle())
+                    .accessibilityHint("Starts local microphone and meeting audio recording")
+                Button("Dismiss", action: suggestion.dismiss)
+                    .buttonStyle(WitnessSecondaryButtonStyle())
+                    .accessibilityHint("Hides this suggestion and starts its cooldown")
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .witnessCard(.accent)
+        .accessibilityElement(children: .contain)
+    }
+}
+
 private struct RecordingLevelView: View {
     let snapshot: CaptureSnapshot
 
@@ -258,9 +318,10 @@ private struct LastUtteranceView: View {
                 .font(.caption)
             Text(
                 String(
-                    format: "%.2f s · %d frames · peak %.2f",
+                    format: "%.2f s · %d frames · rms %.3f · peak %.2f",
                     summary.duration,
                     summary.frameCount,
+                    summary.rmsLevel,
                     summary.peakLevel
                 )
             )

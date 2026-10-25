@@ -24,6 +24,8 @@
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2026. All rights reserved.</string>
+	<key>NSAudioCaptureUsageDescription</key>
+	<string>Witness captures the selected meeting app’s audio on your Mac to create a local transcript.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Witness needs microphone access to transcribe speech locally on your Mac.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>

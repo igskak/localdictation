@@ -341,7 +341,9 @@ struct DiagnosticsView: View {
                     LabeledContent("Duration", value: String(format: "%.2f s", summary.duration))
                     LabeledContent("Frames", value: "\(summary.frameCount)")
                     LabeledContent("Sample rate", value: "\(Int(summary.sampleRate)) Hz")
+                    LabeledContent("RMS level", value: String(format: "%.5f", summary.rmsLevel))
                     LabeledContent("Peak level", value: String(format: "%.3f", summary.peakLevel))
+                    LabeledContent("Speech detected", value: L10n.string(summary.heardSpeech ? "Yes" : "No"))
                     LabeledContent("Dropped frames", value: "\(summary.droppedFrameCount)")
                     LabeledContent("End reason", value: summary.endReason.rawValue)
                 }
