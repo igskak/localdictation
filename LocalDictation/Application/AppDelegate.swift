@@ -59,6 +59,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         #endif
         #if DEBUG
+        if arguments.contains("--transcribe-file") {
+            Task.detached {
+                let code = await FileTranscriptionHarness.run(arguments: arguments)
+                await MainActor.run { exit(code) }
+            }
+            return
+        }
         if arguments.contains("--notetaker-audio-processes") {
             Task.detached {
                 let succeeded = DebugSystemAudioProbe.printProcessInventory()

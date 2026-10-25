@@ -14,13 +14,22 @@ actor MeetingPersistenceRecorder {
     var meetingID: UUID? { manifest?.id }
 
     @discardableResult
-    func begin(title: String, profile: LanguageProfile, platform: MeetingPlatform = .manual, at date: Date = Date()) async throws -> UUID {
+    func begin(
+        title: String,
+        profile: LanguageProfile,
+        platform: MeetingPlatform = .manual,
+        speakerDisplayNames: [String: String]? = nil,
+        sourceFile: MeetingSourceFile? = nil,
+        at date: Date = Date()
+    ) async throws -> UUID {
         precondition(manifest == nil, "A recorder owns at most one meeting")
         let manifest = MeetingManifest(
             title: title,
             startedAt: date,
             selectedLanguages: profile.languages,
-            sourcePlatform: platform
+            sourcePlatform: platform,
+            speakerDisplayNames: speakerDisplayNames ?? ["you": "You", "others": "Others"],
+            sourceFile: sourceFile
         )
         try await store.createMeeting(manifest)
         self.manifest = manifest
@@ -55,6 +64,15 @@ actor MeetingPersistenceRecorder {
         manifest.partialIssueCodes = partial && !issueCodes.isEmpty ? issueCodes : nil
         try await store.updateManifest(manifest)
         self.manifest = manifest
+    }
+
+    /// Removes the note whatever it holds. A file transcription writes only at
+    /// the end, so a failure there must leave no half-written note.
+    func discardMeeting() async {
+        guard let manifest else { return }
+        try? await store.deleteMeeting(id: manifest.id)
+        self.manifest = nil
+        persistedRowCount = 0
     }
 
     func discardEmptyMeeting() async {

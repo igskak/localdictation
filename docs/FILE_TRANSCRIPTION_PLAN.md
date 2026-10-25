@@ -190,6 +190,62 @@ Checked in a clean checkout of the merge commit:
   RTF and WER recorded in this document. If a 60-minute file takes longer than
   the recording itself, stop and reconsider window sizes or model before UI.
 
+**F1 result (2026-10-25).** Built: `AudioFileSource` (AVAssetReader → 16 kHz
+mono Float32, one-second contiguous chunks, `isFinal` on the last, named errors
+for unreadable, no audio track, protected content, empty), `FileTranscriptionSession`
+(offline, backpressure instead of loss, written once at the end so a cancel or
+failure leaves no note), `MeetingPlatform.file`, and the Debug launch argument
+`--transcribe-file PATH [--language de] [--window-min S --window-max S]
+[--store-dir DIR] [--transcript-out F] [--json-out F]`. Tests:
+`FileTranscriptionTests.swift` (chunk continuity, final chunk, stereo 44.1 kHz
+downmix, full-file coverage with no lost interval, cancellation leaves no note,
+named file errors, mid-file read failure, unavailable model, a full queue waits
+instead of dropping, progress and time-left extrapolation, window bounds).
+
+Measured on an Apple M1 with 16 GB, the lowest Apple Silicon the product
+supports, running the Debug build, files as 48 kbps AAC `.m4a`, German and
+English profile pinned, windows 15–28 s unless stated. Real-time factor (RTF)
+is recognition wall time per second of audio, model preparation excluded.
+
+| File | Audio | Windows | RTF | Lost intervals | Peak footprint | Peak resident | WER |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| DE interview, 15–28 s windows | 60.7 min | 218 | 0.169 | 0 | 104 MB | 1376 MB | 0.25 % (20 / 7955) |
+| EN interview, 15–28 s windows | 60.7 min | 219 | 0.166 | 0 | 105 MB | 1432 MB | 0.28 % (26 / 9234) |
+| DE interview, 8–20 s windows (live sizes) | 60.7 min | 392 | 0.164 | 0 | 97 MB | 1477 MB | 0.64 % (51 / 7955) |
+| DE, 10 min | 10.3 min | 37 | 0.155 | 0 | 98 MB | 1416 MB | 0.15 % (2 / 1356) |
+| EN, 10 min | 10.5 min | 39 | 0.146 | 0 | 114 MB | 272 MB | 0.26 % (4 / 1562) |
+
+- **The gate holds.** An hour of audio is recognised in about ten minutes, six
+  times faster than the recording; memory is flat; no interval was lost; each
+  run's last row ends at the file's last frame.
+- **Window sizes: 15–28 s stays.** Against the live sizes it cuts the word
+  error rate from 0.64 % to 0.25 % on the same file with no cost in speed
+  (RTF 0.164 against 0.169) and nearly halves the decode calls (218 against
+  392). `FileWindowSizes.file` is the default; `.live` is kept for comparison.
+- **What these numbers are not.** The audio is macOS text-to-speech, two voices
+  alternating, with pauses of 0.4–2 s and one in about twenty-five turns
+  followed by an 8–15 s gap. Reference text is the text that was spoken, so the
+  word error rate is a floor for clean speech, not a prediction for a real
+  interview. The plan's "2 × 10 minutes of consented recordings per language"
+  is **not met**: no consented recording exists in the repository or on this
+  Mac. Real-speech WER stays an open measurement; nothing may be said about
+  accuracy on the site or in the ad until it exists.
+- **Concurrency.** The runs shared the machine with text-to-speech generation,
+  Xcode builds and test runs, so the RTF spread (0.146–0.169) is a bound, not a
+  benchmark of an idle Mac.
+- **First-run cost is the real risk, not the long file.** Time from launch
+  until the model could take the first window was 592 s, 960 s, 847 s and
+  1112 s in four runs (Core ML compiling the model for this Mac's Neural
+  Engine) and 4 s in the fifth. The cause of the difference was not isolated;
+  free disk space on the machine was between 1.8 and 8 GB, which macOS may
+  answer by purging compiled caches. Dictation already tells the person about
+  this wait; the file window says "Preparing the speech model…" and can be
+  cancelled, but a person who drops a file on a fresh install can wait a
+  quarter of an hour before progress moves. The release check below includes a
+  clean-Mac run for that reason.
+- Tools: `Tools/make_synthetic_interview.py` builds the files and the reference
+  with true speaker turns, `Tools/file_wer.py` scores a transcript.
+
 ### F2 — speakers for files
 
 - Run `BundledNemotronSpeakerDiarizer` over the file's chunks; align and build
