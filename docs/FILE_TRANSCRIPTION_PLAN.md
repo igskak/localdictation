@@ -214,12 +214,22 @@ is recognition wall time per second of audio, model preparation excluded.
 | DE interview, 15–28 s windows | 60.7 min | 218 | 0.169 | 0 | 104 MB | 1376 MB | 0.25 % (20 / 7955) |
 | EN interview, 15–28 s windows | 60.7 min | 219 | 0.166 | 0 | 105 MB | 1432 MB | 0.28 % (26 / 9234) |
 | DE interview, 8–20 s windows (live sizes) | 60.7 min | 392 | 0.164 | 0 | 97 MB | 1477 MB | 0.64 % (51 / 7955) |
+| DE interview, 3 h, 15–28 s windows | 180.2 min | 645 | 0.190 | 0 | 251 MB | 349 MB | not scored |
 | DE, 10 min | 10.3 min | 37 | 0.155 | 0 | 98 MB | 1416 MB | 0.15 % (2 / 1356) |
 | EN, 10 min | 10.5 min | 39 | 0.146 | 0 | 114 MB | 272 MB | 0.26 % (4 / 1562) |
 
 - **The gate holds.** An hour of audio is recognised in about ten minutes, six
   times faster than the recording; memory is flat; no interval was lost; each
   run's last row ends at the file's last frame.
+- **Three hours.** 180 minutes were recognised in 34 minutes with no lost
+  interval. The footprint outside the model grew from about 100 MB at one hour
+  to 251 MB at three: the audio is bounded (a few windows at a time), but the
+  assembler keeps every window's tokens with their timing for the whole note,
+  so memory follows the length of the transcript, roughly 50-75 MB per audio
+  hour. That is harmless at the lengths people bring and would matter near ten
+  hours; dropping tokens that no row needs any more is the fix if it ever does.
+  This run overlapped with a Release build and the full test suite, which is
+  why its RTF (0.190) is the highest.
 - **Window sizes: 15–28 s stays.** Against the live sizes it cuts the word
   error rate from 0.64 % to 0.25 % on the same file with no cost in speed
   (RTF 0.164 against 0.169) and nearly halves the decode calls (218 against
@@ -433,4 +443,5 @@ Before the release, in this order (none of these can be done from here):
 - Whether the offline (non-streaming) diarization path in FluidAudio is more
   accurate than feeding the streaming adapter, for whole files.
 - How long a single file may be before peak memory of the assembler and store
-  matters (measure 3 h in F1).
+  matters: measured to 3 h in F1 (251 MB, linear in transcript length); not
+  measured beyond.
