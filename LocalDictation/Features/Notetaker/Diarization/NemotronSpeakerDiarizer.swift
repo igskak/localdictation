@@ -101,6 +101,80 @@ struct NemotronProbabilitySegmenter: Sendable {
     }
 }
 
+/// What each speaker slot did over a stretch of the stream, for the log only.
+/// `NemotronProbabilitySegmenter` keeps a slot only at 0.5 or above, so a
+/// second voice that sits at 0.4 produces no turn and no trace. Counting frames
+/// at lower levels shows whether the slots are quiet or merely under the line.
+/// Frames are the model's 10 ms probability frames.
+struct SpeakerSlotProbabilityDigest: Sendable, Equatable {
+    struct Slot: Sendable, Equatable {
+        var peak: Float = 0
+        var sum: Double = 0
+        var framesAtOrAbove50 = 0
+        var framesAtOrAbove30 = 0
+        var framesAtOrAbove20 = 0
+        /// Frames where this slot had the highest probability of all slots
+        /// and that probability was at least 0.2.
+        var framesLeading = 0
+    }
+
+    static let probabilityFramesPerSecond = 100
+
+    private(set) var slots: [Slot] = []
+    private(set) var frames = 0
+    private(set) var startFrame: Int64?
+    private(set) var endFrame: Int64 = 0
+
+    var isEmpty: Bool { frames == 0 }
+
+    mutating func add(probabilities: [Float], frameCount: Int, speakerCount: Int,
+                      startFrame: Int64, samplesPerProbabilityFrame: Int64) {
+        guard frameCount > 0, speakerCount > 0,
+              probabilities.count >= frameCount * speakerCount else { return }
+        if slots.count < speakerCount {
+            slots.append(contentsOf: Array(repeating: Slot(), count: speakerCount - slots.count))
+        }
+        if self.startFrame == nil { self.startFrame = startFrame }
+        endFrame = startFrame + Int64(frameCount) * samplesPerProbabilityFrame
+        for frame in 0..<frameCount {
+            var leader = 0
+            var leaderProbability: Float = -1
+            for speaker in 0..<speakerCount {
+                let probability = probabilities[frame * speakerCount + speaker]
+                slots[speaker].peak = max(slots[speaker].peak, probability)
+                slots[speaker].sum += Double(probability)
+                if probability >= 0.5 { slots[speaker].framesAtOrAbove50 += 1 }
+                if probability >= 0.3 { slots[speaker].framesAtOrAbove30 += 1 }
+                if probability >= 0.2 { slots[speaker].framesAtOrAbove20 += 1 }
+                if probability > leaderProbability {
+                    leader = speaker
+                    leaderProbability = probability
+                }
+            }
+            if leaderProbability >= 0.2 { slots[leader].framesLeading += 1 }
+        }
+        frames += frameCount
+    }
+
+    mutating func reset() {
+        self = SpeakerSlotProbabilityDigest()
+    }
+
+    /// Positions are seconds on the 16 kHz host-time grid used by the
+    /// transcript rows. Counts are 10 ms frames; "lead" is the number of frames
+    /// where the slot was highest and at least 0.2.
+    func summary(sampleRate: Double = 16_000) -> String {
+        guard let startFrame, frames > 0 else { return "no frames" }
+        func seconds(_ frame: Int64) -> String { String(format: "%.1f", Double(frame) / sampleRate) }
+        let perSlot = slots.enumerated().map { index, slot in
+            String(format: "slot %d peak %.2f mean %.3f >=0.5:%d >=0.3:%d >=0.2:%d lead:%d",
+                   index + 1, slot.peak, slot.sum / Double(frames),
+                   slot.framesAtOrAbove50, slot.framesAtOrAbove30, slot.framesAtOrAbove20, slot.framesLeading)
+        }
+        return "\(seconds(startFrame))-\(seconds(endFrame)) s, \(frames) frames: " + perSlot.joined(separator: "; ")
+    }
+}
+
 enum ProductionDiarizationFactory {
     #if NOTETAKER_DIARIZATION
     private static let shared = BundledNemotronSpeakerDiarizer()
@@ -144,6 +218,9 @@ actor BundledNemotronSpeakerDiarizer: StreamingSpeakerDiarizationService {
     private var expectedInputFrame: Int64?
     private var emittedProbabilityFrames = 0
     private var metrics = DiarizationRuntimeMetrics()
+    private var slotDigest = SpeakerSlotProbabilityDigest()
+    /// One log line per ten seconds of stream.
+    private static let digestFrames = 10 * SpeakerSlotProbabilityDigest.probabilityFramesPerSecond
 
     init(
         modelDirectory: URL? = Bundle.main.resourceURL?.appendingPathComponent(BundledNemotronSpeakerDiarizer.resourceDirectoryName),
@@ -240,12 +317,21 @@ actor BundledNemotronSpeakerDiarizer: StreamingSpeakerDiarizationService {
         let results = try model.finishStream()
         metrics.inferenceSeconds += ProcessInfo.processInfo.systemUptime - started
         let turns = convert(results)
+        logSlotDigest()
         resetStream(using: model)
         return turns
     }
 
+    private func logSlotDigest() {
+        guard !slotDigest.isEmpty else { return }
+        let summary = slotDigest.summary()
+        Log.audio.notice("Diarization slots \(summary, privacy: .public)")
+        slotDigest.reset()
+    }
+
     private func resetStream(using model: WitnessNemotron3Diarizer) {
         model.reset()
+        slotDigest.reset()
         streamOriginFrame = nil
         expectedInputFrame = nil
         emittedProbabilityFrames = 0
@@ -262,6 +348,14 @@ actor BundledNemotronSpeakerDiarizer: StreamingSpeakerDiarizationService {
                 speakerCount: result.numSpeakers,
                 startFrame: start
             ))
+            slotDigest.add(
+                probabilities: result.probabilities,
+                frameCount: result.frameCount,
+                speakerCount: result.numSpeakers,
+                startFrame: start,
+                samplesPerProbabilityFrame: segmenter.samplesPerProbabilityFrame
+            )
+            if slotDigest.frames >= Self.digestFrames { logSlotDigest() }
             emittedProbabilityFrames += result.frameCount
         }
         return turns

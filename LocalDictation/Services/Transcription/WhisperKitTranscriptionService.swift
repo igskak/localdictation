@@ -440,7 +440,7 @@ actor WhisperKitTranscriptionService: TranscriptionService {
 
         let processingDuration = Date().timeIntervalSince(started)
 
-        return Transcript.assemble(
+        var transcript = Transcript.assemble(
             words: Self.words(from: segments),
             profile: profile,
             detectedLanguage: language,
@@ -448,6 +448,8 @@ actor WhisperKitTranscriptionService: TranscriptionService {
             processingDuration: processingDuration,
             engineIdentifier: identifier
         )
+        transcript.maximumNoSpeechProbability = maximumNoSpeechProbability.map(Double.init)
+        return transcript
     }
 
     // MARK: - Options

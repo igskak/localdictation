@@ -41,6 +41,10 @@ struct Transcript: Sendable, Equatable, Codable {
     /// Wall-clock inference time, for diagnostics and the benchmark.
     let processingDuration: TimeInterval
     let engineIdentifier: String
+    /// Highest per-segment probability, as the engine reports it, that the
+    /// audio holds no speech. Diagnostics only: nothing reads it to decide
+    /// what to keep. Nil when the engine does not report one.
+    var maximumNoSpeechProbability: Double? = nil
 
     var isEmpty: Bool { text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 

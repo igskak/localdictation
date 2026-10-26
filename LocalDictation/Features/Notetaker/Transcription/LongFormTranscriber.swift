@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 struct MeetingRecognitionAudio: Sendable {
     let source: MeetingAudioSource
@@ -196,6 +197,72 @@ struct MeetingSpeechDetector: Sendable {
     }
 }
 
+/// How loud one recognition window is, for the log only. Nothing decides on
+/// it. The quartiles of 20 ms frame loudness separate a noise floor (p10) from
+/// speech (p90), which a whole-window mean cannot, so a gate threshold can be
+/// chosen from recordings instead of guessed.
+struct MeetingWindowLevel: Sendable, Equatable {
+    static let frameSamples = 320
+
+    let frames: Int
+    let rmsDecibels: Double
+    let peakDecibels: Double
+    let frameP10Decibels: Double
+    let frameP50Decibels: Double
+    let frameP90Decibels: Double
+    /// Frames at or above the meeting gate's speech threshold.
+    let framesAboveGate: Int
+    /// Frames at or above the threshold dictation uses for speech.
+    let framesAboveDictationThreshold: Int
+
+    init(samples: [Float],
+         gateThreshold: Float = MeetingSpeechDetector.conservativeConfiguration.speechThreshold,
+         dictationThreshold: Float = VoiceActivityConfiguration.default.speechThreshold) {
+        var squareSum = 0.0
+        var peak: Float = 0
+        var frameLevels: [Double] = []
+        frameLevels.reserveCapacity(samples.count / Self.frameSamples + 1)
+        var start = 0
+        while start < samples.count {
+            let end = min(start + Self.frameSamples, samples.count)
+            var frameSquares = 0.0
+            for index in start..<end {
+                let value = samples[index]
+                frameSquares += Double(value) * Double(value)
+                peak = max(peak, abs(value))
+            }
+            squareSum += frameSquares
+            frameLevels.append((frameSquares / Double(end - start)).squareRoot())
+            start = end
+        }
+        frames = frameLevels.count
+        rmsDecibels = Self.decibels(samples.isEmpty ? 0 : (squareSum / Double(samples.count)).squareRoot())
+        peakDecibels = Self.decibels(Double(peak))
+        let sorted = frameLevels.sorted()
+        func percentile(_ fraction: Double) -> Double {
+            guard !sorted.isEmpty else { return 0 }
+            return sorted[min(Int(Double(sorted.count - 1) * fraction), sorted.count - 1)]
+        }
+        frameP10Decibels = Self.decibels(percentile(0.1))
+        frameP50Decibels = Self.decibels(percentile(0.5))
+        frameP90Decibels = Self.decibels(percentile(0.9))
+        framesAboveGate = frameLevels.filter { $0 >= Double(gateThreshold) }.count
+        framesAboveDictationThreshold = frameLevels.filter { $0 >= Double(dictationThreshold) }.count
+    }
+
+    /// Floored so digital silence reads as -120 rather than negative infinity.
+    static func decibels(_ linear: Double) -> Double {
+        20 * log10(max(linear, 1e-6))
+    }
+
+    var summary: String {
+        func db(_ value: Double) -> String { String(format: "%.1f", value) }
+        return "rms \(db(rmsDecibels)) dBFS, peak \(db(peakDecibels)), frame p10/p50/p90 "
+            + "\(db(frameP10Decibels))/\(db(frameP50Decibels))/\(db(frameP90Decibels)), "
+            + "above gate \(framesAboveGate)/\(frames), above dictation threshold \(framesAboveDictationThreshold)/\(frames)"
+    }
+}
+
 struct LongFormMetrics: Sendable, Equatable {
     var inferenceSeconds: Double = 0
     var transcribedAudioSeconds: Double = 0
@@ -259,7 +326,9 @@ actor LongFormTranscriber {
         let source = !(queues[preferred] ?? []).isEmpty ? preferred : alternate
         guard let queued = queues[source]?.first else { return false }
         let window = queued.audio
+        let level = MeetingWindowLevel(samples: window.samples)
         if !speechClassifier(window) {
+            logWindow(window, level: level, outcome: "skipped as silent", transcript: nil)
             queues[source]?.removeFirst()
             lastSource = source
             metrics.skippedSilentWindows += 1
@@ -284,6 +353,7 @@ actor LongFormTranscriber {
             throw error
         }
         guard !cancelled, generation == operationGeneration else { throw LongFormTranscriptionError.cancelled }
+        logWindow(window, level: level, outcome: "decoded", transcript: transcript)
         metrics.inferenceSeconds += uptime() - started
         metrics.transcribedAudioSeconds += Double(window.samples.count) / 16_000
         queues[source]?.removeFirst()
@@ -291,6 +361,26 @@ actor LongFormTranscriber {
         assembler.append(MeetingTranscriptWindow(source: source, startFrame: window.startFrame,
                                                 endFrame: window.endFrame, transcript: transcript))
         return true
+    }
+
+    /// Numbers only, never text: which source, where on the host-time grid,
+    /// how loud, and what the model said about its own certainty. Positions are
+    /// in seconds on the same 16 kHz grid as `transcript.ndjson`, so a log line
+    /// can be matched to its row.
+    private func logWindow(_ window: MeetingRecognitionAudio, level: MeetingWindowLevel,
+                           outcome: String, transcript: Transcript?) {
+        let start = String(format: "%.1f", Double(window.startFrame) / 16_000)
+        let end = String(format: "%.1f", Double(window.endFrame) / 16_000)
+        var detail = ""
+        if let transcript {
+            let noSpeech = transcript.maximumNoSpeechProbability.map { String(format: "%.3f", $0) } ?? "n/a"
+            let confidence = transcript.meanConfidence.map { String(format: "%.2f", $0) } ?? "n/a"
+            let language = transcript.detectedLanguage?.rawValue ?? "none"
+            detail = ", max no-speech \(noSpeech), tokens \(transcript.tokens.count), mean confidence \(confidence), language \(language)"
+        }
+        Log.transcription.notice(
+            "Meeting window \(window.source.rawValue, privacy: .public) \(start, privacy: .public)-\(end, privacy: .public) s \(outcome, privacy: .public): \(level.summary, privacy: .public)\(detail, privacy: .public)"
+        )
     }
 
     func queuedCount() -> Int { queues.values.reduce(0) { $0 + $1.count } }

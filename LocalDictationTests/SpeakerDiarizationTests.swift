@@ -189,3 +189,60 @@ final class SpeakerDiarizationTests: XCTestCase {
         }
     }
 }
+
+final class SpeakerSlotProbabilityDigestTests: XCTestCase {
+    func testCountsFramesAtEachLevelAndWhichSlotLeads() {
+        var digest = SpeakerSlotProbabilityDigest()
+        // Row-major: frame * speakerCount + speaker.
+        digest.add(
+            probabilities: [0.9, 0.1, 0.6, 0.35, 0.1, 0.45, 0.05, 0.1],
+            frameCount: 4, speakerCount: 2, startFrame: 32_000, samplesPerProbabilityFrame: 160
+        )
+
+        XCTAssertEqual(digest.frames, 4)
+        XCTAssertEqual(digest.slots[0].peak, 0.9, accuracy: 0.0001)
+        XCTAssertEqual(digest.slots[0].framesAtOrAbove50, 2)
+        XCTAssertEqual(digest.slots[0].framesLeading, 2)
+        XCTAssertEqual(digest.slots[1].peak, 0.45, accuracy: 0.0001)
+        XCTAssertEqual(digest.slots[1].framesAtOrAbove50, 0)
+        XCTAssertEqual(digest.slots[1].framesAtOrAbove30, 2)
+        XCTAssertEqual(digest.slots[1].framesAtOrAbove20, 2)
+        // The last frame peaks at 0.1, below the 0.2 floor, so nobody leads it.
+        XCTAssertEqual(digest.slots[1].framesLeading, 1)
+    }
+
+    func testSecondVoiceUnderTheTurnThresholdIsVisibleInTheSummary() {
+        var digest = SpeakerSlotProbabilityDigest()
+        digest.add(
+            probabilities: [0.9, 0.1, 0.6, 0.35, 0.1, 0.45, 0.05, 0.1],
+            frameCount: 4, speakerCount: 2, startFrame: 32_000, samplesPerProbabilityFrame: 160
+        )
+
+        let summary = digest.summary()
+        XCTAssertTrue(summary.hasPrefix("2.0-2.0 s, 4 frames"), summary)
+        XCTAssertTrue(summary.contains("slot 2 peak 0.45"), summary)
+        XCTAssertTrue(summary.contains(">=0.5:0 >=0.3:2"), summary)
+    }
+
+    func testAccumulatesAcrossChunksAndResets() {
+        var digest = SpeakerSlotProbabilityDigest()
+        digest.add(probabilities: [0.2, 0.8], frameCount: 1, speakerCount: 2, startFrame: 0, samplesPerProbabilityFrame: 160)
+        digest.add(probabilities: [0.7, 0.3], frameCount: 1, speakerCount: 2, startFrame: 160, samplesPerProbabilityFrame: 160)
+
+        XCTAssertEqual(digest.frames, 2)
+        XCTAssertEqual(digest.slots[0].framesAtOrAbove50, 1)
+        XCTAssertEqual(digest.slots[1].framesAtOrAbove50, 1)
+        XCTAssertEqual(digest.endFrame, 320)
+
+        digest.reset()
+        XCTAssertTrue(digest.isEmpty)
+        XCTAssertEqual(digest.summary(), "no frames")
+    }
+
+    func testShortProbabilityBufferIsIgnoredRatherThanTrapping() {
+        var digest = SpeakerSlotProbabilityDigest()
+        digest.add(probabilities: [0.9], frameCount: 4, speakerCount: 2, startFrame: 0, samplesPerProbabilityFrame: 160)
+
+        XCTAssertTrue(digest.isEmpty)
+    }
+}

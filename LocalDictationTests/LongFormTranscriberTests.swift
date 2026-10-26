@@ -230,3 +230,46 @@ private final class TestMeetingClock: @unchecked Sendable {
         set { lock.withLock { storedValue = newValue } }
     }
 }
+
+final class MeetingWindowLevelTests: XCTestCase {
+    func testDigitalSilenceReadsAsTheFloorAndIsBelowTheGate() {
+        let level = MeetingWindowLevel(samples: Array(repeating: 0, count: 16_000))
+
+        XCTAssertEqual(level.frames, 50)
+        XCTAssertEqual(level.rmsDecibels, -120, accuracy: 0.001)
+        XCTAssertEqual(level.peakDecibels, -120, accuracy: 0.001)
+        XCTAssertEqual(level.framesAboveGate, 0)
+        XCTAssertEqual(level.framesAboveDictationThreshold, 0)
+    }
+
+    func testConstantSignalReportsItsLevelOnEveryFrame() {
+        let level = MeetingWindowLevel(samples: Array(repeating: 0.1, count: 16_000))
+
+        XCTAssertEqual(level.rmsDecibels, -20, accuracy: 0.01)
+        XCTAssertEqual(level.peakDecibels, -20, accuracy: 0.01)
+        XCTAssertEqual(level.frameP10Decibels, -20, accuracy: 0.01)
+        XCTAssertEqual(level.frameP90Decibels, -20, accuracy: 0.01)
+        XCTAssertEqual(level.framesAboveGate, 50)
+        XCTAssertEqual(level.framesAboveDictationThreshold, 50)
+    }
+
+    func testQuartilesSeparateANoiseFloorFromSpeech() {
+        // 25 quiet frames then 25 loud ones: the mean would blur them, the
+        // quartiles keep the floor and the speech apart.
+        let samples = Array(repeating: Float(0.0001), count: 8_000) + Array(repeating: Float(0.1), count: 8_000)
+        let level = MeetingWindowLevel(samples: samples)
+
+        XCTAssertEqual(level.frameP10Decibels, -80, accuracy: 0.01)
+        XCTAssertEqual(level.frameP90Decibels, -20, accuracy: 0.01)
+        XCTAssertEqual(level.framesAboveGate, 25)
+        XCTAssertEqual(level.framesAboveDictationThreshold, 25)
+    }
+
+    func testEmptyWindowDoesNotTrap() {
+        let level = MeetingWindowLevel(samples: [])
+
+        XCTAssertEqual(level.frames, 0)
+        XCTAssertEqual(level.rmsDecibels, -120, accuracy: 0.001)
+        XCTAssertTrue(level.summary.contains("0/0"))
+    }
+}
