@@ -30,7 +30,11 @@ against. That distinction survives this phase rather than being erased by it:
 - **Verified** — German, English, Russian, Ukrainian. Recognition, conservative
   cleanup, and every risk signal, measured in `docs/PHASE_2_BENCHMARK.md` and
   `docs/PHASE_3_MEASUREMENT.md`.
-- **Available** — the other ninety-six. Recognition, plus the rules that rest on
+- **Verification-calibrated** — Spanish, Italian, and French. Recognition plus
+  measured review rules for numbers, amounts, dates, names, dictionary
+  near-misses, and malformed words. They remain on conservative cleanup until
+  recorded speech measures recognition and the full cleanup pipeline.
+- **Available** — the other ninety-three. Recognition, plus the rules that rest on
   something this product did not have to measure: whitespace and punctuation
   spacing, a script mismatch, an acronym, a capital letter in a language that
   capitalizes only names. Filler removal, the malformed-word rule, and the
@@ -141,13 +145,15 @@ Pinning is not a preference and is not written to disk — it is for the hour
 someone spends writing one German document, and it is gone at the next launch.
 The set the user chose stays the thing the app remembers.
 
-### The unverified ninety-six degrade in named places
+### Languages outside the measured tiers degrade in named places
 
-- Filler removal already keys off a per-language table and finds nothing.
-- The malformed-word rule is off entirely. Not only its consonant-run test: the
-  vowel table it judges shape against is Latin-basic plus the German umlauts and
-  the Ukrainian і/ї/є, so Polish `łódź` reads as a word with no vowel in it. Half
-  a rule aimed at the wrong alphabet is worse than none.
+- Filler removal already keys off a per-language table and finds nothing. ES,
+  IT, and FR have their own conservative interjection tables.
+- The malformed-word rule is off entirely outside the seven calibrated
+  languages. Not only its consonant-run test: the vowel table covers only the
+  measured Latin and Cyrillic alphabets, including the accents used by
+  ES/IT/FR. Polish `łódź` still reads as a word with no vowel in it. Half a rule
+  aimed at the wrong alphabet is worse than none.
 - The name heuristic's "a capital letter mid-sentence is a name" rule assumes a
   language that does not capitalize its nouns. That is now a property of the
   language — German and Luxembourgish capitalize — rather than `!= .german`, and
@@ -205,10 +211,10 @@ xcodebuild test -project LocalDictation.xcodeproj -scheme LocalDictation -destin
 - **The margin and the recency window are unmeasured.** They are reasonable and
   they are constants in one place; a mixed-language corpus is what turns them
   into numbers.
-- **The verified tier does not grow in this phase.** Polish is the obvious next
-  one — `docs/PRODUCT_SCOPE.md` has listed it as post-MVP since the first draft —
-  and promoting a language means a corpus, filler and title tables, and a
-  measured false-warning rate, not a flag.
+- **The end-to-end verified tier does not grow merely because review rules do.**
+  Spanish, Italian, and French now have calibrated review signals but still
+  need recorded speech before promotion. Polish remains another candidate;
+  promoting any language still means a corpus and measured gates, not a flag.
 - **Nothing biases the decoder toward the user's vocabulary.** `DecodingOptions`
   carries `promptTokens`, and the dictionary the user already maintains is the
   obvious thing to put in it. It is not in this phase because Whisper's prompt

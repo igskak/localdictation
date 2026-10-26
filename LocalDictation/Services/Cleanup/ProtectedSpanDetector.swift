@@ -21,6 +21,9 @@ struct ProtectedSpanDetector: Sendable {
         .english: ["not", "no", "never", "without", "cannot", "can't", "don't", "doesn't", "won't"],
         .russian: ["не", "нет", "ни", "никогда", "без"],
         .ukrainian: ["не", "ні", "ніколи", "без"],
+        .spanish: ["no", "nunca", "jamás", "sin", "tampoco"],
+        .italian: ["non", "mai", "senza", "neanche", "nemmeno"],
+        .french: ["ne", "pas", "jamais", "sans", "aucun", "aucune"],
     ]
 
     func detect(
@@ -36,7 +39,12 @@ struct ProtectedSpanDetector: Sendable {
             let upper = min(words.count, word.index + CriticalTokens.dateContextWindow + 1)
             let next = word.index + 1 < upper ? Array(words[(word.index + 1)..<upper].map(\.text)) : []
             let category: ProtectedSpan.Category?
-            switch CriticalTokens.category(of: word.text, precededBy: previous, followedBy: next) {
+            switch CriticalTokens.category(
+                of: word.text,
+                language: language,
+                precededBy: previous,
+                followedBy: next
+            ) {
             case .number: category = .number
             case .currency: category = .currency
             case .date: category = .date

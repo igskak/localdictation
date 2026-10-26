@@ -24,7 +24,7 @@ final class ProseWarningDensityTests: XCTestCase {
         var lines = ["", "Ordinary prose — risk engine on correct text", ""]
         lines.append("| Language | Samples | Words | Marks | Marks/100 words | Indicator |")
         lines.append("| --- | ---: | ---: | ---: | ---: | ---: |")
-        for language in SpeechLanguage.verified {
+        for language in SpeechLanguage.riskCalibrated {
             guard let aggregate = report.byLanguage[language] else { continue }
             lines.append(
                 """
@@ -104,21 +104,34 @@ final class ProseWarningDensityTests: XCTestCase {
 
         // What the single Phase 3 threshold did with the same sentences, kept
         // as an assertion so the improvement is a measured fact rather than a
-        // claim in a document. Six of these eight interrupted; the two that did
-        // not are German, where the capitalization heuristic is switched off
-        // because every noun there is capitalized.
+        // claim in a document. Nine of these fourteen interrupted; German
+        // switches the capitalization heuristic off, and three names are
+        // sentence-initial where capitalization is not name evidence.
         let phase3 = try XCTUnwrap(
             RiskBenchmark.runOnReferences(
                 corpus: names,
                 policy: ReviewPolicy(attentionThreshold: 0.5, displayThreshold: 0.5)
             ).overall.attentionRate
         )
-        XCTAssertEqual(phase3, 0.75, accuracy: 0.001, "the old single threshold interrupted on every name it could see")
+        XCTAssertEqual(phase3, 9.0 / 14.0, accuracy: 0.001, "the old single threshold interrupted on every name it could see")
     }
 
     func testDensityStaysWithinItsBudget() throws {
         let density = try XCTUnwrap(report().overall.falseWarningDensity)
         XCTAssertLessThanOrEqual(density, 6, "marks per hundred words of correct prose")
+    }
+
+    /// ES/IT/FR are promoted only into the risk-calibrated tier. Each language
+    /// therefore has to keep its own budget; a good overall average cannot hide
+    /// one market whose review marker fires constantly.
+    func testRomanceLanguageRiskSignalsStayWithinTheirFalseWarningBudget() throws {
+        let report = report()
+        for language in [SpeechLanguage.spanish, .italian, .french] {
+            let aggregate = try XCTUnwrap(report.byLanguage[language])
+            XCTAssertLessThanOrEqual(try XCTUnwrap(aggregate.falseWarningDensity), 6, language.rawValue)
+            XCTAssertLessThanOrEqual(try XCTUnwrap(aggregate.attentionRate), 0.25, language.rawValue)
+            XCTAssertEqual(try XCTUnwrap(aggregate.semanticPreservation), 1, accuracy: 0.0001, language.rawValue)
+        }
     }
 
     /// Cleanup may never change meaning, on prose as on anything else.

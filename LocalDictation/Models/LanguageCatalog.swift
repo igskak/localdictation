@@ -14,9 +14,9 @@ import Foundation
 /// against and a reviewer can read; asking Foundation on every launch would
 /// make the app's language list depend on the OS version it runs on.
 ///
-/// Two flags are the product's own and are not derivable from any of that:
-/// which languages this product has measured end to end, and which capitalize
-/// their nouns.
+/// The tier sets are the product's own and are not derivable from any of that:
+/// which languages are measured end to end, which have calibrated review
+/// signals, and which capitalize their nouns.
 enum LanguageCatalog {
     struct Entry: Sendable, Equatable, Hashable {
         let code: String
@@ -38,6 +38,15 @@ enum LanguageCatalog {
     /// The languages this product has a benchmark, cleanup rules, and measured
     /// risk signals for. See `docs/PHASE_7.md` for what the other tier gets.
     static let verifiedCodes: Set<String> = ["de", "en", "ru", "uk"]
+
+    /// Languages whose language-dependent review rules have their own corpus
+    /// and false-warning budget.
+    ///
+    /// This is deliberately narrower than claiming end-to-end verification:
+    /// Spanish, Italian, and French have calibrated highlighting here, while
+    /// recognition and the complete clean pipeline still need recorded speech
+    /// before they can join `verifiedCodes`.
+    static let riskCalibratedCodes: Set<String> = verifiedCodes.union(["es", "it", "fr"])
 
     /// Languages that capitalize every noun, not only names.
     ///

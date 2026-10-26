@@ -99,6 +99,9 @@ struct LanguageProfile: Sendable, Equatable, Hashable, Identifiable, Codable {
     static let english = LanguageProfile(.english)
     static let russian = LanguageProfile(.russian)
     static let ukrainian = LanguageProfile(.ukrainian)
+    static let spanish = LanguageProfile(.spanish)
+    static let italian = LanguageProfile(.italian)
+    static let french = LanguageProfile(.french)
 
     // MARK: - The combinations Phase 6 shipped
 

@@ -44,14 +44,13 @@ struct MalformedWordSignal: RiskSignal {
     private static let minimumLength = 4
 
     func spans(in context: RiskContext) -> [RawRiskSpan] {
-        // Every rule below is calibrated on the four languages this product
-        // measures, down to the alphabet: the vowel table is Latin-basic plus
-        // the German umlauts and the Ukrainian і/ї/є, so Polish `łódź` reads as
-        // a word with no vowel in it and Czech `dům` as one more consonant run.
+        // Every rule below is calibrated per language, down to the alphabet.
+        // Polish `łódź` and Czech `dům` still stay outside that set: running a
+        // Latin-basic rule over either would turn ordinary spelling into risk.
         // Marking those would be the failure this signal exists to prevent,
         // committed against a user the measurement never covered. An unverified
         // language gets recognition and no shape rule. `docs/PHASE_7.md`.
-        guard context.language.isVerified else { return [] }
+        guard context.language.hasCalibratedRiskSignals else { return [] }
         guard lexicon.supports(context.language) else { return [] }
 
         var spans: [RawRiskSpan] = []
@@ -95,7 +94,7 @@ struct MalformedWordSignal: RiskSignal {
         guard letters.count >= minimumLength else { return false }
 
         // A doubled consonant at the very start of a word. There is no such
-        // word in German, English, Russian, or Ukrainian.
+        // word in any language for which this rule is calibrated.
         let characters = Array(letters)
         if characters.count >= 2,
            isConsonant(characters[0]),
@@ -127,10 +126,12 @@ struct MalformedWordSignal: RiskSignal {
         return !sawVowel
     }
 
-    /// Vowels of the Latin and Cyrillic alphabets used by the four MVP
-    /// languages, including the German umlauts and the Ukrainian і/ї/є.
+    /// Vowels used by the calibrated Latin and Cyrillic languages, including
+    /// the accented forms used by Spanish, Italian, and French.
     private static let vowels: Set<Character> = [
         "a", "e", "i", "o", "u", "y", "ä", "ö", "ü",
+        "á", "é", "í", "ó", "ú", "à", "è", "ì", "ò", "ù",
+        "â", "ê", "î", "ô", "û", "ë", "ï", "ÿ", "æ", "œ",
         "а", "е", "ё", "и", "о", "у", "ы", "э", "ю", "я", "і", "ї", "є",
     ]
 

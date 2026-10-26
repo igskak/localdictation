@@ -246,11 +246,12 @@ enum RiskBenchmark {
     /// The same word-in-its-neighbourhood question the risk engine asks, so the
     /// definition that scores a corpus and the definition that marks a
     /// transcript stay the one definition Phase 3 promoted them into being.
-    private static func isCritical(_ words: [String], at index: Int) -> Bool {
+    private static func isCritical(_ words: [String], at index: Int, language: SpeechLanguage) -> Bool {
         guard words.indices.contains(index) else { return false }
         let window = CriticalTokens.dateContextWindow
         return CriticalTokens.isCritical(
             words[index],
+            language: language,
             precededBy: Array(words[max(index - window, 0)..<index]),
             followedBy: Array(words[(index + 1)..<min(index + 1 + window, words.count)])
         )
@@ -317,8 +318,8 @@ enum RiskBenchmark {
                 guard hypothesisIndex < hypothesisWords.count else { break }
                 let range = hypothesisWords[hypothesisIndex].range
                 incorrectRanges.append(range)
-                let isCritical = Self.isCritical(referenceWords, at: referenceIndex)
-                    || Self.isCritical(hypothesisWords.map(\.normalized), at: hypothesisIndex)
+                let isCritical = Self.isCritical(referenceWords, at: referenceIndex, language: language)
+                    || Self.isCritical(hypothesisWords.map(\.normalized), at: hypothesisIndex, language: language)
                 if isCritical {
                     criticalErrors += 1
                     if isMarked(range) { criticalErrorsMarked += 1 }
@@ -328,7 +329,7 @@ enum RiskBenchmark {
                 guard hypothesisIndex < hypothesisWords.count else { break }
                 let range = hypothesisWords[hypothesisIndex].range
                 incorrectRanges.append(range)
-                if Self.isCritical(hypothesisWords.map(\.normalized), at: hypothesisIndex) {
+                if Self.isCritical(hypothesisWords.map(\.normalized), at: hypothesisIndex, language: language) {
                     criticalErrors += 1
                     if isMarked(range) { criticalErrorsMarked += 1 }
                 }
@@ -338,7 +339,7 @@ enum RiskBenchmark {
                 // `docs/PHASE_3.md` decided not to chase: no rule can flag what
                 // is absent, and it is counted here so the decision stays
                 // visible in the numbers rather than becoming invisible.
-                if Self.isCritical(referenceWords, at: referenceIndex) {
+                if Self.isCritical(referenceWords, at: referenceIndex, language: language) {
                     criticalWordsDropped += 1
                 }
             }

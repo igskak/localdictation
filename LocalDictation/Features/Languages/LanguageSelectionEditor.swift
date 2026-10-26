@@ -8,8 +8,8 @@ import SwiftUI
 ///
 /// The two tiers are separated visually rather than by hiding anything. A user
 /// who speaks Polish is not helped by a product that pretends Polish does not
-/// exist; they are helped by being told, before they choose it, that Polish
-/// gets recognition and not the review marks the other four get.
+/// exist; they are helped by being told, before they choose it, which parts of
+/// recognition, verification, and cleanup have actually been measured.
 struct LanguageSelectionEditor: View {
     @Binding var selection: LanguageProfile
 
@@ -25,6 +25,12 @@ struct LanguageSelectionEditor: View {
                 if !verifiedMatches.isEmpty {
                     Section("Measured end to end") {
                         ForEach(verifiedMatches) { row($0) }
+                    }
+                }
+
+                if !riskCalibratedMatches.isEmpty {
+                    Section("Recognition + calibrated verification") {
+                        ForEach(riskCalibratedMatches) { row($0) }
                     }
                 }
 
@@ -48,7 +54,7 @@ struct LanguageSelectionEditor: View {
                     .stroke(WitnessStyle.line, lineWidth: 1)
             }
 
-            Text("German, English, Russian, and Ukrainian are measured end to end: recognition, cleanup, and every mark the review can show. The rest are recognized, and the marks that are calibrated per language stay off rather than guess.")
+            Text("German, English, Russian, and Ukrainian are measured end to end. Spanish, Italian, and French also get calibrated review marks for values, dates, names, dictionary terms, and malformed words; advanced cleanup stays conservative until recorded-speech measurement is complete. Other languages are recognized without language-specific guesses.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -125,7 +131,11 @@ struct LanguageSelectionEditor: View {
     }
 
     private var otherMatches: [SpeechLanguage] {
-        SpeechLanguage.all.filter { !$0.isVerified && matches($0) }
+        SpeechLanguage.all.filter { !$0.hasCalibratedRiskSignals && matches($0) }
+    }
+
+    private var riskCalibratedMatches: [SpeechLanguage] {
+        SpeechLanguage.riskCalibrated.filter { !$0.isVerified && matches($0) }
     }
 
     /// Matches the English name, the native name, or the code, so someone
