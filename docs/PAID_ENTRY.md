@@ -25,7 +25,7 @@ returns the paid key instead of a trial.
 | A refund or dispute cancels the Stripe subscription | `Service/src/billing.js`, `webhook.js` | committed; needs `STRIPE_API_KEY` |
 | `POST /v1/subscriptions/cancel` (the website's cancellation button) | `Service/src/cancel.js` | committed; needs `STRIPE_API_KEY` |
 | A lapsed or refunded address is told so, not handed a trial | `activate.js` (`subscription_inactive`) | committed |
-| Silent key refresh in the app | `LicenseRefreshPolicy`, `EntitlementService.refreshSubscriptionKeyIfDue` | committed, **0.6.21 not released** |
+| Silent key refresh in the app | `LicenseRefreshPolicy`, `EntitlementService.refreshSubscriptionKeyIfDue` | committed; included in the 0.6.22 release |
 | Neutral copy before a key arrives | `LicensePresentation`, `EntitlementNotice`, `StatusPresentation` | committed |
 | Manage subscription (Settings, paywall) | `StoreFront.manageSubscription` → `witnessmac.com/manage` | committed |
 | Sparkle checks once a day, with a Settings switch | `Info.plist`, `AppUpdater`, `SettingsView` | committed |
@@ -91,7 +91,7 @@ returns the paid key instead of a trial.
    `PAYMENT_LINK_INTRO = "plink_…"`, `cd Service && npm test`, `npx wrangler
    deploy`, and check `/v1/health`. `PAYMENT_LINK_INTRO` is already in
    `wrangler.toml`.
-7. **App:** release 0.6.21 (`docs/PHASE_6_RELEASE.md`). It must be the latest
+7. **App:** release 0.6.22 (`docs/PHASE_6_RELEASE.md`). It must be the latest
    release before the first sale: an older build does not refresh its key and a
    buyer on it is locked out after about a month.
 8. **Website:** merge the PR and deploy (both links are already in it).
