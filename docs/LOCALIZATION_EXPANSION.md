@@ -47,9 +47,10 @@ these are true:
 
 1. A native reviewer signs off the commercial copy, cancellation wording, UI
    truncation, and tone for each market.
-2. Counsel-approved translations of terms, withdrawal information, privacy,
-   legal notice, and licence terms replace the English fallback. This plan is
-   not a legal-compliance opinion.
+2. The purchase flow makes the English-only terms, withdrawal information,
+   privacy, legal notice, licence terms, and immediate-delivery declaration
+   explicit. No localized legal route may imply that a translated legal set is
+   available.
 3. Stripe checkout, receipts, renewal notices, cancellation mail, and payment
    methods are verified in the buyer's language and currency presentation.
 4. One complete test purchase per locale proves: offer → Stripe → return page →
@@ -60,14 +61,16 @@ these are true:
 Status on 27 October 2026:
 
 - Gate 1 is complete. The team confirmed native review of the ES/IT/FR copy.
-- Gate 5 is complete for the current noindex build. The paid-entry and legal
-  review pages were checked at every listed width, at the equivalent of 200%
-  zoom, with reduced motion and keyboard-only focus. Mobile Lighthouse reports
-  100 for Accessibility and Best Practices.
-- Gate 2 is prepared but still open: localized legal review routes now exist
-  for all three markets, while checkout deliberately continues to use the
-  counsel-approved English set. Counsel must approve the translations and the
-  immediate-delivery waiver before those links are switched.
+- Gate 2 is complete under the product decision to keep legal copy in English.
+  ES/IT/FR pages label those destinations `(EN)`, and localized legal draft
+  routes are not published.
+- Gate 5 is complete for the current noindex build. The paid-entry pages were
+  checked at every listed width, at the equivalent of 200% zoom, with reduced
+  motion and keyboard-only focus. Mobile Lighthouse reports 100 for
+  Accessibility and Best Practices.
+- Witness 0.6.22 (build 23) is signed, notarized, published as the latest
+  GitHub release, and served by the production download route. The localized
+  paid-entry site is deployed on `witnessmac.com`.
 - Gates 3 and 4 remain open and require production Stripe/email verification
   plus one complete test purchase in each locale.
 
@@ -82,8 +85,8 @@ Completed on the branch based on released `v0.6.21`:
   subscription, licence-retrieval, expiry, and purchase flows.
 - Marked the English-only terms and withdrawal destinations as `(EN)` in each
   new locale. The legally significant immediate-delivery declaration remains
-  untranslated until counsel supplies approved ES/IT/FR wording; a regression
-  test prevents ordinary product translation from silently crossing that gate.
+  in English under the same product decision; a regression test prevents an
+  ordinary product translation from silently changing legal copy.
 - Localized the microphone and speech-recognition permission explanations.
 - Added tests that require all three translations, preserve every format
   argument, and lay out the paywall at a practical window width in each locale.
