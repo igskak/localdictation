@@ -356,6 +356,73 @@ final class LocalizationTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(completeCount, 413)
     }
 
+    func testExpansionCopyUsesReviewedProductLanguage() throws {
+        let catalog = try catalog(named: "Localizable")
+        let strings = try XCTUnwrap(catalog["strings"] as? [String: Any])
+        let reviewed: [String: [String: String]] = [
+            "Watch this term": [
+                "es": "Vigilar este término",
+                "it": "Controlla questo termine",
+                "fr": "Surveiller ce terme",
+            ],
+            "Clean": ["es": "Pulido", "it": "Rifinito", "fr": "Soigné"],
+            "Nothing flagged": [
+                "es": "Nada que revisar",
+                "it": "Niente da controllare",
+                "fr": "Rien à vérifier",
+            ],
+            "Surface normalization": [
+                "es": "Formato tipográfico ajustado",
+                "it": "Grafia uniformata",
+                "fr": "Typographie harmonisée",
+            ],
+        ]
+
+        for (key, expected) in reviewed {
+            let entry = try XCTUnwrap(strings[key] as? [String: Any], key)
+            let localizations = try XCTUnwrap(entry["localizations"] as? [String: Any], key)
+            for locale in expansionLocales {
+                XCTAssertEqual(
+                    try translation(in: localizations, locale: locale, key: key),
+                    expected[locale],
+                    "\(locale): \(key)"
+                )
+            }
+        }
+
+        let phaseKey = "Phase 6 adds the trial, activation, and licensing. Dictation itself is unchanged: the words still go straight into the application you were typing in, and everything about them still stays on this Mac."
+        let phaseEntry = try XCTUnwrap(strings[phaseKey] as? [String: Any])
+        let phaseLocalizations = try XCTUnwrap(phaseEntry["localizations"] as? [String: Any])
+        for locale in expansionLocales {
+            let value = try translation(in: phaseLocalizations, locale: locale, key: phaseKey).lowercased()
+            XCTAssertFalse(value.contains("phase 6"), locale)
+            XCTAssertFalse(value.contains("fase 6"), locale)
+        }
+
+        let telemetryKey = "On, the app says when it was installed, when the speech model starts arriving and whether it arrived, when a press finds it still arriving, when the microphone is refused, when a trial starts, when it asks for an email, and when it puts the offers on screen — with the app version, the macOS version, and a random number made at install that is not derived from this Mac. The six about setup are sent once for this installation and never again. That is the whole message, and nothing in it is about what you said. Off, it sends none of them and nothing else changes."
+        let telemetryEntry = try XCTUnwrap(strings[telemetryKey] as? [String: Any])
+        let telemetryLocalizations = try XCTUnwrap(telemetryEntry["localizations"] as? [String: Any])
+        let italian = try translation(in: telemetryLocalizations, locale: "it", key: telemetryKey)
+        let french = try translation(in: telemetryLocalizations, locale: "fr", key: telemetryKey)
+        XCTAssertFalse(italian.contains("Se attiva"))
+        XCTAssertFalse(italian.contains("ancora in arrivo"))
+        XCTAssertFalse(french.contains("une pression le trouve"))
+
+        let completeCount = strings.values.filter { rawEntry in
+            guard let entry = rawEntry as? [String: Any],
+                  let localizations = entry["localizations"] as? [String: Any]
+            else { return false }
+            return expansionLocales.allSatisfy { locale in
+                guard let localization = localizations[locale] as? [String: Any],
+                      let unit = localization["stringUnit"] as? [String: Any]
+                else { return false }
+                return unit["state"] as? String == "translated"
+                    && !(unit["value"] as? String ?? "").isEmpty
+            }
+        }.count
+        XCTAssertGreaterThanOrEqual(completeCount, 415)
+    }
+
     func testNewMarketTranslationsPreserveFormatArguments() throws {
         let catalog = try catalog(named: "Localizable")
         let strings = try XCTUnwrap(catalog["strings"] as? [String: Any])

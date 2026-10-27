@@ -102,6 +102,10 @@ Completed on the branch based on released `v0.6.21`:
   cleanup labels. Both cleaned and raw-transcript layouts are exercised in the
   expansion locales, including the icon-only replay control's VoiceOver label.
   The app now has 413 complete ES/IT/FR catalog entries.
+- Re-edited the expansion copy for native product language rather than literal
+  English structure: cleanup modes, verification explanations, trial copy, and
+  the complete product-event disclosure. Filled the two remaining Dictionary
+  actions, bringing the complete ES/IT/FR catalog count to 415.
 
 Still to do before the app itself can advertise complete localization:
 
