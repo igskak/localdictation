@@ -160,6 +160,55 @@ final class LocalizationTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(completeCount, 142)
     }
 
+    func testMenuBarAndRuntimeNoticesHaveSpanishItalianAndFrenchCopy() throws {
+        let catalog = try catalog(named: "Localizable")
+        let strings = try XCTUnwrap(catalog["strings"] as? [String: Any])
+        let essentialKeys = [
+            "Ready",
+            "Recording",
+            "Recognizing speech on this Mac. %@",
+            "Inserting",
+            "Worth a look",
+            "Check %lld flagged fragments",
+            "Number",
+            "Amount",
+            "Date",
+            "Name",
+            "Not a word",
+            "Uncertain",
+            "Nothing was heard",
+            "Nothing was recognized",
+            "Copied to the clipboard. Grant Accessibility access to have it typed for you.",
+            "Nothing was inserted: the focus is in a password field. The text is here and was not copied.",
+            "The speech model is still arriving",
+            "Recent dictations",
+            "%.2f s · %d frames · peak %.2f",
+            "%.2f× real time",
+        ]
+
+        for key in essentialKeys {
+            let entry = try XCTUnwrap(strings[key] as? [String: Any], key)
+            let localizations = try XCTUnwrap(entry["localizations"] as? [String: Any], key)
+            for locale in expansionLocales {
+                XCTAssertFalse(try translation(in: localizations, locale: locale, key: key).isEmpty)
+            }
+        }
+
+        let completeCount = strings.values.filter { rawEntry in
+            guard let entry = rawEntry as? [String: Any],
+                  let localizations = entry["localizations"] as? [String: Any]
+            else { return false }
+            return expansionLocales.allSatisfy { locale in
+                guard let localization = localizations[locale] as? [String: Any],
+                      let unit = localization["stringUnit"] as? [String: Any]
+                else { return false }
+                return unit["state"] as? String == "translated"
+                    && !(unit["value"] as? String ?? "").isEmpty
+            }
+        }.count
+        XCTAssertGreaterThanOrEqual(completeCount, 235)
+    }
+
     func testNewMarketTranslationsPreserveFormatArguments() throws {
         let catalog = try catalog(named: "Localizable")
         let strings = try XCTUnwrap(catalog["strings"] as? [String: Any])
@@ -247,7 +296,7 @@ final class LocalizationTests: XCTestCase {
     }
 
     private func formatArguments(in value: String) -> [String] {
-        let pattern = #"%(?:\d+\$)?(?:@|lld)"#
+        let pattern = #"%(?:\d+\$)?(?:\.\d+)?(?:@|lld|d|f)"#
         let expression = try? NSRegularExpression(pattern: pattern)
         let range = NSRange(value.startIndex..., in: value)
         return expression?.matches(in: value, range: range).compactMap {

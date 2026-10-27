@@ -72,10 +72,10 @@ enum SilentResult: Sendable, Equatable {
     }
 
     private static func seconds(_ duration: TimeInterval) -> String {
-        String(format: "%.1f s", duration)
+        L10n.format("%.1f s", duration)
     }
 
     private static func level(_ level: Float) -> String {
-        String(format: "%.3f", level)
+        String(format: "%.3f", locale: Locale.autoupdatingCurrent, level)
     }
 }

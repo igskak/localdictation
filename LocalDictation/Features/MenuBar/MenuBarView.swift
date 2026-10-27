@@ -238,7 +238,7 @@ private struct RecordingLevelView: View {
                     .font(.caption)
             }
             HStack {
-                Text(String(format: "%.1f s", snapshot.duration))
+                Text(verbatim: L10n.format("%.1f s", snapshot.duration))
                 Spacer()
                 Text(snapshot.voiceActivity.state.label)
             }
@@ -256,14 +256,12 @@ private struct LastUtteranceView: View {
         VStack(alignment: .leading, spacing: 2) {
             Text("Last utterance")
                 .font(.caption)
-            Text(
-                String(
-                    format: "%.2f s · %d frames · peak %.2f",
-                    summary.duration,
-                    summary.frameCount,
-                    summary.peakLevel
-                )
-            )
+            Text(verbatim: L10n.format(
+                "%.2f s · %d frames · peak %.2f",
+                summary.duration,
+                summary.frameCount,
+                summary.peakLevel
+            ))
             .font(.caption2)
             .foregroundStyle(.secondary)
         }
@@ -476,7 +474,7 @@ private struct ResultView: View {
                 Spacer()
 
                 if let factor = result.transcript.realTimeFactor {
-                    Text(String(format: "%.2f\u{00d7} real time", factor))
+                    Text(verbatim: L10n.format("%.2f\u{00d7} real time", factor))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }

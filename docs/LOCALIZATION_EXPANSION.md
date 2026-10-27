@@ -81,11 +81,18 @@ Completed on the branch based on released `v0.6.21`:
 - Added real SwiftUI layout passes for both first-run screens in every new
   locale. Language names continue to come from `Locale`, not a hand-maintained
   translated list.
+- Localized 93 additional menu-bar and runtime-notice strings: recording and
+  insertion states, language pinning, review reasons, empty recognition,
+  clipboard fallbacks, secure-input refusals, model preparation, history, and
+  recovery actions. The app now has 235 complete ES/IT/FR catalog entries.
+- Made the visible duration, frame/peak, and real-time-factor diagnostics use
+  locale-aware formatting, and added a fixed-width menu layout pass for every
+  new locale.
 
 Still to do before the app itself can advertise complete localization:
 
-- Localize the menu bar, recording states, review reasons, settings,
-  diagnostics, updater, and all remaining error paths.
+- Localize settings, the full review panel, diagnostics, updater, and all
+  remaining service error paths.
 - Use locale-aware number, date, currency, and plural formatting. Keep stable
   telemetry event names, file keys, language codes, and licence payloads
   untranslated.

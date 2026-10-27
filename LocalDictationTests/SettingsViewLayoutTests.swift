@@ -104,6 +104,26 @@ final class SettingsViewLayoutTests: XCTestCase {
         try await renderMenu(coordinator)
     }
 
+    func testTheMenuLaysOutInTheExpansionLocales() async throws {
+        for identifier in ["es", "it", "fr"] {
+            let coordinator = makeCoordinator(
+                secureInput: SecureInputState(isEnabled: true, holderName: "1Password")
+            )
+            let hosting = NSHostingView(
+                rootView: MenuBarView()
+                    .environmentObject(coordinator)
+                    .environment(\.locale, Locale(identifier: identifier))
+            )
+            hosting.frame = NSRect(x: 0, y: 0, width: 380, height: 700)
+            hosting.layoutSubtreeIfNeeded()
+
+            XCTAssertGreaterThan(hosting.fittingSize.height, 0, identifier)
+            XCTAssertLessThanOrEqual(hosting.fittingSize.width, 400, identifier)
+            hosting.removeFromSuperview()
+            try await settle()
+        }
+    }
+
     /// The countdown row, laid out for real. It is the one licensing view that
     /// appears while everything else in the menu is also on screen, so it is
     /// the one most likely to be laid out next to something it was never seen

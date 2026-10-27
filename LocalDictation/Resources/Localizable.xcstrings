@@ -59,8 +59,8 @@
     "The speech model has not been downloaded yet (about %@)": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Sprachmodell wurde noch nicht geladen (etwa %@)"}}}},
     "less than a minute": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"weniger als eine Minute"}}}},
     "about %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"etwa %@"}}}},
-    " — %lld%%, %@ left": {"localizations":{"de":{"stringUnit":{"state":"translated","value":" – %lld %%, noch %@"}}}},
-    " — %lld%%, %@ left, %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":" – %lld %%, noch %@, %@"}}}},
+    " — %lld%%, %@ left": {"localizations":{"de":{"stringUnit":{"state":"translated","value":" – %lld %%, noch %@"}},"es":{"stringUnit":{"state":"translated","value":" — %lld%%, quedan %@"}},"it":{"stringUnit":{"state":"translated","value":" — %lld%%, restano %@"}},"fr":{"stringUnit":{"state":"translated","value":" — %lld%%, %@ restants"}}}},
+    " — %lld%%, %@ left, %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":" – %lld %%, noch %@, %@"}},"es":{"stringUnit":{"state":"translated","value":" — %lld%%, quedan %@, %@"}},"it":{"stringUnit":{"state":"translated","value":" — %lld%%, restano %@, %@"}},"fr":{"stringUnit":{"state":"translated","value":" — %lld%%, %@ restants, %@"}}}},
     "Downloading the speech model… %lld%%. %@ left.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sprachmodell wird geladen … %lld %%. Noch %@."}},"es":{"stringUnit":{"state":"translated","value":"Descargando el modelo de voz… %lld%%. Quedan %@."}},"it":{"stringUnit":{"state":"translated","value":"Download del modello vocale… %lld%%. Restano %@."}},"fr":{"stringUnit":{"state":"translated","value":"Téléchargement du modèle vocal… %lld%%. %@ restants."}}}},
     "Downloading the speech model… %lld%%. %@ left, %@.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sprachmodell wird geladen … %lld %%. Noch %@, %@."}},"es":{"stringUnit":{"state":"translated","value":"Descargando el modelo de voz… %lld%%. Quedan %@, %@."}},"it":{"stringUnit":{"state":"translated","value":"Download del modello vocale… %lld%%. Restano %@, %@."}},"fr":{"stringUnit":{"state":"translated","value":"Téléchargement du modèle vocal… %lld%%. %@ restants, %@."}}}},
     "Updates": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Updates"}}}},
@@ -70,6 +70,9 @@
     "On this Mac": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Auf diesem Mac"}},"es":{"stringUnit":{"state":"translated","value":"En este Mac"}},"it":{"stringUnit":{"state":"translated","value":"Su questo Mac"}},"fr":{"stringUnit":{"state":"translated","value":"Sur ce Mac"}}}},
     "Terms": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Bedingungen (EN)"}},"es":{"stringUnit":{"state":"translated","value":"Condiciones (EN)"}},"it":{"stringUnit":{"state":"translated","value":"Condizioni (EN)"}},"fr":{"stringUnit":{"state":"translated","value":"Conditions (EN)"}}}},
     "Right of withdrawal": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Widerrufsrecht (EN)"}},"es":{"stringUnit":{"state":"translated","value":"Derecho de desistimiento (EN)"}},"it":{"stringUnit":{"state":"translated","value":"Diritto di recesso (EN)"}},"fr":{"stringUnit":{"state":"translated","value":"Droit de rétractation (EN)"}}}},
+    "%.1f s": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%.1f s"}},"es":{"stringUnit":{"state":"translated","value":"%.1f s"}},"it":{"stringUnit":{"state":"translated","value":"%.1f s"}},"fr":{"stringUnit":{"state":"translated","value":"%.1f s"}}}},
+    "%.2f s · %d frames · peak %.2f": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%.2f s · %d Frames · Spitze %.2f"}},"es":{"stringUnit":{"state":"translated","value":"%.2f s · %d frames · pico %.2f"}},"it":{"stringUnit":{"state":"translated","value":"%.2f s · %d frame · picco %.2f"}},"fr":{"stringUnit":{"state":"translated","value":"%.2f s · %d trames · crête %.2f"}}}},
+    "%.2f× real time": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%.2f× Echtzeit"}},"es":{"stringUnit":{"state":"translated","value":"%.2f× tiempo real"}},"it":{"stringUnit":{"state":"translated","value":"%.2f× tempo reale"}},"fr":{"stringUnit":{"state":"translated","value":"%.2f× temps réel"}}}},
     "The first three days ask for nothing": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die ersten drei Tage fragen nach nichts"}},"es":{"stringUnit":{"state":"translated","value":"Los tres primeros días no piden nada"}},"it":{"stringUnit":{"state":"translated","value":"Per i primi tre giorni non serve nulla"}},"fr":{"stringUnit":{"state":"translated","value":"Les trois premiers jours ne demandent rien"}}}},
     "They start at your first dictation, not now. After them an email address keeps it running for ten more days, free. Nothing you dictate ever leaves this Mac, and that does not change when you activate.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sie beginnen mit deinem ersten Diktat, nicht jetzt. Danach sorgt eine E-Mail-Adresse dafür, dass es zehn weitere Tage kostenlos läuft. Nichts von dem, was du diktierst, verlässt jemals diesen Mac, und das ändert sich auch bei der Aktivierung nicht."}},"es":{"stringUnit":{"state":"translated","value":"Empiezan con tu primer dictado, no ahora. Después, una dirección de email mantiene Witness activo diez días más, gratis. Nada de lo que dictas sale jamás de este Mac, y eso no cambia al activarlo."}},"it":{"stringUnit":{"state":"translated","value":"Iniziano con la prima dettatura, non ora. In seguito, un indirizzo email mantiene Witness attivo per altri dieci giorni, gratis. Nulla di ciò che detti lascia mai questo Mac, e l’attivazione non cambia questo comportamento."}},"fr":{"stringUnit":{"state":"translated","value":"Ils commencent à votre première dictée, pas maintenant. Ensuite, une adresse e-mail permet de continuer gratuitement pendant dix jours. Rien de ce que vous dictez ne quitte jamais ce Mac, et l’activation n’y change rien."}}}},
     "The microphone is allowed": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Mikrofon ist freigegeben"}},"es":{"stringUnit":{"state":"translated","value":"El micrófono está permitido"}},"it":{"stringUnit":{"state":"translated","value":"Il microfono è autorizzato"}},"fr":{"stringUnit":{"state":"translated","value":"Le microphone est autorisé"}}}},
@@ -375,16 +378,7 @@
         }
       }
     },
-    "Allow…": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Erlauben …"
-          }
-        }
-      }
-    },
+    "Allow…": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Erlauben …"}},"es":{"stringUnit":{"state":"translated","value":"Permitir…"}},"it":{"stringUnit":{"state":"translated","value":"Consenti…"}},"fr":{"stringUnit":{"state":"translated","value":"Autoriser…"}}}},
     "Review": {
       "localizations": {
         "de": {
@@ -455,16 +449,7 @@
         }
       }
     },
-    "Trailing silence": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Stille am Ende"
-          }
-        }
-      }
-    },
+    "Trailing silence": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Stille am Ende"}},"es":{"stringUnit":{"state":"translated","value":"Silencio final"}},"it":{"stringUnit":{"state":"translated","value":"Silenzio finale"}},"fr":{"stringUnit":{"state":"translated","value":"Silence final"}}}},
     "Maximum utterance": {
       "localizations": {
         "de": {
@@ -585,16 +570,7 @@
         }
       }
     },
-    "Last utterance": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Letzte Äußerung"
-          }
-        }
-      }
-    },
+    "Last utterance": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Letzte Äußerung"}},"es":{"stringUnit":{"state":"translated","value":"Última frase"}},"it":{"stringUnit":{"state":"translated","value":"Ultima frase"}},"fr":{"stringUnit":{"state":"translated","value":"Dernier énoncé"}}}},
     "Sample rate": {
       "localizations": {
         "de": {
@@ -865,86 +841,14 @@
         }
       }
     },
-    "Settings": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Einstellungen"
-          }
-        }
-      }
-    },
-    "Quit": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Beenden"
-          }
-        }
-      }
-    },
-    "Allow microphone access…": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mikrofonzugriff erlauben …"
-          }
-        }
-      }
-    },
-    "Input level": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Eingangspegel"
-          }
-        }
-      }
-    },
-    "Language": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sprache"
-          }
-        }
-      }
-    },
-    "Get the speech model": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sprachmodell laden"
-          }
-        }
-      }
-    },
-    "Dictation is blocked right now": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Diktieren ist derzeit blockiert"
-          }
-        }
-      }
-    },
-    "Type text for you": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Text für dich eingeben"
-          }
-        }
-      }
-    },
+    "Settings": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Einstellungen"}},"es":{"stringUnit":{"state":"translated","value":"Ajustes"}},"it":{"stringUnit":{"state":"translated","value":"Impostazioni"}},"fr":{"stringUnit":{"state":"translated","value":"Réglages"}}}},
+    "Quit": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Beenden"}},"es":{"stringUnit":{"state":"translated","value":"Salir"}},"it":{"stringUnit":{"state":"translated","value":"Esci"}},"fr":{"stringUnit":{"state":"translated","value":"Quitter"}}}},
+    "Allow microphone access…": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Mikrofonzugriff erlauben …"}},"es":{"stringUnit":{"state":"translated","value":"Permitir acceso al micrófono…"}},"it":{"stringUnit":{"state":"translated","value":"Consenti l’accesso al microfono…"}},"fr":{"stringUnit":{"state":"translated","value":"Autoriser l’accès au microphone…"}}}},
+    "Input level": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Eingangspegel"}},"es":{"stringUnit":{"state":"translated","value":"Nivel de entrada"}},"it":{"stringUnit":{"state":"translated","value":"Livello di ingresso"}},"fr":{"stringUnit":{"state":"translated","value":"Niveau d’entrée"}}}},
+    "Language": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sprache"}},"es":{"stringUnit":{"state":"translated","value":"Idioma"}},"it":{"stringUnit":{"state":"translated","value":"Lingua"}},"fr":{"stringUnit":{"state":"translated","value":"Langue"}}}},
+    "Get the speech model": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sprachmodell laden"}},"es":{"stringUnit":{"state":"translated","value":"Obtener el modelo de voz"}},"it":{"stringUnit":{"state":"translated","value":"Scarica il modello vocale"}},"fr":{"stringUnit":{"state":"translated","value":"Obtenir le modèle vocal"}}}},
+    "Dictation is blocked right now": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Diktieren ist derzeit blockiert"}},"es":{"stringUnit":{"state":"translated","value":"El dictado está bloqueado ahora"}},"it":{"stringUnit":{"state":"translated","value":"La dettatura è bloccata"}},"fr":{"stringUnit":{"state":"translated","value":"La dictée est actuellement bloquée"}}}},
+    "Type text for you": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Text für dich eingeben"}},"es":{"stringUnit":{"state":"translated","value":"Escribir texto por ti"}},"it":{"stringUnit":{"state":"translated","value":"Scrivi il testo per te"}},"fr":{"stringUnit":{"state":"translated","value":"Saisir le texte pour vous"}}}},
     "Check": {
       "localizations": {
         "de": {
@@ -987,66 +891,12 @@
     "Annual": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Jahreslizenz"}},"es":{"stringUnit":{"state":"translated","value":"Anual"}},"it":{"stringUnit":{"state":"translated","value":"Annuale"}},"fr":{"stringUnit":{"state":"translated","value":"Annuel"}}}},
     "Trial": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Testphase"}},"es":{"stringUnit":{"state":"translated","value":"Periodo de prueba"}},"it":{"stringUnit":{"state":"translated","value":"Periodo di prova"}},"fr":{"stringUnit":{"state":"translated","value":"Période d’essai"}}}},
     "Lifetime license": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Dauerlizenz"}},"es":{"stringUnit":{"state":"translated","value":"Licencia de por vida"}},"it":{"stringUnit":{"state":"translated","value":"Licenza a vita"}},"fr":{"stringUnit":{"state":"translated","value":"Licence à vie"}}}},
-    "Ready": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bereit"
-          }
-        }
-      }
-    },
-    "Ready to dictate": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bereit zum Diktieren"
-          }
-        }
-      }
-    },
-    "Waiting for speech": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Warte auf Sprache"
-          }
-        }
-      }
-    },
-    "Speech": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sprache"
-          }
-        }
-      }
-    },
-    "Ended (silence)": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Beendet (Stille)"
-          }
-        }
-      }
-    },
-    "Ended (maximum duration)": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Beendet (Maximaldauer)"
-          }
-        }
-      }
-    },
+    "Ready": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Bereit"}},"es":{"stringUnit":{"state":"translated","value":"Listo"}},"it":{"stringUnit":{"state":"translated","value":"Pronto"}},"fr":{"stringUnit":{"state":"translated","value":"Prêt"}}}},
+    "Ready to dictate": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Bereit zum Diktieren"}},"es":{"stringUnit":{"state":"translated","value":"Listo para dictar"}},"it":{"stringUnit":{"state":"translated","value":"Pronto per dettare"}},"fr":{"stringUnit":{"state":"translated","value":"Prêt à dicter"}}}},
+    "Waiting for speech": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Warte auf Sprache"}},"es":{"stringUnit":{"state":"translated","value":"Esperando voz"}},"it":{"stringUnit":{"state":"translated","value":"In attesa della voce"}},"fr":{"stringUnit":{"state":"translated","value":"En attente de parole"}}}},
+    "Speech": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sprache"}},"es":{"stringUnit":{"state":"translated","value":"Voz"}},"it":{"stringUnit":{"state":"translated","value":"Voce"}},"fr":{"stringUnit":{"state":"translated","value":"Parole"}}}},
+    "Ended (silence)": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Beendet (Stille)"}},"es":{"stringUnit":{"state":"translated","value":"Finalizado (silencio)"}},"it":{"stringUnit":{"state":"translated","value":"Terminato (silenzio)"}},"fr":{"stringUnit":{"state":"translated","value":"Terminé (silence)"}}}},
+    "Ended (maximum duration)": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Beendet (Maximaldauer)"}},"es":{"stringUnit":{"state":"translated","value":"Finalizado (duración máxima)"}},"it":{"stringUnit":{"state":"translated","value":"Terminato (durata massima)"}},"fr":{"stringUnit":{"state":"translated","value":"Terminé (durée maximale)"}}}},
     "Downloading the speech model…": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sprachmodell wird geladen …"}},"es":{"stringUnit":{"state":"translated","value":"Descargando el modelo de voz…"}},"it":{"stringUnit":{"state":"translated","value":"Download del modello vocale…"}},"fr":{"stringUnit":{"state":"translated","value":"Téléchargement du modèle vocal…"}}}},
     "Downloading the speech model… %lld%%": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sprachmodell wird geladen … %lld %%"}},"es":{"stringUnit":{"state":"translated","value":"Descargando el modelo de voz… %lld%%"}},"it":{"stringUnit":{"state":"translated","value":"Download del modello vocale… %lld%%"}},"fr":{"stringUnit":{"state":"translated","value":"Téléchargement du modèle vocal… %lld%%"}}}},
     "Loading the speech model…": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sprachmodell wird geladen …"}},"es":{"stringUnit":{"state":"translated","value":"Cargando el modelo de voz…"}},"it":{"stringUnit":{"state":"translated","value":"Caricamento del modello vocale…"}},"fr":{"stringUnit":{"state":"translated","value":"Chargement du modèle vocal…"}}}},
@@ -1231,36 +1081,9 @@
         }
       }
     },
-    "Nothing was heard": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nichts gehört"
-          }
-        }
-      }
-    },
-    "Nothing was recognized": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nichts erkannt"
-          }
-        }
-      }
-    },
-    "the current input device": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "das aktuelle Eingabegerät"
-          }
-        }
-      }
-    },
+    "Nothing was heard": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Nichts gehört"}},"es":{"stringUnit":{"state":"translated","value":"No se ha oído nada"}},"it":{"stringUnit":{"state":"translated","value":"Non è stato rilevato alcun suono"}},"fr":{"stringUnit":{"state":"translated","value":"Aucun son détecté"}}}},
+    "Nothing was recognized": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Nichts erkannt"}},"es":{"stringUnit":{"state":"translated","value":"No se ha reconocido nada"}},"it":{"stringUnit":{"state":"translated","value":"Non è stato riconosciuto nulla"}},"fr":{"stringUnit":{"state":"translated","value":"Rien n’a été reconnu"}}}},
+    "the current input device": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"das aktuelle Eingabegerät"}},"es":{"stringUnit":{"state":"translated","value":"el dispositivo de entrada actual"}},"it":{"stringUnit":{"state":"translated","value":"il dispositivo di ingresso attuale"}},"fr":{"stringUnit":{"state":"translated","value":"le périphérique d’entrée actuel"}}}},
     "That fragment has no audio to play": {
       "localizations": {
         "de": {
@@ -1281,86 +1104,14 @@
         }
       }
     },
-    "Number": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zahl"
-          }
-        }
-      }
-    },
-    "Amount": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Betrag"
-          }
-        }
-      }
-    },
-    "Date": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Datum"
-          }
-        }
-      }
-    },
-    "Name": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Name"
-          }
-        }
-      }
-    },
-    "Close to “%@”": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ähnlich wie „%@“"
-          }
-        }
-      }
-    },
-    "Not a word": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kein Wort"
-          }
-        }
-      }
-    },
-    "%@ word": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Wort auf %@"
-          }
-        }
-      }
-    },
-    "Uncertain": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Unsicher"
-          }
-        }
-      }
-    },
+    "Number": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Zahl"}},"es":{"stringUnit":{"state":"translated","value":"Número"}},"it":{"stringUnit":{"state":"translated","value":"Numero"}},"fr":{"stringUnit":{"state":"translated","value":"Nombre"}}}},
+    "Amount": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Betrag"}},"es":{"stringUnit":{"state":"translated","value":"Importe"}},"it":{"stringUnit":{"state":"translated","value":"Importo"}},"fr":{"stringUnit":{"state":"translated","value":"Montant"}}}},
+    "Date": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Datum"}},"es":{"stringUnit":{"state":"translated","value":"Fecha"}},"it":{"stringUnit":{"state":"translated","value":"Data"}},"fr":{"stringUnit":{"state":"translated","value":"Date"}}}},
+    "Name": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Name"}},"es":{"stringUnit":{"state":"translated","value":"Nombre"}},"it":{"stringUnit":{"state":"translated","value":"Nome"}},"fr":{"stringUnit":{"state":"translated","value":"Nom"}}}},
+    "Close to “%@”": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Ähnlich wie „%@“"}},"es":{"stringUnit":{"state":"translated","value":"Similar a «%@»"}},"it":{"stringUnit":{"state":"translated","value":"Simile a «%@»"}},"fr":{"stringUnit":{"state":"translated","value":"Proche de « %@ »"}}}},
+    "Not a word": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Kein Wort"}},"es":{"stringUnit":{"state":"translated","value":"No es una palabra"}},"it":{"stringUnit":{"state":"translated","value":"Non è una parola"}},"fr":{"stringUnit":{"state":"translated","value":"Ce n’est pas un mot"}}}},
+    "%@ word": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Wort auf %@"}},"es":{"stringUnit":{"state":"translated","value":"Palabra en %@"}},"it":{"stringUnit":{"state":"translated","value":"Parola in %@"}},"fr":{"stringUnit":{"state":"translated","value":"Mot en %@"}}}},
+    "Uncertain": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Unsicher"}},"es":{"stringUnit":{"state":"translated","value":"Incierto"}},"it":{"stringUnit":{"state":"translated","value":"Incerto"}},"fr":{"stringUnit":{"state":"translated","value":"Incertain"}}}},
     "Spacing": {
       "localizations": {
         "de": {
@@ -1571,108 +1322,18 @@
         }
       }
     },
-    "Insert": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Einfügen"
-          }
-        }
-      }
-    },
-    "Insert into %@": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "In %@ einfügen"
-          }
-        }
-      }
-    },
-    "Check what was marked": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Markierte Stellen prüfen"
-          }
-        }
-      }
-    },
-    "Check 1 flagged fragment": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "1 markiertes Fragment prüfen"
-          }
-        }
-      }
-    },
-    "Check %lld flagged fragments": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld markierte Fragmente prüfen"
-          }
-        }
-      }
-    },
-    "Any of %@": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Eine von: %@"
-          }
-        }
-      }
-    },
-    "Only %@": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nur %@"
-          }
-        }
-      }
-    },
-    "Raw transcript": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rohtranskript"
-          }
-        }
-      }
-    },
-    "Transcript": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Transkript"
-          }
-        }
-      }
-    },
-    "Recent dictations": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Letzte Diktate"
-          }
-        }
-      }
-    },
-    "Expanded": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Geöffnet"}}}},
-    "Collapsed": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Geschlossen"}}}},
+    "Insert": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Einfügen"}},"es":{"stringUnit":{"state":"translated","value":"Insertar"}},"it":{"stringUnit":{"state":"translated","value":"Inserisci"}},"fr":{"stringUnit":{"state":"translated","value":"Insérer"}}}},
+    "Insert into %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"In %@ einfügen"}},"es":{"stringUnit":{"state":"translated","value":"Insertar en %@"}},"it":{"stringUnit":{"state":"translated","value":"Inserisci in %@"}},"fr":{"stringUnit":{"state":"translated","value":"Insérer dans %@"}}}},
+    "Check what was marked": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Markierte Stellen prüfen"}},"es":{"stringUnit":{"state":"translated","value":"Revisar lo marcado"}},"it":{"stringUnit":{"state":"translated","value":"Controlla ciò che è stato segnalato"}},"fr":{"stringUnit":{"state":"translated","value":"Vérifier les éléments signalés"}}}},
+    "Check 1 flagged fragment": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"1 markiertes Fragment prüfen"}},"es":{"stringUnit":{"state":"translated","value":"Revisar 1 fragmento marcado"}},"it":{"stringUnit":{"state":"translated","value":"Controlla 1 frammento segnalato"}},"fr":{"stringUnit":{"state":"translated","value":"Vérifier 1 fragment signalé"}}}},
+    "Check %lld flagged fragments": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%lld markierte Fragmente prüfen"}},"es":{"stringUnit":{"state":"translated","value":"Revisar %lld fragmentos marcados"}},"it":{"stringUnit":{"state":"translated","value":"Controlla %lld frammenti segnalati"}},"fr":{"stringUnit":{"state":"translated","value":"Vérifier %lld fragments signalés"}}}},
+    "Any of %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Eine von: %@"}},"es":{"stringUnit":{"state":"translated","value":"Cualquiera de %@"}},"it":{"stringUnit":{"state":"translated","value":"Una qualsiasi tra %@"}},"fr":{"stringUnit":{"state":"translated","value":"N’importe laquelle parmi %@"}}}},
+    "Only %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Nur %@"}},"es":{"stringUnit":{"state":"translated","value":"Solo %@"}},"it":{"stringUnit":{"state":"translated","value":"Solo %@"}},"fr":{"stringUnit":{"state":"translated","value":"Uniquement %@"}}}},
+    "Raw transcript": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Rohtranskript"}},"es":{"stringUnit":{"state":"translated","value":"Transcripción original"}},"it":{"stringUnit":{"state":"translated","value":"Trascrizione originale"}},"fr":{"stringUnit":{"state":"translated","value":"Transcription brute"}}}},
+    "Transcript": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Transkript"}},"es":{"stringUnit":{"state":"translated","value":"Transcripción"}},"it":{"stringUnit":{"state":"translated","value":"Trascrizione"}},"fr":{"stringUnit":{"state":"translated","value":"Transcription"}}}},
+    "Recent dictations": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Letzte Diktate"}},"es":{"stringUnit":{"state":"translated","value":"Dictados recientes"}},"it":{"stringUnit":{"state":"translated","value":"Dettature recenti"}},"fr":{"stringUnit":{"state":"translated","value":"Dictées récentes"}}}},
+    "Expanded": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Geöffnet"}},"es":{"stringUnit":{"state":"translated","value":"Expandido"}},"it":{"stringUnit":{"state":"translated","value":"Espanso"}},"fr":{"stringUnit":{"state":"translated","value":"Développé"}}}},
+    "Collapsed": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Geschlossen"}},"es":{"stringUnit":{"state":"translated","value":"Contraído"}},"it":{"stringUnit":{"state":"translated","value":"Compresso"}},"fr":{"stringUnit":{"state":"translated","value":"Réduit"}}}},
     "Microphone": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Mikrofon"}}}},
     "Input source": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Eingangsquelle"}}}},
     "Mac built-in microphone": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Integriertes Mac-Mikrofon"}}}},
@@ -1683,26 +1344,8 @@
     "The Mac microphone is unavailable. Witness will use another available microphone.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Mac-Mikrofon ist nicht verfügbar. Witness verwendet ein anderes verfügbares Mikrofon."}}}},
     "The Mac microphone keeps dictation independent of AirPods connected to your iPhone. Changes apply to the next recording; Witness does not change the macOS sound input.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Mit dem Mac-Mikrofon bleibt das Diktieren unabhängig von AirPods, die mit deinem iPhone verbunden sind. Änderungen gelten ab der nächsten Aufnahme; Witness ändert den macOS-Toneingang nicht."}}}},
     "Could not open the selected microphone (%@)": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das ausgewählte Mikrofon konnte nicht geöffnet werden (%@)"}}}},
-    "Copy": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kopieren"
-          }
-        }
-      }
-    },
-    "Copied": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kopiert"
-          }
-        }
-      }
-    },
+    "Copy": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Kopieren"}},"es":{"stringUnit":{"state":"translated","value":"Copiar"}},"it":{"stringUnit":{"state":"translated","value":"Copia"}},"fr":{"stringUnit":{"state":"translated","value":"Copier"}}}},
+    "Copied": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Kopiert"}},"es":{"stringUnit":{"state":"translated","value":"Copiado"}},"it":{"stringUnit":{"state":"translated","value":"Copiato"}},"fr":{"stringUnit":{"state":"translated","value":"Copié"}}}},
     "Open License settings": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Lizenzeinstellungen öffnen"}},"es":{"stringUnit":{"state":"translated","value":"Abrir los ajustes de licencia"}},"it":{"stringUnit":{"state":"translated","value":"Apri le impostazioni della licenza"}},"fr":{"stringUnit":{"state":"translated","value":"Ouvrir les réglages de licence"}}}},
     "Activate…": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Aktivieren …"}},"es":{"stringUnit":{"state":"translated","value":"Activar…"}},"it":{"stringUnit":{"state":"translated","value":"Attiva…"}},"fr":{"stringUnit":{"state":"translated","value":"Activer…"}}}},
     "Show cleaned text": {
@@ -1897,96 +1540,15 @@
     "Activate to keep going": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Aktivieren, um fortzufahren"}},"es":{"stringUnit":{"state":"translated","value":"Activar para continuar"}},"it":{"stringUnit":{"state":"translated","value":"Attiva per continuare"}},"fr":{"stringUnit":{"state":"translated","value":"Activer pour continuer"}}}},
     "Trial finished": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Testphase beendet"}},"es":{"stringUnit":{"state":"translated","value":"Periodo de prueba finalizado"}},"it":{"stringUnit":{"state":"translated","value":"Periodo di prova terminato"}},"fr":{"stringUnit":{"state":"translated","value":"Période d’essai terminée"}}}},
     "%@ license expired": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%@ abgelaufen"}},"es":{"stringUnit":{"state":"translated","value":"Licencia %@ caducada"}},"it":{"stringUnit":{"state":"translated","value":"Licenza %@ scaduta"}},"fr":{"stringUnit":{"state":"translated","value":"Licence %@ expirée"}}}},
-    "Needs attention": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aktion erforderlich"
-          }
-        }
-      }
-    },
-    "Worth a look": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Prüfung empfohlen"
-          }
-        }
-      }
-    },
-    "Recording ended early": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aufnahme vorzeitig beendet"
-          }
-        }
-      }
-    },
-    "Starting up": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Wird gestartet"
-          }
-        }
-      }
-    },
-    "Checking microphone access.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mikrofonzugriff wird geprüft."
-          }
-        }
-      }
-    },
-    "Microphone access required": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mikrofonzugriff erforderlich"
-          }
-        }
-      }
-    },
-    "Grant access to enable push-to-talk dictation.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Erlaube den Zugriff, um per Tastendruck zu diktieren."
-          }
-        }
-      }
-    },
-    "Waiting for your answer": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Warte auf deine Antwort"
-          }
-        }
-      }
-    },
-    "Approve the macOS microphone prompt.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bestätige die Mikrofonabfrage von macOS."
-          }
-        }
-      }
-    },
+    "Needs attention": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Aktion erforderlich"}},"es":{"stringUnit":{"state":"translated","value":"Requiere atención"}},"it":{"stringUnit":{"state":"translated","value":"Richiede attenzione"}},"fr":{"stringUnit":{"state":"translated","value":"Nécessite votre attention"}}}},
+    "Worth a look": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Prüfung empfohlen"}},"es":{"stringUnit":{"state":"translated","value":"Conviene revisarlo"}},"it":{"stringUnit":{"state":"translated","value":"Da controllare"}},"fr":{"stringUnit":{"state":"translated","value":"À vérifier"}}}},
+    "Recording ended early": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Aufnahme vorzeitig beendet"}},"es":{"stringUnit":{"state":"translated","value":"La grabación terminó antes de tiempo"}},"it":{"stringUnit":{"state":"translated","value":"La registrazione è terminata in anticipo"}},"fr":{"stringUnit":{"state":"translated","value":"L’enregistrement s’est terminé prématurément"}}}},
+    "Starting up": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Wird gestartet"}},"es":{"stringUnit":{"state":"translated","value":"Iniciando"}},"it":{"stringUnit":{"state":"translated","value":"Avvio"}},"fr":{"stringUnit":{"state":"translated","value":"Démarrage"}}}},
+    "Checking microphone access.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Mikrofonzugriff wird geprüft."}},"es":{"stringUnit":{"state":"translated","value":"Comprobando el acceso al micrófono."}},"it":{"stringUnit":{"state":"translated","value":"Verifica dell’accesso al microfono."}},"fr":{"stringUnit":{"state":"translated","value":"Vérification de l’accès au microphone."}}}},
+    "Microphone access required": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Mikrofonzugriff erforderlich"}},"es":{"stringUnit":{"state":"translated","value":"Se necesita acceso al micrófono"}},"it":{"stringUnit":{"state":"translated","value":"Accesso al microfono richiesto"}},"fr":{"stringUnit":{"state":"translated","value":"Accès au microphone requis"}}}},
+    "Grant access to enable push-to-talk dictation.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Erlaube den Zugriff, um per Tastendruck zu diktieren."}},"es":{"stringUnit":{"state":"translated","value":"Concede acceso para activar el dictado mediante pulsación."}},"it":{"stringUnit":{"state":"translated","value":"Concedi l’accesso per attivare la dettatura push-to-talk."}},"fr":{"stringUnit":{"state":"translated","value":"Accordez l’accès pour activer la dictée par maintien de la touche."}}}},
+    "Waiting for your answer": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Warte auf deine Antwort"}},"es":{"stringUnit":{"state":"translated","value":"Esperando tu respuesta"}},"it":{"stringUnit":{"state":"translated","value":"In attesa della tua risposta"}},"fr":{"stringUnit":{"state":"translated","value":"En attente de votre réponse"}}}},
+    "Approve the macOS microphone prompt.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Bestätige die Mikrofonabfrage von macOS."}},"es":{"stringUnit":{"state":"translated","value":"Acepta la solicitud de acceso al micrófono de macOS."}},"it":{"stringUnit":{"state":"translated","value":"Approva la richiesta di accesso al microfono di macOS."}},"fr":{"stringUnit":{"state":"translated","value":"Acceptez la demande d’accès au microphone de macOS."}}}},
     "Microphone access restricted": {
       "localizations": {
         "de": {
@@ -2007,76 +1569,13 @@
         }
       }
     },
-    "A device policy blocks microphone access. Contact whoever manages this Mac.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Eine Geräterichtlinie blockiert den Mikrofonzugriff. Wende dich an die Verwaltung dieses Macs."
-          }
-        }
-      }
-    },
-    "Enable Witness under Privacy & Security → Microphone, then return here.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aktiviere Witness unter Datenschutz & Sicherheit → Mikrofon und kehre dann hierher zurück."
-          }
-        }
-      }
-    },
-    "Starting capture": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aufnahme wird gestartet"
-          }
-        }
-      }
-    },
-    "Opening the microphone.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mikrofon wird geöffnet."
-          }
-        }
-      }
-    },
-    "Recording": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aufnahme"
-          }
-        }
-      }
-    },
-    "Finishing utterance": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Äußerung wird abgeschlossen"
-          }
-        }
-      }
-    },
-    "Closing the capture buffer.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aufnahmepuffer wird geschlossen."
-          }
-        }
-      }
-    },
+    "A device policy blocks microphone access. Contact whoever manages this Mac.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Eine Geräterichtlinie blockiert den Mikrofonzugriff. Wende dich an die Verwaltung dieses Macs."}},"es":{"stringUnit":{"state":"translated","value":"Una política del dispositivo bloquea el acceso al micrófono. Contacta con quien administre este Mac."}},"it":{"stringUnit":{"state":"translated","value":"Un criterio del dispositivo blocca l’accesso al microfono. Contatta chi gestisce questo Mac."}},"fr":{"stringUnit":{"state":"translated","value":"Une règle de l’appareil bloque l’accès au microphone. Contactez la personne qui gère ce Mac."}}}},
+    "Enable Witness under Privacy & Security → Microphone, then return here.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Aktiviere Witness unter Datenschutz & Sicherheit → Mikrofon und kehre dann hierher zurück."}},"es":{"stringUnit":{"state":"translated","value":"Activa Witness en Privacidad y seguridad → Micrófono y vuelve aquí."}},"it":{"stringUnit":{"state":"translated","value":"Attiva Witness in Privacy e sicurezza → Microfono, poi torna qui."}},"fr":{"stringUnit":{"state":"translated","value":"Activez Witness dans Confidentialité et sécurité → Microphone, puis revenez ici."}}}},
+    "Starting capture": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Aufnahme wird gestartet"}},"es":{"stringUnit":{"state":"translated","value":"Iniciando la grabación"}},"it":{"stringUnit":{"state":"translated","value":"Avvio della registrazione"}},"fr":{"stringUnit":{"state":"translated","value":"Démarrage de l’enregistrement"}}}},
+    "Opening the microphone.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Mikrofon wird geöffnet."}},"es":{"stringUnit":{"state":"translated","value":"Abriendo el micrófono."}},"it":{"stringUnit":{"state":"translated","value":"Apertura del microfono."}},"fr":{"stringUnit":{"state":"translated","value":"Ouverture du microphone."}}}},
+    "Recording": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Aufnahme"}},"es":{"stringUnit":{"state":"translated","value":"Grabando"}},"it":{"stringUnit":{"state":"translated","value":"Registrazione"}},"fr":{"stringUnit":{"state":"translated","value":"Enregistrement"}}}},
+    "Finishing utterance": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Äußerung wird abgeschlossen"}},"es":{"stringUnit":{"state":"translated","value":"Finalizando la frase"}},"it":{"stringUnit":{"state":"translated","value":"Completamento della frase"}},"fr":{"stringUnit":{"state":"translated","value":"Fin de l’énoncé"}}}},
+    "Closing the capture buffer.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Aufnahmepuffer wird geschlossen."}},"es":{"stringUnit":{"state":"translated","value":"Cerrando el búfer de grabación."}},"it":{"stringUnit":{"state":"translated","value":"Chiusura del buffer di registrazione."}},"fr":{"stringUnit":{"state":"translated","value":"Fermeture de la mémoire tampon d’enregistrement."}}}},
     "Waiting for the speech model": {
       "localizations": {
         "de": {
@@ -2097,97 +1596,25 @@
         }
       }
     },
-    "Your recording is held in memory. Transcription starts the moment the model finishes loading.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Deine Aufnahme bleibt im Arbeitsspeicher. Die Transkription beginnt, sobald das Modell geladen ist."
-          }
-        }
-      }
-    },
-    "Recognizing speech on this Mac. %@": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Spracherkennung auf diesem Mac. %@"
-          }
-        }
-      }
-    },
-    "Inserting": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Wird eingefügt"
-          }
-        }
-      }
-    },
-    "Putting the text where you were typing.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Der Text wird an der bisherigen Eingabestelle eingefügt."
-          }
-        }
-      }
-    },
-    "Hold %@ to record.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Halte %@ zum Aufnehmen gedrückt."
-          }
-        }
-      }
-    },
-    "Press %@ to start recording.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Drücke %@, um die Aufnahme zu starten."
-          }
-        }
-      }
-    },
-    "Release %@ to finish.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lass %@ los, um die Aufnahme zu beenden."
-          }
-        }
-      }
-    },
-    "Press %@ again to finish.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Drücke %@ erneut, um die Aufnahme zu beenden."
-          }
-        }
-      }
-    },
+    "Your recording is held in memory. Transcription starts the moment the model finishes loading.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Deine Aufnahme bleibt im Arbeitsspeicher. Die Transkription beginnt, sobald das Modell geladen ist."}},"es":{"stringUnit":{"state":"translated","value":"La grabación se mantiene en memoria. La transcripción empezará en cuanto termine de cargarse el modelo."}},"it":{"stringUnit":{"state":"translated","value":"La registrazione resta in memoria. La trascrizione inizierà non appena il modello avrà terminato il caricamento."}},"fr":{"stringUnit":{"state":"translated","value":"Votre enregistrement est conservé en mémoire. La transcription commencera dès que le modèle sera chargé."}}}},
+    "Recognizing speech on this Mac. %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Spracherkennung auf diesem Mac. %@"}},"es":{"stringUnit":{"state":"translated","value":"Reconociendo voz en este Mac. %@"}},"it":{"stringUnit":{"state":"translated","value":"Riconoscimento vocale su questo Mac. %@"}},"fr":{"stringUnit":{"state":"translated","value":"Reconnaissance vocale sur ce Mac. %@"}}}},
+    "Inserting": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Wird eingefügt"}},"es":{"stringUnit":{"state":"translated","value":"Insertando"}},"it":{"stringUnit":{"state":"translated","value":"Inserimento"}},"fr":{"stringUnit":{"state":"translated","value":"Insertion"}}}},
+    "Putting the text where you were typing.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Text wird an der bisherigen Eingabestelle eingefügt."}},"es":{"stringUnit":{"state":"translated","value":"Insertando el texto donde estabas escribiendo."}},"it":{"stringUnit":{"state":"translated","value":"Inserimento del testo nel punto in cui stavi scrivendo."}},"fr":{"stringUnit":{"state":"translated","value":"Insertion du texte là où vous écriviez."}}}},
+    "Hold %@ to record.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Halte %@ zum Aufnehmen gedrückt."}},"es":{"stringUnit":{"state":"translated","value":"Mantén pulsado %@ para grabar."}},"it":{"stringUnit":{"state":"translated","value":"Tieni premuto %@ per registrare."}},"fr":{"stringUnit":{"state":"translated","value":"Maintenez %@ enfoncé pour enregistrer."}}}},
+    "Press %@ to start recording.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Drücke %@, um die Aufnahme zu starten."}},"es":{"stringUnit":{"state":"translated","value":"Pulsa %@ para empezar a grabar."}},"it":{"stringUnit":{"state":"translated","value":"Premi %@ per iniziare a registrare."}},"fr":{"stringUnit":{"state":"translated","value":"Appuyez sur %@ pour commencer l’enregistrement."}}}},
+    "Release %@ to finish.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Lass %@ los, um die Aufnahme zu beenden."}},"es":{"stringUnit":{"state":"translated","value":"Suelta %@ para terminar."}},"it":{"stringUnit":{"state":"translated","value":"Rilascia %@ per terminare."}},"fr":{"stringUnit":{"state":"translated","value":"Relâchez %@ pour terminer."}}}},
+    "Press %@ again to finish.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Drücke %@ erneut, um die Aufnahme zu beenden."}},"es":{"stringUnit":{"state":"translated","value":"Pulsa %@ de nuevo para terminar."}},"it":{"stringUnit":{"state":"translated","value":"Premi di nuovo %@ per terminare."}},"fr":{"stringUnit":{"state":"translated","value":"Appuyez de nouveau sur %@ pour terminer."}}}},
     "%1$@ left, until %2$@. %3$@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch %1$@, bis %2$@. %3$@"}},"es":{"stringUnit":{"state":"translated","value":"Quedan %1$@, hasta el %2$@. %3$@"}},"it":{"stringUnit":{"state":"translated","value":"Restano %1$@, fino al %2$@. %3$@"}},"fr":{"stringUnit":{"state":"translated","value":"Il reste %1$@, jusqu’au %2$@. %3$@"}}}},
     "%1$@ · %2$lld Hz · %3$lld ch": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%1$@ · %2$lld Hz · %3$lld Kan."}}}},
-    "%@ It happens once. Dictation starts the moment it is here.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%@ Dies geschieht nur einmal. Sobald es verfügbar ist, kannst du diktieren."}}}},
-    "Some fragments in the last result are worth checking. The text is already in place.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Einige Stellen im letzten Ergebnis solltest du prüfen. Der Text wurde bereits eingefügt."}}}},
+    "%@ It happens once. Dictation starts the moment it is here.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%@ Dies geschieht nur einmal. Sobald es verfügbar ist, kannst du diktieren."}},"es":{"stringUnit":{"state":"translated","value":"%@ Solo ocurre una vez. El dictado estará disponible en cuanto termine."}},"it":{"stringUnit":{"state":"translated","value":"%@ Succede una sola volta. La dettatura sarà disponibile non appena sarà pronto."}},"fr":{"stringUnit":{"state":"translated","value":"%@ Cette opération n’a lieu qu’une fois. La dictée sera disponible dès qu’elle sera terminée."}}}},
+    "Some fragments in the last result are worth checking. The text is already in place.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Einige Stellen im letzten Ergebnis solltest du prüfen. Der Text wurde bereits eingefügt."}},"es":{"stringUnit":{"state":"translated","value":"Conviene revisar algunos fragmentos del último resultado. El texto ya está insertado."}},"it":{"stringUnit":{"state":"translated","value":"Vale la pena controllare alcuni frammenti dell’ultimo risultato. Il testo è già stato inserito."}},"fr":{"stringUnit":{"state":"translated","value":"Certains fragments du dernier résultat méritent une vérification. Le texte est déjà inséré."}}}},
     "The trial ended %@. A license brings it back, on this Mac and one more.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die Testphase endete am %@. Eine Lizenz aktiviert Witness auf diesem und einem weiteren Mac."}},"es":{"stringUnit":{"state":"translated","value":"El periodo de prueba terminó el %@. Una licencia reactiva Witness en este Mac y en otro más."}},"it":{"stringUnit":{"state":"translated","value":"Il periodo di prova è terminato il %@. Una licenza riattiva Witness su questo Mac e su un altro."}},"fr":{"stringUnit":{"state":"translated","value":"La période d’essai s’est terminée le %@. Une licence réactive Witness sur ce Mac et sur un autre."}}}},
     "The speech model is not ready": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Sprachmodell ist nicht bereit"}},"es":{"stringUnit":{"state":"translated","value":"El modelo de voz no está listo"}},"it":{"stringUnit":{"state":"translated","value":"Il modello vocale non è pronto"}},"fr":{"stringUnit":{"state":"translated","value":"Le modèle vocal n’est pas prêt"}}}},
-    "The speech model is still arriving": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Sprachmodell wird noch geladen"}}}},
-    "The speech model is ready. Hold %@ and speak — the text lands where your cursor is.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Sprachmodell ist bereit. Halte %@ gedrückt und sprich – der Text erscheint an der Cursorposition."}}}},
-    "Nothing was inserted: the focus is in a password field. The text is here and was not copied.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Nichts wurde eingefügt: Der Fokus befindet sich in einem Passwortfeld. Der Text ist weiterhin hier und wurde nicht kopiert."}}}},
-    "Copied to the clipboard. Grant Accessibility access to have it typed for you.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"In die Zwischenablage kopiert. Erlaube den Bedienungshilfen-Zugriff, damit Witness den Text für dich eingibt."}}}},
-    "Copied to the clipboard — there was no other application to put it in.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"In die Zwischenablage kopiert – es gab keine andere App zum Einfügen."}}}},
+    "The speech model is still arriving": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Sprachmodell wird noch geladen"}},"es":{"stringUnit":{"state":"translated","value":"El modelo de voz aún se está descargando"}},"it":{"stringUnit":{"state":"translated","value":"Il modello vocale è ancora in arrivo"}},"fr":{"stringUnit":{"state":"translated","value":"Le modèle vocal est encore en cours de téléchargement"}}}},
+    "The speech model is ready. Hold %@ and speak — the text lands where your cursor is.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Sprachmodell ist bereit. Halte %@ gedrückt und sprich – der Text erscheint an der Cursorposition."}},"es":{"stringUnit":{"state":"translated","value":"El modelo de voz está listo. Mantén pulsado %@ y habla; el texto aparecerá donde esté el cursor."}},"it":{"stringUnit":{"state":"translated","value":"Il modello vocale è pronto. Tieni premuto %@ e parla: il testo apparirà nella posizione del cursore."}},"fr":{"stringUnit":{"state":"translated","value":"Le modèle vocal est prêt. Maintenez %@ enfoncé et parlez : le texte apparaîtra à l’emplacement du curseur."}}}},
+    "Nothing was inserted: the focus is in a password field. The text is here and was not copied.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Nichts wurde eingefügt: Der Fokus befindet sich in einem Passwortfeld. Der Text ist weiterhin hier und wurde nicht kopiert."}},"es":{"stringUnit":{"state":"translated","value":"No se ha insertado nada porque el cursor está en un campo de contraseña. El texto está aquí y no se ha copiado."}},"it":{"stringUnit":{"state":"translated","value":"Non è stato inserito nulla perché il cursore si trova in un campo password. Il testo è qui e non è stato copiato."}},"fr":{"stringUnit":{"state":"translated","value":"Rien n’a été inséré, car le curseur se trouve dans un champ de mot de passe. Le texte est ici et n’a pas été copié."}}}},
+    "Copied to the clipboard. Grant Accessibility access to have it typed for you.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"In die Zwischenablage kopiert. Erlaube den Bedienungshilfen-Zugriff, damit Witness den Text für dich eingibt."}},"es":{"stringUnit":{"state":"translated","value":"Copiado al portapapeles. Concede acceso a Accesibilidad para que Witness lo escriba por ti."}},"it":{"stringUnit":{"state":"translated","value":"Copiato negli appunti. Concedi l’accesso ad Accessibilità affinché Witness lo inserisca per te."}},"fr":{"stringUnit":{"state":"translated","value":"Copié dans le presse-papiers. Accordez l’accès à Accessibilité pour que Witness saisisse le texte à votre place."}}}},
+    "Copied to the clipboard — there was no other application to put it in.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"In die Zwischenablage kopiert – es gab keine andere App zum Einfügen."}},"es":{"stringUnit":{"state":"translated","value":"Copiado al portapapeles: no había otra aplicación donde insertarlo."}},"it":{"stringUnit":{"state":"translated","value":"Copiato negli appunti: non c’era un’altra applicazione in cui inserirlo."}},"fr":{"stringUnit":{"state":"translated","value":"Copié dans le presse-papiers : aucune autre application ne pouvait le recevoir."}}}},
     "Settings could not be read: %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Einstellungen konnten nicht gelesen werden: %@"}}}},
     "Settings could not be saved: %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Einstellungen konnten nicht gespeichert werden: %@"}}}},
     "The dictionary could not be read: %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Wörterbuch konnte nicht gelesen werden: %@"}}}},
@@ -2201,34 +1628,34 @@
     "This address or this Mac has already had the free trial. A license keeps it dictating: €99 once, or €49 a year, both covering two Macs.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Für diese Adresse oder diesen Mac wurde die Testphase bereits genutzt. Eine Lizenz kostet einmalig 99 € oder 49 € pro Jahr und gilt für zwei Macs."}}}},
     "the shortcut is already used by macOS or another app": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"das Tastenkürzel wird bereits von macOS oder einer anderen App verwendet"}}}},
     "the previous application": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"die vorherige App"}}}},
-    " — %lld%% of about %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":" – %lld %% von etwa %@"}}}},
-    "%1$@ of speech came back empty, so nothing was inserted. Say it again, or check that the language profile — %2$@ — is the one you spoke.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die Erkennung für %1$@ ergab keinen Text. Sprich erneut oder prüfe, ob das Profil „%2$@“ deiner Sprache entspricht."}}}},
+    " — %lld%% of about %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":" – %lld %% von etwa %@"}},"es":{"stringUnit":{"state":"translated","value":" — %lld%% de unos %@"}},"it":{"stringUnit":{"state":"translated","value":" — %lld%% di circa %@"}},"fr":{"stringUnit":{"state":"translated","value":" — %lld%% sur environ %@"}}}},
+    "%1$@ of speech came back empty, so nothing was inserted. Say it again, or check that the language profile — %2$@ — is the one you spoke.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die Erkennung für %1$@ ergab keinen Text. Sprich erneut oder prüfe, ob das Profil „%2$@“ deiner Sprache entspricht."}},"es":{"stringUnit":{"state":"translated","value":"%1$@ de voz no produjo texto, así que no se insertó nada. Vuelve a decirlo o comprueba que el perfil de idioma —%2$@— coincide con el idioma que hablaste."}},"it":{"stringUnit":{"state":"translated","value":"%1$@ di parlato non ha prodotto testo, quindi non è stato inserito nulla. Ripeti oppure verifica che il profilo linguistico — %2$@ — corrisponda alla lingua parlata."}},"fr":{"stringUnit":{"state":"translated","value":"%1$@ de parole n’a produit aucun texte, donc rien n’a été inséré. Réessayez ou vérifiez que le profil linguistique — %2$@ — correspond à la langue parlée."}}}},
     "A copy of the key is also on its way to that address. You do not need it now — it is for when you reinstall Witness or replace this Mac. If it never arrives, press the button again: the same key comes back here and the mail is retried.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Eine Kopie des Schlüssels wird auch an diese Adresse gesendet. Du brauchst sie nur nach einer Neuinstallation oder beim Austausch dieses Macs. Falls sie nicht ankommt, drücke die Taste erneut."}},"es":{"stringUnit":{"state":"translated","value":"También se enviará una copia de la clave a esa dirección. No la necesitas ahora: sirve para reinstalar Witness o sustituir este Mac. Si no llega, vuelve a pulsar el botón; aquí aparecerá la misma clave y se reintentará el envío."}},"it":{"stringUnit":{"state":"translated","value":"Una copia della chiave verrà inviata anche a quell’indirizzo. Non ti serve ora: servirà se reinstalli Witness o sostituisci questo Mac. Se non arriva, premi di nuovo il pulsante; qui tornerà la stessa chiave e l’email verrà inviata di nuovo."}},"fr":{"stringUnit":{"state":"translated","value":"Une copie de la clé sera également envoyée à cette adresse. Vous n’en avez pas besoin maintenant : elle servira si vous réinstallez Witness ou remplacez ce Mac. Si elle n’arrive pas, appuyez de nouveau sur le bouton ; la même clé reviendra ici et l’e-mail sera renvoyé."}}}},
     "A license keeps it after that, on this Mac and one more.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Mit einer Lizenz kannst du danach auf diesem und einem weiteren Mac weiterarbeiten."}},"es":{"stringUnit":{"state":"translated","value":"Después, una licencia mantiene Witness activo en este Mac y en otro más."}},"it":{"stringUnit":{"state":"translated","value":"In seguito, una licenza mantiene Witness attivo su questo Mac e su un altro."}},"fr":{"stringUnit":{"state":"translated","value":"Ensuite, une licence maintient Witness actif sur ce Mac et sur un autre."}}}},
     "Activated, and there is nothing else to enter. The trial runs for ten days from today.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Aktiviert. Weitere Eingaben sind nicht nötig. Die Testphase läuft ab heute zehn Tage."}},"es":{"stringUnit":{"state":"translated","value":"Activado. No tienes que introducir nada más. El periodo de prueba dura diez días desde hoy."}},"it":{"stringUnit":{"state":"translated","value":"Attivato. Non devi inserire altro. Il periodo di prova dura dieci giorni da oggi."}},"fr":{"stringUnit":{"state":"translated","value":"Activé. Vous n’avez rien d’autre à saisir. La période d’essai dure dix jours à compter d’aujourd’hui."}}}},
-    "Copied to the clipboard: macOS is not letting Witness press ⌘V for you. Its Accessibility permission stops applying when the app itself changes, so switching Witness off and on again in System Settings → Privacy & Security → Accessibility is what restores it.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"In die Zwischenablage kopiert: macOS erlaubt Witness derzeit nicht, ⌘V für dich zu drücken. Deaktiviere und aktiviere Witness unter Systemeinstellungen → Datenschutz & Sicherheit → Bedienungshilfen."}}}},
-    "Copied to the clipboard: that application would not accept the text directly.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"In die Zwischenablage kopiert: Diese App hat den Text nicht direkt angenommen."}}}},
-    "The new dictation is on the clipboard. Check what the application pasted; Witness could not verify that it used this recording.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das neue Diktat liegt in der Zwischenablage. Prüfe, was die App eingefügt hat; Witness konnte nicht bestätigen, dass sie diese Aufnahme verwendet hat."}}}},
-    "Copied to the clipboard: you moved to a different application while this was being prepared.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"In die Zwischenablage kopiert: Du hast während der Verarbeitung zu einer anderen App gewechselt."}}}},
+    "Copied to the clipboard: macOS is not letting Witness press ⌘V for you. Its Accessibility permission stops applying when the app itself changes, so switching Witness off and on again in System Settings → Privacy & Security → Accessibility is what restores it.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"In die Zwischenablage kopiert: macOS erlaubt Witness derzeit nicht, ⌘V für dich zu drücken. Deaktiviere und aktiviere Witness unter Systemeinstellungen → Datenschutz & Sicherheit → Bedienungshilfen."}},"es":{"stringUnit":{"state":"translated","value":"Copiado al portapapeles: macOS no permite que Witness pulse ⌘V. El permiso de Accesibilidad deja de aplicarse cuando cambia la propia app; desactiva y vuelve a activar Witness en Ajustes del Sistema → Privacidad y seguridad → Accesibilidad para restablecerlo."}},"it":{"stringUnit":{"state":"translated","value":"Copiato negli appunti: macOS non consente a Witness di premere ⌘V. L’autorizzazione Accessibilità smette di essere valida quando cambia l’app; disattiva e riattiva Witness in Impostazioni di Sistema → Privacy e sicurezza → Accessibilità per ripristinarla."}},"fr":{"stringUnit":{"state":"translated","value":"Copié dans le presse-papiers : macOS n’autorise pas Witness à appuyer sur ⌘V. L’autorisation Accessibilité cesse de s’appliquer lorsque l’app change ; désactivez puis réactivez Witness dans Réglages Système → Confidentialité et sécurité → Accessibilité pour la rétablir."}}}},
+    "Copied to the clipboard: that application would not accept the text directly.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"In die Zwischenablage kopiert: Diese App hat den Text nicht direkt angenommen."}},"es":{"stringUnit":{"state":"translated","value":"Copiado al portapapeles: esa aplicación no ha aceptado el texto directamente."}},"it":{"stringUnit":{"state":"translated","value":"Copiato negli appunti: l’applicazione non ha accettato direttamente il testo."}},"fr":{"stringUnit":{"state":"translated","value":"Copié dans le presse-papiers : cette application n’a pas accepté le texte directement."}}}},
+    "The new dictation is on the clipboard. Check what the application pasted; Witness could not verify that it used this recording.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das neue Diktat liegt in der Zwischenablage. Prüfe, was die App eingefügt hat; Witness konnte nicht bestätigen, dass sie diese Aufnahme verwendet hat."}},"es":{"stringUnit":{"state":"translated","value":"El nuevo dictado está en el portapapeles. Comprueba lo que ha pegado la aplicación; Witness no ha podido verificar que utilizara esta grabación."}},"it":{"stringUnit":{"state":"translated","value":"La nuova dettatura è negli appunti. Controlla ciò che l’applicazione ha incollato: Witness non ha potuto verificare che abbia usato questa registrazione."}},"fr":{"stringUnit":{"state":"translated","value":"La nouvelle dictée se trouve dans le presse-papiers. Vérifiez ce que l’application a collé ; Witness n’a pas pu confirmer qu’elle avait utilisé cet enregistrement."}}}},
+    "Copied to the clipboard: you moved to a different application while this was being prepared.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"In die Zwischenablage kopiert: Du hast während der Verarbeitung zu einer anderen App gewechselt."}},"es":{"stringUnit":{"state":"translated","value":"Copiado al portapapeles: cambiaste de aplicación mientras se preparaba el texto."}},"it":{"stringUnit":{"state":"translated","value":"Copiato negli appunti: sei passato a un’altra applicazione mentre il testo veniva preparato."}},"fr":{"stringUnit":{"state":"translated","value":"Copié dans le presse-papiers : vous avez changé d’application pendant la préparation du texte."}}}},
     "The trial ran out on %@. Your dictionary and settings are untouched and come straight back with a license.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Test ist am %@ abgelaufen. Wörterbuch und Einstellungen bleiben unverändert und sind mit einer Lizenz sofort wieder verfügbar."}},"es":{"stringUnit":{"state":"translated","value":"El periodo de prueba terminó el %@. Tu diccionario y tus ajustes no han cambiado y volverán a estar disponibles al activar una licencia."}},"it":{"stringUnit":{"state":"translated","value":"Il periodo di prova è terminato il %@. Il dizionario e le impostazioni non sono cambiati e torneranno subito disponibili con una licenza."}},"fr":{"stringUnit":{"state":"translated","value":"La période d’essai s’est terminée le %@. Votre dictionnaire et vos réglages sont intacts et redeviennent immédiatement disponibles avec une licence."}}}},
     "It ran out %@. Renewing unlocks dictation again; nothing on this Mac was touched.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sie ist am %@ abgelaufen. Eine Verlängerung schaltet das Diktieren wieder frei; lokale Daten wurden nicht verändert."}},"es":{"stringUnit":{"state":"translated","value":"Caducó el %@. La renovación vuelve a activar el dictado; no se ha modificado nada en este Mac."}},"it":{"stringUnit":{"state":"translated","value":"È scaduta il %@. Il rinnovo riattiva la dettatura; nulla su questo Mac è stato modificato."}},"fr":{"stringUnit":{"state":"translated","value":"Elle a expiré le %@. Le renouvellement réactive la dictée ; rien n’a été modifié sur ce Mac."}}}},
     "It ran out on %@. Renewing unlocks dictation again on this Mac; nothing local was removed.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sie ist am %@ abgelaufen. Eine Verlängerung schaltet das Diktieren wieder frei; lokale Daten wurden nicht entfernt."}},"es":{"stringUnit":{"state":"translated","value":"Caducó el %@. La renovación vuelve a activar el dictado en este Mac; no se ha eliminado ningún dato local."}},"it":{"stringUnit":{"state":"translated","value":"È scaduta il %@. Il rinnovo riattiva la dettatura su questo Mac; nessun dato locale è stato rimosso."}},"fr":{"stringUnit":{"state":"translated","value":"Elle a expiré le %@. Le renouvellement réactive la dictée sur ce Mac ; aucune donnée locale n’a été supprimée."}}}},
     "It runs out on %@. A license keeps this Mac dictating; your dictionary and settings stay exactly as they are either way. Have a promo code? It goes in on the payment page.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sie läuft am %@ ab. Mit einer Lizenz kannst du weiter diktieren; Wörterbuch und Einstellungen bleiben unverändert. Einen Rabattcode gibst du auf der Bezahlseite ein."}},"es":{"stringUnit":{"state":"translated","value":"Termina el %@. Una licencia permite seguir dictando en este Mac; tu diccionario y tus ajustes no cambian. ¿Tienes un código promocional? Introdúcelo en la página de pago."}},"it":{"stringUnit":{"state":"translated","value":"Termina il %@. Una licenza permette di continuare a dettare su questo Mac; dizionario e impostazioni restano invariati. Hai un codice promozionale? Inseriscilo nella pagina di pagamento."}},"fr":{"stringUnit":{"state":"translated","value":"Elle se termine le %@. Une licence permet de continuer à dicter sur ce Mac ; votre dictionnaire et vos réglages restent inchangés. Vous avez un code promotionnel ? Saisissez-le sur la page de paiement."}}}},
     "Licensed to %1$@. This Mac needs nothing further — no renewal, and no connection. It covers version %2$lld and every update to it.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Lizenziert für %1$@. Dieser Mac benötigt weder Verlängerung noch Verbindung. Abgedeckt sind Version %2$lld und alle zugehörigen Updates."}}}},
     "Licensed to %@.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Lizenziert für %@."}},"es":{"stringUnit":{"state":"translated","value":"Licencia de %@."}},"it":{"stringUnit":{"state":"translated","value":"Licenza di %@."}},"fr":{"stringUnit":{"state":"translated","value":"Licence de %@."}}}},
-    "Nothing was inserted: %@ has secure input enabled, which blocks dictation everywhere until it stops. Switching to it and clicking into an ordinary field usually clears it; quitting it always does. The text is here and was not copied.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Nichts wurde eingefügt: %@ hat die sichere Eingabe aktiviert. Wechsle dorthin und klicke in ein normales Feld oder beende die App. Der Text wurde nicht kopiert."}}}},
-    "Nothing was inserted: an application has secure input enabled, which blocks dictation everywhere until it stops. The text is here and was not copied.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Nichts wurde eingefügt: Eine App hat die sichere Eingabe aktiviert und blockiert damit das Diktieren. Der Text wurde nicht kopiert."}}}},
-    "Nothing was recorded yet — Witness is downloading the speech model%@. It happens once, and afterwards recognition runs entirely on this Mac. Hold %@ again when it is here; Witness will say so.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch nichts aufgenommen – Witness lädt das Sprachmodell%@. Dies geschieht einmalig, danach läuft die Erkennung vollständig auf diesem Mac. Halte %@ erneut gedrückt, sobald es bereit ist."}}}},
-    "Nothing was recorded yet — macOS is preparing the speech model for this Mac. It happens once per macOS version and takes a few minutes. Hold %@ again when it is here; Witness will say so.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch nichts aufgenommen – macOS bereitet das Sprachmodell für diesen Mac vor. Dies geschieht einmal pro macOS-Version und dauert einige Minuten. Halte %@ danach erneut gedrückt."}}}},
-    "Nothing was recorded yet — the speech model is loading. That takes seconds. Hold %@ again in a moment.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch nichts aufgenommen – das Sprachmodell wird geladen. Das dauert nur Sekunden. Halte %@ gleich erneut gedrückt."}}}},
-    "Nothing was recorded yet — the speech model is not on this Mac. The download has just started: about %@, once. The menu bar shows how far it has got and how long is left. Hold %@ again when it is here; Witness will say so.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch nichts aufgenommen – das Sprachmodell fehlt auf diesem Mac. Der einmalige Download von etwa %@ wurde gestartet. Die Menüleiste zeigt, wie weit er ist und wie lange es noch dauert. Halte %@ danach erneut gedrückt."}}}},
-    "Nothing was recorded — the speech model is not ready. %@ Witness is trying again; the menu bar icon shows how it is going.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Nichts aufgenommen – das Sprachmodell ist nicht bereit. %@ Witness versucht es erneut; den Fortschritt siehst du in der Menüleiste."}}}},
+    "Nothing was inserted: %@ has secure input enabled, which blocks dictation everywhere until it stops. Switching to it and clicking into an ordinary field usually clears it; quitting it always does. The text is here and was not copied.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Nichts wurde eingefügt: %@ hat die sichere Eingabe aktiviert. Wechsle dorthin und klicke in ein normales Feld oder beende die App. Der Text wurde nicht kopiert."}},"es":{"stringUnit":{"state":"translated","value":"No se ha insertado nada: %@ tiene activada la entrada segura, que bloquea el dictado en todas partes hasta que se desactive. Cambia a esa app y haz clic en un campo normal; normalmente basta, y cerrarla siempre lo soluciona. El texto está aquí y no se ha copiado."}},"it":{"stringUnit":{"state":"translated","value":"Non è stato inserito nulla: %@ ha attivato l’inserimento sicuro, che blocca la dettatura ovunque finché non viene disattivato. Passa a quell’app e fai clic in un campo normale; di solito basta, mentre chiuderla risolve sempre il problema. Il testo è qui e non è stato copiato."}},"fr":{"stringUnit":{"state":"translated","value":"Rien n’a été inséré : %@ a activé la saisie sécurisée, ce qui bloque la dictée partout jusqu’à sa désactivation. Passez à cette app et cliquez dans un champ ordinaire ; cela suffit généralement, et la quitter résout toujours le problème. Le texte est ici et n’a pas été copié."}}}},
+    "Nothing was inserted: an application has secure input enabled, which blocks dictation everywhere until it stops. The text is here and was not copied.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Nichts wurde eingefügt: Eine App hat die sichere Eingabe aktiviert und blockiert damit das Diktieren. Der Text wurde nicht kopiert."}},"es":{"stringUnit":{"state":"translated","value":"No se ha insertado nada: una aplicación tiene activada la entrada segura, que bloquea el dictado en todas partes hasta que se desactive. El texto está aquí y no se ha copiado."}},"it":{"stringUnit":{"state":"translated","value":"Non è stato inserito nulla: un’applicazione ha attivato l’inserimento sicuro, che blocca la dettatura ovunque finché non viene disattivato. Il testo è qui e non è stato copiato."}},"fr":{"stringUnit":{"state":"translated","value":"Rien n’a été inséré : une application a activé la saisie sécurisée, ce qui bloque la dictée partout jusqu’à sa désactivation. Le texte est ici et n’a pas été copié."}}}},
+    "Nothing was recorded yet — Witness is downloading the speech model%@. It happens once, and afterwards recognition runs entirely on this Mac. Hold %@ again when it is here; Witness will say so.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch nichts aufgenommen – Witness lädt das Sprachmodell%@. Dies geschieht einmalig, danach läuft die Erkennung vollständig auf diesem Mac. Halte %@ erneut gedrückt, sobald es bereit ist."}},"es":{"stringUnit":{"state":"translated","value":"Todavía no se ha grabado nada: Witness está descargando el modelo de voz%@. Solo ocurre una vez; después, el reconocimiento se ejecuta por completo en este Mac. Vuelve a mantener pulsado %@ cuando termine; Witness te avisará."}},"it":{"stringUnit":{"state":"translated","value":"Non è stato ancora registrato nulla: Witness sta scaricando il modello vocale%@. Succede una sola volta; in seguito il riconoscimento avviene interamente su questo Mac. Tieni di nuovo premuto %@ quando sarà pronto; Witness ti avviserà."}},"fr":{"stringUnit":{"state":"translated","value":"Rien n’a encore été enregistré : Witness télécharge le modèle vocal%@. Cette opération n’a lieu qu’une fois ; la reconnaissance s’effectuera ensuite entièrement sur ce Mac. Maintenez de nouveau %@ enfoncé lorsqu’il sera prêt ; Witness vous préviendra."}}}},
+    "Nothing was recorded yet — macOS is preparing the speech model for this Mac. It happens once per macOS version and takes a few minutes. Hold %@ again when it is here; Witness will say so.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch nichts aufgenommen – macOS bereitet das Sprachmodell für diesen Mac vor. Dies geschieht einmal pro macOS-Version und dauert einige Minuten. Halte %@ danach erneut gedrückt."}},"es":{"stringUnit":{"state":"translated","value":"Todavía no se ha grabado nada: macOS está preparando el modelo de voz para este Mac. Ocurre una vez por versión de macOS y tarda unos minutos. Vuelve a mantener pulsado %@ cuando termine; Witness te avisará."}},"it":{"stringUnit":{"state":"translated","value":"Non è stato ancora registrato nulla: macOS sta preparando il modello vocale per questo Mac. Succede una volta per ogni versione di macOS e richiede alcuni minuti. Tieni di nuovo premuto %@ quando sarà pronto; Witness ti avviserà."}},"fr":{"stringUnit":{"state":"translated","value":"Rien n’a encore été enregistré : macOS prépare le modèle vocal pour ce Mac. Cette opération a lieu une fois par version de macOS et prend quelques minutes. Maintenez de nouveau %@ enfoncé lorsqu’il sera prêt ; Witness vous préviendra."}}}},
+    "Nothing was recorded yet — the speech model is loading. That takes seconds. Hold %@ again in a moment.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch nichts aufgenommen – das Sprachmodell wird geladen. Das dauert nur Sekunden. Halte %@ gleich erneut gedrückt."}},"es":{"stringUnit":{"state":"translated","value":"Todavía no se ha grabado nada: el modelo de voz se está cargando. Tardará unos segundos. Vuelve a mantener pulsado %@ dentro de un momento."}},"it":{"stringUnit":{"state":"translated","value":"Non è stato ancora registrato nulla: il modello vocale si sta caricando. Richiede pochi secondi. Tra un momento tieni di nuovo premuto %@."}},"fr":{"stringUnit":{"state":"translated","value":"Rien n’a encore été enregistré : le modèle vocal est en cours de chargement. Cela prend quelques secondes. Maintenez de nouveau %@ enfoncé dans un instant."}}}},
+    "Nothing was recorded yet — the speech model is not on this Mac. The download has just started: about %@, once. The menu bar shows how far it has got and how long is left. Hold %@ again when it is here; Witness will say so.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch nichts aufgenommen – das Sprachmodell fehlt auf diesem Mac. Der einmalige Download von etwa %@ wurde gestartet. Die Menüleiste zeigt, wie weit er ist und wie lange es noch dauert. Halte %@ danach erneut gedrückt."}},"es":{"stringUnit":{"state":"translated","value":"Todavía no se ha grabado nada: el modelo de voz no está en este Mac. La descarga acaba de empezar: unos %@, una sola vez. La barra de menús muestra el progreso y el tiempo restante. Vuelve a mantener pulsado %@ cuando termine; Witness te avisará."}},"it":{"stringUnit":{"state":"translated","value":"Non è stato ancora registrato nulla: il modello vocale non è presente su questo Mac. Il download è appena iniziato: circa %@, una sola volta. La barra dei menu mostra l’avanzamento e il tempo restante. Tieni di nuovo premuto %@ quando sarà pronto; Witness ti avviserà."}},"fr":{"stringUnit":{"state":"translated","value":"Rien n’a encore été enregistré : le modèle vocal n’est pas présent sur ce Mac. Le téléchargement vient de commencer : environ %@, une seule fois. La barre des menus indique la progression et le temps restant. Maintenez de nouveau %@ enfoncé lorsqu’il sera prêt ; Witness vous préviendra."}}}},
+    "Nothing was recorded — the speech model is not ready. %@ Witness is trying again; the menu bar icon shows how it is going.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Nichts aufgenommen – das Sprachmodell ist nicht bereit. %@ Witness versucht es erneut; den Fortschritt siehst du in der Menüleiste."}},"es":{"stringUnit":{"state":"translated","value":"No se ha grabado nada: el modelo de voz no está listo. %@ Witness lo está intentando de nuevo; el icono de la barra de menús muestra el progreso."}},"it":{"stringUnit":{"state":"translated","value":"Non è stato registrato nulla: il modello vocale non è pronto. %@ Witness sta riprovando; l’icona nella barra dei menu mostra l’avanzamento."}},"fr":{"stringUnit":{"state":"translated","value":"Rien n’a été enregistré : le modèle vocal n’est pas prêt. %@ Witness réessaie ; l’icône de la barre des menus indique la progression."}}}},
     "That key did not verify, so nothing was changed.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Schlüssel konnte nicht bestätigt werden. Es wurde nichts geändert."}}}},
     "That key was issued for a different Mac, so nothing was changed.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Schlüssel wurde für einen anderen Mac ausgestellt. Es wurde nichts geändert."}}}},
     "That request was missing the Mac or the key it belongs to.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"In der Anfrage fehlte der Mac oder der zugehörige Schlüssel."}}}},
     "The activation service has no record of that key.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Aktivierungsdienst kennt diesen Schlüssel nicht."}}}},
     "The activation service refused this request (%lld). Paste a key from your email instead, or write to support.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Aktivierungsdienst hat die Anfrage abgelehnt (%lld). Füge stattdessen einen Schlüssel aus deiner E-Mail ein oder kontaktiere den Support."}}}},
-    "The microphone was open for %1$@ and never picked up speech (peak level %2$@). Check that %3$@ is what you are speaking into, and that it is not muted.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Mikrofon war %1$@ geöffnet, hat aber keine Sprache erkannt (Spitzenpegel %2$@). Prüfe, ob du in %3$@ sprichst und ob es nicht stummgeschaltet ist."}}}},
+    "The microphone was open for %1$@ and never picked up speech (peak level %2$@). Check that %3$@ is what you are speaking into, and that it is not muted.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Mikrofon war %1$@ geöffnet, hat aber keine Sprache erkannt (Spitzenpegel %2$@). Prüfe, ob du in %3$@ sprichst und ob es nicht stummgeschaltet ist."}},"es":{"stringUnit":{"state":"translated","value":"El micrófono estuvo abierto durante %1$@ y no detectó voz (nivel máximo %2$@). Comprueba que %3$@ sea el dispositivo al que estás hablando y que no esté silenciado."}},"it":{"stringUnit":{"state":"translated","value":"Il microfono è rimasto aperto per %1$@ senza rilevare la voce (livello di picco %2$@). Verifica che %3$@ sia il dispositivo in cui stai parlando e che non sia disattivato."}},"fr":{"stringUnit":{"state":"translated","value":"Le microphone est resté ouvert pendant %1$@ sans détecter de parole (niveau de crête %2$@). Vérifiez que %3$@ est bien le périphérique dans lequel vous parlez et qu’il n’est pas coupé."}}}},
     "This build carries no license authority key, so it cannot check any license. It is a development build.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Diese Entwicklungs-Version enthält keinen öffentlichen Lizenzschlüssel und kann keine Lizenz prüfen."}}}},
     "This build has no activation service yet. Paste a key below instead — that path works offline and is what the app checks in either case.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Diese Version hat noch keinen Aktivierungsdienst. Füge unten einen Schlüssel ein; dies funktioniert offline."}},"es":{"stringUnit":{"state":"translated","value":"Esta compilación aún no tiene servicio de activación. Introduce una clave abajo; funciona sin conexión y es el mismo método que comprueba la app."}},"it":{"stringUnit":{"state":"translated","value":"Questa build non dispone ancora del servizio di attivazione. Incolla una chiave qui sotto: funziona offline ed è comunque il metodo verificato dall’app."}},"fr":{"stringUnit":{"state":"translated","value":"Cette version ne dispose pas encore du service d’activation. Collez plutôt une clé ci-dessous : cette méthode fonctionne hors ligne et reste celle que l’app vérifie."}}}},
     "This build has no activation service yet. Press “Enter a key…” and paste one instead — that path works offline and is what the app checks in either case.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Diese Version hat noch keinen Aktivierungsdienst. Wähle „Schlüssel eingeben …“ und füge einen Schlüssel ein; dies funktioniert offline."}},"es":{"stringUnit":{"state":"translated","value":"Esta compilación aún no tiene servicio de activación. Pulsa «Introducir una clave…» y pega una; funciona sin conexión y es el mismo método que comprueba la app."}},"it":{"stringUnit":{"state":"translated","value":"Questa build non dispone ancora del servizio di attivazione. Premi «Inserisci una chiave…» e incollane una: funziona offline ed è comunque il metodo verificato dall’app."}},"fr":{"stringUnit":{"state":"translated","value":"Cette version ne dispose pas encore du service d’activation. Appuyez sur « Saisir une clé… » et collez-en une : cette méthode fonctionne hors ligne et reste celle que l’app vérifie."}}}},
@@ -2267,7 +1694,7 @@
     "The shortcut is not registered, so the hotkey does nothing. Pick another combination.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Tastenkürzel ist nicht registriert und hat daher keine Wirkung. Wähle eine andere Kombination."}}}},
     "At least one of ⌘ ⌥ ⌃ ⇧ is required. A bare key would be taken away from every application on this Mac.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Mindestens eine der Tasten ⌘ ⌥ ⌃ ⇧ ist erforderlich. Eine einzelne Taste würde in allen Apps dieses Macs blockiert."}}}},
     "An app with no Dock icon is one nobody remembers to open, and a hotkey belonging to an app that is not running reads as a broken hotkey.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Eine App ohne Dock-Symbol wird leicht vergessen. Deshalb sollte Witness beim Anmelden starten, damit das Tastenkürzel immer funktioniert."}}}},
-    "Witness needs Accessibility access to put text into other applications. Without it, results go to the clipboard.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Witness benötigt Bedienungshilfen-Zugriff, um Text in andere Apps einzufügen. Ohne diesen Zugriff werden Ergebnisse in die Zwischenablage kopiert."}}}},
+    "Witness needs Accessibility access to put text into other applications. Without it, results go to the clipboard.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Witness benötigt Bedienungshilfen-Zugriff, um Text in andere Apps einzufügen. Ohne diesen Zugriff werden Ergebnisse in die Zwischenablage kopiert."}},"es":{"stringUnit":{"state":"translated","value":"Witness necesita acceso a Accesibilidad para insertar texto en otras aplicaciones. Sin este permiso, los resultados se copian al portapapeles."}},"it":{"stringUnit":{"state":"translated","value":"Witness ha bisogno dell’accesso ad Accessibilità per inserire il testo in altre applicazioni. Senza questa autorizzazione, i risultati vengono copiati negli appunti."}},"fr":{"stringUnit":{"state":"translated","value":"Witness a besoin de l’accès à Accessibilité pour insérer du texte dans d’autres applications. Sans cette autorisation, les résultats sont copiés dans le presse-papiers."}}}},
     "Checkout is not open yet. When it is, these buttons hand the purchase to Stripe in your browser — the app never sees a card number.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Checkout ist noch nicht geöffnet. Sobald er verfügbar ist, übergeben diese Tasten den Kauf im Browser an Stripe; die App sieht niemals eine Kartennummer."}},"es":{"stringUnit":{"state":"translated","value":"El pago aún no está disponible. Cuando lo esté, estos botones abrirán Stripe en tu navegador; la app nunca verá el número de tu tarjeta."}},"it":{"stringUnit":{"state":"translated","value":"Il pagamento non è ancora disponibile. Quando lo sarà, questi pulsanti apriranno Stripe nel browser; l’app non vedrà mai il numero della carta."}},"fr":{"stringUnit":{"state":"translated","value":"Le paiement n’est pas encore disponible. Lorsqu’il le sera, ces boutons ouvriront Stripe dans votre navigateur ; l’app ne verra jamais votre numéro de carte."}}}},
     "Checkout is not open yet. When it is, these buttons open the payment page in your browser — the app never sees a card number, and the key still comes back here, to this Mac.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Checkout ist noch nicht geöffnet. Sobald er verfügbar ist, öffnen diese Tasten die Zahlungsseite im Browser. Die App sieht niemals eine Kartennummer; der Schlüssel gelangt direkt zurück auf diesen Mac."}},"es":{"stringUnit":{"state":"translated","value":"El pago aún no está disponible. Cuando lo esté, estos botones abrirán la página de pago en tu navegador; la app nunca verá el número de tu tarjeta y la clave volverá directamente a este Mac."}},"it":{"stringUnit":{"state":"translated","value":"Il pagamento non è ancora disponibile. Quando lo sarà, questi pulsanti apriranno la pagina di pagamento nel browser; l’app non vedrà mai il numero della carta e la chiave tornerà direttamente su questo Mac."}},"fr":{"stringUnit":{"state":"translated","value":"Le paiement n’est pas encore disponible. Lorsqu’il le sera, ces boutons ouvriront la page de paiement dans votre navigateur ; l’app ne verra jamais votre numéro de carte et la clé reviendra directement sur ce Mac."}}}},
     "The identifier is a one-way hash of this Mac's hardware UUID. It is what makes a license cover two Macs rather than any number of them, and it cannot be turned back into a serial number or matched against anything outside this app.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die Kennung ist ein nicht umkehrbarer Hash der Hardware-UUID dieses Macs. So kann eine Lizenz auf zwei Macs begrenzt werden. Die Kennung lässt sich weder in eine Seriennummer zurückverwandeln noch außerhalb dieser App abgleichen."}},"es":{"stringUnit":{"state":"translated","value":"El identificador es un hash unidireccional del UUID de hardware de este Mac. Permite limitar la licencia a dos Mac; no puede convertirse de nuevo en un número de serie ni vincularse con nada fuera de esta app."}},"it":{"stringUnit":{"state":"translated","value":"L’identificatore è un hash unidirezionale dell’UUID hardware di questo Mac. Consente di limitare la licenza a due Mac; non può essere riconvertito in un numero di serie né associato a elementi esterni all’app."}},"fr":{"stringUnit":{"state":"translated","value":"L’identifiant est un hachage à sens unique de l’UUID matériel de ce Mac. Il permet de limiter la licence à deux Mac ; il ne peut pas être reconverti en numéro de série ni associé à quoi que ce soit en dehors de l’app."}}}},
