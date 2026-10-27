@@ -21,7 +21,17 @@ struct CaptureFormatDescription: Sendable, Equatable {
     }
 
     var outputDescription: String {
-        "\(Int(outputSampleRate.rounded())) Hz · \(outputChannelCount == 1 ? "mono" : "\(outputChannelCount) ch") · Float32"
+        if outputChannelCount == 1 {
+            return L10n.format(
+                "%1$lld Hz · mono · Float32",
+                Int64(outputSampleRate.rounded())
+            )
+        }
+        return L10n.format(
+            "%1$lld Hz · %2$lld ch · Float32",
+            Int64(outputSampleRate.rounded()),
+            Int64(outputChannelCount)
+        )
     }
 }
 

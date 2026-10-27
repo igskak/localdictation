@@ -30,7 +30,7 @@ struct SettingsView: View {
                 LanguagesView()
                     .tabItem { Label("Languages", systemImage: "globe") }
 
-                boundaryTab
+                BoundarySettingsView()
                     .tabItem { Label("Boundary", systemImage: "waveform") }
 
                 GlossaryView()
@@ -242,7 +242,12 @@ struct SettingsView: View {
         availableAudioInputs = SystemAudioInput.availableInputDevices()
     }
 
-    private var boundaryTab: some View {
+}
+
+struct BoundarySettingsView: View {
+    @EnvironmentObject private var coordinator: DictationCoordinator
+
+    var body: some View {
         Form {
             Section("Voice activity thresholds") {
                 LabeledContent("Speech threshold (RMS)") {
@@ -259,7 +264,7 @@ struct SettingsView: View {
                 }
                 LabeledContent(
                     "Current",
-                    value: String(format: "%.3f", coordinator.configuration.voiceActivity.speechThreshold)
+                    value: L10n.format("%.3f", coordinator.configuration.voiceActivity.speechThreshold)
                 )
 
                 LabeledContent("Silence threshold (RMS)") {
@@ -270,7 +275,7 @@ struct SettingsView: View {
                 }
                 LabeledContent(
                     "Current",
-                    value: String(format: "%.3f", coordinator.configuration.voiceActivity.silenceThreshold)
+                    value: L10n.format("%.3f", coordinator.configuration.voiceActivity.silenceThreshold)
                 )
             }
 
@@ -283,7 +288,7 @@ struct SettingsView: View {
                 }
                 LabeledContent(
                     "Current",
-                    value: String(format: "%.1f s", coordinator.configuration.voiceActivity.trailingSilenceDuration)
+                    value: L10n.format("%.1f s", coordinator.configuration.voiceActivity.trailingSilenceDuration)
                 )
 
                 LabeledContent("Maximum utterance") {
@@ -294,11 +299,14 @@ struct SettingsView: View {
                 }
                 LabeledContent(
                     "Current",
-                    value: String(format: "%.0f s", coordinator.configuration.voiceActivity.maximumUtteranceDuration)
+                    value: L10n.format("%.0f s", coordinator.configuration.voiceActivity.maximumUtteranceDuration)
                 )
                 LabeledContent(
                     "Buffer capacity",
-                    value: "\(coordinator.configuration.bufferCapacityFrames) frames"
+                    value: L10n.format(
+                        "%lld frames",
+                        Int64(coordinator.configuration.bufferCapacityFrames)
+                    )
                 )
             }
 
@@ -321,40 +329,51 @@ struct DiagnosticsView: View {
         Form {
             Section("Input") {
                 LabeledContent("Device", value: coordinator.diagnostics.format?.inputDescription ?? L10n.string("Not opened yet"))
-                LabeledContent("Normalized output", value: coordinator.diagnostics.format?.outputDescription ?? "16000 Hz · mono · Float32")
+                LabeledContent(
+                    "Normalized output",
+                    value: coordinator.diagnostics.format?.outputDescription
+                        ?? L10n.format("%1$lld Hz · mono · Float32", Int64(AudioTargetFormat.sampleRate))
+                )
             }
 
             Section("Current buffer") {
                 let snapshot = coordinator.diagnostics.snapshot
-                LabeledContent("Duration", value: String(format: "%.2f s", snapshot.duration))
-                LabeledContent("Frames", value: "\(snapshot.frameCount) / \(snapshot.capacityFrames)")
-                LabeledContent("Utilization", value: String(format: "%.1f %%", snapshot.utilization * 100))
-                LabeledContent("Peak level", value: String(format: "%.3f", snapshot.peakLevel))
-                LabeledContent("Dropped frames", value: "\(snapshot.droppedFrameCount)")
+                LabeledContent("Duration", value: L10n.format("%.2f s", snapshot.duration))
+                LabeledContent(
+                    "Frames",
+                    value: L10n.format(
+                        "%1$lld / %2$lld",
+                        Int64(snapshot.frameCount),
+                        Int64(snapshot.capacityFrames)
+                    )
+                )
+                LabeledContent("Utilization", value: L10n.format("%.1f %%", snapshot.utilization * 100))
+                LabeledContent("Peak level", value: L10n.format("%.3f", snapshot.peakLevel))
+                LabeledContent("Dropped frames", value: L10n.format("%lld", Int64(snapshot.droppedFrameCount)))
                 LabeledContent("Voice activity", value: snapshot.voiceActivity.state.label)
-                LabeledContent("Speech start", value: snapshot.voiceActivity.speechStart.map { String(format: "%.2f s", $0) } ?? "—")
-                LabeledContent("Trailing silence", value: String(format: "%.2f s", snapshot.voiceActivity.trailingSilence))
+                LabeledContent("Speech start", value: snapshot.voiceActivity.speechStart.map { L10n.format("%.2f s", $0) } ?? "—")
+                LabeledContent("Trailing silence", value: L10n.format("%.2f s", snapshot.voiceActivity.trailingSilence))
             }
 
             if let summary = coordinator.diagnostics.lastUtterance {
                 Section("Last utterance") {
-                    LabeledContent("Duration", value: String(format: "%.2f s", summary.duration))
-                    LabeledContent("Frames", value: "\(summary.frameCount)")
-                    LabeledContent("Sample rate", value: "\(Int(summary.sampleRate)) Hz")
-                    LabeledContent("Peak level", value: String(format: "%.3f", summary.peakLevel))
-                    LabeledContent("Dropped frames", value: "\(summary.droppedFrameCount)")
-                    LabeledContent("End reason", value: summary.endReason.rawValue)
+                    LabeledContent("Duration", value: L10n.format("%.2f s", summary.duration))
+                    LabeledContent("Frames", value: L10n.format("%lld", Int64(summary.frameCount)))
+                    LabeledContent("Sample rate", value: L10n.format("%lld Hz", Int64(summary.sampleRate.rounded())))
+                    LabeledContent("Peak level", value: L10n.format("%.3f", summary.peakLevel))
+                    LabeledContent("Dropped frames", value: L10n.format("%lld", Int64(summary.droppedFrameCount)))
+                    LabeledContent("End reason", value: summary.endReason.label)
                 }
             }
 
             if let risk = coordinator.diagnostics.lastRisk {
                 Section("Last result") {
-                    LabeledContent("Cleanup edits", value: "\(risk.editCount)")
+                    LabeledContent("Cleanup edits", value: L10n.format("%lld", Int64(risk.editCount)))
                     LabeledContent("Edit kinds", value: risk.editKinds.isEmpty ? "\u{2014}" : risk.editKinds.joined(separator: ", "))
-                    LabeledContent("Risk spans", value: "\(risk.spanCount)")
-                    LabeledContent("Flagged", value: "\(risk.flaggedSpanCount)")
+                    LabeledContent("Risk spans", value: L10n.format("%lld", Int64(risk.spanCount)))
+                    LabeledContent("Flagged", value: L10n.format("%lld", Int64(risk.flaggedSpanCount)))
                     LabeledContent("Signals", value: risk.spanCategories.isEmpty ? "\u{2014}" : risk.spanCategories.joined(separator: ", "))
-                    LabeledContent("Highest weight", value: String(format: "%.2f", risk.maximumWeight))
+                    LabeledContent("Highest weight", value: L10n.format("%.2f", risk.maximumWeight))
                     LabeledContent("Attention", value: L10n.string(risk.deservesAttention ? "Offered" : "None"))
                 }
 
@@ -367,7 +386,10 @@ struct DiagnosticsView: View {
                 }
 
                 Section("Audio lifetime") {
-                    LabeledContent("Retained frames", value: "\(coordinator.retainedAudioFrameCount)")
+                    LabeledContent(
+                        "Retained frames",
+                        value: L10n.format("%lld", Int64(coordinator.retainedAudioFrameCount))
+                    )
                     Text("A recording is held only while a review can still use it. Zero here means the app is no longer holding the last utterance.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -406,7 +428,7 @@ struct DiagnosticsView: View {
         guard let data = coordinator.makeDebugWAVData() else { return }
 
         let panel = NSSavePanel()
-        panel.title = "Export last utterance"
+        panel.title = L10n.string("Export last utterance")
         panel.nameFieldStringValue = "localdictation-utterance.wav"
         panel.allowedContentTypes = [UTType.wav]
         panel.canCreateDirectories = true

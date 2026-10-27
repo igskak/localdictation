@@ -94,12 +94,16 @@ Completed on the branch based on released `v0.6.21`:
   now has 316 complete ES/IT/FR catalog entries.
 - Added localized settings-window layout passes and an explicit VoiceOver label
   for the dictionary term removal control.
+- Localized Boundary and Diagnostics, including locale-aware displayed numbers,
+  audio format summaries, and human-readable capture end reasons. Their tabs
+  now have dedicated ES/IT/FR layout passes, and the app has 374 complete
+  ES/IT/FR catalog entries.
 
 Still to do before the app itself can advertise complete localization:
 
-- Localize Boundary and Diagnostics settings, the full review panel, updater,
-  and all remaining service error paths.
-- Use locale-aware number, date, currency, and plural formatting. Keep stable
+- Localize the full review panel, updater, and all remaining service error
+  paths.
+- Finish locale-aware date, currency, and plural formatting. Keep stable
   telemetry event names, file keys, language codes, and licence payloads
   untranslated.
 - Add layout snapshots for the longest strings and VoiceOver labels. Native

@@ -250,339 +250,42 @@
     "Review": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Überprüfung"}},"es":{"stringUnit":{"state":"translated","value":"Revisión"}},"it":{"stringUnit":{"state":"translated","value":"Verifica"}},"fr":{"stringUnit":{"state":"translated","value":"Vérification"}}}},
     "Phase": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Phase"}},"es":{"stringUnit":{"state":"translated","value":"Fase"}},"it":{"stringUnit":{"state":"translated","value":"Fase"}},"fr":{"stringUnit":{"state":"translated","value":"Phase"}}}},
     "Settings file": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Einstellungsdatei"}},"es":{"stringUnit":{"state":"translated","value":"Archivo de ajustes"}},"it":{"stringUnit":{"state":"translated","value":"File delle impostazioni"}},"fr":{"stringUnit":{"state":"translated","value":"Fichier de réglages"}}}},
-    "Voice activity thresholds": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Schwellenwerte der Sprachaktivität"
-          }
-        }
-      }
-    },
-    "Speech threshold (RMS)": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sprachschwelle (RMS)"
-          }
-        }
-      }
-    },
-    "Silence threshold (RMS)": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Stille-Schwelle (RMS)"
-          }
-        }
-      }
-    },
-    "Boundaries": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Grenzen"
-          }
-        }
-      }
-    },
+    "Voice activity thresholds": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Schwellenwerte der Sprachaktivität"}},"es":{"stringUnit":{"state":"translated","value":"Umbrales de actividad de voz"}},"it":{"stringUnit":{"state":"translated","value":"Soglie dell’attività vocale"}},"fr":{"stringUnit":{"state":"translated","value":"Seuils d’activité vocale"}}}},
+    "Speech threshold (RMS)": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sprachschwelle (RMS)"}},"es":{"stringUnit":{"state":"translated","value":"Umbral de habla (RMS)"}},"it":{"stringUnit":{"state":"translated","value":"Soglia del parlato (RMS)"}},"fr":{"stringUnit":{"state":"translated","value":"Seuil de parole (RMS)"}}}},
+    "Silence threshold (RMS)": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Stille-Schwelle (RMS)"}},"es":{"stringUnit":{"state":"translated","value":"Umbral de silencio (RMS)"}},"it":{"stringUnit":{"state":"translated","value":"Soglia del silenzio (RMS)"}},"fr":{"stringUnit":{"state":"translated","value":"Seuil de silence (RMS)"}}}},
+    "Boundaries": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Grenzen"}},"es":{"stringUnit":{"state":"translated","value":"Límites"}},"it":{"stringUnit":{"state":"translated","value":"Limiti"}},"fr":{"stringUnit":{"state":"translated","value":"Limites"}}}},
     "Trailing silence": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Stille am Ende"}},"es":{"stringUnit":{"state":"translated","value":"Silencio final"}},"it":{"stringUnit":{"state":"translated","value":"Silenzio finale"}},"fr":{"stringUnit":{"state":"translated","value":"Silence final"}}}},
-    "Maximum utterance": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Maximale Äußerung"
-          }
-        }
-      }
-    },
-    "Input": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Eingang"
-          }
-        }
-      }
-    },
-    "Device": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gerät"
-          }
-        }
-      }
-    },
-    "Normalized output": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Normalisierte Ausgabe"
-          }
-        }
-      }
-    },
-    "Current buffer": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aktueller Puffer"
-          }
-        }
-      }
-    },
-    "Duration": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dauer"
-          }
-        }
-      }
-    },
-    "Frames": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Frames"
-          }
-        }
-      }
-    },
-    "Utilization": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Auslastung"
-          }
-        }
-      }
-    },
-    "Peak level": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Spitzenpegel"
-          }
-        }
-      }
-    },
-    "Dropped frames": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Verworfene Frames"
-          }
-        }
-      }
-    },
-    "Voice activity": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sprachaktivität"
-          }
-        }
-      }
-    },
-    "Speech start": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sprachbeginn"
-          }
-        }
-      }
-    },
+    "Maximum utterance": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Maximale Äußerung"}},"es":{"stringUnit":{"state":"translated","value":"Duración máxima de la grabación"}},"it":{"stringUnit":{"state":"translated","value":"Durata massima della registrazione"}},"fr":{"stringUnit":{"state":"translated","value":"Durée maximale de l’enregistrement"}}}},
+    "Input": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Eingang"}},"es":{"stringUnit":{"state":"translated","value":"Entrada"}},"it":{"stringUnit":{"state":"translated","value":"Ingresso"}},"fr":{"stringUnit":{"state":"translated","value":"Entrée"}}}},
+    "Device": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Gerät"}},"es":{"stringUnit":{"state":"translated","value":"Dispositivo"}},"it":{"stringUnit":{"state":"translated","value":"Dispositivo"}},"fr":{"stringUnit":{"state":"translated","value":"Appareil"}}}},
+    "Normalized output": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Normalisierte Ausgabe"}},"es":{"stringUnit":{"state":"translated","value":"Salida normalizada"}},"it":{"stringUnit":{"state":"translated","value":"Uscita normalizzata"}},"fr":{"stringUnit":{"state":"translated","value":"Sortie normalisée"}}}},
+    "Current buffer": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Aktueller Puffer"}},"es":{"stringUnit":{"state":"translated","value":"Búfer actual"}},"it":{"stringUnit":{"state":"translated","value":"Buffer corrente"}},"fr":{"stringUnit":{"state":"translated","value":"Tampon actuel"}}}},
+    "Duration": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Dauer"}},"es":{"stringUnit":{"state":"translated","value":"Duración"}},"it":{"stringUnit":{"state":"translated","value":"Durata"}},"fr":{"stringUnit":{"state":"translated","value":"Durée"}}}},
+    "Frames": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Frames"}},"es":{"stringUnit":{"state":"translated","value":"Tramas"}},"it":{"stringUnit":{"state":"translated","value":"Frame"}},"fr":{"stringUnit":{"state":"translated","value":"Trames"}}}},
+    "Utilization": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Auslastung"}},"es":{"stringUnit":{"state":"translated","value":"Uso"}},"it":{"stringUnit":{"state":"translated","value":"Utilizzo"}},"fr":{"stringUnit":{"state":"translated","value":"Utilisation"}}}},
+    "Peak level": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Spitzenpegel"}},"es":{"stringUnit":{"state":"translated","value":"Nivel máximo"}},"it":{"stringUnit":{"state":"translated","value":"Livello di picco"}},"fr":{"stringUnit":{"state":"translated","value":"Niveau de crête"}}}},
+    "Dropped frames": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Verworfene Frames"}},"es":{"stringUnit":{"state":"translated","value":"Tramas descartadas"}},"it":{"stringUnit":{"state":"translated","value":"Frame scartati"}},"fr":{"stringUnit":{"state":"translated","value":"Trames perdues"}}}},
+    "Voice activity": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sprachaktivität"}},"es":{"stringUnit":{"state":"translated","value":"Actividad de voz"}},"it":{"stringUnit":{"state":"translated","value":"Attività vocale"}},"fr":{"stringUnit":{"state":"translated","value":"Activité vocale"}}}},
+    "Speech start": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sprachbeginn"}},"es":{"stringUnit":{"state":"translated","value":"Inicio del habla"}},"it":{"stringUnit":{"state":"translated","value":"Inizio del parlato"}},"fr":{"stringUnit":{"state":"translated","value":"Début de la parole"}}}},
     "Last utterance": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Letzte Äußerung"}},"es":{"stringUnit":{"state":"translated","value":"Última frase"}},"it":{"stringUnit":{"state":"translated","value":"Ultima frase"}},"fr":{"stringUnit":{"state":"translated","value":"Dernier énoncé"}}}},
-    "Sample rate": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Abtastrate"
-          }
-        }
-      }
-    },
-    "End reason": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Endgrund"
-          }
-        }
-      }
-    },
-    "Last result": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Letztes Ergebnis"
-          }
-        }
-      }
-    },
-    "Cleanup edits": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bereinigungen"
-          }
-        }
-      }
-    },
-    "Edit kinds": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bearbeitungsarten"
-          }
-        }
-      }
-    },
-    "Risk spans": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Risikostellen"
-          }
-        }
-      }
-    },
-    "Flagged": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Markiert"
-          }
-        }
-      }
-    },
-    "Signals": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Signale"
-          }
-        }
-      }
-    },
-    "Highest weight": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Höchste Gewichtung"
-          }
-        }
-      }
-    },
-    "Attention": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aufmerksamkeit"
-          }
-        }
-      }
-    },
-    "Last insertion": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Letztes Einfügen"
-          }
-        }
-      }
-    },
-    "Outcome": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ergebnis"
-          }
-        }
-      }
-    },
-    "Target": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ziel"
-          }
-        }
-      }
-    },
-    "Audio lifetime": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Audio-Lebensdauer"
-          }
-        }
-      }
-    },
-    "Retained frames": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Behaltene Frames"
-          }
-        }
-      }
-    },
+    "Sample rate": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Abtastrate"}},"es":{"stringUnit":{"state":"translated","value":"Frecuencia de muestreo"}},"it":{"stringUnit":{"state":"translated","value":"Frequenza di campionamento"}},"fr":{"stringUnit":{"state":"translated","value":"Fréquence d’échantillonnage"}}}},
+    "End reason": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Endgrund"}},"es":{"stringUnit":{"state":"translated","value":"Motivo de finalización"}},"it":{"stringUnit":{"state":"translated","value":"Motivo dell’arresto"}},"fr":{"stringUnit":{"state":"translated","value":"Raison de l’arrêt"}}}},
+    "Last result": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Letztes Ergebnis"}},"es":{"stringUnit":{"state":"translated","value":"Último resultado"}},"it":{"stringUnit":{"state":"translated","value":"Ultimo risultato"}},"fr":{"stringUnit":{"state":"translated","value":"Dernier résultat"}}}},
+    "Cleanup edits": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Bereinigungen"}},"es":{"stringUnit":{"state":"translated","value":"Ediciones de limpieza"}},"it":{"stringUnit":{"state":"translated","value":"Modifiche di pulizia"}},"fr":{"stringUnit":{"state":"translated","value":"Modifications de nettoyage"}}}},
+    "Edit kinds": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Bearbeitungsarten"}},"es":{"stringUnit":{"state":"translated","value":"Tipos de edición"}},"it":{"stringUnit":{"state":"translated","value":"Tipi di modifica"}},"fr":{"stringUnit":{"state":"translated","value":"Types de modification"}}}},
+    "Risk spans": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Risikostellen"}},"es":{"stringUnit":{"state":"translated","value":"Fragmentos de riesgo"}},"it":{"stringUnit":{"state":"translated","value":"Intervalli a rischio"}},"fr":{"stringUnit":{"state":"translated","value":"Segments à risque"}}}},
+    "Flagged": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Markiert"}},"es":{"stringUnit":{"state":"translated","value":"Marcados"}},"it":{"stringUnit":{"state":"translated","value":"Contrassegnalati"}},"fr":{"stringUnit":{"state":"translated","value":"Signalés"}}}},
+    "Signals": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Signale"}},"es":{"stringUnit":{"state":"translated","value":"Señales"}},"it":{"stringUnit":{"state":"translated","value":"Segnali"}},"fr":{"stringUnit":{"state":"translated","value":"Signaux"}}}},
+    "Highest weight": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Höchste Gewichtung"}},"es":{"stringUnit":{"state":"translated","value":"Peso máximo"}},"it":{"stringUnit":{"state":"translated","value":"Peso massimo"}},"fr":{"stringUnit":{"state":"translated","value":"Poids maximal"}}}},
+    "Attention": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Aufmerksamkeit"}},"es":{"stringUnit":{"state":"translated","value":"Atención"}},"it":{"stringUnit":{"state":"translated","value":"Attenzione"}},"fr":{"stringUnit":{"state":"translated","value":"Attention"}}}},
+    "Last insertion": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Letztes Einfügen"}},"es":{"stringUnit":{"state":"translated","value":"Última inserción"}},"it":{"stringUnit":{"state":"translated","value":"Ultimo inserimento"}},"fr":{"stringUnit":{"state":"translated","value":"Dernière insertion"}}}},
+    "Outcome": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Ergebnis"}},"es":{"stringUnit":{"state":"translated","value":"Resultado"}},"it":{"stringUnit":{"state":"translated","value":"Esito"}},"fr":{"stringUnit":{"state":"translated","value":"Résultat"}}}},
+    "Target": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Ziel"}},"es":{"stringUnit":{"state":"translated","value":"Destino"}},"it":{"stringUnit":{"state":"translated","value":"Destinazione"}},"fr":{"stringUnit":{"state":"translated","value":"Cible"}}}},
+    "Audio lifetime": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Audio-Lebensdauer"}},"es":{"stringUnit":{"state":"translated","value":"Permanencia del audio"}},"it":{"stringUnit":{"state":"translated","value":"Durata di conservazione dell’audio"}},"fr":{"stringUnit":{"state":"translated","value":"Durée de conservation de l’audio"}}}},
+    "Retained frames": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Behaltene Frames"}},"es":{"stringUnit":{"state":"translated","value":"Tramas conservadas"}},"it":{"stringUnit":{"state":"translated","value":"Frame conservati"}},"fr":{"stringUnit":{"state":"translated","value":"Trames conservées"}}}},
     "Last error": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Letzter Fehler"}},"es":{"stringUnit":{"state":"translated","value":"Último error"}},"it":{"stringUnit":{"state":"translated","value":"Ultimo errore"}},"fr":{"stringUnit":{"state":"translated","value":"Dernière erreur"}}}},
-    "Debug export": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Debug-Export"
-          }
-        }
-      }
-    },
-    "Export last utterance as WAV…": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Letzte Äußerung als WAV exportieren …"
-          }
-        }
-      }
-    },
+    "Debug export": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Debug-Export"}},"es":{"stringUnit":{"state":"translated","value":"Exportación de depuración"}},"it":{"stringUnit":{"state":"translated","value":"Esportazione di debug"}},"fr":{"stringUnit":{"state":"translated","value":"Exportation de débogage"}}}},
+    "Export last utterance as WAV…": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Letzte Äußerung als WAV exportieren …"}},"es":{"stringUnit":{"state":"translated","value":"Exportar la última grabación como WAV…"}},"it":{"stringUnit":{"state":"translated","value":"Esporta l’ultima registrazione come WAV…"}},"fr":{"stringUnit":{"state":"translated","value":"Exporter le dernier enregistrement au format WAV…"}}}},
     "Add a term": {
       "localizations": {
         "de": {
@@ -1183,36 +886,9 @@
     },
     "Not granted": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Nicht gewährt"}},"es":{"stringUnit":{"state":"translated","value":"No concedido"}},"it":{"stringUnit":{"state":"translated","value":"Non concesso"}},"fr":{"stringUnit":{"state":"translated","value":"Non accordé"}}}},
     "Granted": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Gewährt"}},"es":{"stringUnit":{"state":"translated","value":"Concedido"}},"it":{"stringUnit":{"state":"translated","value":"Concesso"}},"fr":{"stringUnit":{"state":"translated","value":"Accordé"}}}},
-    "Not opened yet": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Noch nicht geöffnet"
-          }
-        }
-      }
-    },
-    "Offered": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Angeboten"
-          }
-        }
-      }
-    },
-    "None": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Keine"
-          }
-        }
-      }
-    },
+    "Not opened yet": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch nicht geöffnet"}},"es":{"stringUnit":{"state":"translated","value":"Aún no se ha abierto"}},"it":{"stringUnit":{"state":"translated","value":"Non ancora aperto"}},"fr":{"stringUnit":{"state":"translated","value":"Pas encore ouvert"}}}},
+    "Offered": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Angeboten"}},"es":{"stringUnit":{"state":"translated","value":"Ofrecida"}},"it":{"stringUnit":{"state":"translated","value":"Proposta"}},"fr":{"stringUnit":{"state":"translated","value":"Proposée"}}}},
+    "None": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Keine"}},"es":{"stringUnit":{"state":"translated","value":"Ninguna"}},"it":{"stringUnit":{"state":"translated","value":"Nessuna"}},"fr":{"stringUnit":{"state":"translated","value":"Aucune"}}}},
     "Press a combination…": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Tastenkombination drücken …"}},"es":{"stringUnit":{"state":"translated","value":"Pulsa una combinación…"}},"it":{"stringUnit":{"state":"translated","value":"Premi una combinazione…"}},"fr":{"stringUnit":{"state":"translated","value":"Appuyez sur une combinaison…"}}}},
     "%1$@ cannot be used: %2$@.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%1$@ kann nicht verwendet werden: %2$@."}},"es":{"stringUnit":{"state":"translated","value":"No se puede usar %1$@: %2$@."}},"it":{"stringUnit":{"state":"translated","value":"Impossibile usare %1$@: %2$@."}},"fr":{"stringUnit":{"state":"translated","value":"Impossible d’utiliser %1$@ : %2$@."}}}},
     "Send me a key": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Schlüssel anfordern"}},"es":{"stringUnit":{"state":"translated","value":"Enviarme una clave"}},"it":{"stringUnit":{"state":"translated","value":"Inviami una chiave"}},"fr":{"stringUnit":{"state":"translated","value":"Envoyer une clé"}}}},
@@ -1302,7 +978,7 @@
     "Release %@ to finish.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Lass %@ los, um die Aufnahme zu beenden."}},"es":{"stringUnit":{"state":"translated","value":"Suelta %@ para terminar."}},"it":{"stringUnit":{"state":"translated","value":"Rilascia %@ per terminare."}},"fr":{"stringUnit":{"state":"translated","value":"Relâchez %@ pour terminer."}}}},
     "Press %@ again to finish.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Drücke %@ erneut, um die Aufnahme zu beenden."}},"es":{"stringUnit":{"state":"translated","value":"Pulsa %@ de nuevo para terminar."}},"it":{"stringUnit":{"state":"translated","value":"Premi di nuovo %@ per terminare."}},"fr":{"stringUnit":{"state":"translated","value":"Appuyez de nouveau sur %@ pour terminer."}}}},
     "%1$@ left, until %2$@. %3$@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch %1$@, bis %2$@. %3$@"}},"es":{"stringUnit":{"state":"translated","value":"Quedan %1$@, hasta el %2$@. %3$@"}},"it":{"stringUnit":{"state":"translated","value":"Restano %1$@, fino al %2$@. %3$@"}},"fr":{"stringUnit":{"state":"translated","value":"Il reste %1$@, jusqu’au %2$@. %3$@"}}}},
-    "%1$@ · %2$lld Hz · %3$lld ch": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%1$@ · %2$lld Hz · %3$lld Kan."}}}},
+    "%1$@ · %2$lld Hz · %3$lld ch": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%1$@ · %2$lld Hz · %3$lld Kan."}},"es":{"stringUnit":{"state":"translated","value":"%1$@ · %2$lld Hz · %3$lld canales"}},"it":{"stringUnit":{"state":"translated","value":"%1$@ · %2$lld Hz · %3$lld canali"}},"fr":{"stringUnit":{"state":"translated","value":"%1$@ · %2$lld Hz · %3$lld canaux"}}}},
     "%@ It happens once. Dictation starts the moment it is here.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%@ Dies geschieht nur einmal. Sobald es verfügbar ist, kannst du diktieren."}},"es":{"stringUnit":{"state":"translated","value":"%@ Solo ocurre una vez. El dictado estará disponible en cuanto termine."}},"it":{"stringUnit":{"state":"translated","value":"%@ Succede una sola volta. La dettatura sarà disponibile non appena sarà pronto."}},"fr":{"stringUnit":{"state":"translated","value":"%@ Cette opération n’a lieu qu’une fois. La dictée sera disponible dès qu’elle sera terminée."}}}},
     "Some fragments in the last result are worth checking. The text is already in place.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Einige Stellen im letzten Ergebnis solltest du prüfen. Der Text wurde bereits eingefügt."}},"es":{"stringUnit":{"state":"translated","value":"Conviene revisar algunos fragmentos del último resultado. El texto ya está insertado."}},"it":{"stringUnit":{"state":"translated","value":"Vale la pena controllare alcuni frammenti dell’ultimo risultato. Il testo è già stato inserito."}},"fr":{"stringUnit":{"state":"translated","value":"Certains fragments du dernier résultat méritent une vérification. Le texte est déjà inséré."}}}},
     "The trial ended %@. A license brings it back, on this Mac and one more.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die Testphase endete am %@. Eine Lizenz aktiviert Witness auf diesem und einem weiteren Mac."}},"es":{"stringUnit":{"state":"translated","value":"El periodo de prueba terminó el %@. Una licencia reactiva Witness en este Mac y en otro más."}},"it":{"stringUnit":{"state":"translated","value":"Il periodo di prova è terminato il %@. Una licenza riattiva Witness su questo Mac e su un altro."}},"fr":{"stringUnit":{"state":"translated","value":"La période d’essai s’est terminée le %@. Une licence réactive Witness sur ce Mac et sur un autre."}}}},
@@ -1380,10 +1056,10 @@
     "Without Accessibility access the text is copied to the clipboard instead. A development build loses this permission on every rebuild, because macOS keys it to the code signature.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Ohne Bedienungshilfen-Zugriff wird der Text stattdessen in die Zwischenablage kopiert. Eine Entwicklungs-Version verliert diese Berechtigung nach jeder neuen Signatur."}},"es":{"stringUnit":{"state":"translated","value":"Sin acceso a Accesibilidad, el texto se copia al portapapeles. Una compilación de desarrollo pierde este permiso con cada recompilación porque macOS lo vincula a la firma del código."}},"it":{"stringUnit":{"state":"translated","value":"Senza l’accesso ad Accessibilità, il testo viene copiato negli appunti. Una build di sviluppo perde questa autorizzazione a ogni ricompilazione perché macOS la lega alla firma del codice."}},"fr":{"stringUnit":{"state":"translated","value":"Sans accès à Accessibilité, le texte est copié dans le presse-papiers. Une version de développement perd cette autorisation à chaque recompilation, car macOS la lie à la signature du code."}}}},
     "The review step appears only when a fragment is worth checking — an amount, a date, a name, a dictionary near-miss, or a word the app removed. When nothing is marked, the text is simply ready and the recording is discarded immediately.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die Überprüfung erscheint nur für Stellen, die du prüfen solltest – etwa Beträge, Daten, Namen, ähnliche Wörterbucheinträge oder entfernte Wörter. Wenn nichts markiert ist, ist der Text sofort fertig und die Aufnahme wird verworfen."}},"es":{"stringUnit":{"state":"translated","value":"La revisión solo aparece cuando conviene comprobar un fragmento: un importe, una fecha, un nombre, una coincidencia aproximada del diccionario o una palabra eliminada por la app. Si no se marca nada, el texto queda listo y la grabación se descarta inmediatamente."}},"it":{"stringUnit":{"state":"translated","value":"La verifica appare solo quando vale la pena controllare un frammento: un importo, una data, un nome, una corrispondenza simile nel dizionario o una parola rimossa dall’app. Se non viene segnalato nulla, il testo è semplicemente pronto e la registrazione viene eliminata immediatamente."}},"fr":{"stringUnit":{"state":"translated","value":"La vérification apparaît uniquement lorsqu’un fragment mérite d’être contrôlé : un montant, une date, un nom, une correspondance proche du dictionnaire ou un mot supprimé par l’app. Si rien n’est signalé, le texte est simplement prêt et l’enregistrement est immédiatement supprimé."}}}},
     "Phase 6 adds the trial, activation, and licensing. Dictation itself is unchanged: the words still go straight into the application you were typing in, and everything about them still stays on this Mac.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Phase 6 ergänzt Testphase, Aktivierung und Lizenzierung. Das Diktieren bleibt unverändert: Der Text gelangt direkt in die zuvor verwendete App und alle Inhalte bleiben auf diesem Mac."}},"es":{"stringUnit":{"state":"translated","value":"La fase 6 añade el periodo de prueba, la activación y las licencias. El dictado no cambia: las palabras siguen insertándose directamente en la aplicación donde escribías y todo lo relacionado con ellas permanece en este Mac."}},"it":{"stringUnit":{"state":"translated","value":"La fase 6 aggiunge il periodo di prova, l’attivazione e le licenze. La dettatura non cambia: le parole continuano a essere inserite direttamente nell’applicazione in cui stavi scrivendo e tutto ciò che le riguarda resta su questo Mac."}},"fr":{"stringUnit":{"state":"translated","value":"La phase 6 ajoute l’essai, l’activation et les licences. La dictée reste inchangée : les mots sont toujours insérés directement dans l’application où vous écriviez et tout ce qui les concerne reste sur ce Mac."}}}},
-    "Trailing silence is reported, never used to trim captured speech. Changes apply to the next recording. These thresholds are the one thing in Settings that is not written to disk — they are tuning, and they start from the defaults on every launch.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Stille am Ende wird nur gemeldet und niemals zum Kürzen der Sprache verwendet. Änderungen gelten ab der nächsten Aufnahme. Diese Schwellenwerte werden nicht gespeichert und bei jedem Start auf die Standardwerte gesetzt."}}}},
-    "The method and the application, which is what anyone asks first when an app misbehaves. The inserted text appears nowhere in here and in no log line.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Gespeichert werden nur die Methode und die Ziel-App – die wichtigsten Angaben bei einer Fehlersuche. Der eingefügte Text erscheint weder hier noch in einem Protokoll."}}}},
-    "A recording is held only while a review can still use it. Zero here means the app is no longer holding the last utterance.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Eine Aufnahme bleibt nur so lange erhalten, wie sie für eine Überprüfung gebraucht wird. Null bedeutet, dass die letzte Äußerung nicht mehr im Speicher liegt."}}}},
-    "Debug builds only. Writes a file solely to the location you choose in the save panel; normal capture never touches the file system.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Nur für Debug-Versionen. Eine Datei wird ausschließlich am im Speicherdialog gewählten Ort geschrieben; normale Aufnahmen greifen nicht auf das Dateisystem zu."}}}},
+    "Trailing silence is reported, never used to trim captured speech. Changes apply to the next recording. These thresholds are the one thing in Settings that is not written to disk — they are tuning, and they start from the defaults on every launch.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Stille am Ende wird nur gemeldet und niemals zum Kürzen der Sprache verwendet. Änderungen gelten ab der nächsten Aufnahme. Diese Schwellenwerte werden nicht gespeichert und bei jedem Start auf die Standardwerte gesetzt."}},"es":{"stringUnit":{"state":"translated","value":"El silencio final se muestra, pero nunca se usa para recortar el audio capturado. Los cambios se aplican a la siguiente grabación. Estos umbrales son el único ajuste que no se guarda en el disco: sirven para afinar el funcionamiento y vuelven a los valores predeterminados cada vez que se abre la app."}},"it":{"stringUnit":{"state":"translated","value":"Il silenzio finale viene segnalato, ma non viene mai usato per tagliare l’audio acquisito. Le modifiche si applicano alla registrazione successiva. Queste soglie sono l’unica impostazione che non viene salvata su disco: servono per la regolazione e tornano ai valori predefiniti a ogni avvio."}},"fr":{"stringUnit":{"state":"translated","value":"Le silence final est signalé, mais ne sert jamais à raccourcir l’audio capturé. Les modifications s’appliquent à l’enregistrement suivant. Ces seuils sont le seul réglage qui n’est pas enregistré sur le disque : ils servent à l’ajustement et reprennent leurs valeurs par défaut à chaque lancement."}}}},
+    "The method and the application, which is what anyone asks first when an app misbehaves. The inserted text appears nowhere in here and in no log line.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Gespeichert werden nur die Methode und die Ziel-App – die wichtigsten Angaben bei einer Fehlersuche. Der eingefügte Text erscheint weder hier noch in einem Protokoll."}},"es":{"stringUnit":{"state":"translated","value":"El método y la aplicación: lo primero que cualquiera quiere saber cuando una app falla. El texto insertado no aparece aquí ni en ninguna línea de registro."}},"it":{"stringUnit":{"state":"translated","value":"Il metodo e l’applicazione: le prime cose che chiunque vuole sapere quando un’app non funziona correttamente. Il testo inserito non compare qui né in alcuna riga di log."}},"fr":{"stringUnit":{"state":"translated","value":"La méthode et l’application : les premières informations demandées lorsqu’une app fonctionne mal. Le texte inséré n’apparaît ni ici ni dans aucune ligne de journal."}}}},
+    "A recording is held only while a review can still use it. Zero here means the app is no longer holding the last utterance.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Eine Aufnahme bleibt nur so lange erhalten, wie sie für eine Überprüfung gebraucht wird. Null bedeutet, dass die letzte Äußerung nicht mehr im Speicher liegt."}},"es":{"stringUnit":{"state":"translated","value":"Una grabación solo se conserva mientras pueda usarse en una revisión. Un cero indica que la app ya no conserva la última grabación."}},"it":{"stringUnit":{"state":"translated","value":"Una registrazione viene conservata solo finché può ancora servire per una revisione. Uno zero indica che l’app non conserva più l’ultima registrazione."}},"fr":{"stringUnit":{"state":"translated","value":"Un enregistrement n’est conservé que tant qu’il peut encore servir à une vérification. Un zéro indique que l’app ne conserve plus le dernier enregistrement."}}}},
+    "Debug builds only. Writes a file solely to the location you choose in the save panel; normal capture never touches the file system.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Nur für Debug-Versionen. Eine Datei wird ausschließlich am im Speicherdialog gewählten Ort geschrieben; normale Aufnahmen greifen nicht auf das Dateisystem zu."}},"es":{"stringUnit":{"state":"translated","value":"Solo en compilaciones de depuración. Escribe un archivo únicamente en la ubicación que elijas en el panel de guardado; la captura normal nunca accede al sistema de archivos."}},"it":{"stringUnit":{"state":"translated","value":"Solo nelle build di debug. Scrive un file esclusivamente nella posizione scelta nel pannello di salvataggio; la normale acquisizione non accede mai al file system."}},"fr":{"stringUnit":{"state":"translated","value":"Uniquement dans les versions de débogage. Écrit un fichier seulement à l’emplacement choisi dans la fenêtre d’enregistrement ; la capture normale n’accède jamais au système de fichiers."}}}},
     "Selecting more languages costs nothing on a sentence the engine can hear clearly. It costs on the short ones: two words in Russian and two in Ukrainian look much alike, and the more languages are in play the more often one of those lands in the wrong one.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Bei klar erkennbaren Sätzen schaden zusätzliche Sprachen nicht. Bei kurzen Äußerungen können sich beispielsweise russische und ukrainische Wörter ähneln; je mehr Sprachen ausgewählt sind, desto eher wird eine davon verwechselt."}},"es":{"stringUnit":{"state":"translated","value":"Seleccionar más idiomas no afecta a una frase que el motor oye con claridad. Sí afecta a las frases cortas: dos palabras en ruso y dos en ucraniano pueden parecerse mucho, y cuantos más idiomas estén activos, más probable será elegir el incorrecto."}},"it":{"stringUnit":{"state":"translated","value":"Selezionare più lingue non penalizza una frase che il motore sente chiaramente. Incide invece sulle frasi brevi: due parole in russo e due in ucraino possono somigliarsi molto, e più lingue sono attive, più spesso verrà scelta quella sbagliata."}},"fr":{"stringUnit":{"state":"translated","value":"Sélectionner davantage de langues n’affecte pas une phrase clairement entendue par le moteur. Cela compte pour les phrases courtes : deux mots en russe et deux en ukrainien peuvent se ressembler, et plus il y a de langues actives, plus le risque de choisir la mauvaise augmente."}}}},
     "A word that comes out close to one of your terms, but not equal to it, is marked for review. An exact match is not: it came out right.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Ein erkanntes Wort, das einem deiner Begriffe ähnelt, aber nicht exakt entspricht, wird zur Überprüfung markiert. Ein exakter Treffer nicht – er wurde korrekt erkannt."}}}},
     "No terms yet. Add the names and words you dictate often and would notice being wrong.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch keine Begriffe. Füge Namen und Wörter hinzu, die du häufig diktierst und deren falsche Erkennung dir auffallen würde."}},"es":{"stringUnit":{"state":"translated","value":"Todavía no hay términos. Añade los nombres y palabras que dictas a menudo y cuyos errores notarías."}},"it":{"stringUnit":{"state":"translated","value":"Non ci sono ancora termini. Aggiungi i nomi e le parole che detti spesso e di cui noteresti un errore."}},"fr":{"stringUnit":{"state":"translated","value":"Aucun terme pour le moment. Ajoutez les noms et les mots que vous dictez souvent et dont vous remarqueriez une erreur."}}}},
@@ -1428,7 +1104,24 @@
     "Manage subscription": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Abonnement verwalten"}},"es":{"stringUnit":{"state":"translated","value":"Gestionar suscripción"}},"it":{"stringUnit":{"state":"translated","value":"Gestisci abbonamento"}},"fr":{"stringUnit":{"state":"translated","value":"Gérer l’abonnement"}}}},
     "Opens a page in your browser where you can cancel, change the card, or download invoices. You sign in there with the email address you paid with.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Öffnet eine Seite im Browser, auf der du kündigen, die Karte ändern oder Rechnungen laden kannst. Dort meldest du dich mit der E-Mail-Adresse an, mit der du bezahlt hast."}},"es":{"stringUnit":{"state":"translated","value":"Abre una página en el navegador donde puedes cancelar, cambiar la tarjeta o descargar facturas. Inicia sesión allí con el email utilizado para el pago."}},"it":{"stringUnit":{"state":"translated","value":"Apre una pagina nel browser in cui puoi annullare l’abbonamento, cambiare carta o scaricare le fatture. Accedi con l’indirizzo email usato per il pagamento."}},"fr":{"stringUnit":{"state":"translated","value":"Ouvre une page dans votre navigateur où vous pouvez résilier l’abonnement, changer de carte ou télécharger vos factures. Connectez-vous avec l’adresse e-mail utilisée pour le paiement."}}}},
     "Check for updates automatically": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Automatisch nach Updates suchen"}},"es":{"stringUnit":{"state":"translated","value":"Buscar actualizaciones automáticamente"}},"it":{"stringUnit":{"state":"translated","value":"Controlla automaticamente gli aggiornamenti"}},"fr":{"stringUnit":{"state":"translated","value":"Rechercher automatiquement les mises à jour"}}}},
-    "Once a day Witness asks GitHub whether a newer signed version exists, and offers it if so. Nothing is installed until you confirm. You can also check yourself with the button above.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Einmal am Tag fragt Witness bei GitHub nach, ob es eine neuere signierte Version gibt, und bietet sie dir an. Installiert wird erst nach deiner Bestätigung. Du kannst auch selbst mit der Taste oben suchen."}},"es":{"stringUnit":{"state":"translated","value":"Una vez al día, Witness pregunta a GitHub si hay una versión firmada más reciente y te la ofrece si existe. No se instala nada hasta que lo confirmes. También puedes comprobarlo con el botón de arriba."}},"it":{"stringUnit":{"state":"translated","value":"Una volta al giorno Witness verifica su GitHub se esiste una versione firmata più recente e, in tal caso, la propone. Non viene installato nulla finché non confermi. Puoi anche controllare manualmente con il pulsante qui sopra."}},"fr":{"stringUnit":{"state":"translated","value":"Une fois par jour, Witness vérifie sur GitHub s’il existe une version signée plus récente et vous la propose le cas échéant. Rien n’est installé sans votre confirmation. Vous pouvez aussi vérifier avec le bouton ci-dessus."}}}}
+    "Once a day Witness asks GitHub whether a newer signed version exists, and offers it if so. Nothing is installed until you confirm. You can also check yourself with the button above.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Einmal am Tag fragt Witness bei GitHub nach, ob es eine neuere signierte Version gibt, und bietet sie dir an. Installiert wird erst nach deiner Bestätigung. Du kannst auch selbst mit der Taste oben suchen."}},"es":{"stringUnit":{"state":"translated","value":"Una vez al día, Witness pregunta a GitHub si hay una versión firmada más reciente y te la ofrece si existe. No se instala nada hasta que lo confirmes. También puedes comprobarlo con el botón de arriba."}},"it":{"stringUnit":{"state":"translated","value":"Una volta al giorno Witness verifica su GitHub se esiste una versione firmata più recente e, in tal caso, la propone. Non viene installato nulla finché non confermi. Puoi anche controllare manualmente con il pulsante qui sopra."}},"fr":{"stringUnit":{"state":"translated","value":"Une fois par jour, Witness vérifie sur GitHub s’il existe une version signée plus récente et vous la propose le cas échéant. Rien n’est installé sans votre confirmation. Vous pouvez aussi vérifier avec le bouton ci-dessus."}}}},
+    "Current": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Aktuell"}},"es":{"stringUnit":{"state":"translated","value":"Actual"}},"it":{"stringUnit":{"state":"translated","value":"Attuale"}},"fr":{"stringUnit":{"state":"translated","value":"Actuel"}}}},
+    "Buffer capacity": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Pufferkapazität"}},"es":{"stringUnit":{"state":"translated","value":"Capacidad del búfer"}},"it":{"stringUnit":{"state":"translated","value":"Capacità del buffer"}},"fr":{"stringUnit":{"state":"translated","value":"Capacité du tampon"}}}},
+    "Export last utterance": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Letzte Aufnahme exportieren"}},"es":{"stringUnit":{"state":"translated","value":"Exportar la última grabación"}},"it":{"stringUnit":{"state":"translated","value":"Esporta l’ultima registrazione"}},"fr":{"stringUnit":{"state":"translated","value":"Exporter le dernier enregistrement"}}}},
+    "%1$lld Hz · mono · Float32": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%1$lld Hz · Mono · Float32"}},"es":{"stringUnit":{"state":"translated","value":"%1$lld Hz · mono · Float32"}},"it":{"stringUnit":{"state":"translated","value":"%1$lld Hz · mono · Float32"}},"fr":{"stringUnit":{"state":"translated","value":"%1$lld Hz · mono · Float32"}}}},
+    "%1$lld Hz · %2$lld ch · Float32": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%1$lld Hz · %2$lld Kanäle · Float32"}},"es":{"stringUnit":{"state":"translated","value":"%1$lld Hz · %2$lld canales · Float32"}},"it":{"stringUnit":{"state":"translated","value":"%1$lld Hz · %2$lld canali · Float32"}},"fr":{"stringUnit":{"state":"translated","value":"%1$lld Hz · %2$lld canaux · Float32"}}}},
+    "%.3f": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%.3f"}},"es":{"stringUnit":{"state":"translated","value":"%.3f"}},"it":{"stringUnit":{"state":"translated","value":"%.3f"}},"fr":{"stringUnit":{"state":"translated","value":"%.3f"}}}},
+    "%.0f s": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%.0f s"}},"es":{"stringUnit":{"state":"translated","value":"%.0f s"}},"it":{"stringUnit":{"state":"translated","value":"%.0f s"}},"fr":{"stringUnit":{"state":"translated","value":"%.0f s"}}}},
+    "%lld frames": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%lld Frames"}},"es":{"stringUnit":{"state":"translated","value":"%lld tramas"}},"it":{"stringUnit":{"state":"translated","value":"%lld frame"}},"fr":{"stringUnit":{"state":"translated","value":"%lld trames"}}}},
+    "%.2f s": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%.2f s"}},"es":{"stringUnit":{"state":"translated","value":"%.2f s"}},"it":{"stringUnit":{"state":"translated","value":"%.2f s"}},"fr":{"stringUnit":{"state":"translated","value":"%.2f s"}}}},
+    "%1$lld / %2$lld": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%1$lld / %2$lld"}},"es":{"stringUnit":{"state":"translated","value":"%1$lld / %2$lld"}},"it":{"stringUnit":{"state":"translated","value":"%1$lld / %2$lld"}},"fr":{"stringUnit":{"state":"translated","value":"%1$lld / %2$lld"}}}},
+    "%.1f %%": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%.1f %%"}},"es":{"stringUnit":{"state":"translated","value":"%.1f %%"}},"it":{"stringUnit":{"state":"translated","value":"%.1f %%"}},"fr":{"stringUnit":{"state":"translated","value":"%.1f %%"}}}},
+    "%.2f": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%.2f"}},"es":{"stringUnit":{"state":"translated","value":"%.2f"}},"it":{"stringUnit":{"state":"translated","value":"%.2f"}},"fr":{"stringUnit":{"state":"translated","value":"%.2f"}}}},
+    "%lld Hz": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%lld Hz"}},"es":{"stringUnit":{"state":"translated","value":"%lld Hz"}},"it":{"stringUnit":{"state":"translated","value":"%lld Hz"}},"fr":{"stringUnit":{"state":"translated","value":"%lld Hz"}}}},
+    "%lld": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%lld"}},"es":{"stringUnit":{"state":"translated","value":"%lld"}},"it":{"stringUnit":{"state":"translated","value":"%lld"}},"fr":{"stringUnit":{"state":"translated","value":"%lld"}}}},
+    "Hotkey released": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Tastenkürzel losgelassen"}},"es":{"stringUnit":{"state":"translated","value":"Atajo soltado"}},"it":{"stringUnit":{"state":"translated","value":"Scorciatoia rilasciata"}},"fr":{"stringUnit":{"state":"translated","value":"Raccourci relâché"}}}},
+    "Maximum duration reached": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Maximale Dauer erreicht"}},"es":{"stringUnit":{"state":"translated","value":"Duración máxima alcanzada"}},"it":{"stringUnit":{"state":"translated","value":"Durata massima raggiunta"}},"fr":{"stringUnit":{"state":"translated","value":"Durée maximale atteinte"}}}},
+    "Interrupted": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Unterbrochen"}},"es":{"stringUnit":{"state":"translated","value":"Interrumpida"}},"it":{"stringUnit":{"state":"translated","value":"Interrotta"}},"fr":{"stringUnit":{"state":"translated","value":"Interrompue"}}}}
   },
   "version": "1.0"
 }
