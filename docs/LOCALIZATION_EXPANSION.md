@@ -57,6 +57,20 @@ these are true:
 5. Mobile and desktop visual QA passes at 320, 375, 768, 1280, and 1440 px,
    including keyboard focus, 200% zoom, and reduced motion.
 
+Status on 27 October 2026:
+
+- Gate 1 is complete. The team confirmed native review of the ES/IT/FR copy.
+- Gate 5 is complete for the current noindex build. The paid-entry and legal
+  review pages were checked at every listed width, at the equivalent of 200%
+  zoom, with reduced motion and keyboard-only focus. Mobile Lighthouse reports
+  100 for Accessibility and Best Practices.
+- Gate 2 is prepared but still open: localized legal review routes now exist
+  for all three markets, while checkout deliberately continues to use the
+  counsel-approved English set. Counsel must approve the translations and the
+  immediate-delivery waiver before those links are switched.
+- Gates 3 and 4 remain open and require production Stripe/email verification
+  plus one complete test purchase in each locale.
+
 ## Next slices
 
 ### 1. App localization — paid/licensing and first-run slices completed
@@ -116,8 +130,9 @@ Still to do before the app itself can advertise complete localization:
 - Finish locale-aware date, currency, and plural formatting. Keep stable
   telemetry event names, file keys, language codes, and licence payloads
   untranslated.
-- Add layout snapshots for the longest strings and VoiceOver labels. Native
-  review is required before changing the app's supported-localization list.
+- Extend layout coverage whenever a longer reviewed string is introduced. The
+  current first-run, menu, settings, Boundary, Diagnostics, and verification
+  layouts already pass in ES/IT/FR, and native review is complete.
 
 ### 2. Recorded-language verification
 
