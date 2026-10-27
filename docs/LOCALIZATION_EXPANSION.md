@@ -59,13 +59,26 @@ these are true:
 
 ## Next slices
 
-### 1. App localization
+### 1. App localization — paid/licensing slice started
 
-- Add ES/IT/FR localizations to `Localizable.xcstrings` and
-  `InfoPlist.xcstrings`; do not translate language names manually where
-  `Locale` already supplies them.
+Completed on the branch based on released `v0.6.21`:
+
+- Registered `es`, `it`, and `fr` as app localizations.
+- Localized 79 customer-facing strings used by the paywall, activation,
+  subscription, licence-retrieval, expiry, and purchase flows.
+- Marked the English-only terms and withdrawal destinations as `(EN)` in each
+  new locale. The legally significant immediate-delivery declaration remains
+  untranslated until counsel supplies approved ES/IT/FR wording; a regression
+  test prevents ordinary product translation from silently crossing that gate.
+- Localized the microphone and speech-recognition permission explanations.
+- Added tests that require all three translations, preserve every format
+  argument, and lay out the paywall at a practical window width in each locale.
+
+Still to do before the app itself can advertise complete localization:
+
 - Localize first run, menu bar, recording states, review reasons, settings,
-  permissions, licensing, paywall, diagnostics, updater, and all error paths.
+  diagnostics, updater, and all remaining error paths. Do not translate
+  language names manually where `Locale` already supplies them.
 - Use locale-aware number, date, currency, and plural formatting. Keep stable
   telemetry event names, file keys, language codes, and licence payloads
   untranslated.

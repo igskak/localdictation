@@ -3,6 +3,8 @@ import XCTest
 @testable import Witness
 
 final class LocalizationTests: XCTestCase {
+    private let expansionLocales = ["es", "it", "fr"]
+
     func testGermanIsBundledAndUsesTheEnglishSourceAsItsKey() throws {
         XCTAssertTrue(L10n.bundle.localizations.contains("de"))
 
@@ -42,6 +44,109 @@ final class LocalizationTests: XCTestCase {
             let german = try XCTUnwrap(localizations["de"] as? [String: Any])
             let unit = try XCTUnwrap(german["stringUnit"] as? [String: Any])
             XCTAssertFalse((unit["value"] as? String ?? "").isEmpty)
+        }
+    }
+
+    func testPaidSurfacesHaveSpanishItalianAndFrenchCopy() throws {
+        XCTAssertTrue(Set(expansionLocales).isSubset(of: Set(L10n.bundle.localizations)))
+
+        let catalog = try catalog(named: "Localizable")
+        let strings = try XCTUnwrap(catalog["strings"] as? [String: Any])
+        let essentialKeys = [
+            "License",
+            "Email address",
+            "Continue with your email",
+            "Send me a key",
+            "Already bought a license?",
+            "Manage subscription",
+            "Lifetime",
+            "Annual",
+            "Buy",
+            "The first three days need no email and no key. After that, Witness asks for your email address, to carry on.",
+            "The first three days are over. Enter your email address to carry on. No payment is needed at this step, and nothing you have dictated has left this Mac.",
+        ]
+
+        for key in essentialKeys {
+            let entry = try XCTUnwrap(strings[key] as? [String: Any], key)
+            let localizations = try XCTUnwrap(entry["localizations"] as? [String: Any], key)
+            for locale in expansionLocales {
+                let translation = try translation(in: localizations, locale: locale, key: key)
+                XCTAssertNotEqual(translation, key, "\(locale): \(key)")
+            }
+        }
+
+        let completeCount = strings.values.reduce(into: 0) { count, rawEntry in
+            guard let entry = rawEntry as? [String: Any],
+                  let localizations = entry["localizations"] as? [String: Any]
+            else { return }
+            if expansionLocales.allSatisfy({ locale in
+                guard let localization = localizations[locale] as? [String: Any],
+                      let unit = localization["stringUnit"] as? [String: Any],
+                      unit["state"] as? String == "translated",
+                      let value = unit["value"] as? String
+                else { return false }
+                return !value.isEmpty
+            }) {
+                count += 1
+            }
+        }
+        XCTAssertGreaterThanOrEqual(completeCount, 79)
+    }
+
+    func testLegallySignificantCheckoutDeclarationWaitsForReviewedTranslations() throws {
+        let catalog = try catalog(named: "Localizable")
+        let strings = try XCTUnwrap(catalog["strings"] as? [String: Any])
+        let key = "Send my license key as soon as I have paid. I understand that I give up my right of withdrawal once delivery begins."
+        let entry = try XCTUnwrap(strings[key] as? [String: Any], key)
+        let localizations = try XCTUnwrap(entry["localizations"] as? [String: Any], key)
+
+        for locale in expansionLocales {
+            XCTAssertNil(
+                localizations[locale],
+                "\(locale) legal copy must come from counsel review, not ordinary product translation"
+            )
+        }
+
+        for key in ["Terms", "Right of withdrawal"] {
+            let entry = try XCTUnwrap(strings[key] as? [String: Any], key)
+            let localizations = try XCTUnwrap(entry["localizations"] as? [String: Any], key)
+            for locale in expansionLocales {
+                XCTAssertTrue(
+                    try translation(in: localizations, locale: locale, key: key).hasSuffix("(EN)"),
+                    "\(locale): English-only legal destination must be disclosed"
+                )
+            }
+        }
+    }
+
+    func testNewMarketTranslationsPreserveFormatArguments() throws {
+        let catalog = try catalog(named: "Localizable")
+        let strings = try XCTUnwrap(catalog["strings"] as? [String: Any])
+
+        for (key, rawEntry) in strings {
+            guard let entry = rawEntry as? [String: Any],
+                  let localizations = entry["localizations"] as? [String: Any],
+                  expansionLocales.contains(where: { localizations[$0] != nil })
+            else { continue }
+
+            let sourceArguments = formatArguments(in: key)
+            for locale in expansionLocales {
+                let value = try translation(in: localizations, locale: locale, key: key)
+                XCTAssertEqual(formatArguments(in: value), sourceArguments, "\(locale): \(key)")
+            }
+        }
+    }
+
+    func testPermissionPromptsHaveNewMarketCopy() throws {
+        let catalog = try catalog(named: "InfoPlist")
+        let strings = try XCTUnwrap(catalog["strings"] as? [String: Any])
+
+        for key in ["NSMicrophoneUsageDescription", "NSSpeechRecognitionUsageDescription"] {
+            let entry = try XCTUnwrap(strings[key] as? [String: Any], key)
+            let localizations = try XCTUnwrap(entry["localizations"] as? [String: Any], key)
+            for locale in expansionLocales {
+                XCTAssertFalse(try translation(in: localizations, locale: locale, key: key).isEmpty)
+            }
         }
     }
 
@@ -87,5 +192,25 @@ final class LocalizationTests: XCTestCase {
             .appending(path: "LocalDictation/Resources/\(name).xcstrings")
         let data = try Data(contentsOf: url)
         return try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+    }
+
+    private func translation(
+        in localizations: [String: Any],
+        locale: String,
+        key: String
+    ) throws -> String {
+        let localization = try XCTUnwrap(localizations[locale] as? [String: Any], "\(locale): \(key)")
+        let unit = try XCTUnwrap(localization["stringUnit"] as? [String: Any], "\(locale): \(key)")
+        XCTAssertEqual(unit["state"] as? String, "translated", "\(locale): \(key)")
+        return try XCTUnwrap(unit["value"] as? String, "\(locale): \(key)")
+    }
+
+    private func formatArguments(in value: String) -> [String] {
+        let pattern = #"%(?:\d+\$)?(?:@|lld)"#
+        let expression = try? NSRegularExpression(pattern: pattern)
+        let range = NSRange(value.startIndex..., in: value)
+        return expression?.matches(in: value, range: range).compactMap {
+            Range($0.range, in: value).map { String(value[$0]) }
+        }.sorted() ?? []
     }
 }

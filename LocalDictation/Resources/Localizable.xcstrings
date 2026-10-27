@@ -55,7 +55,7 @@
     "Context capitalization": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Kontextabhängige Großschreibung"}}}},
     "Context punctuation": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Kontextabhängige Zeichensetzung"}}}},
     "Dictionary correction": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Wörterbuchkorrektur"}}}},
-    "Have a promo code? Enter it on the payment page. If you opened a partner’s link in this browser, it is filled in already.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Du hast einen Rabattcode? Gib ihn auf der Bezahlseite ein. Hast du den Link eines Partners in diesem Browser geöffnet, ist er schon eingetragen."}}}},
+    "Have a promo code? Enter it on the payment page. If you opened a partner’s link in this browser, it is filled in already.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Du hast einen Rabattcode? Gib ihn auf der Bezahlseite ein. Hast du den Link eines Partners in diesem Browser geöffnet, ist er schon eingetragen."}},"es":{"stringUnit":{"state":"translated","value":"¿Tienes un código promocional? Introdúcelo en la página de pago. Si abriste el enlace de un socio en este navegador, ya estará rellenado."}},"it":{"stringUnit":{"state":"translated","value":"Hai un codice promozionale? Inseriscilo nella pagina di pagamento. Se hai aperto il link di un partner in questo browser, sarà già compilato."}},"fr":{"stringUnit":{"state":"translated","value":"Vous avez un code promotionnel ? Saisissez-le sur la page de paiement. Si vous avez ouvert le lien d’un partenaire dans ce navigateur, il sera déjà renseigné."}}}},
     "The speech model has not been downloaded yet (about %@)": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Sprachmodell wurde noch nicht geladen (etwa %@)"}}}},
     "less than a minute": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"weniger als eine Minute"}}}},
     "about %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"etwa %@"}}}},
@@ -66,26 +66,10 @@
     "Updates": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Updates"}}}},
     "Installed version": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Installierte Version"}}}},
     "Check for updates…": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Auf Updates prüfen …"}}}},
-    "LOCAL DICTATION": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "LOKALE DIKTIERFUNKTION"
-          }
-        }
-      }
-    },
-    "On this Mac": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Auf diesem Mac"
-          }
-        }
-      }
-    },
+    "LOCAL DICTATION": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"LOKALE DIKTIERFUNKTION"}},"es":{"stringUnit":{"state":"translated","value":"DICTADO LOCAL"}},"it":{"stringUnit":{"state":"translated","value":"DETTATURA LOCALE"}},"fr":{"stringUnit":{"state":"translated","value":"DICTÉE LOCALE"}}}},
+    "On this Mac": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Auf diesem Mac"}},"es":{"stringUnit":{"state":"translated","value":"En este Mac"}},"it":{"stringUnit":{"state":"translated","value":"Su questo Mac"}},"fr":{"stringUnit":{"state":"translated","value":"Sur ce Mac"}}}},
+    "Terms": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Bedingungen (EN)"}},"es":{"stringUnit":{"state":"translated","value":"Condiciones (EN)"}},"it":{"stringUnit":{"state":"translated","value":"Condizioni (EN)"}},"fr":{"stringUnit":{"state":"translated","value":"Conditions (EN)"}}}},
+    "Right of withdrawal": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Widerrufsrecht (EN)"}},"es":{"stringUnit":{"state":"translated","value":"Derecho de desistimiento (EN)"}},"it":{"stringUnit":{"state":"translated","value":"Diritto di recesso (EN)"}},"fr":{"stringUnit":{"state":"translated","value":"Droit de rétractation (EN)"}}}},
     "SETUP · 1 OF 2": {
       "localizations": {
         "de": {
@@ -336,16 +320,7 @@
         }
       }
     },
-    "Email address": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "E-Mail-Adresse"
-          }
-        }
-      }
-    },
+    "Email address": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"E-Mail-Adresse"}},"es":{"stringUnit":{"state":"translated","value":"Correo electrónico"}},"it":{"stringUnit":{"state":"translated","value":"Indirizzo email"}},"fr":{"stringUnit":{"state":"translated","value":"Adresse e-mail"}}}},
     "you@example.com": {
       "localizations": {
         "de": {
@@ -356,26 +331,8 @@
         }
       }
     },
-    "Not now": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nicht jetzt"
-          }
-        }
-      }
-    },
-    "Enter a key…": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Schlüssel eingeben …"
-          }
-        }
-      }
-    },
+    "Not now": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Nicht jetzt"}},"es":{"stringUnit":{"state":"translated","value":"Ahora no"}},"it":{"stringUnit":{"state":"translated","value":"Non ora"}},"fr":{"stringUnit":{"state":"translated","value":"Pas maintenant"}}}},
+    "Enter a key…": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Schlüssel eingeben …"}},"es":{"stringUnit":{"state":"translated","value":"Introducir una clave…"}},"it":{"stringUnit":{"state":"translated","value":"Inserisci una chiave…"}},"fr":{"stringUnit":{"state":"translated","value":"Saisir une clé…"}}}},
     "Enter a key": {
       "localizations": {
         "de": {
@@ -386,26 +343,8 @@
         }
       }
     },
-    "License key": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lizenzschlüssel"
-          }
-        }
-      }
-    },
-    "Use this key": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Diesen Schlüssel verwenden"
-          }
-        }
-      }
-    },
+    "License key": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Lizenzschlüssel"}},"es":{"stringUnit":{"state":"translated","value":"Clave de licencia"}},"it":{"stringUnit":{"state":"translated","value":"Chiave di licenza"}},"fr":{"stringUnit":{"state":"translated","value":"Clé de licence"}}}},
+    "Use this key": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Diesen Schlüssel verwenden"}},"es":{"stringUnit":{"state":"translated","value":"Usar esta clave"}},"it":{"stringUnit":{"state":"translated","value":"Usa questa chiave"}},"fr":{"stringUnit":{"state":"translated","value":"Utiliser cette clé"}}}},
     "Licenses": {
       "localizations": {
         "de": {
@@ -446,16 +385,7 @@
         }
       }
     },
-    "Buy": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kaufen"
-          }
-        }
-      }
-    },
+    "Buy": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Kaufen"}},"es":{"stringUnit":{"state":"translated","value":"Comprar"}},"it":{"stringUnit":{"state":"translated","value":"Acquista"}},"fr":{"stringUnit":{"state":"translated","value":"Acheter"}}}},
     "General": {
       "localizations": {
         "de": {
@@ -496,16 +426,7 @@
         }
       }
     },
-    "License": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lizenz"
-          }
-        }
-      }
-    },
+    "License": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Lizenz"}},"es":{"stringUnit":{"state":"translated","value":"Licencia"}},"it":{"stringUnit":{"state":"translated","value":"Licenza"}},"fr":{"stringUnit":{"state":"translated","value":"Licence"}}}},
     "Diagnostics": {
       "localizations": {
         "de": {
@@ -1268,46 +1189,10 @@
         }
       }
     },
-    "Lifetime": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dauerlizenz"
-          }
-        }
-      }
-    },
-    "Annual": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Jahreslizenz"
-          }
-        }
-      }
-    },
-    "Trial": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Testphase"
-          }
-        }
-      }
-    },
-    "Lifetime license": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dauerlizenz"
-          }
-        }
-      }
-    },
+    "Lifetime": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Dauerlizenz"}},"es":{"stringUnit":{"state":"translated","value":"De por vida"}},"it":{"stringUnit":{"state":"translated","value":"A vita"}},"fr":{"stringUnit":{"state":"translated","value":"À vie"}}}},
+    "Annual": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Jahreslizenz"}},"es":{"stringUnit":{"state":"translated","value":"Anual"}},"it":{"stringUnit":{"state":"translated","value":"Annuale"}},"fr":{"stringUnit":{"state":"translated","value":"Annuel"}}}},
+    "Trial": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Testphase"}},"es":{"stringUnit":{"state":"translated","value":"Periodo de prueba"}},"it":{"stringUnit":{"state":"translated","value":"Periodo di prova"}},"fr":{"stringUnit":{"state":"translated","value":"Période d’essai"}}}},
+    "Lifetime license": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Dauerlizenz"}},"es":{"stringUnit":{"state":"translated","value":"Licencia de por vida"}},"it":{"stringUnit":{"state":"translated","value":"Licenza a vita"}},"fr":{"stringUnit":{"state":"translated","value":"Licence à vie"}}}},
     "Ready": {
       "localizations": {
         "de": {
@@ -2060,26 +1945,8 @@
         }
       }
     },
-    "Open License settings": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lizenzeinstellungen öffnen"
-          }
-        }
-      }
-    },
-    "Activate…": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aktivieren …"
-          }
-        }
-      }
-    },
+    "Open License settings": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Lizenzeinstellungen öffnen"}},"es":{"stringUnit":{"state":"translated","value":"Abrir los ajustes de licencia"}},"it":{"stringUnit":{"state":"translated","value":"Apri le impostazioni della licenza"}},"fr":{"stringUnit":{"state":"translated","value":"Ouvrir les réglages de licence"}}}},
+    "Activate…": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Aktivieren …"}},"es":{"stringUnit":{"state":"translated","value":"Activar…"}},"it":{"stringUnit":{"state":"translated","value":"Attiva…"}},"fr":{"stringUnit":{"state":"translated","value":"Activer…"}}}},
     "Show cleaned text": {
       "localizations": {
         "de": {
@@ -2250,226 +2117,28 @@
         }
       }
     },
-    "Send me a key": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Schlüssel anfordern"
-          }
-        }
-      }
-    },
-    "Already bought a license?": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bereits eine Lizenz gekauft?"
-          }
-        }
-      }
-    },
-    "Send my key": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Meinen Schlüssel senden"
-          }
-        }
-      }
-    },
-    "Sending…": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Wird gesendet …"
-          }
-        }
-      }
-    },
-    "Ready to use, nothing asked for yet": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Einsatzbereit, noch keine Angaben nötig"
-          }
-        }
-      }
-    },
-    "Trial, activated": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Testphase aktiviert"
-          }
-        }
-      }
-    },
-    "Activate to keep dictating": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aktivieren, um weiter zu diktieren"
-          }
-        }
-      }
-    },
-    "The trial ended": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Die Testphase ist abgelaufen"
-          }
-        }
-      }
-    },
-    "This version is newer than your license": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Diese Version ist neuer als deine Lizenz"
-          }
-        }
-      }
-    },
-    "Your lifetime license is on this Mac now. There is nothing else to enter — no renewal, and no connection.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Deine Dauerlizenz ist jetzt auf diesem Mac. Weitere Eingaben, Verlängerungen oder eine Verbindung sind nicht nötig."
-          }
-        }
-      }
-    },
-    "The key for this Mac was accepted.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Der Schlüssel für diesen Mac wurde akzeptiert."
-          }
-        }
-      }
-    },
-    "%lld day": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld Tag"
-          }
-        }
-      }
-    },
-    "%lld days": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld Tage"
-          }
-        }
-      }
-    },
-    "Paid once. Covers two Macs and every update to this major version.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Einmalzahlung. Gilt für zwei Macs und alle Updates dieser Hauptversion."
-          }
-        }
-      }
-    },
-    "Renewed each year. Covers two Macs.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Jährliche Verlängerung. Gilt für zwei Macs."
-          }
-        }
-      }
-    },
-    "Renews automatically each year, and can be cancelled any time — it then runs to its date. Covers two Macs.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Verlängert sich jährlich automatisch und kann jederzeit gekündigt werden; sie läuft dann bis zum Enddatum weiter. Gilt für zwei Macs."
-          }
-        }
-      }
-    },
-    "Your last day before activation": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Letzter Tag vor der Aktivierung"
-          }
-        }
-      }
-    },
-    "The trial ends today": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Die Testphase endet heute"
-          }
-        }
-      }
-    },
-    "The trial ends in %lld days": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Die Testphase endet in %lld Tagen"
-          }
-        }
-      }
-    },
-    "Activate to keep going": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aktivieren, um fortzufahren"
-          }
-        }
-      }
-    },
-    "Trial finished": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Testphase beendet"
-          }
-        }
-      }
-    },
-    "%@ license expired": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ abgelaufen"
-          }
-        }
-      }
-    },
+    "Send me a key": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Schlüssel anfordern"}},"es":{"stringUnit":{"state":"translated","value":"Enviarme una clave"}},"it":{"stringUnit":{"state":"translated","value":"Inviami una chiave"}},"fr":{"stringUnit":{"state":"translated","value":"Envoyer une clé"}}}},
+    "Already bought a license?": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Bereits eine Lizenz gekauft?"}},"es":{"stringUnit":{"state":"translated","value":"¿Ya has comprado una licencia?"}},"it":{"stringUnit":{"state":"translated","value":"Hai già acquistato una licenza?"}},"fr":{"stringUnit":{"state":"translated","value":"Vous avez déjà acheté une licence ?"}}}},
+    "Send my key": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Meinen Schlüssel senden"}},"es":{"stringUnit":{"state":"translated","value":"Enviar mi clave"}},"it":{"stringUnit":{"state":"translated","value":"Invia la mia chiave"}},"fr":{"stringUnit":{"state":"translated","value":"Envoyer ma clé"}}}},
+    "Sending…": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Wird gesendet …"}},"es":{"stringUnit":{"state":"translated","value":"Enviando…"}},"it":{"stringUnit":{"state":"translated","value":"Invio…"}},"fr":{"stringUnit":{"state":"translated","value":"Envoi…"}}}},
+    "Ready to use, nothing asked for yet": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Einsatzbereit, noch keine Angaben nötig"}},"es":{"stringUnit":{"state":"translated","value":"Listo para usar, sin pedirte nada todavía"}},"it":{"stringUnit":{"state":"translated","value":"Pronto all’uso, per ora non serve nulla"}},"fr":{"stringUnit":{"state":"translated","value":"Prêt à l’emploi, rien à fournir pour l’instant"}}}},
+    "Trial, activated": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Testphase aktiviert"}},"es":{"stringUnit":{"state":"translated","value":"Periodo de prueba activado"}},"it":{"stringUnit":{"state":"translated","value":"Prova attivata"}},"fr":{"stringUnit":{"state":"translated","value":"Essai activé"}}}},
+    "Activate to keep dictating": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Aktivieren, um weiter zu diktieren"}},"es":{"stringUnit":{"state":"translated","value":"Activa Witness para seguir dictando"}},"it":{"stringUnit":{"state":"translated","value":"Attiva Witness per continuare a dettare"}},"fr":{"stringUnit":{"state":"translated","value":"Activez Witness pour continuer à dicter"}}}},
+    "The trial ended": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die Testphase ist abgelaufen"}},"es":{"stringUnit":{"state":"translated","value":"El periodo de prueba ha terminado"}},"it":{"stringUnit":{"state":"translated","value":"Il periodo di prova è terminato"}},"fr":{"stringUnit":{"state":"translated","value":"La période d’essai est terminée"}}}},
+    "This version is newer than your license": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Diese Version ist neuer als deine Lizenz"}},"es":{"stringUnit":{"state":"translated","value":"Esta versión es más reciente que tu licencia"}},"it":{"stringUnit":{"state":"translated","value":"Questa versione è più recente della tua licenza"}},"fr":{"stringUnit":{"state":"translated","value":"Cette version est plus récente que votre licence"}}}},
+    "Your lifetime license is on this Mac now. There is nothing else to enter — no renewal, and no connection.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Deine Dauerlizenz ist jetzt auf diesem Mac. Weitere Eingaben, Verlängerungen oder eine Verbindung sind nicht nötig."}},"es":{"stringUnit":{"state":"translated","value":"Tu licencia de por vida ya está activa en este Mac. No tienes que introducir nada más, ni renovar ni conectarte."}},"it":{"stringUnit":{"state":"translated","value":"La tua licenza a vita è ora attiva su questo Mac. Non devi inserire altro: nessun rinnovo e nessuna connessione."}},"fr":{"stringUnit":{"state":"translated","value":"Votre licence à vie est maintenant active sur ce Mac. Vous n’avez rien d’autre à saisir : aucun renouvellement ni aucune connexion."}}}},
+    "The key for this Mac was accepted.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Schlüssel für diesen Mac wurde akzeptiert."}},"es":{"stringUnit":{"state":"translated","value":"Se ha aceptado la clave para este Mac."}},"it":{"stringUnit":{"state":"translated","value":"La chiave per questo Mac è stata accettata."}},"fr":{"stringUnit":{"state":"translated","value":"La clé de ce Mac a été acceptée."}}}},
+    "%lld day": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%lld Tag"}},"es":{"stringUnit":{"state":"translated","value":"%lld día"}},"it":{"stringUnit":{"state":"translated","value":"%lld giorno"}},"fr":{"stringUnit":{"state":"translated","value":"%lld jour"}}}},
+    "%lld days": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%lld Tage"}},"es":{"stringUnit":{"state":"translated","value":"%lld días"}},"it":{"stringUnit":{"state":"translated","value":"%lld giorni"}},"fr":{"stringUnit":{"state":"translated","value":"%lld jours"}}}},
+    "Paid once. Covers two Macs and every update to this major version.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Einmalzahlung. Gilt für zwei Macs und alle Updates dieser Hauptversion."}},"es":{"stringUnit":{"state":"translated","value":"Un solo pago. Cubre dos Mac y todas las actualizaciones de esta versión principal."}},"it":{"stringUnit":{"state":"translated","value":"Un solo pagamento. Copre due Mac e tutti gli aggiornamenti di questa versione principale."}},"fr":{"stringUnit":{"state":"translated","value":"Un seul paiement. Couvre deux Mac et toutes les mises à jour de cette version majeure."}}}},
+    "Renewed each year. Covers two Macs.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Jährliche Verlängerung. Gilt für zwei Macs."}},"es":{"stringUnit":{"state":"translated","value":"Se renueva cada año. Cubre dos Mac."}},"it":{"stringUnit":{"state":"translated","value":"Si rinnova ogni anno. Copre due Mac."}},"fr":{"stringUnit":{"state":"translated","value":"Renouvelé chaque année. Couvre deux Mac."}}}},
+    "Renews automatically each year, and can be cancelled any time — it then runs to its date. Covers two Macs.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Verlängert sich jährlich automatisch und kann jederzeit gekündigt werden; sie läuft dann bis zum Enddatum weiter. Gilt für zwei Macs."}},"es":{"stringUnit":{"state":"translated","value":"Se renueva automáticamente cada año y puedes cancelarla en cualquier momento; seguirá activa hasta la fecha pagada. Cubre dos Mac."}},"it":{"stringUnit":{"state":"translated","value":"Si rinnova automaticamente ogni anno e puoi annullarlo in qualsiasi momento; resterà attivo fino alla data pagata. Copre due Mac."}},"fr":{"stringUnit":{"state":"translated","value":"Se renouvelle automatiquement chaque année et peut être résilié à tout moment ; il reste alors actif jusqu’à la date payée. Couvre deux Mac."}}}},
+    "Your last day before activation": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Letzter Tag vor der Aktivierung"}},"es":{"stringUnit":{"state":"translated","value":"Tu último día antes de la activación"}},"it":{"stringUnit":{"state":"translated","value":"Il tuo ultimo giorno prima dell’attivazione"}},"fr":{"stringUnit":{"state":"translated","value":"Votre dernier jour avant l’activation"}}}},
+    "The trial ends today": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die Testphase endet heute"}},"es":{"stringUnit":{"state":"translated","value":"El periodo de prueba termina hoy"}},"it":{"stringUnit":{"state":"translated","value":"Il periodo di prova termina oggi"}},"fr":{"stringUnit":{"state":"translated","value":"La période d’essai se termine aujourd’hui"}}}},
+    "The trial ends in %lld days": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die Testphase endet in %lld Tagen"}},"es":{"stringUnit":{"state":"translated","value":"El periodo de prueba termina en %lld días"}},"it":{"stringUnit":{"state":"translated","value":"Il periodo di prova termina tra %lld giorni"}},"fr":{"stringUnit":{"state":"translated","value":"La période d’essai se termine dans %lld jours"}}}},
+    "Activate to keep going": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Aktivieren, um fortzufahren"}},"es":{"stringUnit":{"state":"translated","value":"Activar para continuar"}},"it":{"stringUnit":{"state":"translated","value":"Attiva per continuare"}},"fr":{"stringUnit":{"state":"translated","value":"Activer pour continuer"}}}},
+    "Trial finished": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Testphase beendet"}},"es":{"stringUnit":{"state":"translated","value":"Periodo de prueba finalizado"}},"it":{"stringUnit":{"state":"translated","value":"Periodo di prova terminato"}},"fr":{"stringUnit":{"state":"translated","value":"Période d’essai terminée"}}}},
+    "%@ license expired": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%@ abgelaufen"}},"es":{"stringUnit":{"state":"translated","value":"Licencia %@ caducada"}},"it":{"stringUnit":{"state":"translated","value":"Licenza %@ scaduta"}},"fr":{"stringUnit":{"state":"translated","value":"Licence %@ expirée"}}}},
     "Needs attention": {
       "localizations": {
         "de": {
@@ -2750,11 +2419,11 @@
         }
       }
     },
-    "%1$@ left, until %2$@. %3$@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch %1$@, bis %2$@. %3$@"}}}},
+    "%1$@ left, until %2$@. %3$@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch %1$@, bis %2$@. %3$@"}},"es":{"stringUnit":{"state":"translated","value":"Quedan %1$@, hasta el %2$@. %3$@"}},"it":{"stringUnit":{"state":"translated","value":"Restano %1$@, fino al %2$@. %3$@"}},"fr":{"stringUnit":{"state":"translated","value":"Il reste %1$@, jusqu’au %2$@. %3$@"}}}},
     "%1$@ · %2$lld Hz · %3$lld ch": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%1$@ · %2$lld Hz · %3$lld Kan."}}}},
     "%@ It happens once. Dictation starts the moment it is here.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%@ Dies geschieht nur einmal. Sobald es verfügbar ist, kannst du diktieren."}}}},
     "Some fragments in the last result are worth checking. The text is already in place.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Einige Stellen im letzten Ergebnis solltest du prüfen. Der Text wurde bereits eingefügt."}}}},
-    "The trial ended %@. A license brings it back, on this Mac and one more.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die Testphase endete am %@. Eine Lizenz aktiviert Witness auf diesem und einem weiteren Mac."}}}},
+    "The trial ended %@. A license brings it back, on this Mac and one more.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die Testphase endete am %@. Eine Lizenz aktiviert Witness auf diesem und einem weiteren Mac."}},"es":{"stringUnit":{"state":"translated","value":"El periodo de prueba terminó el %@. Una licencia reactiva Witness en este Mac y en otro más."}},"it":{"stringUnit":{"state":"translated","value":"Il periodo di prova è terminato il %@. Una licenza riattiva Witness su questo Mac e su un altro."}},"fr":{"stringUnit":{"state":"translated","value":"La période d’essai s’est terminée le %@. Une licence réactive Witness sur ce Mac et sur un autre."}}}},
     "The speech model is not ready": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Sprachmodell ist nicht bereit"}}}},
     "The speech model is still arriving": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Sprachmodell wird noch geladen"}}}},
     "The speech model is ready. Hold %@ and speak — the text lands where your cursor is.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Sprachmodell ist bereit. Halte %@ gedrückt und sprich – der Text erscheint an der Cursorposition."}}}},
@@ -2776,19 +2445,19 @@
     "the previous application": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"die vorherige App"}}}},
     " — %lld%% of about %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":" – %lld %% von etwa %@"}}}},
     "%1$@ of speech came back empty, so nothing was inserted. Say it again, or check that the language profile — %2$@ — is the one you spoke.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die Erkennung für %1$@ ergab keinen Text. Sprich erneut oder prüfe, ob das Profil „%2$@“ deiner Sprache entspricht."}}}},
-    "A copy of the key is also on its way to that address. You do not need it now — it is for when you reinstall Witness or replace this Mac. If it never arrives, press the button again: the same key comes back here and the mail is retried.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Eine Kopie des Schlüssels wird auch an diese Adresse gesendet. Du brauchst sie nur nach einer Neuinstallation oder beim Austausch dieses Macs. Falls sie nicht ankommt, drücke die Taste erneut."}}}},
-    "A license keeps it after that, on this Mac and one more.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Mit einer Lizenz kannst du danach auf diesem und einem weiteren Mac weiterarbeiten."}}}},
-    "Activated, and there is nothing else to enter. The trial runs for ten days from today.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Aktiviert. Weitere Eingaben sind nicht nötig. Die Testphase läuft ab heute zehn Tage."}}}},
+    "A copy of the key is also on its way to that address. You do not need it now — it is for when you reinstall Witness or replace this Mac. If it never arrives, press the button again: the same key comes back here and the mail is retried.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Eine Kopie des Schlüssels wird auch an diese Adresse gesendet. Du brauchst sie nur nach einer Neuinstallation oder beim Austausch dieses Macs. Falls sie nicht ankommt, drücke die Taste erneut."}},"es":{"stringUnit":{"state":"translated","value":"También se enviará una copia de la clave a esa dirección. No la necesitas ahora: sirve para reinstalar Witness o sustituir este Mac. Si no llega, vuelve a pulsar el botón; aquí aparecerá la misma clave y se reintentará el envío."}},"it":{"stringUnit":{"state":"translated","value":"Una copia della chiave verrà inviata anche a quell’indirizzo. Non ti serve ora: servirà se reinstalli Witness o sostituisci questo Mac. Se non arriva, premi di nuovo il pulsante; qui tornerà la stessa chiave e l’email verrà inviata di nuovo."}},"fr":{"stringUnit":{"state":"translated","value":"Une copie de la clé sera également envoyée à cette adresse. Vous n’en avez pas besoin maintenant : elle servira si vous réinstallez Witness ou remplacez ce Mac. Si elle n’arrive pas, appuyez de nouveau sur le bouton ; la même clé reviendra ici et l’e-mail sera renvoyé."}}}},
+    "A license keeps it after that, on this Mac and one more.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Mit einer Lizenz kannst du danach auf diesem und einem weiteren Mac weiterarbeiten."}},"es":{"stringUnit":{"state":"translated","value":"Después, una licencia mantiene Witness activo en este Mac y en otro más."}},"it":{"stringUnit":{"state":"translated","value":"In seguito, una licenza mantiene Witness attivo su questo Mac e su un altro."}},"fr":{"stringUnit":{"state":"translated","value":"Ensuite, une licence maintient Witness actif sur ce Mac et sur un autre."}}}},
+    "Activated, and there is nothing else to enter. The trial runs for ten days from today.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Aktiviert. Weitere Eingaben sind nicht nötig. Die Testphase läuft ab heute zehn Tage."}},"es":{"stringUnit":{"state":"translated","value":"Activado. No tienes que introducir nada más. El periodo de prueba dura diez días desde hoy."}},"it":{"stringUnit":{"state":"translated","value":"Attivato. Non devi inserire altro. Il periodo di prova dura dieci giorni da oggi."}},"fr":{"stringUnit":{"state":"translated","value":"Activé. Vous n’avez rien d’autre à saisir. La période d’essai dure dix jours à compter d’aujourd’hui."}}}},
     "Copied to the clipboard: macOS is not letting Witness press ⌘V for you. Its Accessibility permission stops applying when the app itself changes, so switching Witness off and on again in System Settings → Privacy & Security → Accessibility is what restores it.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"In die Zwischenablage kopiert: macOS erlaubt Witness derzeit nicht, ⌘V für dich zu drücken. Deaktiviere und aktiviere Witness unter Systemeinstellungen → Datenschutz & Sicherheit → Bedienungshilfen."}}}},
     "Copied to the clipboard: that application would not accept the text directly.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"In die Zwischenablage kopiert: Diese App hat den Text nicht direkt angenommen."}}}},
     "The new dictation is on the clipboard. Check what the application pasted; Witness could not verify that it used this recording.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das neue Diktat liegt in der Zwischenablage. Prüfe, was die App eingefügt hat; Witness konnte nicht bestätigen, dass sie diese Aufnahme verwendet hat."}}}},
     "Copied to the clipboard: you moved to a different application while this was being prepared.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"In die Zwischenablage kopiert: Du hast während der Verarbeitung zu einer anderen App gewechselt."}}}},
-    "The trial ran out on %@. Your dictionary and settings are untouched and come straight back with a license.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Test ist am %@ abgelaufen. Wörterbuch und Einstellungen bleiben unverändert und sind mit einer Lizenz sofort wieder verfügbar."}}}},
-    "It ran out %@. Renewing unlocks dictation again; nothing on this Mac was touched.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sie ist am %@ abgelaufen. Eine Verlängerung schaltet das Diktieren wieder frei; lokale Daten wurden nicht verändert."}}}},
-    "It ran out on %@. Renewing unlocks dictation again on this Mac; nothing local was removed.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sie ist am %@ abgelaufen. Eine Verlängerung schaltet das Diktieren wieder frei; lokale Daten wurden nicht entfernt."}}}},
-    "It runs out on %@. A license keeps this Mac dictating; your dictionary and settings stay exactly as they are either way. Have a promo code? It goes in on the payment page.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sie läuft am %@ ab. Mit einer Lizenz kannst du weiter diktieren; Wörterbuch und Einstellungen bleiben unverändert. Einen Rabattcode gibst du auf der Bezahlseite ein."}}}},
+    "The trial ran out on %@. Your dictionary and settings are untouched and come straight back with a license.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Test ist am %@ abgelaufen. Wörterbuch und Einstellungen bleiben unverändert und sind mit einer Lizenz sofort wieder verfügbar."}},"es":{"stringUnit":{"state":"translated","value":"El periodo de prueba terminó el %@. Tu diccionario y tus ajustes no han cambiado y volverán a estar disponibles al activar una licencia."}},"it":{"stringUnit":{"state":"translated","value":"Il periodo di prova è terminato il %@. Il dizionario e le impostazioni non sono cambiati e torneranno subito disponibili con una licenza."}},"fr":{"stringUnit":{"state":"translated","value":"La période d’essai s’est terminée le %@. Votre dictionnaire et vos réglages sont intacts et redeviennent immédiatement disponibles avec une licence."}}}},
+    "It ran out %@. Renewing unlocks dictation again; nothing on this Mac was touched.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sie ist am %@ abgelaufen. Eine Verlängerung schaltet das Diktieren wieder frei; lokale Daten wurden nicht verändert."}},"es":{"stringUnit":{"state":"translated","value":"Caducó el %@. La renovación vuelve a activar el dictado; no se ha modificado nada en este Mac."}},"it":{"stringUnit":{"state":"translated","value":"È scaduta il %@. Il rinnovo riattiva la dettatura; nulla su questo Mac è stato modificato."}},"fr":{"stringUnit":{"state":"translated","value":"Elle a expiré le %@. Le renouvellement réactive la dictée ; rien n’a été modifié sur ce Mac."}}}},
+    "It ran out on %@. Renewing unlocks dictation again on this Mac; nothing local was removed.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sie ist am %@ abgelaufen. Eine Verlängerung schaltet das Diktieren wieder frei; lokale Daten wurden nicht entfernt."}},"es":{"stringUnit":{"state":"translated","value":"Caducó el %@. La renovación vuelve a activar el dictado en este Mac; no se ha eliminado ningún dato local."}},"it":{"stringUnit":{"state":"translated","value":"È scaduta il %@. Il rinnovo riattiva la dettatura su questo Mac; nessun dato locale è stato rimosso."}},"fr":{"stringUnit":{"state":"translated","value":"Elle a expiré le %@. Le renouvellement réactive la dictée sur ce Mac ; aucune donnée locale n’a été supprimée."}}}},
+    "It runs out on %@. A license keeps this Mac dictating; your dictionary and settings stay exactly as they are either way. Have a promo code? It goes in on the payment page.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sie läuft am %@ ab. Mit einer Lizenz kannst du weiter diktieren; Wörterbuch und Einstellungen bleiben unverändert. Einen Rabattcode gibst du auf der Bezahlseite ein."}},"es":{"stringUnit":{"state":"translated","value":"Termina el %@. Una licencia permite seguir dictando en este Mac; tu diccionario y tus ajustes no cambian. ¿Tienes un código promocional? Introdúcelo en la página de pago."}},"it":{"stringUnit":{"state":"translated","value":"Termina il %@. Una licenza permette di continuare a dettare su questo Mac; dizionario e impostazioni restano invariati. Hai un codice promozionale? Inseriscilo nella pagina di pagamento."}},"fr":{"stringUnit":{"state":"translated","value":"Elle se termine le %@. Une licence permet de continuer à dicter sur ce Mac ; votre dictionnaire et vos réglages restent inchangés. Vous avez un code promotionnel ? Saisissez-le sur la page de paiement."}}}},
     "Licensed to %1$@. This Mac needs nothing further — no renewal, and no connection. It covers version %2$lld and every update to it.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Lizenziert für %1$@. Dieser Mac benötigt weder Verlängerung noch Verbindung. Abgedeckt sind Version %2$lld und alle zugehörigen Updates."}}}},
-    "Licensed to %@.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Lizenziert für %@."}}}},
+    "Licensed to %@.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Lizenziert für %@."}},"es":{"stringUnit":{"state":"translated","value":"Licencia de %@."}},"it":{"stringUnit":{"state":"translated","value":"Licenza di %@."}},"fr":{"stringUnit":{"state":"translated","value":"Licence de %@."}}}},
     "Nothing was inserted: %@ has secure input enabled, which blocks dictation everywhere until it stops. Switching to it and clicking into an ordinary field usually clears it; quitting it always does. The text is here and was not copied.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Nichts wurde eingefügt: %@ hat die sichere Eingabe aktiviert. Wechsle dorthin und klicke in ein normales Feld oder beende die App. Der Text wurde nicht kopiert."}}}},
     "Nothing was inserted: an application has secure input enabled, which blocks dictation everywhere until it stops. The text is here and was not copied.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Nichts wurde eingefügt: Eine App hat die sichere Eingabe aktiviert und blockiert damit das Diktieren. Der Text wurde nicht kopiert."}}}},
     "Nothing was recorded yet — Witness is downloading the speech model%@. It happens once, and afterwards recognition runs entirely on this Mac. Hold %@ again when it is here; Witness will say so.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch nichts aufgenommen – Witness lädt das Sprachmodell%@. Dies geschieht einmalig, danach läuft die Erkennung vollständig auf diesem Mac. Halte %@ erneut gedrückt, sobald es bereit ist."}}}},
@@ -2803,15 +2472,15 @@
     "The activation service refused this request (%lld). Paste a key from your email instead, or write to support.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Aktivierungsdienst hat die Anfrage abgelehnt (%lld). Füge stattdessen einen Schlüssel aus deiner E-Mail ein oder kontaktiere den Support."}}}},
     "The microphone was open for %1$@ and never picked up speech (peak level %2$@). Check that %3$@ is what you are speaking into, and that it is not muted.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Mikrofon war %1$@ geöffnet, hat aber keine Sprache erkannt (Spitzenpegel %2$@). Prüfe, ob du in %3$@ sprichst und ob es nicht stummgeschaltet ist."}}}},
     "This build carries no license authority key, so it cannot check any license. It is a development build.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Diese Entwicklungs-Version enthält keinen öffentlichen Lizenzschlüssel und kann keine Lizenz prüfen."}}}},
-    "This build has no activation service yet. Paste a key below instead — that path works offline and is what the app checks in either case.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Diese Version hat noch keinen Aktivierungsdienst. Füge unten einen Schlüssel ein; dies funktioniert offline."}}}},
-    "This build has no activation service yet. Press “Enter a key…” and paste one instead — that path works offline and is what the app checks in either case.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Diese Version hat noch keinen Aktivierungsdienst. Wähle „Schlüssel eingeben …“ und füge einen Schlüssel ein; dies funktioniert offline."}}}},
+    "This build has no activation service yet. Paste a key below instead — that path works offline and is what the app checks in either case.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Diese Version hat noch keinen Aktivierungsdienst. Füge unten einen Schlüssel ein; dies funktioniert offline."}},"es":{"stringUnit":{"state":"translated","value":"Esta compilación aún no tiene servicio de activación. Introduce una clave abajo; funciona sin conexión y es el mismo método que comprueba la app."}},"it":{"stringUnit":{"state":"translated","value":"Questa build non dispone ancora del servizio di attivazione. Incolla una chiave qui sotto: funziona offline ed è comunque il metodo verificato dall’app."}},"fr":{"stringUnit":{"state":"translated","value":"Cette version ne dispose pas encore du service d’activation. Collez plutôt une clé ci-dessous : cette méthode fonctionne hors ligne et reste celle que l’app vérifie."}}}},
+    "This build has no activation service yet. Press “Enter a key…” and paste one instead — that path works offline and is what the app checks in either case.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Diese Version hat noch keinen Aktivierungsdienst. Wähle „Schlüssel eingeben …“ und füge einen Schlüssel ein; dies funktioniert offline."}},"es":{"stringUnit":{"state":"translated","value":"Esta compilación aún no tiene servicio de activación. Pulsa «Introducir una clave…» y pega una; funciona sin conexión y es el mismo método que comprueba la app."}},"it":{"stringUnit":{"state":"translated","value":"Questa build non dispone ancora del servizio di attivazione. Premi «Inserisci una chiave…» e incollane una: funziona offline ed è comunque il metodo verificato dall’app."}},"fr":{"stringUnit":{"state":"translated","value":"Cette version ne dispose pas encore du service d’activation. Appuyez sur « Saisir une clé… » et collez-en une : cette méthode fonctionne hors ligne et reste celle que l’app vérifie."}}}},
     "This build has no activation service. Paste a license key instead, or use a build from the product website.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Diese Version hat keinen Aktivierungsdienst. Füge einen Lizenzschlüssel ein oder verwende eine Version von der Produktwebsite."}}}},
     "This build sent an identifier the activation service does not recognize. Update Witness and try again.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Diese Version hat eine unbekannte Kennung gesendet. Aktualisiere Witness und versuche es erneut."}}}},
     "This key did not verify. It may have been edited in transit — paste it again straight from the email.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Dieser Schlüssel konnte nicht bestätigt werden. Füge ihn erneut direkt aus der E-Mail ein."}}}},
     "This key is version %@, which this build does not know how to read. Update Witness.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Dieser Schlüssel hat Version %@, die diese App-Version nicht lesen kann. Aktualisiere Witness."}}}},
     "This key was issued for a different Mac. Each Mac gets its own key, and a license covers two.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Dieser Schlüssel wurde für einen anderen Mac ausgestellt. Jeder Mac erhält einen eigenen Schlüssel; eine Lizenz gilt für zwei Macs."}}}},
     "This key's dates do not make sense, which means it was not issued by us.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die Datumsangaben dieses Schlüssels sind ungültig. Er wurde nicht von uns ausgestellt."}}}},
-    "Your lifetime license covers version %1$@ and every update to it. This is version %2$@. Version %1$@ keeps working forever.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Deine Dauerlizenz gilt für Version %1$@ und alle zugehörigen Updates. Dies ist Version %2$@. Version %1$@ funktioniert dauerhaft weiter."}}}},
+    "Your lifetime license covers version %1$@ and every update to it. This is version %2$@. Version %1$@ keeps working forever.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Deine Dauerlizenz gilt für Version %1$@ und alle zugehörigen Updates. Dies ist Version %2$@. Version %1$@ funktioniert dauerhaft weiter."}},"es":{"stringUnit":{"state":"translated","value":"Tu licencia de por vida cubre la versión %1$@ y todas sus actualizaciones. Esta es la versión %2$@. La versión %1$@ seguirá funcionando para siempre."}},"it":{"stringUnit":{"state":"translated","value":"La licenza a vita copre la versione %1$@ e tutti i relativi aggiornamenti. Questa è la versione %2$@. La versione %1$@ continuerà a funzionare per sempre."}},"fr":{"stringUnit":{"state":"translated","value":"Votre licence à vie couvre la version %1$@ et toutes ses mises à jour. Il s’agit de la version %2$@. La version %1$@ continuera de fonctionner indéfiniment."}}}},
     "Your lifetime license covers version %1$lld and every update to it, forever. This is version %2$lld. Download version %1$lld again from the website and it works exactly as it did — or move to version %2$lld below.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Deine Dauerlizenz gilt dauerhaft für Version %1$lld und alle zugehörigen Updates. Dies ist Version %2$lld. Lade Version %1$lld erneut von der Website oder wechsle unten zu Version %2$lld."}}}},
     "a shortcut needs at least one of ⌘ ⌥ ⌃ ⇧, or it would take that key away from every app": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"ein Tastenkürzel benötigt mindestens eine der Tasten ⌘ ⌥ ⌃ ⇧"}}}},
     "it answered with an error (%lld).": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"der Dienst antwortete mit einem Fehler (%lld)."}}}},
@@ -2841,10 +2510,10 @@
     "At least one of ⌘ ⌥ ⌃ ⇧ is required. A bare key would be taken away from every application on this Mac.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Mindestens eine der Tasten ⌘ ⌥ ⌃ ⇧ ist erforderlich. Eine einzelne Taste würde in allen Apps dieses Macs blockiert."}}}},
     "An app with no Dock icon is one nobody remembers to open, and a hotkey belonging to an app that is not running reads as a broken hotkey.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Eine App ohne Dock-Symbol wird leicht vergessen. Deshalb sollte Witness beim Anmelden starten, damit das Tastenkürzel immer funktioniert."}}}},
     "Witness needs Accessibility access to put text into other applications. Without it, results go to the clipboard.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Witness benötigt Bedienungshilfen-Zugriff, um Text in andere Apps einzufügen. Ohne diesen Zugriff werden Ergebnisse in die Zwischenablage kopiert."}}}},
-    "Checkout is not open yet. When it is, these buttons hand the purchase to Stripe in your browser — the app never sees a card number.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Checkout ist noch nicht geöffnet. Sobald er verfügbar ist, übergeben diese Tasten den Kauf im Browser an Stripe; die App sieht niemals eine Kartennummer."}}}},
-    "Checkout is not open yet. When it is, these buttons open the payment page in your browser — the app never sees a card number, and the key still comes back here, to this Mac.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Checkout ist noch nicht geöffnet. Sobald er verfügbar ist, öffnen diese Tasten die Zahlungsseite im Browser. Die App sieht niemals eine Kartennummer; der Schlüssel gelangt direkt zurück auf diesen Mac."}}}},
-    "The identifier is a one-way hash of this Mac's hardware UUID. It is what makes a license cover two Macs rather than any number of them, and it cannot be turned back into a serial number or matched against anything outside this app.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die Kennung ist ein nicht umkehrbarer Hash der Hardware-UUID dieses Macs. So kann eine Lizenz auf zwei Macs begrenzt werden. Die Kennung lässt sich weder in eine Seriennummer zurückverwandeln noch außerhalb dieser App abgleichen."}}}},
-    "This is a development build: it carries no authority key, so no license can verify here. Only the ungated window applies.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Dies ist eine Entwicklungs-Version ohne öffentlichen Lizenzschlüssel. Deshalb kann hier keine Lizenz geprüft werden; nur der lizenzfreie Zeitraum gilt."}}}},
+    "Checkout is not open yet. When it is, these buttons hand the purchase to Stripe in your browser — the app never sees a card number.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Checkout ist noch nicht geöffnet. Sobald er verfügbar ist, übergeben diese Tasten den Kauf im Browser an Stripe; die App sieht niemals eine Kartennummer."}},"es":{"stringUnit":{"state":"translated","value":"El pago aún no está disponible. Cuando lo esté, estos botones abrirán Stripe en tu navegador; la app nunca verá el número de tu tarjeta."}},"it":{"stringUnit":{"state":"translated","value":"Il pagamento non è ancora disponibile. Quando lo sarà, questi pulsanti apriranno Stripe nel browser; l’app non vedrà mai il numero della carta."}},"fr":{"stringUnit":{"state":"translated","value":"Le paiement n’est pas encore disponible. Lorsqu’il le sera, ces boutons ouvriront Stripe dans votre navigateur ; l’app ne verra jamais votre numéro de carte."}}}},
+    "Checkout is not open yet. When it is, these buttons open the payment page in your browser — the app never sees a card number, and the key still comes back here, to this Mac.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Checkout ist noch nicht geöffnet. Sobald er verfügbar ist, öffnen diese Tasten die Zahlungsseite im Browser. Die App sieht niemals eine Kartennummer; der Schlüssel gelangt direkt zurück auf diesen Mac."}},"es":{"stringUnit":{"state":"translated","value":"El pago aún no está disponible. Cuando lo esté, estos botones abrirán la página de pago en tu navegador; la app nunca verá el número de tu tarjeta y la clave volverá directamente a este Mac."}},"it":{"stringUnit":{"state":"translated","value":"Il pagamento non è ancora disponibile. Quando lo sarà, questi pulsanti apriranno la pagina di pagamento nel browser; l’app non vedrà mai il numero della carta e la chiave tornerà direttamente su questo Mac."}},"fr":{"stringUnit":{"state":"translated","value":"Le paiement n’est pas encore disponible. Lorsqu’il le sera, ces boutons ouvriront la page de paiement dans votre navigateur ; l’app ne verra jamais votre numéro de carte et la clé reviendra directement sur ce Mac."}}}},
+    "The identifier is a one-way hash of this Mac's hardware UUID. It is what makes a license cover two Macs rather than any number of them, and it cannot be turned back into a serial number or matched against anything outside this app.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die Kennung ist ein nicht umkehrbarer Hash der Hardware-UUID dieses Macs. So kann eine Lizenz auf zwei Macs begrenzt werden. Die Kennung lässt sich weder in eine Seriennummer zurückverwandeln noch außerhalb dieser App abgleichen."}},"es":{"stringUnit":{"state":"translated","value":"El identificador es un hash unidireccional del UUID de hardware de este Mac. Permite limitar la licencia a dos Mac; no puede convertirse de nuevo en un número de serie ni vincularse con nada fuera de esta app."}},"it":{"stringUnit":{"state":"translated","value":"L’identificatore è un hash unidirezionale dell’UUID hardware di questo Mac. Consente di limitare la licenza a due Mac; non può essere riconvertito in un numero di serie né associato a elementi esterni all’app."}},"fr":{"stringUnit":{"state":"translated","value":"L’identifiant est un hachage à sens unique de l’UUID matériel de ce Mac. Il permet de limiter la licence à deux Mac ; il ne peut pas être reconverti en numéro de série ni associé à quoi que ce soit en dehors de l’app."}}}},
+    "This is a development build: it carries no authority key, so no license can verify here. Only the ungated window applies.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Dies ist eine Entwicklungs-Version ohne öffentlichen Lizenzschlüssel. Deshalb kann hier keine Lizenz geprüft werden; nur der lizenzfreie Zeitraum gilt."}},"es":{"stringUnit":{"state":"translated","value":"Esta es una compilación de desarrollo: no contiene una clave de autoridad, por lo que no puede verificar licencias. Solo se aplica el periodo sin licencia."}},"it":{"stringUnit":{"state":"translated","value":"Questa è una build di sviluppo: non contiene una chiave dell’autorità, quindi non può verificare alcuna licenza. Si applica solo il periodo senza licenza."}},"fr":{"stringUnit":{"state":"translated","value":"Il s’agit d’une version de développement : elle ne contient aucune clé d’autorité et ne peut donc vérifier aucune licence. Seule la période sans licence s’applique."}}}},
     "Send my license key as soon as I have paid. I understand that I give up my right of withdrawal once delivery begins.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sende meinen Lizenzschlüssel sofort nach der Zahlung. Mir ist bewusst, dass mein Widerrufsrecht mit Beginn der Lieferung erlischt."}}}},
     "OK": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"OK"}}}},
     "Getting the speech model": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sprachmodell wird geladen"}}}},
@@ -2852,30 +2521,30 @@
     "Open Witness when I log in": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Witness beim Anmelden öffnen"}}}},
     "The hotkey only works while Witness is running, and it has no Dock icon. Without this, a restart leaves the hotkey silent until you open the app again.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Hotkey funktioniert nur, solange Witness läuft, und die App hat kein Dock-Symbol. Ohne diese Option bleibt der Hotkey nach einem Neustart stumm, bis du die App erneut öffnest."}}}},
     "Remove from this Mac": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Von diesem Mac entfernen"}}}},
-    "Continue with your email": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Mit deiner E-Mail fortfahren"}}}},
-    "The key comes straight back here and unlocks the app — there is nothing to fetch from your mail and nothing to paste. The address and an identifier for this Mac are the only things sent: when you press the button, and, for a subscription, about once a month to renew its key. No audio, no text, and nothing from your dictionary ever leaves this Mac.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Schlüssel kommt direkt hierher zurück und schaltet die App frei – du musst nichts aus deinem Postfach holen und nichts einfügen. Gesendet werden nur die Adresse und eine Kennung dieses Macs: wenn du die Taste drückst und bei einem Abonnement etwa einmal im Monat, um den Schlüssel zu erneuern. Kein Audio, kein Text und nichts aus deinem Wörterbuch verlässt jemals diesen Mac."}}}},
-    "The address you bought with fetches a key for this Mac. It and an identifier for this Mac are the only things sent: when you press the button, and, for a subscription, about once a month to renew its key. No audio, no text, and nothing from your dictionary.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Mit der Adresse, mit der du gekauft hast, holst du einen Schlüssel für diesen Mac. Gesendet werden nur sie und eine Kennung dieses Macs: wenn du die Taste drückst und bei einem Abonnement etwa einmal im Monat, um den Schlüssel zu erneuern. Kein Audio, kein Text und nichts aus deinem Wörterbuch."}}}},
-    "Ready to use": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Bereit zum Diktieren"}}}},
-    "Witness asks for nothing until %@. After that it asks for your email address, to carry on.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Bis zum %@ fragt Witness nach nichts. Danach bittet es um deine E-Mail-Adresse, damit du weiterdiktieren kannst."}}}},
-    "The first three days need no email and no key. After that, Witness asks for your email address, to carry on.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die ersten drei Tage brauchen weder E-Mail noch Schlüssel. Danach bittet Witness um deine E-Mail-Adresse, damit du weiterdiktieren kannst."}}}},
-    "Annual subscription": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Jahresabonnement"}}}},
-    "Licensed to %@. It renews by itself while the subscription runs, and Witness picks up its new key in the background. You can manage or cancel it any time.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Lizenziert für %@. Es verlängert sich von selbst, solange das Abonnement läuft, und Witness holt den neuen Schlüssel im Hintergrund. Du kannst es jederzeit verwalten oder kündigen."}}}},
-    "The first three days are over. Enter your email address to carry on. No payment is needed at this step, and nothing you have dictated has left this Mac.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die ersten drei Tage sind vorbei. Gib deine E-Mail-Adresse ein, um weiterzumachen. Dafür ist keine Zahlung nötig, und nichts von dem, was du diktiert hast, hat diesen Mac verlassen."}}}},
-    "Subscription not renewed": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Abonnement nicht verlängert"}}}},
-    "Witness could not renew its key, and the last one ran out on %@. If a payment did not go through, fix it under Manage subscription, then press the button below. Nothing local was removed.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Witness konnte den Schlüssel nicht erneuern, und der letzte ist am %@ abgelaufen. Falls eine Zahlung nicht durchging, korrigiere sie unter „Abonnement verwalten“ und drücke dann die Taste unten. Lokal wurde nichts entfernt."}}}},
-    "Your annual subscription is on this Mac now. There is nothing else to enter.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Dein Jahresabonnement ist jetzt auf diesem Mac. Du musst nichts weiter eingeben."}}}},
-    "Dictation keeps working until %@.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Diktieren funktioniert bis zum %@ weiter."}}}},
-    "Your key ends today": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Dein Schlüssel läuft heute ab"}}}},
-    "Your key ends in %lld days": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Dein Schlüssel läuft in %lld Tagen ab"}}}},
-    "The key on this Mac runs out on %@, and Witness has not been able to fetch a new one. Open Witness with an internet connection; if a payment did not go through, fix it under Manage subscription.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Schlüssel auf diesem Mac läuft am %@ ab, und Witness konnte keinen neuen holen. Öffne Witness mit Internetverbindung; falls eine Zahlung nicht durchging, korrigiere sie unter „Abonnement verwalten“."}}}},
-    "The first three days ask for nothing; they end %@. After that Witness asks for your email address, to carry on.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die ersten drei Tage fragen nach nichts; sie enden am %@. Danach bittet Witness um deine E-Mail-Adresse, damit du weiterdiktieren kannst."}}}},
-    "The first three days are over. Enter your email address under Settings → License to carry on. No payment is needed at this step.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die ersten drei Tage sind vorbei. Gib deine E-Mail-Adresse unter Einstellungen → Lizenz ein, um weiterzumachen. Dafür ist keine Zahlung nötig."}}}},
-    "Witness could not renew its key, and the last one ran out %@. Open Settings → License to put it right.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Witness konnte den Schlüssel nicht erneuern, und der letzte ist am %@ abgelaufen. Öffne Einstellungen → Lizenz, um das zu beheben."}}}},
+    "Continue with your email": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Mit deiner E-Mail fortfahren"}},"es":{"stringUnit":{"state":"translated","value":"Continuar con tu email"}},"it":{"stringUnit":{"state":"translated","value":"Continua con la tua email"}},"fr":{"stringUnit":{"state":"translated","value":"Continuer avec votre e-mail"}}}},
+    "The key comes straight back here and unlocks the app — there is nothing to fetch from your mail and nothing to paste. The address and an identifier for this Mac are the only things sent: when you press the button, and, for a subscription, about once a month to renew its key. No audio, no text, and nothing from your dictionary ever leaves this Mac.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Schlüssel kommt direkt hierher zurück und schaltet die App frei – du musst nichts aus deinem Postfach holen und nichts einfügen. Gesendet werden nur die Adresse und eine Kennung dieses Macs: wenn du die Taste drückst und bei einem Abonnement etwa einmal im Monat, um den Schlüssel zu erneuern. Kein Audio, kein Text und nichts aus deinem Wörterbuch verlässt jemals diesen Mac."}},"es":{"stringUnit":{"state":"translated","value":"La clave vuelve directamente aquí y desbloquea la app: no tienes que buscar nada en tu correo ni pegar nada. Solo se envían la dirección y un identificador de este Mac al pulsar el botón y, si hay una suscripción, aproximadamente una vez al mes para renovar la clave. Ningún audio, texto ni contenido de tu diccionario sale de este Mac."}},"it":{"stringUnit":{"state":"translated","value":"La chiave torna direttamente qui e sblocca l’app: non devi recuperare nulla dall’email né incollare nulla. Vengono inviati solo l’indirizzo e un identificatore di questo Mac quando premi il pulsante e, per un abbonamento, circa una volta al mese per rinnovare la chiave. Audio, testo e dizionario non lasciano mai questo Mac."}},"fr":{"stringUnit":{"state":"translated","value":"La clé revient directement ici et déverrouille l’app : vous n’avez rien à récupérer dans vos e-mails ni à coller. Seuls l’adresse et un identifiant de ce Mac sont envoyés lorsque vous appuyez sur le bouton et, pour un abonnement, environ une fois par mois afin de renouveler la clé. Aucun audio, aucun texte ni aucun élément de votre dictionnaire ne quitte ce Mac."}}}},
+    "The address you bought with fetches a key for this Mac. It and an identifier for this Mac are the only things sent: when you press the button, and, for a subscription, about once a month to renew its key. No audio, no text, and nothing from your dictionary.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Mit der Adresse, mit der du gekauft hast, holst du einen Schlüssel für diesen Mac. Gesendet werden nur sie und eine Kennung dieses Macs: wenn du die Taste drückst und bei einem Abonnement etwa einmal im Monat, um den Schlüssel zu erneuern. Kein Audio, kein Text und nichts aus deinem Wörterbuch."}},"es":{"stringUnit":{"state":"translated","value":"La dirección con la que compraste obtiene una clave para este Mac. Solo se envían esa dirección y un identificador de este Mac al pulsar el botón y, si hay una suscripción, aproximadamente una vez al mes para renovar la clave. No se envían audio, texto ni datos de tu diccionario."}},"it":{"stringUnit":{"state":"translated","value":"L’indirizzo usato per l’acquisto recupera una chiave per questo Mac. Vengono inviati solo quell’indirizzo e un identificatore di questo Mac quando premi il pulsante e, per un abbonamento, circa una volta al mese per rinnovare la chiave. Non vengono inviati audio, testo o dati del dizionario."}},"fr":{"stringUnit":{"state":"translated","value":"L’adresse utilisée pour l’achat récupère une clé pour ce Mac. Seuls cette adresse et un identifiant de ce Mac sont envoyés lorsque vous appuyez sur le bouton et, pour un abonnement, environ une fois par mois afin de renouveler la clé. Aucun audio, aucun texte ni aucun élément du dictionnaire n’est envoyé."}}}},
+    "Ready to use": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Bereit zum Diktieren"}},"es":{"stringUnit":{"state":"translated","value":"Listo para usar"}},"it":{"stringUnit":{"state":"translated","value":"Pronto all’uso"}},"fr":{"stringUnit":{"state":"translated","value":"Prêt à l’emploi"}}}},
+    "Witness asks for nothing until %@. After that it asks for your email address, to carry on.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Bis zum %@ fragt Witness nach nichts. Danach bittet es um deine E-Mail-Adresse, damit du weiterdiktieren kannst."}},"es":{"stringUnit":{"state":"translated","value":"Witness no te pedirá nada hasta el %@. Después te pedirá tu email para continuar."}},"it":{"stringUnit":{"state":"translated","value":"Witness non chiederà nulla fino al %@. In seguito chiederà il tuo indirizzo email per continuare."}},"fr":{"stringUnit":{"state":"translated","value":"Witness ne vous demandera rien avant le %@. Il vous demandera ensuite votre adresse e-mail pour continuer."}}}},
+    "The first three days need no email and no key. After that, Witness asks for your email address, to carry on.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die ersten drei Tage brauchen weder E-Mail noch Schlüssel. Danach bittet Witness um deine E-Mail-Adresse, damit du weiterdiktieren kannst."}},"es":{"stringUnit":{"state":"translated","value":"Durante los tres primeros días no necesitas email ni clave. Después, Witness te pedirá tu email para continuar."}},"it":{"stringUnit":{"state":"translated","value":"Per i primi tre giorni non servono email né chiavi. In seguito Witness chiederà il tuo indirizzo email per continuare."}},"fr":{"stringUnit":{"state":"translated","value":"Pendant les trois premiers jours, aucun e-mail ni aucune clé ne sont nécessaires. Witness vous demandera ensuite votre adresse e-mail pour continuer."}}}},
+    "Annual subscription": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Jahresabonnement"}},"es":{"stringUnit":{"state":"translated","value":"Suscripción anual"}},"it":{"stringUnit":{"state":"translated","value":"Abbonamento annuale"}},"fr":{"stringUnit":{"state":"translated","value":"Abonnement annuel"}}}},
+    "Licensed to %@. It renews by itself while the subscription runs, and Witness picks up its new key in the background. You can manage or cancel it any time.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Lizenziert für %@. Es verlängert sich von selbst, solange das Abonnement läuft, und Witness holt den neuen Schlüssel im Hintergrund. Du kannst es jederzeit verwalten oder kündigen."}},"es":{"stringUnit":{"state":"translated","value":"Licencia de %@. Se renueva automáticamente mientras la suscripción esté activa y Witness obtiene la nueva clave en segundo plano. Puedes gestionarla o cancelarla en cualquier momento."}},"it":{"stringUnit":{"state":"translated","value":"Licenza di %@. Si rinnova automaticamente finché l’abbonamento è attivo e Witness recupera la nuova chiave in background. Puoi gestirlo o annullarlo in qualsiasi momento."}},"fr":{"stringUnit":{"state":"translated","value":"Licence de %@. Elle se renouvelle automatiquement tant que l’abonnement est actif et Witness récupère la nouvelle clé en arrière-plan. Vous pouvez la gérer ou la résilier à tout moment."}}}},
+    "The first three days are over. Enter your email address to carry on. No payment is needed at this step, and nothing you have dictated has left this Mac.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die ersten drei Tage sind vorbei. Gib deine E-Mail-Adresse ein, um weiterzumachen. Dafür ist keine Zahlung nötig, und nichts von dem, was du diktiert hast, hat diesen Mac verlassen."}},"es":{"stringUnit":{"state":"translated","value":"Los tres primeros días han terminado. Introduce tu email para continuar. No necesitas pagar en este paso y nada de lo que has dictado ha salido de este Mac."}},"it":{"stringUnit":{"state":"translated","value":"I primi tre giorni sono terminati. Inserisci il tuo indirizzo email per continuare. In questo passaggio non serve alcun pagamento e nulla di ciò che hai dettato ha lasciato questo Mac."}},"fr":{"stringUnit":{"state":"translated","value":"Les trois premiers jours sont terminés. Saisissez votre adresse e-mail pour continuer. Aucun paiement n’est requis à cette étape et rien de ce que vous avez dicté n’a quitté ce Mac."}}}},
+    "Subscription not renewed": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Abonnement nicht verlängert"}},"es":{"stringUnit":{"state":"translated","value":"Suscripción no renovada"}},"it":{"stringUnit":{"state":"translated","value":"Abbonamento non rinnovato"}},"fr":{"stringUnit":{"state":"translated","value":"Abonnement non renouvelé"}}}},
+    "Witness could not renew its key, and the last one ran out on %@. If a payment did not go through, fix it under Manage subscription, then press the button below. Nothing local was removed.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Witness konnte den Schlüssel nicht erneuern, und der letzte ist am %@ abgelaufen. Falls eine Zahlung nicht durchging, korrigiere sie unter „Abonnement verwalten“ und drücke dann die Taste unten. Lokal wurde nichts entfernt."}},"es":{"stringUnit":{"state":"translated","value":"Witness no ha podido renovar la clave y la anterior caducó el %@. Si un pago ha fallado, corrígelo en Gestionar suscripción y pulsa el botón de abajo. No se ha eliminado nada de este Mac."}},"it":{"stringUnit":{"state":"translated","value":"Witness non è riuscito a rinnovare la chiave e la precedente è scaduta il %@. Se un pagamento non è riuscito, correggilo in Gestisci abbonamento e premi il pulsante qui sotto. Nessun dato locale è stato rimosso."}},"fr":{"stringUnit":{"state":"translated","value":"Witness n’a pas pu renouveler la clé et la précédente a expiré le %@. Si un paiement a échoué, corrigez-le dans Gérer l’abonnement, puis appuyez sur le bouton ci-dessous. Aucune donnée locale n’a été supprimée."}}}},
+    "Your annual subscription is on this Mac now. There is nothing else to enter.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Dein Jahresabonnement ist jetzt auf diesem Mac. Du musst nichts weiter eingeben."}},"es":{"stringUnit":{"state":"translated","value":"Tu suscripción anual ya está activa en este Mac. No tienes que introducir nada más."}},"it":{"stringUnit":{"state":"translated","value":"Il tuo abbonamento annuale è ora attivo su questo Mac. Non devi inserire altro."}},"fr":{"stringUnit":{"state":"translated","value":"Votre abonnement annuel est maintenant actif sur ce Mac. Vous n’avez rien d’autre à saisir."}}}},
+    "Dictation keeps working until %@.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Diktieren funktioniert bis zum %@ weiter."}},"es":{"stringUnit":{"state":"translated","value":"El dictado seguirá funcionando hasta el %@."}},"it":{"stringUnit":{"state":"translated","value":"La dettatura continuerà a funzionare fino al %@."}},"fr":{"stringUnit":{"state":"translated","value":"La dictée continuera de fonctionner jusqu’au %@."}}}},
+    "Your key ends today": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Dein Schlüssel läuft heute ab"}},"es":{"stringUnit":{"state":"translated","value":"Tu clave caduca hoy"}},"it":{"stringUnit":{"state":"translated","value":"La tua chiave scade oggi"}},"fr":{"stringUnit":{"state":"translated","value":"Votre clé expire aujourd’hui"}}}},
+    "Your key ends in %lld days": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Dein Schlüssel läuft in %lld Tagen ab"}},"es":{"stringUnit":{"state":"translated","value":"Tu clave caduca en %lld días"}},"it":{"stringUnit":{"state":"translated","value":"La tua chiave scade tra %lld giorni"}},"fr":{"stringUnit":{"state":"translated","value":"Votre clé expire dans %lld jours"}}}},
+    "The key on this Mac runs out on %@, and Witness has not been able to fetch a new one. Open Witness with an internet connection; if a payment did not go through, fix it under Manage subscription.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Schlüssel auf diesem Mac läuft am %@ ab, und Witness konnte keinen neuen holen. Öffne Witness mit Internetverbindung; falls eine Zahlung nicht durchging, korrigiere sie unter „Abonnement verwalten“."}},"es":{"stringUnit":{"state":"translated","value":"La clave de este Mac caduca el %@ y Witness no ha podido obtener una nueva. Abre Witness con conexión a internet; si un pago ha fallado, corrígelo en Gestionar suscripción."}},"it":{"stringUnit":{"state":"translated","value":"La chiave su questo Mac scade il %@ e Witness non è riuscito a ottenerne una nuova. Apri Witness con una connessione internet; se un pagamento non è riuscito, correggilo in Gestisci abbonamento."}},"fr":{"stringUnit":{"state":"translated","value":"La clé de ce Mac expire le %@ et Witness n’a pas pu en récupérer une nouvelle. Ouvrez Witness avec une connexion Internet ; si un paiement a échoué, corrigez-le dans Gérer l’abonnement."}}}},
+    "The first three days ask for nothing; they end %@. After that Witness asks for your email address, to carry on.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die ersten drei Tage fragen nach nichts; sie enden am %@. Danach bittet Witness um deine E-Mail-Adresse, damit du weiterdiktieren kannst."}},"es":{"stringUnit":{"state":"translated","value":"Durante los tres primeros días no se te pide nada; terminan el %@. Después, Witness te pedirá tu email para continuar."}},"it":{"stringUnit":{"state":"translated","value":"Per i primi tre giorni non viene richiesto nulla; terminano il %@. In seguito Witness chiederà il tuo indirizzo email per continuare."}},"fr":{"stringUnit":{"state":"translated","value":"Pendant les trois premiers jours, rien ne vous est demandé ; ils se terminent le %@. Witness vous demandera ensuite votre adresse e-mail pour continuer."}}}},
+    "The first three days are over. Enter your email address under Settings → License to carry on. No payment is needed at this step.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die ersten drei Tage sind vorbei. Gib deine E-Mail-Adresse unter Einstellungen → Lizenz ein, um weiterzumachen. Dafür ist keine Zahlung nötig."}},"es":{"stringUnit":{"state":"translated","value":"Los tres primeros días han terminado. Introduce tu email en Ajustes → Licencia para continuar. No necesitas pagar en este paso."}},"it":{"stringUnit":{"state":"translated","value":"I primi tre giorni sono terminati. Inserisci il tuo indirizzo email in Impostazioni → Licenza per continuare. In questo passaggio non serve alcun pagamento."}},"fr":{"stringUnit":{"state":"translated","value":"Les trois premiers jours sont terminés. Saisissez votre adresse e-mail dans Réglages → Licence pour continuer. Aucun paiement n’est requis à cette étape."}}}},
+    "Witness could not renew its key, and the last one ran out %@. Open Settings → License to put it right.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Witness konnte den Schlüssel nicht erneuern, und der letzte ist am %@ abgelaufen. Öffne Einstellungen → Lizenz, um das zu beheben."}},"es":{"stringUnit":{"state":"translated","value":"Witness no ha podido renovar la clave y la anterior caducó el %@. Abre Ajustes → Licencia para solucionarlo."}},"it":{"stringUnit":{"state":"translated","value":"Witness non è riuscito a rinnovare la chiave e la precedente è scaduta il %@. Apri Impostazioni → Licenza per risolvere il problema."}},"fr":{"stringUnit":{"state":"translated","value":"Witness n’a pas pu renouveler la clé et la précédente a expiré le %@. Ouvrez Réglages → Licence pour résoudre le problème."}}}},
     "The activation service could not be reached: %@. Check your connection and try again.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Aktivierungsdienst war nicht erreichbar: %@. Prüfe deine Verbindung und versuche es erneut."}}}},
     "This address has no active subscription. If you subscribed, check the payment under Manage subscription. A subscription that ended or was refunded no longer unlocks Witness.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Zu dieser Adresse gibt es kein aktives Abonnement. Falls du abonniert hast, prüfe die Zahlung unter „Abonnement verwalten“. Ein beendetes oder erstattetes Abonnement schaltet Witness nicht mehr frei."}}}},
-    "Subscription": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Abonnement"}}}},
-    "Manage subscription": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Abonnement verwalten"}}}},
-    "Opens a page in your browser where you can cancel, change the card, or download invoices. You sign in there with the email address you paid with.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Öffnet eine Seite im Browser, auf der du kündigen, die Karte ändern oder Rechnungen laden kannst. Dort meldest du dich mit der E-Mail-Adresse an, mit der du bezahlt hast."}}}},
+    "Subscription": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Abonnement"}},"es":{"stringUnit":{"state":"translated","value":"Suscripción"}},"it":{"stringUnit":{"state":"translated","value":"Abbonamento"}},"fr":{"stringUnit":{"state":"translated","value":"Abonnement"}}}},
+    "Manage subscription": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Abonnement verwalten"}},"es":{"stringUnit":{"state":"translated","value":"Gestionar suscripción"}},"it":{"stringUnit":{"state":"translated","value":"Gestisci abbonamento"}},"fr":{"stringUnit":{"state":"translated","value":"Gérer l’abonnement"}}}},
+    "Opens a page in your browser where you can cancel, change the card, or download invoices. You sign in there with the email address you paid with.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Öffnet eine Seite im Browser, auf der du kündigen, die Karte ändern oder Rechnungen laden kannst. Dort meldest du dich mit der E-Mail-Adresse an, mit der du bezahlt hast."}},"es":{"stringUnit":{"state":"translated","value":"Abre una página en el navegador donde puedes cancelar, cambiar la tarjeta o descargar facturas. Inicia sesión allí con el email utilizado para el pago."}},"it":{"stringUnit":{"state":"translated","value":"Apre una pagina nel browser in cui puoi annullare l’abbonamento, cambiare carta o scaricare le fatture. Accedi con l’indirizzo email usato per il pagamento."}},"fr":{"stringUnit":{"state":"translated","value":"Ouvre une page dans votre navigateur où vous pouvez résilier l’abonnement, changer de carte ou télécharger vos factures. Connectez-vous avec l’adresse e-mail utilisée pour le paiement."}}}},
     "Check for updates automatically": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Automatisch nach Updates suchen"}}}},
     "Once a day Witness asks GitHub whether a newer signed version exists, and offers it if so. Nothing is installed until you confirm. You can also check yourself with the button above.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Einmal am Tag fragt Witness bei GitHub nach, ob es eine neuere signierte Version gibt, und bietet sie dir an. Installiert wird erst nach deiner Bestätigung. Du kannst auch selbst mit der Taste oben suchen."}}}}
   },

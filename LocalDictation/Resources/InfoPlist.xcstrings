@@ -1,57 +1,111 @@
 {
-  "sourceLanguage" : "en",
-  "strings" : {
-    "NSHumanReadableCopyright" : {
-      "comment" : "Copyright notice shown by macOS.",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Copyright © 2026. Alle Rechte vorbehalten."
+  "sourceLanguage": "en",
+  "strings": {
+    "NSHumanReadableCopyright": {
+      "comment": "Copyright notice shown by macOS.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copyright © 2026. Alle Rechte vorbehalten."
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Copyright © 2026. All rights reserved."
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copyright © 2026. All rights reserved."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copyright © 2026. Todos los derechos reservados."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copyright © 2026. Tutti i diritti riservati."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copyright © 2026. Tous droits réservés."
           }
         }
       }
     },
-    "NSMicrophoneUsageDescription" : {
-      "comment" : "Reason shown in the macOS microphone permission prompt.",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Witness benötigt Zugriff auf das Mikrofon, um Sprache lokal auf deinem Mac zu transkribieren."
+    "NSMicrophoneUsageDescription": {
+      "comment": "Reason shown in the macOS microphone permission prompt.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Witness benötigt Zugriff auf das Mikrofon, um Sprache lokal auf deinem Mac zu transkribieren."
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Witness needs microphone access to transcribe speech locally on your Mac."
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Witness needs microphone access to transcribe speech locally on your Mac."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Witness necesita acceso al micrófono para transcribir voz localmente en tu Mac."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Witness richiede l’accesso al microfono per trascrivere la voce localmente sul tuo Mac."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Witness a besoin d’accéder au microphone pour transcrire la voix localement sur votre Mac."
           }
         }
       }
     },
-    "NSSpeechRecognitionUsageDescription" : {
-      "comment" : "Reason shown if macOS requests speech-recognition permission.",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Witness verwendet die Spracherkennung auf deinem Mac, um dein Diktat in Text umzuwandeln. Audio und Text bleiben auf diesem Mac."
+    "NSSpeechRecognitionUsageDescription": {
+      "comment": "Reason shown if macOS requests speech-recognition permission.",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Witness verwendet die Spracherkennung auf deinem Mac, um dein Diktat in Text umzuwandeln. Audio und Text bleiben auf diesem Mac."
           }
         },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Witness uses on-device speech recognition to turn your dictation into text. Audio and text stay on this Mac."
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Witness uses on-device speech recognition to turn your dictation into text. Audio and text stay on this Mac."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Witness utiliza el reconocimiento de voz del dispositivo para convertir tu dictado en texto. El audio y el texto permanecen en este Mac."
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Witness usa il riconoscimento vocale sul dispositivo per trasformare la dettatura in testo. Audio e testo restano su questo Mac."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Witness utilise la reconnaissance vocale sur l’appareil pour convertir votre dictée en texte. L’audio et le texte restent sur ce Mac."
           }
         }
       }
     }
   },
-  "version" : "1.0"
+  "version": "1.0"
 }
