@@ -1,27 +1,27 @@
 {
   "sourceLanguage": "en",
   "strings": {
-    "Let’s get Witness ready": {"localizations": {"de": {"stringUnit": {"state": "translated", "value": "Richten wir Witness ein"}}}},
-    "Allow access below, then we’ll prepare your private speech model.": {"localizations": {"de": {"stringUnit": {"state": "translated", "value": "Erlaube den Zugriff. Danach bereiten wir dein lokales Sprachmodell vor."}}}},
-    "Allow microphone access": {"localizations": {"de": {"stringUnit": {"state": "translated", "value": "Mikrofonzugriff erlauben"}}}},
-    "Witness needs the microphone to hear you. Audio stays in memory and is never saved to disk.": {"localizations": {"de": {"stringUnit": {"state": "translated", "value": "Witness benötigt das Mikrofon, um dich zu hören. Audio bleibt im Arbeitsspeicher und wird nicht gespeichert."}}}},
-    "Allow typing into other apps": {"localizations": {"de": {"stringUnit": {"state": "translated", "value": "Eingabe in anderen Apps erlauben"}}}},
-    "Enable Witness in Privacy & Security → Accessibility to insert text where your cursor is. Without it, text goes to the clipboard.": {"localizations": {"de": {"stringUnit": {"state": "translated", "value": "Aktiviere Witness unter Datenschutz & Sicherheit → Bedienungshilfen, um Text an der Cursorposition einzufügen. Andernfalls wird er in die Zwischenablage kopiert."}}}},
-    "Allow access…": {"localizations": {"de": {"stringUnit": {"state": "translated", "value": "Zugriff erlauben…"}}}},
-    "Notify me when ready": {"localizations": {"de": {"stringUnit": {"state": "translated", "value": "Bei Bereitschaft benachrichtigen"}}}},
-    "Get a macOS notification when the model is ready.": {"localizations": {"de": {"stringUnit": {"state": "translated", "value": "Erhalte eine macOS-Mitteilung, sobald das Modell bereit ist."}}}},
-    "Notifications are off. You can enable them in System Settings → Notifications.": {"localizations": {"de": {"stringUnit": {"state": "translated", "value": "Mitteilungen sind deaktiviert. Du kannst sie in den Systemeinstellungen unter Mitteilungen aktivieren."}}}},
-    "We’ll notify you when the model is ready. Keep Witness running.": {"localizations": {"de": {"stringUnit": {"state": "translated", "value": "Wir benachrichtigen dich, sobald das Modell bereit ist. Lass Witness geöffnet."}}}},
-    "Could not enable notifications. Check System Settings → Notifications.": {"localizations": {"de": {"stringUnit": {"state": "translated", "value": "Mitteilungen konnten nicht aktiviert werden. Prüfe Systemeinstellungen → Mitteilungen."}}}},
+    "Let’s get Witness ready": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Richten wir Witness ein"}},"es":{"stringUnit":{"state":"translated","value":"Vamos a preparar Witness"}},"it":{"stringUnit":{"state":"translated","value":"Prepariamo Witness"}},"fr":{"stringUnit":{"state":"translated","value":"Préparons Witness"}}}},
+    "Allow access below, then we’ll prepare your private speech model.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Erlaube den Zugriff. Danach bereiten wir dein lokales Sprachmodell vor."}},"es":{"stringUnit":{"state":"translated","value":"Concede los permisos siguientes y prepararemos tu modelo de voz privado."}},"it":{"stringUnit":{"state":"translated","value":"Concedi le autorizzazioni qui sotto, poi prepareremo il tuo modello vocale privato."}},"fr":{"stringUnit":{"state":"translated","value":"Accordez les autorisations ci-dessous, puis nous préparerons votre modèle vocal privé."}}}},
+    "Allow microphone access": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Mikrofonzugriff erlauben"}},"es":{"stringUnit":{"state":"translated","value":"Permitir acceso al micrófono"}},"it":{"stringUnit":{"state":"translated","value":"Consenti l’accesso al microfono"}},"fr":{"stringUnit":{"state":"translated","value":"Autoriser l’accès au microphone"}}}},
+    "Witness needs the microphone to hear you. Audio stays in memory and is never saved to disk.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Witness benötigt das Mikrofon, um dich zu hören. Audio bleibt im Arbeitsspeicher und wird nicht gespeichert."}},"es":{"stringUnit":{"state":"translated","value":"Witness necesita el micrófono para oírte. El audio permanece en memoria y nunca se guarda en el disco."}},"it":{"stringUnit":{"state":"translated","value":"Witness ha bisogno del microfono per ascoltarti. L’audio resta in memoria e non viene mai salvato su disco."}},"fr":{"stringUnit":{"state":"translated","value":"Witness a besoin du microphone pour vous entendre. L’audio reste en mémoire et n’est jamais enregistré sur le disque."}}}},
+    "Allow typing into other apps": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Eingabe in anderen Apps erlauben"}},"es":{"stringUnit":{"state":"translated","value":"Permitir escribir en otras apps"}},"it":{"stringUnit":{"state":"translated","value":"Consenti la scrittura in altre app"}},"fr":{"stringUnit":{"state":"translated","value":"Autoriser la saisie dans d’autres apps"}}}},
+    "Enable Witness in Privacy & Security → Accessibility to insert text where your cursor is. Without it, text goes to the clipboard.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Aktiviere Witness unter Datenschutz & Sicherheit → Bedienungshilfen, um Text an der Cursorposition einzufügen. Andernfalls wird er in die Zwischenablage kopiert."}},"es":{"stringUnit":{"state":"translated","value":"Activa Witness en Privacidad y seguridad → Accesibilidad para insertar texto donde esté el cursor. Sin este permiso, el texto se copia al portapapeles."}},"it":{"stringUnit":{"state":"translated","value":"Attiva Witness in Privacy e sicurezza → Accessibilità per inserire il testo nella posizione del cursore. Senza questa autorizzazione, il testo viene copiato negli appunti."}},"fr":{"stringUnit":{"state":"translated","value":"Activez Witness dans Confidentialité et sécurité → Accessibilité pour insérer le texte à l’emplacement du curseur. Sans cette autorisation, le texte est copié dans le presse-papiers."}}}},
+    "Allow access…": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Zugriff erlauben…"}},"es":{"stringUnit":{"state":"translated","value":"Permitir acceso…"}},"it":{"stringUnit":{"state":"translated","value":"Consenti accesso…"}},"fr":{"stringUnit":{"state":"translated","value":"Autoriser l’accès…"}}}},
+    "Notify me when ready": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Bei Bereitschaft benachrichtigen"}},"es":{"stringUnit":{"state":"translated","value":"Avisarme cuando esté listo"}},"it":{"stringUnit":{"state":"translated","value":"Avvisami quando è pronto"}},"fr":{"stringUnit":{"state":"translated","value":"Me prévenir lorsque ce sera prêt"}}}},
+    "Get a macOS notification when the model is ready.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Erhalte eine macOS-Mitteilung, sobald das Modell bereit ist."}},"es":{"stringUnit":{"state":"translated","value":"Recibe una notificación de macOS cuando el modelo esté listo."}},"it":{"stringUnit":{"state":"translated","value":"Ricevi una notifica di macOS quando il modello è pronto."}},"fr":{"stringUnit":{"state":"translated","value":"Recevez une notification macOS lorsque le modèle est prêt."}}}},
+    "Notifications are off. You can enable them in System Settings → Notifications.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Mitteilungen sind deaktiviert. Du kannst sie in den Systemeinstellungen unter Mitteilungen aktivieren."}},"es":{"stringUnit":{"state":"translated","value":"Las notificaciones están desactivadas. Puedes activarlas en Ajustes del Sistema → Notificaciones."}},"it":{"stringUnit":{"state":"translated","value":"Le notifiche sono disattivate. Puoi attivarle in Impostazioni di Sistema → Notifiche."}},"fr":{"stringUnit":{"state":"translated","value":"Les notifications sont désactivées. Vous pouvez les activer dans Réglages Système → Notifications."}}}},
+    "We’ll notify you when the model is ready. Keep Witness running.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Wir benachrichtigen dich, sobald das Modell bereit ist. Lass Witness geöffnet."}},"es":{"stringUnit":{"state":"translated","value":"Te avisaremos cuando el modelo esté listo. Mantén Witness abierto."}},"it":{"stringUnit":{"state":"translated","value":"Ti avviseremo quando il modello sarà pronto. Mantieni Witness in esecuzione."}},"fr":{"stringUnit":{"state":"translated","value":"Nous vous préviendrons lorsque le modèle sera prêt. Laissez Witness ouvert."}}}},
+    "Could not enable notifications. Check System Settings → Notifications.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Mitteilungen konnten nicht aktiviert werden. Prüfe Systemeinstellungen → Mitteilungen."}},"es":{"stringUnit":{"state":"translated","value":"No se han podido activar las notificaciones. Comprueba Ajustes del Sistema → Notificaciones."}},"it":{"stringUnit":{"state":"translated","value":"Impossibile attivare le notifiche. Controlla Impostazioni di Sistema → Notifiche."}},"fr":{"stringUnit":{"state":"translated","value":"Impossible d’activer les notifications. Vérifiez Réglages Système → Notifications."}}}},
     "Witness is ready": {"localizations": {"de": {"stringUnit": {"state": "translated", "value": "Witness ist bereit"}}}},
     "The local speech model is ready. Hold %@ and speak.": {"localizations": {"de": {"stringUnit": {"state": "translated", "value": "Das lokale Sprachmodell ist bereit. Halte %@ gedrückt und sprich."}}}},
-    "The model is ready.": {"localizations": {"de": {"stringUnit": {"state": "translated", "value": "Das Modell ist bereit."}}}},
-    "The model is ready, but the notification could not be delivered.": {"localizations": {"de": {"stringUnit": {"state": "translated", "value": "Das Modell ist bereit, aber die Mitteilung konnte nicht zugestellt werden."}}}},
-    "Hold %@ and say a few words to try dictation.": {"localizations": {"de": {"stringUnit": {"state": "translated", "value": "Halte %@ gedrückt und sage ein paar Worte, um das Diktieren auszuprobieren."}}}},
-    "Continue in background": {"localizations": {"de": {"stringUnit": {"state": "translated", "value": "Im Hintergrund fortfahren"}}}},
-    "The speech model is preparing": {"localizations": {"de": {"stringUnit": {"state": "translated", "value": "Das Sprachmodell wird vorbereitet"}}}},
-    "The model is being prepared on this Mac. Keep Witness running until it is ready.": {"localizations": {"de": {"stringUnit": {"state": "translated", "value": "Das Modell wird auf diesem Mac vorbereitet. Lass Witness geöffnet, bis es bereit ist."}}}},
-    "About %@, downloaded once. This can take 5–15 minutes depending on your connection and Mac. Keep Witness running; recognition then happens locally.": {"localizations": {"de": {"stringUnit": {"state": "translated", "value": "Etwa %@, einmaliger Download. Je nach Verbindung und Mac kann dies 5–15 Minuten dauern. Lass Witness geöffnet; danach erfolgt die Erkennung lokal."}}}},
+    "The model is ready.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Modell ist bereit."}},"es":{"stringUnit":{"state":"translated","value":"El modelo está listo."}},"it":{"stringUnit":{"state":"translated","value":"Il modello è pronto."}},"fr":{"stringUnit":{"state":"translated","value":"Le modèle est prêt."}}}},
+    "The model is ready, but the notification could not be delivered.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Modell ist bereit, aber die Mitteilung konnte nicht zugestellt werden."}},"es":{"stringUnit":{"state":"translated","value":"El modelo está listo, pero no se ha podido enviar la notificación."}},"it":{"stringUnit":{"state":"translated","value":"Il modello è pronto, ma non è stato possibile inviare la notifica."}},"fr":{"stringUnit":{"state":"translated","value":"Le modèle est prêt, mais la notification n’a pas pu être envoyée."}}}},
+    "Hold %@ and say a few words to try dictation.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Halte %@ gedrückt und sage ein paar Worte, um das Diktieren auszuprobieren."}},"es":{"stringUnit":{"state":"translated","value":"Mantén pulsado %@ y di unas palabras para probar el dictado."}},"it":{"stringUnit":{"state":"translated","value":"Tieni premuto %@ e pronuncia qualche parola per provare la dettatura."}},"fr":{"stringUnit":{"state":"translated","value":"Maintenez %@ enfoncé et dites quelques mots pour essayer la dictée."}}}},
+    "Continue in background": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Im Hintergrund fortfahren"}},"es":{"stringUnit":{"state":"translated","value":"Continuar en segundo plano"}},"it":{"stringUnit":{"state":"translated","value":"Continua in background"}},"fr":{"stringUnit":{"state":"translated","value":"Continuer en arrière-plan"}}}},
+    "The speech model is preparing": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Sprachmodell wird vorbereitet"}},"es":{"stringUnit":{"state":"translated","value":"El modelo de voz se está preparando"}},"it":{"stringUnit":{"state":"translated","value":"Preparazione del modello vocale"}},"fr":{"stringUnit":{"state":"translated","value":"Le modèle vocal est en cours de préparation"}}}},
+    "The model is being prepared on this Mac. Keep Witness running until it is ready.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Modell wird auf diesem Mac vorbereitet. Lass Witness geöffnet, bis es bereit ist."}},"es":{"stringUnit":{"state":"translated","value":"El modelo se está preparando en este Mac. Mantén Witness abierto hasta que esté listo."}},"it":{"stringUnit":{"state":"translated","value":"Il modello viene preparato su questo Mac. Mantieni Witness in esecuzione finché non è pronto."}},"fr":{"stringUnit":{"state":"translated","value":"Le modèle est en cours de préparation sur ce Mac. Laissez Witness ouvert jusqu’à ce qu’il soit prêt."}}}},
+    "About %@, downloaded once. This can take 5–15 minutes depending on your connection and Mac. Keep Witness running; recognition then happens locally.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Etwa %@, einmaliger Download. Je nach Verbindung und Mac kann dies 5–15 Minuten dauern. Lass Witness geöffnet; danach erfolgt die Erkennung lokal."}},"es":{"stringUnit":{"state":"translated","value":"Aproximadamente %@, se descarga una sola vez. Puede tardar entre 5 y 15 minutos según la conexión y el Mac. Mantén Witness abierto; después el reconocimiento será local."}},"it":{"stringUnit":{"state":"translated","value":"Circa %@, scaricati una sola volta. Può richiedere 5–15 minuti in base alla connessione e al Mac. Mantieni Witness in esecuzione; in seguito il riconoscimento avviene in locale."}},"fr":{"stringUnit":{"state":"translated","value":"Environ %@, téléchargés une seule fois. Cela peut prendre 5 à 15 minutes selon votre connexion et votre Mac. Laissez Witness ouvert ; la reconnaissance s’effectuera ensuite localement."}}}},
     "Cleanup": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Bereinigung"}}}},
     "Level": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Stufe"}}}},
     "Cleanup level": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Bereinigungsstufe"}}}},
@@ -61,8 +61,8 @@
     "about %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"etwa %@"}}}},
     " — %lld%%, %@ left": {"localizations":{"de":{"stringUnit":{"state":"translated","value":" – %lld %%, noch %@"}}}},
     " — %lld%%, %@ left, %@": {"localizations":{"de":{"stringUnit":{"state":"translated","value":" – %lld %%, noch %@, %@"}}}},
-    "Downloading the speech model… %lld%%. %@ left.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sprachmodell wird geladen … %lld %%. Noch %@."}}}},
-    "Downloading the speech model… %lld%%. %@ left, %@.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sprachmodell wird geladen … %lld %%. Noch %@, %@."}}}},
+    "Downloading the speech model… %lld%%. %@ left.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sprachmodell wird geladen … %lld %%. Noch %@."}},"es":{"stringUnit":{"state":"translated","value":"Descargando el modelo de voz… %lld%%. Quedan %@."}},"it":{"stringUnit":{"state":"translated","value":"Download del modello vocale… %lld%%. Restano %@."}},"fr":{"stringUnit":{"state":"translated","value":"Téléchargement du modèle vocal… %lld%%. %@ restants."}}}},
+    "Downloading the speech model… %lld%%. %@ left, %@.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sprachmodell wird geladen … %lld %%. Noch %@, %@."}},"es":{"stringUnit":{"state":"translated","value":"Descargando el modelo de voz… %lld%%. Quedan %@, %@."}},"it":{"stringUnit":{"state":"translated","value":"Download del modello vocale… %lld%%. Restano %@, %@."}},"fr":{"stringUnit":{"state":"translated","value":"Téléchargement du modèle vocal… %lld%%. %@ restants, %@."}}}},
     "Updates": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Updates"}}}},
     "Installed version": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Installierte Version"}}}},
     "Check for updates…": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Auf Updates prüfen …"}}}},
@@ -70,26 +70,18 @@
     "On this Mac": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Auf diesem Mac"}},"es":{"stringUnit":{"state":"translated","value":"En este Mac"}},"it":{"stringUnit":{"state":"translated","value":"Su questo Mac"}},"fr":{"stringUnit":{"state":"translated","value":"Sur ce Mac"}}}},
     "Terms": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Bedingungen (EN)"}},"es":{"stringUnit":{"state":"translated","value":"Condiciones (EN)"}},"it":{"stringUnit":{"state":"translated","value":"Condizioni (EN)"}},"fr":{"stringUnit":{"state":"translated","value":"Conditions (EN)"}}}},
     "Right of withdrawal": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Widerrufsrecht (EN)"}},"es":{"stringUnit":{"state":"translated","value":"Derecho de desistimiento (EN)"}},"it":{"stringUnit":{"state":"translated","value":"Diritto di recesso (EN)"}},"fr":{"stringUnit":{"state":"translated","value":"Droit de rétractation (EN)"}}}},
-    "SETUP · 1 OF 2": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "EINRICHTUNG · 1 VON 2"
-          }
-        }
-      }
-    },
-    "SETUP · 2 OF 2": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "EINRICHTUNG · 2 VON 2"
-          }
-        }
-      }
-    },
+    "The first three days ask for nothing": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die ersten drei Tage fragen nach nichts"}},"es":{"stringUnit":{"state":"translated","value":"Los tres primeros días no piden nada"}},"it":{"stringUnit":{"state":"translated","value":"Per i primi tre giorni non serve nulla"}},"fr":{"stringUnit":{"state":"translated","value":"Les trois premiers jours ne demandent rien"}}}},
+    "They start at your first dictation, not now. After them an email address keeps it running for ten more days, free. Nothing you dictate ever leaves this Mac, and that does not change when you activate.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sie beginnen mit deinem ersten Diktat, nicht jetzt. Danach sorgt eine E-Mail-Adresse dafür, dass es zehn weitere Tage kostenlos läuft. Nichts von dem, was du diktierst, verlässt jemals diesen Mac, und das ändert sich auch bei der Aktivierung nicht."}},"es":{"stringUnit":{"state":"translated","value":"Empiezan con tu primer dictado, no ahora. Después, una dirección de email mantiene Witness activo diez días más, gratis. Nada de lo que dictas sale jamás de este Mac, y eso no cambia al activarlo."}},"it":{"stringUnit":{"state":"translated","value":"Iniziano con la prima dettatura, non ora. In seguito, un indirizzo email mantiene Witness attivo per altri dieci giorni, gratis. Nulla di ciò che detti lascia mai questo Mac, e l’attivazione non cambia questo comportamento."}},"fr":{"stringUnit":{"state":"translated","value":"Ils commencent à votre première dictée, pas maintenant. Ensuite, une adresse e-mail permet de continuer gratuitement pendant dix jours. Rien de ce que vous dictez ne quitte jamais ce Mac, et l’activation n’y change rien."}}}},
+    "The microphone is allowed": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Mikrofon ist freigegeben"}},"es":{"stringUnit":{"state":"translated","value":"El micrófono está permitido"}},"it":{"stringUnit":{"state":"translated","value":"Il microfono è autorizzato"}},"fr":{"stringUnit":{"state":"translated","value":"Le microphone est autorisé"}}}},
+    "Audio is held in memory while you speak and never written to disk.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Audio bleibt beim Sprechen im Arbeitsspeicher und wird nie auf die Festplatte geschrieben."}},"es":{"stringUnit":{"state":"translated","value":"El audio se mantiene en memoria mientras hablas y nunca se guarda en el disco."}},"it":{"stringUnit":{"state":"translated","value":"L’audio resta in memoria mentre parli e non viene mai scritto su disco."}},"fr":{"stringUnit":{"state":"translated","value":"L’audio reste en mémoire pendant que vous parlez et n’est jamais écrit sur le disque."}}}},
+    "The microphone is blocked": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Mikrofon ist blockiert"}},"es":{"stringUnit":{"state":"translated","value":"El micrófono está bloqueado"}},"it":{"stringUnit":{"state":"translated","value":"Il microfono è bloccato"}},"fr":{"stringUnit":{"state":"translated","value":"Le microphone est bloqué"}}}},
+    "Witness cannot record without it. Turn it on under Privacy & Security → Microphone.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Witness kann ohne Mikrofon nicht aufnehmen. Aktiviere es unter Datenschutz & Sicherheit → Mikrofon."}},"es":{"stringUnit":{"state":"translated","value":"Witness no puede grabar sin él. Actívalo en Privacidad y seguridad → Micrófono."}},"it":{"stringUnit":{"state":"translated","value":"Witness non può registrare senza il microfono. Attivalo in Privacy e sicurezza → Microfono."}},"fr":{"stringUnit":{"state":"translated","value":"Witness ne peut pas enregistrer sans lui. Activez-le dans Confidentialité et sécurité → Microphone."}}}},
+    "Witness can type for you": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Witness kann für dich tippen"}},"es":{"stringUnit":{"state":"translated","value":"Witness puede escribir por ti"}},"it":{"stringUnit":{"state":"translated","value":"Witness può scrivere per te"}},"fr":{"stringUnit":{"state":"translated","value":"Witness peut saisir du texte pour vous"}}}},
+    "Text goes straight into whatever you were writing in.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Text wird direkt in die Anwendung eingefügt, in der du geschrieben hast."}},"es":{"stringUnit":{"state":"translated","value":"El texto se inserta directamente donde estabas escribiendo."}},"it":{"stringUnit":{"state":"translated","value":"Il testo viene inserito direttamente dove stavi scrivendo."}},"fr":{"stringUnit":{"state":"translated","value":"Le texte est inséré directement là où vous écriviez."}}}},
+    "Recognition + calibrated verification": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Erkennung + kalibrierte Prüfung"}},"es":{"stringUnit":{"state":"translated","value":"Reconocimiento + verificación calibrada"}},"it":{"stringUnit":{"state":"translated","value":"Riconoscimento + verifica calibrata"}},"fr":{"stringUnit":{"state":"translated","value":"Reconnaissance + vérification calibrée"}}}},
+    "German, English, Russian, and Ukrainian are measured end to end. Spanish, Italian, and French also get calibrated review marks for values, dates, names, dictionary terms, and malformed words; advanced cleanup stays conservative until recorded-speech measurement is complete. Other languages are recognized without language-specific guesses.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Deutsch, Englisch, Russisch und Ukrainisch sind durchgängig gemessen. Spanisch, Italienisch und Französisch erhalten außerdem kalibrierte Prüfmarkierungen für Werte, Daten, Namen, Wörterbuchbegriffe und fehlerhafte Wörter; die erweiterte Bereinigung bleibt konservativ, bis Messungen mit aufgezeichneter Sprache abgeschlossen sind. Andere Sprachen werden ohne sprachspezifische Vermutungen erkannt."}},"es":{"stringUnit":{"state":"translated","value":"Alemán, inglés, ruso y ucraniano tienen medición integral. Español, italiano y francés también reciben marcas de revisión calibradas para valores, fechas, nombres, términos del diccionario y palabras mal formadas; la limpieza avanzada seguirá siendo conservadora hasta completar la medición con voz grabada. Los demás idiomas se reconocen sin suposiciones específicas del idioma."}},"it":{"stringUnit":{"state":"translated","value":"Tedesco, inglese, russo e ucraino sono misurati dall’inizio alla fine. Spagnolo, italiano e francese ricevono anche segnalazioni di verifica calibrate per valori, date, nomi, termini del dizionario e parole malformate; la pulizia avanzata resta prudente finché non sarà completata la misurazione con voce registrata. Le altre lingue vengono riconosciute senza ipotesi specifiche."}},"fr":{"stringUnit":{"state":"translated","value":"L’allemand, l’anglais, le russe et l’ukrainien sont mesurés de bout en bout. L’espagnol, l’italien et le français bénéficient aussi de repères de vérification calibrés pour les valeurs, les dates, les noms, les termes du dictionnaire et les mots mal formés ; le nettoyage avancé reste prudent jusqu’à la fin des mesures sur parole enregistrée. Les autres langues sont reconnues sans hypothèses propres à la langue."}}}},
+    "SETUP · 1 OF 2": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"EINRICHTUNG · 1 VON 2"}},"es":{"stringUnit":{"state":"translated","value":"CONFIGURACIÓN · 1 DE 2"}},"it":{"stringUnit":{"state":"translated","value":"CONFIGURAZIONE · 1 DI 2"}},"fr":{"stringUnit":{"state":"translated","value":"CONFIGURATION · 1 SUR 2"}}}},
+    "SETUP · 2 OF 2": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"EINRICHTUNG · 2 VON 2"}},"es":{"stringUnit":{"state":"translated","value":"CONFIGURACIÓN · 2 DE 2"}},"it":{"stringUnit":{"state":"translated","value":"CONFIGURAZIONE · 2 DI 2"}},"fr":{"stringUnit":{"state":"translated","value":"CONFIGURATION · 2 SUR 2"}}}},
     "Witness only listens for languages you choose.": {
       "localizations": {
         "de": {
@@ -110,96 +102,15 @@
         }
       }
     },
-    "Which languages do you speak?": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Welche Sprachen sprichst du?"
-          }
-        }
-      }
-    },
-    "Every utterance is recognized as one of the languages you pick here, and never as one you did not. Pick as many as you actually use — there is nothing to switch between afterwards.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Jede Äußerung wird als eine der hier ausgewählten Sprachen erkannt – niemals als eine, die du nicht ausgewählt hast. Wähle alle Sprachen, die du tatsächlich verwendest; später musst du nicht zwischen ihnen wechseln."
-          }
-        }
-      }
-    },
-    "Continue": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Weiter"
-          }
-        }
-      }
-    },
-    "You can change this at any time in Settings → Languages.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Du kannst dies jederzeit unter Einstellungen → Sprachen ändern."
-          }
-        }
-      }
-    },
-    "Everything here is in Settings, and the menu bar icon is where the app lives.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Alles hier findest du auch in den Einstellungen. Über das Menüleistensymbol erreichst du Witness jederzeit."
-          }
-        }
-      }
-    },
-    "Start dictating": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Diktieren"
-          }
-        }
-      }
-    },
-    "Allow microphone…": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mikrofon erlauben …"
-          }
-        }
-      }
-    },
-    "Open Privacy Settings": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Datenschutzeinstellungen öffnen"
-          }
-        }
-      }
-    },
-    "Re-check": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Erneut prüfen"
-          }
-        }
-      }
-    },
+    "Which languages do you speak?": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Welche Sprachen sprichst du?"}},"es":{"stringUnit":{"state":"translated","value":"¿Qué idiomas hablas?"}},"it":{"stringUnit":{"state":"translated","value":"Quali lingue parli?"}},"fr":{"stringUnit":{"state":"translated","value":"Quelles langues parlez-vous ?"}}}},
+    "Every utterance is recognized as one of the languages you pick here, and never as one you did not. Pick as many as you actually use — there is nothing to switch between afterwards.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Jede Äußerung wird als eine der hier ausgewählten Sprachen erkannt – niemals als eine, die du nicht ausgewählt hast. Wähle alle Sprachen, die du tatsächlich verwendest; später musst du nicht zwischen ihnen wechseln."}},"es":{"stringUnit":{"state":"translated","value":"Cada frase se reconoce como uno de los idiomas que elijas aquí, nunca como uno que no hayas elegido. Selecciona todos los que uses de verdad; después no tendrás que cambiar entre ellos."}},"it":{"stringUnit":{"state":"translated","value":"Ogni frase viene riconosciuta come una delle lingue che scegli qui, mai come una che non hai scelto. Seleziona tutte quelle che usi davvero: in seguito non dovrai passare dall’una all’altra."}},"fr":{"stringUnit":{"state":"translated","value":"Chaque énoncé est reconnu dans l’une des langues choisies ici, jamais dans une autre. Sélectionnez toutes celles que vous utilisez réellement : vous n’aurez ensuite rien à changer."}}}},
+    "Continue": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Weiter"}},"es":{"stringUnit":{"state":"translated","value":"Continuar"}},"it":{"stringUnit":{"state":"translated","value":"Continua"}},"fr":{"stringUnit":{"state":"translated","value":"Continuer"}}}},
+    "You can change this at any time in Settings → Languages.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Du kannst dies jederzeit unter Einstellungen → Sprachen ändern."}},"es":{"stringUnit":{"state":"translated","value":"Puedes cambiarlo en cualquier momento en Ajustes → Idiomas."}},"it":{"stringUnit":{"state":"translated","value":"Puoi modificarlo in qualsiasi momento in Impostazioni → Lingue."}},"fr":{"stringUnit":{"state":"translated","value":"Vous pouvez modifier ce choix à tout moment dans Réglages → Langues."}}}},
+    "Everything here is in Settings, and the menu bar icon is where the app lives.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Alles hier findest du auch in den Einstellungen. Über das Menüleistensymbol erreichst du Witness jederzeit."}},"es":{"stringUnit":{"state":"translated","value":"Todo está disponible en Ajustes; Witness vive en el icono de la barra de menús."}},"it":{"stringUnit":{"state":"translated","value":"Tutto è disponibile in Impostazioni; Witness si trova nell’icona della barra dei menu."}},"fr":{"stringUnit":{"state":"translated","value":"Tout est disponible dans Réglages ; Witness se trouve dans l’icône de la barre des menus."}}}},
+    "Start dictating": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Diktieren"}},"es":{"stringUnit":{"state":"translated","value":"Empezar a dictar"}},"it":{"stringUnit":{"state":"translated","value":"Inizia a dettare"}},"fr":{"stringUnit":{"state":"translated","value":"Commencer à dicter"}}}},
+    "Allow microphone…": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Mikrofon erlauben …"}},"es":{"stringUnit":{"state":"translated","value":"Permitir micrófono…"}},"it":{"stringUnit":{"state":"translated","value":"Consenti microfono…"}},"fr":{"stringUnit":{"state":"translated","value":"Autoriser le microphone…"}}}},
+    "Open Privacy Settings": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Datenschutzeinstellungen öffnen"}},"es":{"stringUnit":{"state":"translated","value":"Abrir ajustes de privacidad"}},"it":{"stringUnit":{"state":"translated","value":"Apri le impostazioni Privacy"}},"fr":{"stringUnit":{"state":"translated","value":"Ouvrir les réglages de confidentialité"}}}},
+    "Re-check": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Erneut prüfen"}},"es":{"stringUnit":{"state":"translated","value":"Volver a comprobar"}},"it":{"stringUnit":{"state":"translated","value":"Controlla di nuovo"}},"fr":{"stringUnit":{"state":"translated","value":"Vérifier à nouveau"}}}},
     "Ask again": {
       "localizations": {
         "de": {
@@ -210,56 +121,11 @@
         }
       }
     },
-    "Open Settings": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Einstellungen öffnen"
-          }
-        }
-      }
-    },
-    "Try again": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Erneut versuchen"
-          }
-        }
-      }
-    },
-    "Search languages": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sprachen suchen"
-          }
-        }
-      }
-    },
-    "Measured end to end": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Durchgängig geprüft"
-          }
-        }
-      }
-    },
-    "Everything else the engine knows": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Alle weiteren unterstützten Sprachen"
-          }
-        }
-      }
-    },
+    "Open Settings": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Einstellungen öffnen"}},"es":{"stringUnit":{"state":"translated","value":"Abrir Ajustes"}},"it":{"stringUnit":{"state":"translated","value":"Apri Impostazioni"}},"fr":{"stringUnit":{"state":"translated","value":"Ouvrir Réglages"}}}},
+    "Try again": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Erneut versuchen"}},"es":{"stringUnit":{"state":"translated","value":"Volver a intentarlo"}},"it":{"stringUnit":{"state":"translated","value":"Riprova"}},"fr":{"stringUnit":{"state":"translated","value":"Réessayer"}}}},
+    "Search languages": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sprachen suchen"}},"es":{"stringUnit":{"state":"translated","value":"Buscar idiomas"}},"it":{"stringUnit":{"state":"translated","value":"Cerca lingue"}},"fr":{"stringUnit":{"state":"translated","value":"Rechercher des langues"}}}},
+    "Measured end to end": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Durchgängig geprüft"}},"es":{"stringUnit":{"state":"translated","value":"Medición integral"}},"it":{"stringUnit":{"state":"translated","value":"Misurate dall’inizio alla fine"}},"fr":{"stringUnit":{"state":"translated","value":"Mesurées de bout en bout"}}}},
+    "Everything else the engine knows": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Alle weiteren unterstützten Sprachen"}},"es":{"stringUnit":{"state":"translated","value":"Todos los demás idiomas del motor"}},"it":{"stringUnit":{"state":"translated","value":"Tutte le altre lingue del motore"}},"fr":{"stringUnit":{"state":"translated","value":"Toutes les autres langues du moteur"}}}},
     "German, English, Russian, and Ukrainian are measured end to end: recognition, cleanup, and every mark the review can show. The rest are recognized, and the marks that are calibrated per language stay off rather than guess.": {
       "localizations": {
         "de": {
@@ -270,26 +136,8 @@
         }
       }
     },
-    "Preferred": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bevorzugt"
-          }
-        }
-      }
-    },
-    "The preferred language decides a short phrase that could be either — “okay”, “ja”, a name on its own. A sentence long enough to be recognized is decided by what was said, not by this.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Die bevorzugte Sprache entscheidet bei kurzen, mehrdeutigen Äußerungen – etwa „okay“, „ja“ oder einem einzelnen Namen. Bei längeren Sätzen entscheidet das Gesprochene selbst."
-          }
-        }
-      }
-    },
+    "Preferred": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Bevorzugt"}},"es":{"stringUnit":{"state":"translated","value":"Preferido"}},"it":{"stringUnit":{"state":"translated","value":"Preferita"}},"fr":{"stringUnit":{"state":"translated","value":"Langue préférée"}}}},
+    "The preferred language decides a short phrase that could be either — “okay”, “ja”, a name on its own. A sentence long enough to be recognized is decided by what was said, not by this.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die bevorzugte Sprache entscheidet bei kurzen, mehrdeutigen Äußerungen – etwa „okay“, „ja“ oder einem einzelnen Namen. Bei längeren Sätzen entscheidet das Gesprochene selbst."}},"es":{"stringUnit":{"state":"translated","value":"El idioma preferido decide una frase corta que podría pertenecer a varios idiomas —«okay», «ja» o un nombre aislado—. Una frase lo bastante larga se decide por lo que se ha dicho, no por esta opción."}},"it":{"stringUnit":{"state":"translated","value":"La lingua preferita decide una frase breve che potrebbe appartenere a più lingue — «okay», «ja» o un nome isolato. Per una frase abbastanza lunga decide ciò che è stato detto, non questa opzione."}},"fr":{"stringUnit":{"state":"translated","value":"La langue préférée départage une courte expression qui pourrait appartenir à plusieurs langues — « okay », « ja » ou un nom isolé. Pour une phrase assez longue, c’est ce qui a été dit qui décide, pas ce réglage."}}}},
     "Raw transcript, exactly as recognized": {
       "localizations": {
         "de": {
@@ -1127,68 +975,14 @@
         }
       }
     },
-    "Nothing you dictate ever leaves this Mac. Nine events about setting it up and about the trial do — the install, the speech model arriving or failing to, a press that finds it still arriving, a refused microphone, the trial starting, the email ask, and the offers — with no more than an app version, a macOS version, and a random number made at install. Settings → Privacy turns them off.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nichts von dem, was du diktierst, verlässt diesen Mac. Gesendet werden neun Ereignisse zur Einrichtung und zur Testphase: die Installation, das Eintreffen des Sprachmodells oder dessen Scheitern, ein Tastendruck, der noch darauf trifft, ein abgelehntes Mikrofon, der Start der Testphase, die Abfrage der E-Mail-Adresse und das Anzeigen der Angebote – jeweils nur mit App-Version, macOS-Version und einer bei der Installation erzeugten Zufallsnummer. Unter Einstellungen → Datenschutz kannst du dies deaktivieren."
-          }
-        }
-      }
-    },
-    "The speech model is ready": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Das Sprachmodell ist bereit"
-          }
-        }
-      }
-    },
-    "The speech model did not arrive": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Das Sprachmodell konnte nicht geladen werden"
-          }
-        }
-      }
-    },
-    "The speech model is downloading": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Das Sprachmodell wird geladen"
-          }
-        }
-      }
-    },
-    "Recognition runs on this Mac, with no network and no account.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Die Erkennung läuft auf diesem Mac – ohne Netzwerk und ohne Konto."
-          }
-        }
-      }
-    },
-    "%@ It is about %@ and needs a connection once; everything after that is offline.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%@ Es ist etwa %@ groß und benötigt einmalig eine Verbindung; danach funktioniert alles offline."}}}},
+    "Nothing you dictate ever leaves this Mac. Nine events about setting it up and about the trial do — the install, the speech model arriving or failing to, a press that finds it still arriving, a refused microphone, the trial starting, the email ask, and the offers — with no more than an app version, a macOS version, and a random number made at install. Settings → Privacy turns them off.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Nichts von dem, was du diktierst, verlässt diesen Mac. Gesendet werden neun Ereignisse zur Einrichtung und zur Testphase: die Installation, das Eintreffen des Sprachmodells oder dessen Scheitern, ein Tastendruck, der noch darauf trifft, ein abgelehntes Mikrofon, der Start der Testphase, die Abfrage der E-Mail-Adresse und das Anzeigen der Angebote – jeweils nur mit App-Version, macOS-Version und einer bei der Installation erzeugten Zufallsnummer. Unter Einstellungen → Datenschutz kannst du dies deaktivieren."}},"es":{"stringUnit":{"state":"translated","value":"Nada de lo que dictas sale jamás de este Mac. Sí se envían nueve eventos sobre la configuración y el periodo de prueba: la instalación, la llegada o el fallo del modelo de voz, una pulsación cuando aún se está descargando, un micrófono rechazado, el inicio del periodo de prueba, la solicitud del email y las ofertas; como máximo incluyen la versión de la app, la versión de macOS y un número aleatorio creado al instalar. Puedes desactivarlos en Ajustes → Privacidad."}},"it":{"stringUnit":{"state":"translated","value":"Nulla di ciò che detti lascia mai questo Mac. Vengono inviati nove eventi sulla configurazione e sul periodo di prova: l’installazione, l’arrivo o l’errore del modello vocale, una pressione mentre il modello è ancora in arrivo, un microfono rifiutato, l’inizio della prova, la richiesta dell’email e le offerte. Contengono al massimo la versione dell’app, la versione di macOS e un numero casuale creato all’installazione. Puoi disattivarli in Impostazioni → Privacy."}},"fr":{"stringUnit":{"state":"translated","value":"Rien de ce que vous dictez ne quitte jamais ce Mac. Neuf événements sur la configuration et l’essai sont toutefois envoyés : l’installation, l’arrivée ou l’échec du modèle vocal, une pression pendant son téléchargement, un refus du microphone, le début de l’essai, la demande d’adresse e-mail et les offres. Ils contiennent au maximum la version de l’app, la version de macOS et un nombre aléatoire créé à l’installation. Vous pouvez les désactiver dans Réglages → Confidentialité."}}}},
+    "The speech model is ready": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Sprachmodell ist bereit"}},"es":{"stringUnit":{"state":"translated","value":"El modelo de voz está listo"}},"it":{"stringUnit":{"state":"translated","value":"Il modello vocale è pronto"}},"fr":{"stringUnit":{"state":"translated","value":"Le modèle vocal est prêt"}}}},
+    "The speech model did not arrive": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Sprachmodell konnte nicht geladen werden"}},"es":{"stringUnit":{"state":"translated","value":"El modelo de voz no se ha descargado"}},"it":{"stringUnit":{"state":"translated","value":"Il modello vocale non è arrivato"}},"fr":{"stringUnit":{"state":"translated","value":"Le modèle vocal n’est pas arrivé"}}}},
+    "The speech model is downloading": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Sprachmodell wird geladen"}},"es":{"stringUnit":{"state":"translated","value":"El modelo de voz se está descargando"}},"it":{"stringUnit":{"state":"translated","value":"Download del modello vocale in corso"}},"fr":{"stringUnit":{"state":"translated","value":"Le modèle vocal est en cours de téléchargement"}}}},
+    "Recognition runs on this Mac, with no network and no account.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die Erkennung läuft auf diesem Mac – ohne Netzwerk und ohne Konto."}},"es":{"stringUnit":{"state":"translated","value":"El reconocimiento se ejecuta en este Mac, sin red ni cuenta."}},"it":{"stringUnit":{"state":"translated","value":"Il riconoscimento viene eseguito su questo Mac, senza rete né account."}},"fr":{"stringUnit":{"state":"translated","value":"La reconnaissance s’exécute sur ce Mac, sans réseau ni compte."}}}},
+    "%@ It is about %@ and needs a connection once; everything after that is offline.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%@ Es ist etwa %@ groß und benötigt einmalig eine Verbindung; danach funktioniert alles offline."}},"es":{"stringUnit":{"state":"translated","value":"%@ Ocupa unos %@ y necesita conexión una sola vez; después todo funciona sin conexión."}},"it":{"stringUnit":{"state":"translated","value":"%@ Occupa circa %@ e richiede una sola connessione; in seguito tutto funziona offline."}},"fr":{"stringUnit":{"state":"translated","value":"%@ Il occupe environ %@ et nécessite une seule connexion ; tout fonctionne ensuite hors ligne."}}}},
     "About %@, fetched once. It started on its own when the app launched — you can close this window and it keeps going. Afterwards recognition runs on this Mac with no network at all.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Etwa %@, einmalig geladen. Der Download begann beim App-Start automatisch und läuft weiter, wenn du dieses Fenster schließt. Danach erfolgt die Erkennung vollständig offline auf diesem Mac."}}}},
-    "No language here is called “%@”.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Keine Sprache heißt hier „%@“."
-          }
-        }
-      }
-    },
+    "No language here is called “%@”.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Keine Sprache heißt hier „%@“."}},"es":{"stringUnit":{"state":"translated","value":"No hay ningún idioma llamado «%@»."}},"it":{"stringUnit":{"state":"translated","value":"Nessuna lingua si chiama «%@»."}},"fr":{"stringUnit":{"state":"translated","value":"Aucune langue ne s’appelle « %@ »."}}}},
     "Lifetime": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Dauerlizenz"}},"es":{"stringUnit":{"state":"translated","value":"De por vida"}},"it":{"stringUnit":{"state":"translated","value":"A vita"}},"fr":{"stringUnit":{"state":"translated","value":"À vie"}}}},
     "Annual": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Jahreslizenz"}},"es":{"stringUnit":{"state":"translated","value":"Anual"}},"it":{"stringUnit":{"state":"translated","value":"Annuale"}},"fr":{"stringUnit":{"state":"translated","value":"Annuel"}}}},
     "Trial": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Testphase"}},"es":{"stringUnit":{"state":"translated","value":"Periodo de prueba"}},"it":{"stringUnit":{"state":"translated","value":"Periodo di prova"}},"fr":{"stringUnit":{"state":"translated","value":"Période d’essai"}}}},
@@ -1253,46 +1047,10 @@
         }
       }
     },
-    "Downloading the speech model…": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sprachmodell wird geladen …"
-          }
-        }
-      }
-    },
-    "Downloading the speech model… %lld%%": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sprachmodell wird geladen … %lld %%"
-          }
-        }
-      }
-    },
-    "Loading the speech model…": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sprachmodell wird geladen …"
-          }
-        }
-      }
-    },
-    "Preparing the speech model for this Mac. The first time on a new macOS version takes several minutes; after that it is seconds.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Das Sprachmodell wird für diesen Mac vorbereitet. Nach einer neuen macOS-Version dauert dies beim ersten Mal einige Minuten, danach nur Sekunden."
-          }
-        }
-      }
-    },
+    "Downloading the speech model…": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sprachmodell wird geladen …"}},"es":{"stringUnit":{"state":"translated","value":"Descargando el modelo de voz…"}},"it":{"stringUnit":{"state":"translated","value":"Download del modello vocale…"}},"fr":{"stringUnit":{"state":"translated","value":"Téléchargement du modèle vocal…"}}}},
+    "Downloading the speech model… %lld%%": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sprachmodell wird geladen … %lld %%"}},"es":{"stringUnit":{"state":"translated","value":"Descargando el modelo de voz… %lld%%"}},"it":{"stringUnit":{"state":"translated","value":"Download del modello vocale… %lld%%"}},"fr":{"stringUnit":{"state":"translated","value":"Téléchargement du modèle vocal… %lld%%"}}}},
+    "Loading the speech model…": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sprachmodell wird geladen …"}},"es":{"stringUnit":{"state":"translated","value":"Cargando el modelo de voz…"}},"it":{"stringUnit":{"state":"translated","value":"Caricamento del modello vocale…"}},"fr":{"stringUnit":{"state":"translated","value":"Chargement du modèle vocal…"}}}},
+    "Preparing the speech model for this Mac. The first time on a new macOS version takes several minutes; after that it is seconds.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Sprachmodell wird für diesen Mac vorbereitet. Nach einer neuen macOS-Version dauert dies beim ersten Mal einige Minuten, danach nur Sekunden."}},"es":{"stringUnit":{"state":"translated","value":"Preparando el modelo de voz para este Mac. La primera vez con una nueva versión de macOS tarda varios minutos; después solo unos segundos."}},"it":{"stringUnit":{"state":"translated","value":"Preparazione del modello vocale per questo Mac. La prima volta con una nuova versione di macOS richiede diversi minuti; in seguito bastano pochi secondi."}},"fr":{"stringUnit":{"state":"translated","value":"Préparation du modèle vocal pour ce Mac. La première fois avec une nouvelle version de macOS prend plusieurs minutes ; ensuite, quelques secondes suffisent."}}}},
     "Speech model unavailable: %@": {
       "localizations": {
         "de": {
@@ -2424,7 +2182,7 @@
     "%@ It happens once. Dictation starts the moment it is here.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%@ Dies geschieht nur einmal. Sobald es verfügbar ist, kannst du diktieren."}}}},
     "Some fragments in the last result are worth checking. The text is already in place.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Einige Stellen im letzten Ergebnis solltest du prüfen. Der Text wurde bereits eingefügt."}}}},
     "The trial ended %@. A license brings it back, on this Mac and one more.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die Testphase endete am %@. Eine Lizenz aktiviert Witness auf diesem und einem weiteren Mac."}},"es":{"stringUnit":{"state":"translated","value":"El periodo de prueba terminó el %@. Una licencia reactiva Witness en este Mac y en otro más."}},"it":{"stringUnit":{"state":"translated","value":"Il periodo di prova è terminato il %@. Una licenza riattiva Witness su questo Mac e su un altro."}},"fr":{"stringUnit":{"state":"translated","value":"La période d’essai s’est terminée le %@. Une licence réactive Witness sur ce Mac et sur un autre."}}}},
-    "The speech model is not ready": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Sprachmodell ist nicht bereit"}}}},
+    "The speech model is not ready": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Sprachmodell ist nicht bereit"}},"es":{"stringUnit":{"state":"translated","value":"El modelo de voz no está listo"}},"it":{"stringUnit":{"state":"translated","value":"Il modello vocale non è pronto"}},"fr":{"stringUnit":{"state":"translated","value":"Le modèle vocal n’est pas prêt"}}}},
     "The speech model is still arriving": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Sprachmodell wird noch geladen"}}}},
     "The speech model is ready. Hold %@ and speak — the text lands where your cursor is.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Sprachmodell ist bereit. Halte %@ gedrückt und sprich – der Text erscheint an der Cursorposition."}}}},
     "Nothing was inserted: the focus is in a password field. The text is here and was not copied.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Nichts wurde eingefügt: Der Fokus befindet sich in einem Passwortfeld. Der Text ist weiterhin hier und wurde nicht kopiert."}}}},
@@ -2518,8 +2276,8 @@
     "OK": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"OK"}}}},
     "Getting the speech model": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sprachmodell wird geladen"}}}},
     "Removing…": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Wird entfernt …"}}}},
-    "Open Witness when I log in": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Witness beim Anmelden öffnen"}}}},
-    "The hotkey only works while Witness is running, and it has no Dock icon. Without this, a restart leaves the hotkey silent until you open the app again.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Hotkey funktioniert nur, solange Witness läuft, und die App hat kein Dock-Symbol. Ohne diese Option bleibt der Hotkey nach einem Neustart stumm, bis du die App erneut öffnest."}}}},
+    "Open Witness when I log in": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Witness beim Anmelden öffnen"}},"es":{"stringUnit":{"state":"translated","value":"Abrir Witness al iniciar sesión"}},"it":{"stringUnit":{"state":"translated","value":"Apri Witness all’accesso"}},"fr":{"stringUnit":{"state":"translated","value":"Ouvrir Witness à l’ouverture de session"}}}},
+    "The hotkey only works while Witness is running, and it has no Dock icon. Without this, a restart leaves the hotkey silent until you open the app again.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Hotkey funktioniert nur, solange Witness läuft, und die App hat kein Dock-Symbol. Ohne diese Option bleibt der Hotkey nach einem Neustart stumm, bis du die App erneut öffnest."}},"es":{"stringUnit":{"state":"translated","value":"El atajo solo funciona mientras Witness está abierto y la app no tiene icono en el Dock. Sin esta opción, después de reiniciar el atajo no responderá hasta que vuelvas a abrir la app."}},"it":{"stringUnit":{"state":"translated","value":"La scorciatoia funziona solo mentre Witness è in esecuzione e l’app non ha un’icona nel Dock. Senza questa opzione, dopo un riavvio la scorciatoia non risponde finché non riapri l’app."}},"fr":{"stringUnit":{"state":"translated","value":"Le raccourci fonctionne uniquement lorsque Witness est ouvert, et l’app n’a pas d’icône dans le Dock. Sans cette option, après un redémarrage, le raccourci reste inactif jusqu’à ce que vous rouvriez l’app."}}}},
     "Remove from this Mac": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Von diesem Mac entfernen"}}}},
     "Continue with your email": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Mit deiner E-Mail fortfahren"}},"es":{"stringUnit":{"state":"translated","value":"Continuar con tu email"}},"it":{"stringUnit":{"state":"translated","value":"Continua con la tua email"}},"fr":{"stringUnit":{"state":"translated","value":"Continuer avec votre e-mail"}}}},
     "The key comes straight back here and unlocks the app — there is nothing to fetch from your mail and nothing to paste. The address and an identifier for this Mac are the only things sent: when you press the button, and, for a subscription, about once a month to renew its key. No audio, no text, and nothing from your dictionary ever leaves this Mac.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Der Schlüssel kommt direkt hierher zurück und schaltet die App frei – du musst nichts aus deinem Postfach holen und nichts einfügen. Gesendet werden nur die Adresse und eine Kennung dieses Macs: wenn du die Taste drückst und bei einem Abonnement etwa einmal im Monat, um den Schlüssel zu erneuern. Kein Audio, kein Text und nichts aus deinem Wörterbuch verlässt jemals diesen Mac."}},"es":{"stringUnit":{"state":"translated","value":"La clave vuelve directamente aquí y desbloquea la app: no tienes que buscar nada en tu correo ni pegar nada. Solo se envían la dirección y un identificador de este Mac al pulsar el botón y, si hay una suscripción, aproximadamente una vez al mes para renovar la clave. Ningún audio, texto ni contenido de tu diccionario sale de este Mac."}},"it":{"stringUnit":{"state":"translated","value":"La chiave torna direttamente qui e sblocca l’app: non devi recuperare nulla dall’email né incollare nulla. Vengono inviati solo l’indirizzo e un identificatore di questo Mac quando premi il pulsante e, per un abbonamento, circa una volta al mese per rinnovare la chiave. Audio, testo e dizionario non lasciano mai questo Mac."}},"fr":{"stringUnit":{"state":"translated","value":"La clé revient directement ici et déverrouille l’app : vous n’avez rien à récupérer dans vos e-mails ni à coller. Seuls l’adresse et un identifiant de ce Mac sont envoyés lorsque vous appuyez sur le bouton et, pour un abonnement, environ une fois par mois afin de renouveler la clé. Aucun audio, aucun texte ni aucun élément de votre dictionnaire ne quitte ce Mac."}}}},

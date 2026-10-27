@@ -59,7 +59,7 @@ these are true:
 
 ## Next slices
 
-### 1. App localization — paid/licensing slice started
+### 1. App localization — paid/licensing and first-run slices completed
 
 Completed on the branch based on released `v0.6.21`:
 
@@ -73,12 +73,19 @@ Completed on the branch based on released `v0.6.21`:
 - Localized the microphone and speech-recognition permission explanations.
 - Added tests that require all three translations, preserve every format
   argument, and lay out the paywall at a practical window width in each locale.
+- Localized 63 additional first-run strings: language selection and tier
+  explanations, microphone and Accessibility guidance, local-model download,
+  notification states, launch-at-login, local-only recognition, and the exact
+  non-content telemetry disclosure. The app now has 142 complete ES/IT/FR
+  catalog entries.
+- Added real SwiftUI layout passes for both first-run screens in every new
+  locale. Language names continue to come from `Locale`, not a hand-maintained
+  translated list.
 
 Still to do before the app itself can advertise complete localization:
 
-- Localize first run, menu bar, recording states, review reasons, settings,
-  diagnostics, updater, and all remaining error paths. Do not translate
-  language names manually where `Locale` already supplies them.
+- Localize the menu bar, recording states, review reasons, settings,
+  diagnostics, updater, and all remaining error paths.
 - Use locale-aware number, date, currency, and plural formatting. Keep stable
   telemetry event names, file keys, language codes, and licence payloads
   untranslated.

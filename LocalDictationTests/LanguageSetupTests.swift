@@ -50,6 +50,25 @@ final class LanguageSetupTests: XCTestCase {
         XCTAssertGreaterThan(size.height, 0)
     }
 
+    func testBothFirstRunScreensLayOutInTheExpansionLocales() {
+        for identifier in ["es", "it", "fr"] {
+            let model = LanguageSetupModel(selection: .default)
+            let question = LanguageSetupView(model: model) {}
+                .environment(\.locale, Locale(identifier: identifier))
+            let questionSize = render(question)
+
+            let (coordinator, _, _) = makeUnpermittedCoordinator()
+            let permissions = FirstRunReadyView(coordinator: coordinator) {}
+                .environment(\.locale, Locale(identifier: identifier))
+            let permissionsSize = render(permissions)
+
+            XCTAssertEqual(questionSize.width, 520, accuracy: 1, identifier)
+            XCTAssertEqual(permissionsSize.width, 520, accuracy: 1, identifier)
+            XCTAssertGreaterThan(questionSize.height, 0, identifier)
+            XCTAssertGreaterThan(permissionsSize.height, 0, identifier)
+        }
+    }
+
     func testTheEditorLaysOutOnItsOwnAsSettingsShowsIt() {
         var profile = LanguageProfile(.russian, .english, .ukrainian)
         let size = render(
