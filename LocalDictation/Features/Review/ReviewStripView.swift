@@ -67,7 +67,7 @@ struct ReviewStripView: View {
             Text(presentation.summary)
                 .font(.caption.weight(.semibold))
             if let secondary = presentation.secondarySummary {
-                Text("· \(secondary)")
+                Text(verbatim: "· \(secondary)")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -153,6 +153,7 @@ struct ReviewStripView: View {
                             Image(systemName: "play.circle")
                         }
                         .buttonStyle(.borderless)
+                        .accessibilityLabel("Play this fragment from memory")
                         .help("Play this fragment from memory")
                     }
                 }

@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 import XCTest
 @testable import Witness
 
@@ -93,6 +94,31 @@ final class ReviewPanelControllerTests: XCTestCase {
         try await settle()
 
         XCTAssertTrue(harness.controller.isShowingReviewPanel)
+    }
+
+    func testReviewContentLaysOutInTheExpansionLocales() async throws {
+        let harness = makeHarness(transcript: Self.riskyTranscript)
+        harness.hotkey.emit(.pressed)
+        harness.hotkey.emit(.released)
+        try await waitUntil("a review result is ready") { harness.coordinator.result != nil }
+        let result = try XCTUnwrap(harness.coordinator.result)
+
+        for identifier in ["es", "it", "fr"] {
+            for prefersRawTranscript in [false, true] {
+                harness.coordinator.prefersRawTranscript = prefersRawTranscript
+                let hosting = NSHostingView(
+                    rootView: ReviewStripView(result: result)
+                        .environmentObject(harness.coordinator)
+                        .environment(\.locale, Locale(identifier: identifier))
+                        .frame(width: 460)
+                )
+                hosting.layoutSubtreeIfNeeded()
+
+                XCTAssertGreaterThan(hosting.fittingSize.height, 40, identifier)
+                XCTAssertLessThanOrEqual(hosting.fittingSize.width, 460, identifier)
+                hosting.removeFromSuperview()
+            }
+        }
     }
 
     func testThePanelGoesAwayWhenTheReviewEnds() async throws {

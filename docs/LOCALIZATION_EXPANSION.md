@@ -98,11 +98,14 @@ Completed on the branch based on released `v0.6.21`:
   audio format summaries, and human-readable capture end reasons. Their tabs
   now have dedicated ES/IT/FR layout passes, and the app has 374 complete
   ES/IT/FR catalog entries.
+- Localized the verification panel, its risk explanations, and all conservative
+  cleanup labels. Both cleaned and raw-transcript layouts are exercised in the
+  expansion locales, including the icon-only replay control's VoiceOver label.
+  The app now has 413 complete ES/IT/FR catalog entries.
 
 Still to do before the app itself can advertise complete localization:
 
-- Localize the full review panel, updater, and all remaining service error
-  paths.
+- Localize the updater and all remaining service error paths.
 - Finish locale-aware date, currency, and plural formatting. Keep stable
   telemetry event names, file keys, language codes, and licence payloads
   untranslated.

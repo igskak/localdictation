@@ -39,22 +39,22 @@
     "Watch this term": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Diesen Begriff beobachten"}}}},
     "Replace the second phrase with the preferred spelling": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die zweite Wendung durch die bevorzugte Schreibweise ersetzen"}}}},
     "Corrections are explicit and stay on this Mac. A watched term without a correction is only used to mark near misses for review.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Korrekturen werden ausdrücklich festgelegt und bleiben auf diesem Mac. Ein beobachteter Begriff ohne Korrektur dient nur dazu, ähnliche Erkennungen zur Prüfung zu markieren."}},"es":{"stringUnit":{"state":"translated","value":"Las correcciones son explícitas y permanecen en este Mac. Un término vigilado sin corrección solo se utiliza para marcar coincidencias aproximadas durante la revisión."}},"it":{"stringUnit":{"state":"translated","value":"Le correzioni sono esplicite e restano su questo Mac. Un termine monitorato senza correzione viene usato solo per segnalare corrispondenze simili durante la verifica."}},"fr":{"stringUnit":{"state":"translated","value":"Les corrections sont explicites et restent sur ce Mac. Un terme surveillé sans correction sert uniquement à signaler les correspondances proches lors de la vérification."}}}},
-    "Spoken punctuation": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Gesprochene Zeichensetzung"}}}},
-    "Line break": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Zeilenumbruch"}}}},
-    "Paragraph break": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Absatzumbruch"}}}},
-    "Explicit correction": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Explizite Korrektur"}}}},
-    "Repeated words removed": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Wiederholte Wörter entfernt"}}}},
-    "List formatting": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Listenformatierung"}}}},
-    "Number formatting": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Zahlenformatierung"}}}},
-    "Date formatting": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Datumsformatierung"}}}},
-    "Time formatting": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Zeitformatierung"}}}},
-    "Currency formatting": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Währungsformatierung"}}}},
-    "Percentage formatting": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Prozentformatierung"}}}},
-    "Unit formatting": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Einheitenformatierung"}}}},
-    "Context spacing": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Kontextabhängiger Abstand"}}}},
-    "Context capitalization": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Kontextabhängige Großschreibung"}}}},
-    "Context punctuation": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Kontextabhängige Zeichensetzung"}}}},
-    "Dictionary correction": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Wörterbuchkorrektur"}}}},
+    "Spoken punctuation": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Gesprochene Zeichensetzung"}},"es":{"stringUnit":{"state":"translated","value":"Puntuación hablada"}},"it":{"stringUnit":{"state":"translated","value":"Punteggiatura pronunciata"}},"fr":{"stringUnit":{"state":"translated","value":"Ponctuation dictée"}}}},
+    "Line break": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Zeilenumbruch"}},"es":{"stringUnit":{"state":"translated","value":"Salto de línea"}},"it":{"stringUnit":{"state":"translated","value":"Interruzione di riga"}},"fr":{"stringUnit":{"state":"translated","value":"Saut de ligne"}}}},
+    "Paragraph break": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Absatzumbruch"}},"es":{"stringUnit":{"state":"translated","value":"Salto de párrafo"}},"it":{"stringUnit":{"state":"translated","value":"Interruzione di paragrafo"}},"fr":{"stringUnit":{"state":"translated","value":"Saut de paragraphe"}}}},
+    "Explicit correction": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Explizite Korrektur"}},"es":{"stringUnit":{"state":"translated","value":"Corrección explícita"}},"it":{"stringUnit":{"state":"translated","value":"Correzione esplicita"}},"fr":{"stringUnit":{"state":"translated","value":"Correction explicite"}}}},
+    "Repeated words removed": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Wiederholte Wörter entfernt"}},"es":{"stringUnit":{"state":"translated","value":"Palabras repetidas eliminadas"}},"it":{"stringUnit":{"state":"translated","value":"Parole ripetute rimosse"}},"fr":{"stringUnit":{"state":"translated","value":"Mots répétés supprimés"}}}},
+    "List formatting": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Listenformatierung"}},"es":{"stringUnit":{"state":"translated","value":"Formato de lista"}},"it":{"stringUnit":{"state":"translated","value":"Formattazione dell’elenco"}},"fr":{"stringUnit":{"state":"translated","value":"Mise en forme de liste"}}}},
+    "Number formatting": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Zahlenformatierung"}},"es":{"stringUnit":{"state":"translated","value":"Formato de números"}},"it":{"stringUnit":{"state":"translated","value":"Formattazione dei numeri"}},"fr":{"stringUnit":{"state":"translated","value":"Mise en forme des nombres"}}}},
+    "Date formatting": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Datumsformatierung"}},"es":{"stringUnit":{"state":"translated","value":"Formato de fechas"}},"it":{"stringUnit":{"state":"translated","value":"Formattazione delle date"}},"fr":{"stringUnit":{"state":"translated","value":"Mise en forme des dates"}}}},
+    "Time formatting": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Zeitformatierung"}},"es":{"stringUnit":{"state":"translated","value":"Formato de horas"}},"it":{"stringUnit":{"state":"translated","value":"Formattazione degli orari"}},"fr":{"stringUnit":{"state":"translated","value":"Mise en forme des heures"}}}},
+    "Currency formatting": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Währungsformatierung"}},"es":{"stringUnit":{"state":"translated","value":"Formato de moneda"}},"it":{"stringUnit":{"state":"translated","value":"Formattazione della valuta"}},"fr":{"stringUnit":{"state":"translated","value":"Mise en forme des devises"}}}},
+    "Percentage formatting": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Prozentformatierung"}},"es":{"stringUnit":{"state":"translated","value":"Formato de porcentajes"}},"it":{"stringUnit":{"state":"translated","value":"Formattazione delle percentuali"}},"fr":{"stringUnit":{"state":"translated","value":"Mise en forme des pourcentages"}}}},
+    "Unit formatting": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Einheitenformatierung"}},"es":{"stringUnit":{"state":"translated","value":"Formato de unidades"}},"it":{"stringUnit":{"state":"translated","value":"Formattazione delle unità"}},"fr":{"stringUnit":{"state":"translated","value":"Mise en forme des unités"}}}},
+    "Context spacing": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Kontextabhängiger Abstand"}},"es":{"stringUnit":{"state":"translated","value":"Espaciado según el contexto"}},"it":{"stringUnit":{"state":"translated","value":"Spaziatura contestuale"}},"fr":{"stringUnit":{"state":"translated","value":"Espacement selon le contexte"}}}},
+    "Context capitalization": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Kontextabhängige Großschreibung"}},"es":{"stringUnit":{"state":"translated","value":"Mayúsculas según el contexto"}},"it":{"stringUnit":{"state":"translated","value":"Maiuscole contestuali"}},"fr":{"stringUnit":{"state":"translated","value":"Majuscules selon le contexte"}}}},
+    "Context punctuation": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Kontextabhängige Zeichensetzung"}},"es":{"stringUnit":{"state":"translated","value":"Puntuación según el contexto"}},"it":{"stringUnit":{"state":"translated","value":"Punteggiatura contestuale"}},"fr":{"stringUnit":{"state":"translated","value":"Ponctuation selon le contexte"}}}},
+    "Dictionary correction": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Wörterbuchkorrektur"}},"es":{"stringUnit":{"state":"translated","value":"Corrección del diccionario"}},"it":{"stringUnit":{"state":"translated","value":"Correzione del dizionario"}},"fr":{"stringUnit":{"state":"translated","value":"Correction du dictionnaire"}}}},
     "Have a promo code? Enter it on the payment page. If you opened a partner’s link in this browser, it is filled in already.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Du hast einen Rabattcode? Gib ihn auf der Bezahlseite ein. Hast du den Link eines Partners in diesem Browser geöffnet, ist er schon eingetragen."}},"es":{"stringUnit":{"state":"translated","value":"¿Tienes un código promocional? Introdúcelo en la página de pago. Si abriste el enlace de un socio en este navegador, ya estará rellenado."}},"it":{"stringUnit":{"state":"translated","value":"Hai un codice promozionale? Inseriscilo nella pagina di pagamento. Se hai aperto il link di un partner in questo browser, sarà già compilato."}},"fr":{"stringUnit":{"state":"translated","value":"Vous avez un code promotionnel ? Saisissez-le sur la page de paiement. Si vous avez ouvert le lien d’un partenaire dans ce navigateur, il sera déjà renseigné."}}}},
     "The speech model has not been downloaded yet (about %@)": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Sprachmodell wurde noch nicht geladen (etwa %@)"}}}},
     "less than a minute": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"weniger als eine Minute"}}}},
@@ -126,36 +126,9 @@
     },
     "Preferred": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Bevorzugt"}},"es":{"stringUnit":{"state":"translated","value":"Preferido"}},"it":{"stringUnit":{"state":"translated","value":"Preferita"}},"fr":{"stringUnit":{"state":"translated","value":"Langue préférée"}}}},
     "The preferred language decides a short phrase that could be either — “okay”, “ja”, a name on its own. A sentence long enough to be recognized is decided by what was said, not by this.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die bevorzugte Sprache entscheidet bei kurzen, mehrdeutigen Äußerungen – etwa „okay“, „ja“ oder einem einzelnen Namen. Bei längeren Sätzen entscheidet das Gesprochene selbst."}},"es":{"stringUnit":{"state":"translated","value":"El idioma preferido decide una frase corta que podría pertenecer a varios idiomas —«okay», «ja» o un nombre aislado—. Una frase lo bastante larga se decide por lo que se ha dicho, no por esta opción."}},"it":{"stringUnit":{"state":"translated","value":"La lingua preferita decide una frase breve che potrebbe appartenere a più lingue — «okay», «ja» o un nome isolato. Per una frase abbastanza lunga decide ciò che è stato detto, non questa opzione."}},"fr":{"stringUnit":{"state":"translated","value":"La langue préférée départage une courte expression qui pourrait appartenir à plusieurs langues — « okay », « ja » ou un nom isolé. Pour une phrase assez longue, c’est ce qui a été dit qui décide, pas ce réglage."}}}},
-    "Raw transcript, exactly as recognized": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rohtranskript, genau wie erkannt"
-          }
-        }
-      }
-    },
-    "Play this fragment from memory": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dieses Fragment aus dem Arbeitsspeicher abspielen"
-          }
-        }
-      }
-    },
-    "Close": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Schließen"
-          }
-        }
-      }
-    },
+    "Raw transcript, exactly as recognized": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Rohtranskript, genau wie erkannt"}},"es":{"stringUnit":{"state":"translated","value":"Transcripción original, exactamente como se reconoció"}},"it":{"stringUnit":{"state":"translated","value":"Trascrizione originale, esattamente come riconosciuta"}},"fr":{"stringUnit":{"state":"translated","value":"Transcription brute, exactement telle qu’elle a été reconnue"}}}},
+    "Play this fragment from memory": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Dieses Fragment aus dem Arbeitsspeicher abspielen"}},"es":{"stringUnit":{"state":"translated","value":"Reproducir este fragmento desde la memoria"}},"it":{"stringUnit":{"state":"translated","value":"Riproduci questo frammento dalla memoria"}},"fr":{"stringUnit":{"state":"translated","value":"Lire ce fragment depuis la mémoire"}}}},
+    "Close": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Schließen"}},"es":{"stringUnit":{"state":"translated","value":"Cerrar"}},"it":{"stringUnit":{"state":"translated","value":"Chiudi"}},"fr":{"stringUnit":{"state":"translated","value":"Fermer"}}}},
     "Email address": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"E-Mail-Adresse"}},"es":{"stringUnit":{"state":"translated","value":"Correo electrónico"}},"it":{"stringUnit":{"state":"translated","value":"Indirizzo email"}},"fr":{"stringUnit":{"state":"translated","value":"Adresse e-mail"}}}},
     "you@example.com": {
       "localizations": {
@@ -321,16 +294,7 @@
     "Get the speech model": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sprachmodell laden"}},"es":{"stringUnit":{"state":"translated","value":"Obtener el modelo de voz"}},"it":{"stringUnit":{"state":"translated","value":"Scarica il modello vocale"}},"fr":{"stringUnit":{"state":"translated","value":"Obtenir le modèle vocal"}}}},
     "Dictation is blocked right now": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Diktieren ist derzeit blockiert"}},"es":{"stringUnit":{"state":"translated","value":"El dictado está bloqueado ahora"}},"it":{"stringUnit":{"state":"translated","value":"La dettatura è bloccata"}},"fr":{"stringUnit":{"state":"translated","value":"La dictée est actuellement bloquée"}}}},
     "Type text for you": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Text für dich eingeben"}},"es":{"stringUnit":{"state":"translated","value":"Escribir texto por ti"}},"it":{"stringUnit":{"state":"translated","value":"Scrivi il testo per te"}},"fr":{"stringUnit":{"state":"translated","value":"Saisir le texte pour vous"}}}},
-    "Check": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Prüfen"
-          }
-        }
-      }
-    },
+    "Check": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Prüfen"}},"es":{"stringUnit":{"state":"translated","value":"Comprobar"}},"it":{"stringUnit":{"state":"translated","value":"Controlla"}},"fr":{"stringUnit":{"state":"translated","value":"Vérifier"}}}},
     "Hold %@ and speak": {
       "localizations": {
         "de": {
@@ -584,46 +548,10 @@
     "Not a word": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Kein Wort"}},"es":{"stringUnit":{"state":"translated","value":"No es una palabra"}},"it":{"stringUnit":{"state":"translated","value":"Non è una parola"}},"fr":{"stringUnit":{"state":"translated","value":"Ce n’est pas un mot"}}}},
     "%@ word": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Wort auf %@"}},"es":{"stringUnit":{"state":"translated","value":"Palabra en %@"}},"it":{"stringUnit":{"state":"translated","value":"Parola in %@"}},"fr":{"stringUnit":{"state":"translated","value":"Mot en %@"}}}},
     "Uncertain": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Unsicher"}},"es":{"stringUnit":{"state":"translated","value":"Incierto"}},"it":{"stringUnit":{"state":"translated","value":"Incerto"}},"fr":{"stringUnit":{"state":"translated","value":"Incertain"}}}},
-    "Spacing": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Abstände"
-          }
-        }
-      }
-    },
-    "Punctuation": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zeichensetzung"
-          }
-        }
-      }
-    },
-    "Capitalization": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Großschreibung"
-          }
-        }
-      }
-    },
-    "Filler removed": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Füllwort entfernt"
-          }
-        }
-      }
-    },
+    "Spacing": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Abstände"}},"es":{"stringUnit":{"state":"translated","value":"Espaciado"}},"it":{"stringUnit":{"state":"translated","value":"Spaziatura"}},"fr":{"stringUnit":{"state":"translated","value":"Espacement"}}}},
+    "Punctuation": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Zeichensetzung"}},"es":{"stringUnit":{"state":"translated","value":"Puntuación"}},"it":{"stringUnit":{"state":"translated","value":"Punteggiatura"}},"fr":{"stringUnit":{"state":"translated","value":"Ponctuation"}}}},
+    "Capitalization": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Großschreibung"}},"es":{"stringUnit":{"state":"translated","value":"Mayúsculas"}},"it":{"stringUnit":{"state":"translated","value":"Maiuscole"}},"fr":{"stringUnit":{"state":"translated","value":"Majuscules"}}}},
+    "Filler removed": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Füllwort entfernt"}},"es":{"stringUnit":{"state":"translated","value":"Muletilla eliminada"}},"it":{"stringUnit":{"state":"translated","value":"Intercalare rimosso"}},"fr":{"stringUnit":{"state":"translated","value":"Hésitation supprimée"}}}},
     "Hold to talk": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Gedrückt halten zum Sprechen"}},"es":{"stringUnit":{"state":"translated","value":"Mantener pulsado para hablar"}},"it":{"stringUnit":{"state":"translated","value":"Tieni premuto per parlare"}},"fr":{"stringUnit":{"state":"translated","value":"Maintenir pour parler"}}}},
     "Press to start and stop": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Zum Starten und Stoppen drücken"}},"es":{"stringUnit":{"state":"translated","value":"Pulsar para iniciar y detener"}},"it":{"stringUnit":{"state":"translated","value":"Premi per avviare e fermare"}},"fr":{"stringUnit":{"state":"translated","value":"Appuyer pour démarrer et arrêter"}}}},
     "The microphone is open only while the key is down. Best for a sentence at a time.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Das Mikrofon ist nur geöffnet, solange die Taste gedrückt bleibt. Ideal für einzelne Sätze."}},"es":{"stringUnit":{"state":"translated","value":"El micrófono solo está abierto mientras mantienes pulsada la tecla. Ideal para dictar una frase cada vez."}},"it":{"stringUnit":{"state":"translated","value":"Il microfono resta aperto solo mentre tieni premuto il tasto. Ideale per una frase alla volta."}},"fr":{"stringUnit":{"state":"translated","value":"Le microphone est ouvert uniquement tant que vous maintenez la touche. Idéal pour dicter une phrase à la fois."}}}},
@@ -784,106 +712,16 @@
     "Copied": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Kopiert"}},"es":{"stringUnit":{"state":"translated","value":"Copiado"}},"it":{"stringUnit":{"state":"translated","value":"Copiato"}},"fr":{"stringUnit":{"state":"translated","value":"Copié"}}}},
     "Open License settings": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Lizenzeinstellungen öffnen"}},"es":{"stringUnit":{"state":"translated","value":"Abrir los ajustes de licencia"}},"it":{"stringUnit":{"state":"translated","value":"Apri le impostazioni della licenza"}},"fr":{"stringUnit":{"state":"translated","value":"Ouvrir les réglages de licence"}}}},
     "Activate…": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Aktivieren …"}},"es":{"stringUnit":{"state":"translated","value":"Activar…"}},"it":{"stringUnit":{"state":"translated","value":"Attiva…"}},"fr":{"stringUnit":{"state":"translated","value":"Activer…"}}}},
-    "Show cleaned text": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bereinigten Text anzeigen"
-          }
-        }
-      }
-    },
-    "Show raw transcript": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rohtranskript anzeigen"
-          }
-        }
-      }
-    },
-    "Copy raw": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rohtext kopieren"
-          }
-        }
-      }
-    },
-    "Nothing flagged": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nichts markiert"
-          }
-        }
-      }
-    },
-    "1 fragment worth checking": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "1 Fragment prüfen"
-          }
-        }
-      }
-    },
-    "%lld fragments worth checking": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld Fragmente prüfen"
-          }
-        }
-      }
-    },
-    "1 more marked for context": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "1 weitere Stelle als Kontext markiert"
-          }
-        }
-      }
-    },
-    "%lld more marked for context": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld weitere Stellen als Kontext markiert"
-          }
-        }
-      }
-    },
-    "removed here": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "hier entfernt"
-          }
-        }
-      }
-    },
-    "at this position": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "an dieser Stelle"
-          }
-        }
-      }
-    },
+    "Show cleaned text": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Bereinigten Text anzeigen"}},"es":{"stringUnit":{"state":"translated","value":"Mostrar texto limpio"}},"it":{"stringUnit":{"state":"translated","value":"Mostra il testo ripulito"}},"fr":{"stringUnit":{"state":"translated","value":"Afficher le texte nettoyé"}}}},
+    "Show raw transcript": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Rohtranskript anzeigen"}},"es":{"stringUnit":{"state":"translated","value":"Mostrar transcripción original"}},"it":{"stringUnit":{"state":"translated","value":"Mostra la trascrizione originale"}},"fr":{"stringUnit":{"state":"translated","value":"Afficher la transcription brute"}}}},
+    "Copy raw": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Rohtext kopieren"}},"es":{"stringUnit":{"state":"translated","value":"Copiar original"}},"it":{"stringUnit":{"state":"translated","value":"Copia l’originale"}},"fr":{"stringUnit":{"state":"translated","value":"Copier le texte brut"}}}},
+    "Nothing flagged": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Nichts markiert"}},"es":{"stringUnit":{"state":"translated","value":"Nada marcado"}},"it":{"stringUnit":{"state":"translated","value":"Nessun elemento segnalato"}},"fr":{"stringUnit":{"state":"translated","value":"Aucun élément signalé"}}}},
+    "1 fragment worth checking": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"1 Fragment prüfen"}},"es":{"stringUnit":{"state":"translated","value":"1 fragmento que conviene comprobar"}},"it":{"stringUnit":{"state":"translated","value":"1 frammento da controllare"}},"fr":{"stringUnit":{"state":"translated","value":"1 fragment à vérifier"}}}},
+    "%lld fragments worth checking": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%lld Fragmente prüfen"}},"es":{"stringUnit":{"state":"translated","value":"%lld fragmentos que conviene comprobar"}},"it":{"stringUnit":{"state":"translated","value":"%lld frammenti da controllare"}},"fr":{"stringUnit":{"state":"translated","value":"%lld fragments à vérifier"}}}},
+    "1 more marked for context": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"1 weitere Stelle als Kontext markiert"}},"es":{"stringUnit":{"state":"translated","value":"1 más marcado como contexto"}},"it":{"stringUnit":{"state":"translated","value":"1 altro contrassegnato per il contesto"}},"fr":{"stringUnit":{"state":"translated","value":"1 autre signalé pour le contexte"}}}},
+    "%lld more marked for context": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%lld weitere Stellen als Kontext markiert"}},"es":{"stringUnit":{"state":"translated","value":"%lld más marcados como contexto"}},"it":{"stringUnit":{"state":"translated","value":"%lld altri contrassegnati per il contesto"}},"fr":{"stringUnit":{"state":"translated","value":"%lld autres signalés pour le contexte"}}}},
+    "removed here": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"hier entfernt"}},"es":{"stringUnit":{"state":"translated","value":"eliminado aquí"}},"it":{"stringUnit":{"state":"translated","value":"rimosso qui"}},"fr":{"stringUnit":{"state":"translated","value":"supprimé ici"}}}},
+    "at this position": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"an dieser Stelle"}},"es":{"stringUnit":{"state":"translated","value":"en esta posición"}},"it":{"stringUnit":{"state":"translated","value":"in questa posizione"}},"fr":{"stringUnit":{"state":"translated","value":"à cet emplacement"}}}},
     "Not granted": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Nicht gewährt"}},"es":{"stringUnit":{"state":"translated","value":"No concedido"}},"it":{"stringUnit":{"state":"translated","value":"Non concesso"}},"fr":{"stringUnit":{"state":"translated","value":"Non accordé"}}}},
     "Granted": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Gewährt"}},"es":{"stringUnit":{"state":"translated","value":"Concedido"}},"it":{"stringUnit":{"state":"translated","value":"Concesso"}},"fr":{"stringUnit":{"state":"translated","value":"Accordé"}}}},
     "Not opened yet": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Noch nicht geöffnet"}},"es":{"stringUnit":{"state":"translated","value":"Aún no se ha abierto"}},"it":{"stringUnit":{"state":"translated","value":"Non ancora aperto"}},"fr":{"stringUnit":{"state":"translated","value":"Pas encore ouvert"}}}},
@@ -1073,7 +911,7 @@
     "The identifier is a one-way hash of this Mac's hardware UUID. It is what makes a license cover two Macs rather than any number of them, and it cannot be turned back into a serial number or matched against anything outside this app.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Die Kennung ist ein nicht umkehrbarer Hash der Hardware-UUID dieses Macs. So kann eine Lizenz auf zwei Macs begrenzt werden. Die Kennung lässt sich weder in eine Seriennummer zurückverwandeln noch außerhalb dieser App abgleichen."}},"es":{"stringUnit":{"state":"translated","value":"El identificador es un hash unidireccional del UUID de hardware de este Mac. Permite limitar la licencia a dos Mac; no puede convertirse de nuevo en un número de serie ni vincularse con nada fuera de esta app."}},"it":{"stringUnit":{"state":"translated","value":"L’identificatore è un hash unidirezionale dell’UUID hardware di questo Mac. Consente di limitare la licenza a due Mac; non può essere riconvertito in un numero di serie né associato a elementi esterni all’app."}},"fr":{"stringUnit":{"state":"translated","value":"L’identifiant est un hachage à sens unique de l’UUID matériel de ce Mac. Il permet de limiter la licence à deux Mac ; il ne peut pas être reconverti en numéro de série ni associé à quoi que ce soit en dehors de l’app."}}}},
     "This is a development build: it carries no authority key, so no license can verify here. Only the ungated window applies.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Dies ist eine Entwicklungs-Version ohne öffentlichen Lizenzschlüssel. Deshalb kann hier keine Lizenz geprüft werden; nur der lizenzfreie Zeitraum gilt."}},"es":{"stringUnit":{"state":"translated","value":"Esta es una compilación de desarrollo: no contiene una clave de autoridad, por lo que no puede verificar licencias. Solo se aplica el periodo sin licencia."}},"it":{"stringUnit":{"state":"translated","value":"Questa è una build di sviluppo: non contiene una chiave dell’autorità, quindi non può verificare alcuna licenza. Si applica solo il periodo senza licenza."}},"fr":{"stringUnit":{"state":"translated","value":"Il s’agit d’une version de développement : elle ne contient aucune clé d’autorité et ne peut donc vérifier aucune licence. Seule la période sans licence s’applique."}}}},
     "Send my license key as soon as I have paid. I understand that I give up my right of withdrawal once delivery begins.": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sende meinen Lizenzschlüssel sofort nach der Zahlung. Mir ist bewusst, dass mein Widerrufsrecht mit Beginn der Lieferung erlischt."}}}},
-    "OK": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"OK"}}}},
+    "OK": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"OK"}},"es":{"stringUnit":{"state":"translated","value":"Aceptar"}},"it":{"stringUnit":{"state":"translated","value":"OK"}},"fr":{"stringUnit":{"state":"translated","value":"OK"}}}},
     "Getting the speech model": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Sprachmodell wird geladen"}}}},
     "Removing…": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Wird entfernt …"}}}},
     "Open Witness when I log in": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Witness beim Anmelden öffnen"}},"es":{"stringUnit":{"state":"translated","value":"Abrir Witness al iniciar sesión"}},"it":{"stringUnit":{"state":"translated","value":"Apri Witness all’accesso"}},"fr":{"stringUnit":{"state":"translated","value":"Ouvrir Witness à l’ouverture de session"}}}},
@@ -1121,7 +959,11 @@
     "%lld": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"%lld"}},"es":{"stringUnit":{"state":"translated","value":"%lld"}},"it":{"stringUnit":{"state":"translated","value":"%lld"}},"fr":{"stringUnit":{"state":"translated","value":"%lld"}}}},
     "Hotkey released": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Tastenkürzel losgelassen"}},"es":{"stringUnit":{"state":"translated","value":"Atajo soltado"}},"it":{"stringUnit":{"state":"translated","value":"Scorciatoia rilasciata"}},"fr":{"stringUnit":{"state":"translated","value":"Raccourci relâché"}}}},
     "Maximum duration reached": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Maximale Dauer erreicht"}},"es":{"stringUnit":{"state":"translated","value":"Duración máxima alcanzada"}},"it":{"stringUnit":{"state":"translated","value":"Durata massima raggiunta"}},"fr":{"stringUnit":{"state":"translated","value":"Durée maximale atteinte"}}}},
-    "Interrupted": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Unterbrochen"}},"es":{"stringUnit":{"state":"translated","value":"Interrumpida"}},"it":{"stringUnit":{"state":"translated","value":"Interrotta"}},"fr":{"stringUnit":{"state":"translated","value":"Interrompue"}}}}
+    "Interrupted": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Unterbrochen"}},"es":{"stringUnit":{"state":"translated","value":"Interrumpida"}},"it":{"stringUnit":{"state":"translated","value":"Interrotta"}},"fr":{"stringUnit":{"state":"translated","value":"Interrompue"}}}},
+    "Surface normalization": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Oberflächennormalisierung"}},"es":{"stringUnit":{"state":"translated","value":"Normalización superficial"}},"it":{"stringUnit":{"state":"translated","value":"Normalizzazione superficiale"}},"fr":{"stringUnit":{"state":"translated","value":"Normalisation de surface"}}}},
+    "Boundary duplicate removed": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Duplikat an der Grenze entfernt"}},"es":{"stringUnit":{"state":"translated","value":"Repetición en el límite eliminada"}},"it":{"stringUnit":{"state":"translated","value":"Duplicato al confine rimosso"}},"fr":{"stringUnit":{"state":"translated","value":"Doublon de raccord supprimé"}}}},
+    "Inferred punctuation": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Abgeleitete Zeichensetzung"}},"es":{"stringUnit":{"state":"translated","value":"Puntuación inferida"}},"it":{"stringUnit":{"state":"translated","value":"Punteggiatura dedotta"}},"fr":{"stringUnit":{"state":"translated","value":"Ponctuation déduite"}}}},
+    "Inferred paragraph break": {"localizations":{"de":{"stringUnit":{"state":"translated","value":"Abgeleiteter Absatzumbruch"}},"es":{"stringUnit":{"state":"translated","value":"Salto de párrafo inferido"}},"it":{"stringUnit":{"state":"translated","value":"Interruzione di paragrafo dedotta"}},"fr":{"stringUnit":{"state":"translated","value":"Saut de paragraphe déduit"}}}}
   },
   "version": "1.0"
 }
