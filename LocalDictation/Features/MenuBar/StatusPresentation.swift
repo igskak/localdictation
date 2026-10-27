@@ -272,6 +272,7 @@ struct StatusPresentation: Sendable, Equatable {
 
     private static let dayFormatter: DateFormatter = {
         let formatter = DateFormatter()
+        formatter.locale = L10n.interfaceLocale
         formatter.dateStyle = .medium
         formatter.timeStyle = .none
         return formatter

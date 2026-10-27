@@ -241,6 +241,7 @@ struct LicensePresentation: Sendable, Equatable {
 
     private static let moment: DateFormatter = {
         let formatter = DateFormatter()
+        formatter.locale = L10n.interfaceLocale
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
         return formatter

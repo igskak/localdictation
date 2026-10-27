@@ -124,15 +124,18 @@ Completed on the branch based on released `v0.6.21`:
   keyboard, and service-error paths. ES/IT/FR now cover 512 of 513 catalog
   entries; the sole exception is the immediate-delivery waiver, which remains
   deliberately English-only until counsel supplies approved wording.
+- User-facing dates and formatted numbers now follow the app's selected
+  interface locale even when macOS uses a different regional language. Price
+  placement and the singular/plural forms used by ES/IT/FR remain owned by the
+  reviewed catalog strings rather than hardcoded English punctuation.
 
-Still to do before the app itself can advertise complete localization:
+Ongoing localization maintenance:
 
-- Finish locale-aware date, currency, and plural formatting. Keep stable
-  telemetry event names, file keys, language codes, and licence payloads
-  untranslated.
 - Extend layout coverage whenever a longer reviewed string is introduced. The
   current first-run, menu, settings, Boundary, Diagnostics, and verification
   layouts already pass in ES/IT/FR, and native review is complete.
+- Keep stable telemetry event names, file keys, language codes, and licence
+  payloads untranslated.
 
 ### 2. Recorded-language verification
 
