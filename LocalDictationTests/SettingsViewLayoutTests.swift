@@ -65,6 +65,24 @@ final class SettingsViewLayoutTests: XCTestCase {
         try await settle()
     }
 
+    func testTheSettingsWindowLaysOutInTheExpansionLocales() async throws {
+        for identifier in ["es", "it", "fr"] {
+            let coordinator = makeCoordinator()
+            let hosting = NSHostingView(
+                rootView: SettingsView()
+                    .environmentObject(coordinator)
+                    .environment(\.locale, Locale(identifier: identifier))
+            )
+            hosting.frame = NSRect(x: 0, y: 0, width: 680, height: 540)
+            hosting.layoutSubtreeIfNeeded()
+
+            XCTAssertGreaterThan(hosting.fittingSize.height, 0, identifier)
+            XCTAssertLessThanOrEqual(hosting.fittingSize.width, 700, identifier)
+            hosting.removeFromSuperview()
+            try await settle()
+        }
+    }
+
     /// Every row that only appears in a state something has gone wrong in. Each
     /// is a branch the ordinary render never reaches.
     func testTheWindowLaysOutWithEveryWarningRowShowing() async throws {

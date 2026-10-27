@@ -209,6 +209,52 @@ final class LocalizationTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(completeCount, 235)
     }
 
+    func testGeneralSettingsHaveSpanishItalianAndFrenchCopy() throws {
+        let catalog = try catalog(named: "Localizable")
+        let strings = try XCTUnwrap(catalog["strings"] as? [String: Any])
+        let essentialKeys = [
+            "General",
+            "Languages",
+            "Dictionary",
+            "Shortcut",
+            "Open at login",
+            "Cleanup",
+            "Check for updates automatically",
+            "Input source",
+            "Audio stays in memory on this Mac. Nothing is written to disk during normal capture, and nothing you dictate is ever sent anywhere. A recording is discarded as soon as the app decides no review is needed, and otherwise when the review ends.",
+            "Send nine events about setup and the trial",
+            "Insert automatically when nothing needs review",
+            "Accessibility access",
+            "Your languages",
+            "Add a term or correction",
+            "When Witness writes “%@”, replace it with “%@”.",
+            "Remove this term",
+            "This file is the only thing the app persists. Transcripts and recordings stay in memory.",
+        ]
+
+        for key in essentialKeys {
+            let entry = try XCTUnwrap(strings[key] as? [String: Any], key)
+            let localizations = try XCTUnwrap(entry["localizations"] as? [String: Any], key)
+            for locale in expansionLocales {
+                XCTAssertFalse(try translation(in: localizations, locale: locale, key: key).isEmpty)
+            }
+        }
+
+        let completeCount = strings.values.filter { rawEntry in
+            guard let entry = rawEntry as? [String: Any],
+                  let localizations = entry["localizations"] as? [String: Any]
+            else { return false }
+            return expansionLocales.allSatisfy { locale in
+                guard let localization = localizations[locale] as? [String: Any],
+                      let unit = localization["stringUnit"] as? [String: Any]
+                else { return false }
+                return unit["state"] as? String == "translated"
+                    && !(unit["value"] as? String ?? "").isEmpty
+            }
+        }.count
+        XCTAssertGreaterThanOrEqual(completeCount, 316)
+    }
+
     func testNewMarketTranslationsPreserveFormatArguments() throws {
         let catalog = try catalog(named: "Localizable")
         let strings = try XCTUnwrap(catalog["strings"] as? [String: Any])

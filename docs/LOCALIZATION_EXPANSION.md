@@ -88,11 +88,17 @@ Completed on the branch based on released `v0.6.21`:
 - Made the visible duration, frame/peak, and real-time-factor diagnostics use
   locale-aware formatting, and added a fixed-width menu layout pass for every
   new locale.
+- Localized 81 additional strings across General settings, Languages,
+  Dictionary, shortcut capture, launch-at-login, microphone selection,
+  cleanup, updates, privacy, insertion, and their recovery guidance. The app
+  now has 316 complete ES/IT/FR catalog entries.
+- Added localized settings-window layout passes and an explicit VoiceOver label
+  for the dictionary term removal control.
 
 Still to do before the app itself can advertise complete localization:
 
-- Localize settings, the full review panel, diagnostics, updater, and all
-  remaining service error paths.
+- Localize Boundary and Diagnostics settings, the full review panel, updater,
+  and all remaining service error paths.
 - Use locale-aware number, date, currency, and plural formatting. Keep stable
   telemetry event names, file keys, language codes, and licence payloads
   untranslated.

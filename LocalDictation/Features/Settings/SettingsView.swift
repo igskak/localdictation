@@ -516,7 +516,11 @@ struct GlossaryView: View {
                                 VStack(alignment: .leading) {
                                     Text(entry.term)
                                     if let trigger = entry.normalizedReplacement {
-                                        Text("When Witness writes “\(trigger)”, replace it with “\(entry.normalizedTerm)”.")
+                                        Text(verbatim: L10n.format(
+                                            "When Witness writes “%@”, replace it with “%@”.",
+                                            trigger,
+                                            entry.normalizedTerm
+                                        ))
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
                                     }
@@ -528,6 +532,7 @@ struct GlossaryView: View {
                                     Image(systemName: "minus.circle")
                                 }
                                 .buttonStyle(.borderless)
+                                .accessibilityLabel("Remove this term")
                                 .help("Remove this term")
                             }
                         }
