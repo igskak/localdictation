@@ -106,10 +106,13 @@ Completed on the branch based on released `v0.6.21`:
   English structure: cleanup modes, verification explanations, trial copy, and
   the complete product-event disclosure. Filled the two remaining Dictionary
   actions, bringing the complete ES/IT/FR catalog count to 415.
+- Localized the remaining runtime, microphone, persistence, activation, update,
+  keyboard, and service-error paths. ES/IT/FR now cover 512 of 513 catalog
+  entries; the sole exception is the immediate-delivery waiver, which remains
+  deliberately English-only until counsel supplies approved wording.
 
 Still to do before the app itself can advertise complete localization:
 
-- Localize the updater and all remaining service error paths.
 - Finish locale-aware date, currency, and plural formatting. Keep stable
   telemetry event names, file keys, language codes, and licence payloads
   untranslated.

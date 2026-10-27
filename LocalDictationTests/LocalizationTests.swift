@@ -119,6 +119,33 @@ final class LocalizationTests: XCTestCase {
         }
     }
 
+    func testOnlyCounselGatedCopyRemainsUntranslatedInExpansionLocales() throws {
+        let catalog = try catalog(named: "Localizable")
+        let strings = try XCTUnwrap(catalog["strings"] as? [String: Any])
+        let legalKey = "Send my license key as soon as I have paid. I understand that I give up my right of withdrawal once delivery begins."
+        var missing: Set<String> = []
+
+        for (key, rawEntry) in strings {
+            let entry = try XCTUnwrap(rawEntry as? [String: Any], key)
+            let localizations = try XCTUnwrap(entry["localizations"] as? [String: Any], key)
+            for locale in expansionLocales {
+                guard let localization = localizations[locale] as? [String: Any],
+                      let unit = localization["stringUnit"] as? [String: Any],
+                      unit["state"] as? String == "translated",
+                      !(unit["value"] as? String ?? "").isEmpty
+                else {
+                    missing.insert("\(locale):\(key)")
+                    continue
+                }
+            }
+        }
+
+        XCTAssertEqual(
+            missing,
+            Set(expansionLocales.map { "\($0):\(legalKey)" })
+        )
+    }
+
     func testFirstRunHasSpanishItalianAndFrenchCopy() throws {
         let catalog = try catalog(named: "Localizable")
         let strings = try XCTUnwrap(catalog["strings"] as? [String: Any])
@@ -420,7 +447,7 @@ final class LocalizationTests: XCTestCase {
                     && !(unit["value"] as? String ?? "").isEmpty
             }
         }.count
-        XCTAssertGreaterThanOrEqual(completeCount, 415)
+        XCTAssertEqual(completeCount, 512)
     }
 
     func testNewMarketTranslationsPreserveFormatArguments() throws {
