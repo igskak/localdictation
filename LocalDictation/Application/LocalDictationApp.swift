@@ -261,7 +261,14 @@ struct ApplicationComposition {
                     languageProfileProvider: { [weak coordinator] in
                         coordinator?.languageProfile ?? .default
                     },
-                    transcription: speech.meetingClient
+                    transcription: speech.meetingClient,
+                    // Read when each meeting starts, like the language profile.
+                    cleanupProvider: { [weak coordinator] in
+                        MeetingTextCleanup(
+                            glossary: coordinator?.glossary ?? .empty,
+                            level: coordinator?.cleanupLevel ?? .conservative
+                        )
+                    }
                 )
             }
         )

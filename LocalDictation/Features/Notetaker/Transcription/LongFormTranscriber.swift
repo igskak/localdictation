@@ -19,7 +19,12 @@ enum LongFormTranscriptionError: Error, Equatable {
 /// One source is windowed independently. A process tap can be sparse while its
 /// app is silent and macOS may delay microphone delivery during system UI such
 /// as screenshots. A forward gap closes the current window and starts another
-/// at the real host-time position. No silence is invented.
+/// at the real host-time position. No silence is invented, with one exception:
+/// audio shorter than `shortWindowFrames` before a gap of at most
+/// `minimumFrames` is kept, and the gap is filled with digital silence at its
+/// real positions so the next speech joins the same window. Decoded alone, the
+/// 1.4 s that opened the 28.10 meeting came back as "Это все равно" three
+/// times, with word timings running to the thirtieth second.
 ///
 /// Windows do not overlap. Each one ends in a pause: after `minimumFrames` the
 /// builder waits for `pauseFrames` that are quiet relative to the window's own
@@ -42,6 +47,8 @@ struct MeetingWindowBuilder {
     static let pauseRatio: Float = 0.01
     /// Below this mean square a frame is a pause whatever the speech level.
     static let silenceFloor: Float = 0.000_004
+    /// Audio this short is not decoded on its own if a gap can be bridged.
+    static let shortWindowFrames = 32_000
 
     /// The first result arrives after about eight seconds, as before; every
     /// window stays well inside the model's thirty-second context.
@@ -69,7 +76,9 @@ struct MeetingWindowBuilder {
         if let startFrame {
             let expected = startFrame + Int64(samples.count)
             let delta = incomingStart - expected
-            if delta > 2 {
+            if delta > 2, samples.count < Self.shortWindowFrames, delta <= Int64(minimumFrames) {
+                appendSamples([Float](repeating: 0, count: Int(delta))[...])
+            } else if delta > 2 {
                 if let window = flush() { result.append(window) }
                 self.startFrame = incomingStart
             } else if delta < -2 {
@@ -190,6 +199,25 @@ struct MeetingSpeechDetector: Sendable {
         self.configuration = configuration
     }
 
+    /// A microphone window also needs this many 20 ms frames as loud as the
+    /// speech dictation listens for.
+    ///
+    /// The meeting gate alone let near-silent microphone windows through, and
+    /// Whisper filled them with "Продолжение следует...", "Thank you for
+    /// listening", "Amen". On 28.10 all eleven such windows had at most six
+    /// frames at the dictation level, while the one real "Дякую." had 17.
+    /// Whisper's own no-speech probability was 0.000 on every one of them, so
+    /// it cannot do this job. System audio keeps the conservative gate: a
+    /// call's digital stream has no room noise to hallucinate on.
+    static let minimumMicrophoneSpeechFrames = 10
+
+    func containsSpeech(in window: MeetingRecognitionAudio) -> Bool {
+        guard containsSpeech(in: window.samples) else { return false }
+        guard window.source == .microphone else { return true }
+        return MeetingWindowLevel(samples: window.samples).framesAboveDictationThreshold
+            >= Self.minimumMicrophoneSpeechFrames
+    }
+
     func containsSpeech(in samples: [Float]) -> Bool {
         guard !samples.isEmpty else { return false }
         var detector = EnergyVoiceActivityDetector(configuration: configuration, sampleRate: 16_000)
@@ -300,7 +328,7 @@ actor LongFormTranscriber {
 
     init(engine: any TranscriptionService, profile: LanguageProfile, capacity: Int = 8,
          speechClassifier: @escaping @Sendable (MeetingRecognitionAudio) -> Bool = {
-             MeetingSpeechDetector().containsSpeech(in: $0.samples)
+             MeetingSpeechDetector().containsSpeech(in: $0)
          },
          uptime: @escaping @Sendable () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }) {
         precondition(capacity > 0)

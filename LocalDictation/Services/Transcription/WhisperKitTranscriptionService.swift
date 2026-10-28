@@ -77,6 +77,15 @@ actor WhisperKitTranscriptionService: TranscriptionService {
     /// user dictates next, and a dictation has none in the meeting.
     private var lastDecodedLanguage: [Caller: (language: SpeechLanguage, at: Date)] = [:]
 
+    /// The languages of the current meeting's confident windows, newest last.
+    /// A meeting runs for an hour, so one previous window is too little to
+    /// hold its language against a stray detection; see
+    /// `LanguageDecision.prevailing`. Forgotten after `recencyWindow` without a
+    /// meeting window, which ends it.
+    private var meetingLanguages: [SpeechLanguage] = []
+    private var meetingLanguageAt: Date?
+    private static let meetingLanguageMemory = 30
+
     /// One inference on the model at a time, in arrival order.
     ///
     /// The actor is released at every `await` inside an inference, so without
@@ -552,11 +561,17 @@ actor WhisperKitTranscriptionService: TranscriptionService {
             return fallback
         }
 
-        let decision = LanguageDecision.choose(
-            profile: profile,
-            probabilities: probabilities,
-            previous: recentLanguage(in: profile, caller: caller)
-        )
+        let decision: LanguageDecision
+        switch caller {
+        case .dictation:
+            decision = LanguageDecision.choose(
+                profile: profile,
+                probabilities: probabilities,
+                previous: recentLanguage(in: profile, caller: caller)
+            )
+        case .meeting:
+            decision = meetingLanguage(profile: profile, probabilities: probabilities)
+        }
         // Logged for every mixed utterance, because "why is this Russian" is a
         // question the user will ask and the answer is a rule, not a mood.
         if logs {
@@ -565,6 +580,37 @@ actor WhisperKitTranscriptionService: TranscriptionService {
             )
         }
         return decision.language
+    }
+
+    private func meetingLanguage(profile: LanguageProfile, probabilities: [String: Float]) -> LanguageDecision {
+        let now = Date()
+        if let meetingLanguageAt, now.timeIntervalSince(meetingLanguageAt) > LanguageDecision.recencyWindow {
+            meetingLanguages = []
+        }
+        meetingLanguageAt = now
+        let prevailing = LanguageDecision.prevailing(in: meetingLanguages, profile: profile)
+        let decision = LanguageDecision.choose(
+            profile: profile,
+            probabilities: probabilities,
+            previous: prevailing ?? recentLanguage(in: profile, caller: .meeting),
+            // Wider only once the meeting has a language to hold. Before that
+            // a wider margin would hand more windows to the preferred
+            // language, which is no evidence about this call at all.
+            margin: prevailing == nil ? LanguageDecision.defaultMargin : LanguageDecision.meetingMargin
+        )
+        if decision.reason == .confident {
+            meetingLanguages.append(decision.language)
+            meetingLanguages = Array(meetingLanguages.suffix(Self.meetingLanguageMemory))
+        }
+        // Numbers and language codes only, never words: what the margin needs
+        // to be tuned from recordings.
+        let ranked = LanguageDecision.rank(profile: profile, probabilities: probabilities).prefix(2)
+            .map { "\($0.language.rawValue) \(String(format: "%.2f", $0.probability))" }
+            .joined(separator: ", ")
+        Log.transcription.notice(
+            "Meeting language \(decision.language.rawValue, privacy: .public) (\(decision.reason.rawValue, privacy: .public)); leaders \(ranked, privacy: .public); prevailing \(prevailing?.rawValue ?? "none", privacy: .public)"
+        )
+        return decision
     }
 
     /// The last decoded language, while it is still worth knowing.

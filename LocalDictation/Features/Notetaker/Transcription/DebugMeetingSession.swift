@@ -21,6 +21,7 @@ enum MeetingPartialIssue: String, Sendable, Hashable, CaseIterable {
 actor DebugMeetingSession {
     private let permission = AVCaptureMicrophonePermissionService()
     private let engine: any TranscriptionService
+    private let cleanup: MeetingTextCleanup
     private let system = SystemAudioCapture()
     private lazy var microphone = MeetingMicrophoneCapture(permission: permission)
     private let profile: LanguageProfile
@@ -50,6 +51,7 @@ actor DebugMeetingSession {
         profile: LanguageProfile,
         title: String,
         engine: any TranscriptionService,
+        cleanup: MeetingTextCleanup = MeetingTextCleanup(),
         persistence: MeetingPersistenceRecorder = MeetingPersistenceRecorder(),
         diarizer: any StreamingSpeakerDiarizationService = ProductionDiarizationFactory.make(),
         emit: @escaping @Sendable (DebugMeetingUpdate) -> Void
@@ -57,6 +59,7 @@ actor DebugMeetingSession {
         self.profile = profile
         self.title = title
         self.engine = engine
+        self.cleanup = cleanup
         self.persistence = persistence
         self.diarizer = diarizer
         self.emit = emit
@@ -336,9 +339,9 @@ actor DebugMeetingSession {
         let builder = SpeakerAttributedRowBuilder()
         for row in baseRows.dropFirst(publishedBaseRowCount) {
             if diarizationEnabled, row.source == .system {
-                publishedRows.append(contentsOf: builder.rows(from: row, turns: diarizationTurns))
+                publishedRows.append(contentsOf: builder.rows(from: row, turns: diarizationTurns).map(cleanup.clean))
             } else {
-                publishedRows.append(row)
+                publishedRows.append(cleanup.clean(row))
             }
         }
         publishedBaseRowCount = baseRows.count

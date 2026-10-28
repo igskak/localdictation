@@ -87,6 +87,74 @@ struct MeetingTranscriptRow: Sendable, Equatable {
     }
 }
 
+extension MeetingTranscriptRow {
+    /// The same row and speaker evidence with display text replaced.
+    func replacingText(_ text: String) -> MeetingTranscriptRow {
+        MeetingTranscriptRow(
+            source: source,
+            startFrame: startFrame,
+            endFrame: endFrame,
+            text: text,
+            original: original,
+            speakerID: speakerID,
+            speakerConfidence: speakerConfidence,
+            speakerAssignmentSource: speakerAssignmentSource,
+            wordAttributions: wordAttributions
+        )
+    }
+}
+
+/// Dictation's cleanup as far as it fits a meeting row: Whisper surface
+/// repairs, spacing and fillers always, and the user's vocabulary replacements
+/// under the same condition as in dictation, the Clean level in a verified
+/// language. Spoken commands, lists and corrections stay out: in a meeting
+/// they are what someone said, not instructions. Runs after speaker splitting,
+/// which locates each row's text inside `original.text`; `original` keeps the
+/// recognizer's own words.
+///
+/// A row is often a fragment of a sentence, so the rules that assume a whole
+/// utterance stay off: no capital at the start and no full stop at the end.
+struct MeetingTextCleanup: Sendable {
+    let glossary: Glossary
+    let level: CleanupLevel
+    private let pipeline = ConservativePipeline()
+    private let dictionary = DictionaryCorrectionTransformer()
+
+    init(glossary: Glossary = .empty, level: CleanupLevel = .conservative) {
+        self.glossary = glossary
+        self.level = level
+    }
+
+    func clean(_ row: MeetingTranscriptRow) -> MeetingTranscriptRow {
+        // Dictation's rule: the detected language when the profile holds it.
+        let detected = row.original.detectedLanguage
+        let language = detected.flatMap { row.original.profile.contains($0) ? $0 : nil }
+            ?? row.original.profile.primary
+        let entries = glossary.entries(for: language)
+        var cleaned = pipeline.clean(
+            row.text,
+            language: language,
+            options: CleanupOptions(
+                level: .conservative,
+                glossary: entries,
+                capitalizesSentences: false,
+                addsTerminalPunctuation: false
+            )
+        ).cleaned
+        if level == .clean, language.isVerified {
+            cleaned = dictionary.transform(
+                cleaned,
+                language: language,
+                glossary: entries,
+                protected: ProtectedSpanDetector().detect(in: cleaned, language: language, glossary: entries)
+            ).cleaned
+        }
+        let trimmed = cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed != row.text else { return row }
+        return row.replacingText(trimmed)
+    }
+}
+
 enum MeetingRecognitionQualityPolicy {
     /// Reuses the confidence threshold already calibrated and documented by
     /// the product's risk pipeline instead of inventing a Notetaker-only rule.

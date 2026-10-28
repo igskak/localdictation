@@ -100,6 +100,7 @@ final class DebugMeetingModel: ObservableObject {
     private let menuBarStatus: NotetakerStatus
     private let languageProfileProvider: @MainActor () -> LanguageProfile
     private let transcription: any TranscriptionService
+    private let cleanupProvider: @MainActor () -> MeetingTextCleanup
     private let onMeetingFinished: (UUID?) -> Void
     private var clockTask: Task<Void, Never>?
     private var startedAt: Date?
@@ -110,6 +111,7 @@ final class DebugMeetingModel: ObservableObject {
     init(
         languageProfileProvider: @escaping @MainActor () -> LanguageProfile = { .default },
         transcription: any TranscriptionService = WhisperKitTranscriptionService(logsInference: false),
+        cleanupProvider: @escaping @MainActor () -> MeetingTextCleanup = { MeetingTextCleanup() },
         resolver: any MeetingProcessResolving = CoreAudioMeetingProcessResolver(),
         store: any MeetingStoring = FileMeetingStore(),
         menuBarStatus: NotetakerStatus = NotetakerStatus(),
@@ -118,6 +120,7 @@ final class DebugMeetingModel: ObservableObject {
         self.languageProfileProvider = languageProfileProvider
         languageProfile = languageProfileProvider()
         self.transcription = transcription
+        self.cleanupProvider = cleanupProvider
         self.resolver = resolver
         self.store = store
         self.menuBarStatus = menuBarStatus
@@ -186,6 +189,7 @@ final class DebugMeetingModel: ObservableObject {
                 profile: sessionProfile,
                 title: defaultMeetingTitle,
                 engine: transcription,
+                cleanup: cleanupProvider(),
                 persistence: persistence
             ) { [weak self] update in
                 Task { @MainActor [weak self] in self?.receive(update) }
@@ -1035,7 +1039,8 @@ final class DogfoodNotetakerFacade: NotetakerFacade {
     /// app, so a meeting never loads a second copy of the speech model.
     init(
         languageProfileProvider: @escaping @MainActor () -> LanguageProfile = { .default },
-        transcription: any TranscriptionService = WhisperKitTranscriptionService(logsInference: false)
+        transcription: any TranscriptionService = WhisperKitTranscriptionService(logsInference: false),
+        cleanupProvider: @escaping @MainActor () -> MeetingTextCleanup = { MeetingTextCleanup() }
     ) {
         let store = FileMeetingStore()
         let status = NotetakerStatus()
@@ -1043,6 +1048,7 @@ final class DogfoodNotetakerFacade: NotetakerFacade {
         let recordingModel = DebugMeetingModel(
             languageProfileProvider: languageProfileProvider,
             transcription: transcription,
+            cleanupProvider: cleanupProvider,
             store: store,
             menuBarStatus: status
         ) { [weak libraryModel] meetingID in

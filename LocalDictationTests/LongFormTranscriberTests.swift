@@ -49,15 +49,27 @@ final class LongFormTranscriberTests: XCTestCase {
         XCTAssertEqual(tail.samples, [1, 2, 8])
     }
 
-    func testForwardMicrophoneGapClosesAWindowWithoutInventingSilence() throws {
+    func testShortAudioBeforeAShortGapJoinsTheNextWindowOverSilenceAtTheRealPositions() throws {
         var builder = smallBuilder()
         _ = try builder.append(chunk(start: 0, values: [1, 2]))
 
         let closed = try builder.append(chunk(start: 9, values: [3]))
 
-        XCTAssertEqual(closed.first?.startFrame, 0)
-        XCTAssertEqual(closed.first?.samples, [1, 2])
-        XCTAssertEqual(builder.finish()?.startFrame, 9)
+        XCTAssertTrue(closed.isEmpty, "Two samples are not worth a decode of their own")
+        let tail = try XCTUnwrap(builder.finish())
+        XCTAssertEqual(tail.startFrame, 0)
+        XCTAssertEqual(tail.samples, [1, 2, 0, 0, 0, 0, 0, 0, 0, 3], "Sample 3 stays at frame 9")
+    }
+
+    func testForwardGapAfterTwoSecondsOfAudioClosesAWindowWithoutInventingSilence() throws {
+        var builder = MeetingWindowBuilder(source: .microphone)
+        XCTAssertTrue(try builder.append(chunk(start: 0, values: speech(frames: 125, level: 0.1))).isEmpty)
+
+        let closed = try builder.append(chunk(start: 56_000, values: [3]))
+
+        XCTAssertEqual(closed.map(\.startFrame), [0])
+        XCTAssertEqual(closed.first?.samples.count, 40_000)
+        XCTAssertEqual(builder.finish()?.startFrame, 56_000)
     }
 
     func testSparseSystemAudioClosesAWindowWithoutInventingSilence() throws {

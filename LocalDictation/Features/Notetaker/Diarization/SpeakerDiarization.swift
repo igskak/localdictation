@@ -123,8 +123,20 @@ struct SpeakerAttributedRowBuilder: Sendable {
             )]
         }
 
+        let speakers = Self.smoothedSpeakers(matched.map(\.attribution))
+        let smoothed = zip(matched, speakers).map { word, speakerID in
+            let original = word.attribution
+            return MatchedWord(token: word.token, attribution: SpeakerWordAttribution(
+                text: original.text,
+                startFrame: original.startFrame,
+                endFrame: original.endFrame,
+                speakerID: speakerID,
+                confidence: original.confidence
+            ))
+        }
+
         var groups: [[MatchedWord]] = []
-        for word in matched {
+        for word in smoothed {
             if groups.last?.last?.attribution.speakerID == word.attribution.speakerID {
                 groups[groups.count - 1].append(word)
             } else {
@@ -160,6 +172,44 @@ struct SpeakerAttributedRowBuilder: Sendable {
                 endFrame: last.attribution.endFrame,
                 text: text
             )
+        }
+    }
+
+    /// A speaker run shorter than both of these is the diarizer wavering
+    /// inside one voice, not a turn.
+    ///
+    /// On 28.10 a single remote speaker came back as "Почитай, | чи тобі все |
+    /// в ньому зрозуміло | …", alternating speaker-1 and speaker-2 word by
+    /// word: 153 of 266 rows held three words or fewer. Replayed on that
+    /// meeting, these values leave 135 rows, 7 of them that short.
+    static let minimumTurnWords = 4
+    static let minimumTurnFrames: Int64 = 24_000
+
+    /// The speaker for each word once runs too short to be a turn are folded
+    /// into a neighbour: the longer one, or the earlier one on a tie.
+    static func smoothedSpeakers(_ words: [SpeakerWordAttribution]) -> [String] {
+        var speakers = words.map(\.speakerID)
+        guard !speakers.isEmpty else { return [] }
+        while true {
+            var runs: [Range<Int>] = []
+            var start = 0
+            for index in 1...speakers.count where index == speakers.count || speakers[index] != speakers[start] {
+                runs.append(start..<index)
+                start = index
+            }
+            guard runs.count > 1, let short = runs.firstIndex(where: { run in
+                run.count < minimumTurnWords
+                    && words[run.upperBound - 1].endFrame - words[run.lowerBound].startFrame < minimumTurnFrames
+            }) else { return speakers }
+            let previous = short > 0 ? runs[short - 1] : nil
+            let next = short + 1 < runs.count ? runs[short + 1] : nil
+            let target: Range<Int>
+            if let previous, let next {
+                target = next.count > previous.count ? next : previous
+            } else {
+                target = previous ?? next!
+            }
+            for index in runs[short] { speakers[index] = speakers[target.lowerBound] }
         }
     }
 

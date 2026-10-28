@@ -57,25 +57,26 @@ final class SpeakerDiarizationTests: XCTestCase {
     func testAttributedRowBuilderSplitsSpeakerRunsWithoutRewritingWords() {
         let transcript = Transcript.assemble(
             words: [
-                .init("hello", start: 0, end: 0.4, confidence: 0.9),
-                .init("there", start: 0.4, end: 0.8, confidence: 0.9),
-                .init("friend", start: 0.8, end: 1.2, confidence: 0.9)
+                // Each run lasts at least `minimumTurnFrames`, so both are turns.
+                .init("hello", start: 0, end: 1.6, confidence: 0.9),
+                .init("there", start: 1.6, end: 2.0, confidence: 0.9),
+                .init("friend", start: 2.0, end: 3.6, confidence: 0.9)
             ],
             profile: .english,
-            audioDuration: 1.2,
+            audioDuration: 3.6,
             processingDuration: 0.1,
             engineIdentifier: "test"
         )
         let row = MeetingTranscriptRow(
             source: .system,
             startFrame: 0,
-            endFrame: 19_200,
+            endFrame: 57_600,
             text: transcript.text,
             original: transcript
         )
         let turns = [
-            DiarizedSpeakerTurn(speakerID: "speaker-1", startFrame: 0, endFrame: 6_400, confidence: 0.9),
-            DiarizedSpeakerTurn(speakerID: "speaker-2", startFrame: 6_400, endFrame: 19_200, confidence: 0.8)
+            DiarizedSpeakerTurn(speakerID: "speaker-1", startFrame: 0, endFrame: 25_600, confidence: 0.9),
+            DiarizedSpeakerTurn(speakerID: "speaker-2", startFrame: 25_600, endFrame: 57_600, confidence: 0.8)
         ]
 
         let rows = SpeakerAttributedRowBuilder().rows(from: row, turns: turns)
