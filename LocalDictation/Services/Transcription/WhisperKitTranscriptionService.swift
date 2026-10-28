@@ -20,6 +20,14 @@ import WhisperKit
 /// Support, never into the app bundle. Nothing is uploaded: the download is a
 /// one-way fetch of a static asset.
 actor WhisperKitTranscriptionService: TranscriptionService {
+    /// Who an inference is for. Dictation and the Notetaker share one loaded
+    /// model, but not a conversation: each keeps its own recent language, and
+    /// only dictation writes the per-utterance timing line.
+    enum Caller: Hashable, Sendable {
+        case dictation
+        case meeting
+    }
+
     nonisolated let identifier = "whisperkit"
     nonisolated let displayName = "WhisperKit (Whisper large-v3 turbo)"
 
@@ -64,7 +72,19 @@ actor WhisperKitTranscriptionService: TranscriptionService {
     /// deliberately kept here rather than in the coordinator: it is a property
     /// of a conversation with the engine, it expires, and nothing outside this
     /// actor should be able to set it.
-    private var lastDecodedLanguage: (language: SpeechLanguage, at: Date)?
+    ///
+    /// Kept per caller: a meeting held in English has no vote in what the
+    /// user dictates next, and a dictation has none in the meeting.
+    private var lastDecodedLanguage: [Caller: (language: SpeechLanguage, at: Date)] = [:]
+
+    /// One inference on the model at a time, in arrival order.
+    ///
+    /// The actor is released at every `await` inside an inference, so without
+    /// this a dictation and a meeting window would run on one `WhisperKit` at
+    /// once and interleave `EncoderOutputReuse`'s per-utterance state. The
+    /// Neural Engine runs them one after another anyway; the queue only makes
+    /// the order explicit.
+    private var inferenceTurns = InferenceTurns<CheckedContinuation<Void, Never>>()
 
     /// What the in-flight load is doing, for `modelState`. Nil when idle.
     private var preparation: ModelPreparation?
@@ -368,7 +388,26 @@ actor WhisperKitTranscriptionService: TranscriptionService {
         preparation = ModelPreparation(phase: .downloading, progress: downloadProgress)
     }
 
+    /// A view of this engine for the Notetaker: the same loaded model, its own
+    /// recent language, no timing line.
+    ///
+    /// The meeting used to build a second engine of its own. That held the
+    /// 1.27 GB encoder twice and, whenever macOS had evicted its Neural Engine
+    /// compilation, made the user wait minutes for a model dictation already
+    /// had in memory.
+    nonisolated var meetingClient: WhisperKitMeetingClient {
+        WhisperKitMeetingClient(service: self)
+    }
+
     func transcribe(_ utterance: CapturedUtterance, profile: LanguageProfile) async throws -> Transcript {
+        try await transcribe(utterance, profile: profile, caller: .dictation)
+    }
+
+    func transcribe(
+        _ utterance: CapturedUtterance,
+        profile: LanguageProfile,
+        caller: Caller
+    ) async throws -> Transcript {
         guard !utterance.samples.isEmpty else { throw TranscriptionError.emptyAudio }
         guard utterance.sampleRate == AudioTargetFormat.sampleRate else {
             throw TranscriptionError.engineFailure(
@@ -389,10 +428,15 @@ actor WhisperKitTranscriptionService: TranscriptionService {
         }
         let engine = try await loadedEngine()
 
+        let queuedAt = Date()
+        await beginInference()
+        defer { endInference() }
         try Task.checkCancellation()
         let started = Date()
+        let queued = started.timeIntervalSince(queuedAt)
         let idle = lastInferenceEndedAt.map { started.timeIntervalSince($0) }
         defer { lastInferenceEndedAt = Date() }
+        let logs = logsInference && caller == .dictation
 
         // Only a mixed profile encodes the first window twice: once for the
         // language, once in the decode. A single language never asks for the
@@ -406,7 +450,7 @@ actor WhisperKitTranscriptionService: TranscriptionService {
         // Polish, in Latin script — and then detected and decoded a second
         // time. Pinning what the ranking says makes that miss unreachable
         // instead of recoverable, and costs one decode rather than two.
-        let language = try await decodedLanguage(for: profile, samples: utterance.samples, using: engine)
+        let language = try await decodedLanguage(for: profile, caller: caller, logs: logs, samples: utterance.samples, using: engine)
         let languageReadyAt = Date()
 
         try Task.checkCancellation()
@@ -423,7 +467,7 @@ actor WhisperKitTranscriptionService: TranscriptionService {
         let maximumNoSpeechProbability = segments.map(\.noSpeechProb).max()
 
         try Task.checkCancellation()
-        lastDecodedLanguage = (language, Date())
+        lastDecodedLanguage[caller] = (language, Date())
 
         // Local timing only: counts and durations, no speech data. The two
         // durations say whether language selection or decoding dominates;
@@ -432,9 +476,9 @@ actor WhisperKitTranscriptionService: TranscriptionService {
         // higher temperature, which is what makes the same phrase take one
         // second once and four the next; `idle` separates a cold first press
         // from a warm one.
-        if logsInference {
+        if logs {
             Log.transcription.info(
-                "Inference stages: language \(String(format: "%.2f", languageReadyAt.timeIntervalSince(started)), privacy: .public) s, decode \(String(format: "%.2f", decodedAt.timeIntervalSince(languageReadyAt)), privacy: .public) s, encoder passes reused \(reusedPasses, privacy: .public), fallbacks \(fallbacks, privacy: .public)/\(Self.maximumTemperatureFallbacks, privacy: .public), segments \(segments.count, privacy: .public), max no-speech \(maximumNoSpeechProbability.map { String(format: "%.3f", $0) } ?? "unavailable", privacy: .public), idle \(idle.map { String(format: "%.0f s", $0) } ?? "first", privacy: .public)"
+                "Inference stages: queued \(String(format: "%.2f", queued), privacy: .public) s, language \(String(format: "%.2f", languageReadyAt.timeIntervalSince(started)), privacy: .public) s, decode \(String(format: "%.2f", decodedAt.timeIntervalSince(languageReadyAt)), privacy: .public) s, encoder passes reused \(reusedPasses, privacy: .public), fallbacks \(fallbacks, privacy: .public)/\(Self.maximumTemperatureFallbacks, privacy: .public), segments \(segments.count, privacy: .public), max no-speech \(maximumNoSpeechProbability.map { String(format: "%.3f", $0) } ?? "unavailable", privacy: .public), idle \(idle.map { String(format: "%.0f s", $0) } ?? "first", privacy: .public)"
             )
         }
 
@@ -450,6 +494,15 @@ actor WhisperKitTranscriptionService: TranscriptionService {
         )
         transcript.maximumNoSpeechProbability = maximumNoSpeechProbability.map(Double.init)
         return transcript
+    }
+
+    private func beginInference() async {
+        guard !inferenceTurns.enter() else { return }
+        await withCheckedContinuation { inferenceTurns.wait($0) }
+    }
+
+    private func endInference() {
+        inferenceTurns.leave()?.resume()
     }
 
     // MARK: - Options
@@ -480,6 +533,8 @@ actor WhisperKitTranscriptionService: TranscriptionService {
     /// user selected beats failing the recording they just made.
     private func decodedLanguage(
         for profile: LanguageProfile,
+        caller: Caller,
+        logs: Bool,
         samples: [Float],
         using engine: WhisperKit
     ) async throws -> SpeechLanguage {
@@ -488,8 +543,8 @@ actor WhisperKitTranscriptionService: TranscriptionService {
         // The WhisperKit method is spelled `detectLangauge`; the typo is theirs
         // and is part of the public API.
         guard let probabilities = try? await engine.detectLangauge(audioArray: samples).langProbs else {
-            let fallback = recentLanguage(in: profile) ?? profile.primary
-            if logsInference {
+            let fallback = recentLanguage(in: profile, caller: caller) ?? profile.primary
+            if logs {
                 Log.transcription.notice(
                     "Language detection unavailable; decoding \(profile.shortLabel, privacy: .public) as \(fallback.rawValue, privacy: .public)"
                 )
@@ -500,11 +555,11 @@ actor WhisperKitTranscriptionService: TranscriptionService {
         let decision = LanguageDecision.choose(
             profile: profile,
             probabilities: probabilities,
-            previous: recentLanguage(in: profile)
+            previous: recentLanguage(in: profile, caller: caller)
         )
         // Logged for every mixed utterance, because "why is this Russian" is a
         // question the user will ask and the answer is a rule, not a mood.
-        if logsInference {
+        if logs {
             Log.transcription.info(
                 "\(profile.shortLabel, privacy: .public) decoded as \(decision.language.rawValue, privacy: .public) (\(decision.reason.rawValue, privacy: .public))"
             )
@@ -516,8 +571,8 @@ actor WhisperKitTranscriptionService: TranscriptionService {
     ///
     /// Expires, and is dropped when the user has since deselected it: a
     /// language they no longer speak has no vote in what they are speaking now.
-    private func recentLanguage(in profile: LanguageProfile) -> SpeechLanguage? {
-        guard let last = lastDecodedLanguage else { return nil }
+    private func recentLanguage(in profile: LanguageProfile, caller: Caller) -> SpeechLanguage? {
+        guard let last = lastDecodedLanguage[caller] else { return nil }
         guard Date().timeIntervalSince(last.at) <= LanguageDecision.recencyWindow else { return nil }
         guard profile.contains(last.language) else { return nil }
         return last.language
@@ -634,5 +689,69 @@ private final class ReusingAudioEncoder: AudioEncoding, WhisperMLModel, @uncheck
         let output = try await base.encodeFeatures(mel)
         if let output { reuse.remember(output, for: mel) }
         return output
+    }
+}
+
+/// The Notetaker's handle on the app's one WhisperKit engine.
+///
+/// Loading and model state are the engine's own, so a meeting started while
+/// dictation is ready starts at once. Inference goes through the engine's
+/// queue under `.meeting`, which keeps the meeting's recent language apart from
+/// dictation's and keeps per-window timing out of the dictation log.
+final class WhisperKitMeetingClient: TranscriptionService {
+    let service: WhisperKitTranscriptionService
+
+    init(service: WhisperKitTranscriptionService) {
+        self.service = service
+    }
+
+    var identifier: String { service.identifier }
+    var displayName: String { service.displayName }
+
+    func supports(_ profile: LanguageProfile) -> Bool {
+        service.supports(profile)
+    }
+
+    func modelState(for profile: LanguageProfile) async -> TranscriptionModelState {
+        await service.modelState(for: profile)
+    }
+
+    func prepare(for profile: LanguageProfile) async throws {
+        try await service.prepare(for: profile)
+    }
+
+    func transcribe(_ utterance: CapturedUtterance, profile: LanguageProfile) async throws -> Transcript {
+        try await service.transcribe(utterance, profile: profile, caller: .meeting)
+    }
+}
+
+/// Whose turn it is on a resource that runs one job at a time, in arrival
+/// order. Pure bookkeeping: the owner stores whatever wakes a waiter and
+/// resumes what `leave` hands back.
+struct InferenceTurns<Waiter> {
+    private(set) var isBusy = false
+    private var waiting: [Waiter] = []
+
+    var waitingCount: Int { waiting.count }
+
+    /// Takes the turn if nobody holds it. False means the caller must `wait`.
+    mutating func enter() -> Bool {
+        guard !isBusy else { return false }
+        isBusy = true
+        return true
+    }
+
+    mutating func wait(_ waiter: Waiter) {
+        waiting.append(waiter)
+    }
+
+    /// Ends the current turn. The returned waiter now holds the turn and must
+    /// be woken; nil means the resource is free.
+    mutating func leave() -> Waiter? {
+        guard !waiting.isEmpty else {
+            isBusy = false
+            return nil
+        }
+        return waiting.removeFirst()
     }
 }

@@ -1891,7 +1891,9 @@ final class DictationCoordinator: ObservableObject {
 
 extension DictationCoordinator {
     /// Live composition root.
-    static func makeLive() -> DictationCoordinator {
+    static func makeLive(
+        transcriptionService: WhisperKitTranscriptionService = WhisperKitTranscriptionService()
+    ) -> DictationCoordinator {
         // One trust reader, shared: the coordinator shows the state and the
         // insertion service gates on it, and two readers could disagree.
         let accessibility = AXAccessibilityPermissionService()
@@ -1916,7 +1918,7 @@ extension DictationCoordinator {
             // the only admitted candidate that returns per-token confidence,
             // which Phase 3 requires. `AppleSpeechTranscriptionService` stays in
             // the codebase as the comparison the benchmark scores it against.
-            transcriptionService: WhisperKitTranscriptionService(),
+            transcriptionService: transcriptionService,
             cleanupService: AdaptiveCleanupService(),
             textContextService: AXTextContextService(
                 permissionService: accessibility,

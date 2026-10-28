@@ -99,6 +99,7 @@ final class DebugMeetingModel: ObservableObject {
     private let store: any MeetingStoring
     private let menuBarStatus: NotetakerStatus
     private let languageProfileProvider: @MainActor () -> LanguageProfile
+    private let transcription: any TranscriptionService
     private let onMeetingFinished: (UUID?) -> Void
     private var clockTask: Task<Void, Never>?
     private var startedAt: Date?
@@ -108,6 +109,7 @@ final class DebugMeetingModel: ObservableObject {
 
     init(
         languageProfileProvider: @escaping @MainActor () -> LanguageProfile = { .default },
+        transcription: any TranscriptionService = WhisperKitTranscriptionService(logsInference: false),
         resolver: any MeetingProcessResolving = CoreAudioMeetingProcessResolver(),
         store: any MeetingStoring = FileMeetingStore(),
         menuBarStatus: NotetakerStatus = NotetakerStatus(),
@@ -115,6 +117,7 @@ final class DebugMeetingModel: ObservableObject {
     ) {
         self.languageProfileProvider = languageProfileProvider
         languageProfile = languageProfileProvider()
+        self.transcription = transcription
         self.resolver = resolver
         self.store = store
         self.menuBarStatus = menuBarStatus
@@ -182,6 +185,7 @@ final class DebugMeetingModel: ObservableObject {
             let meeting = DebugMeetingSession(
                 profile: sessionProfile,
                 title: defaultMeetingTitle,
+                engine: transcription,
                 persistence: persistence
             ) { [weak self] update in
                 Task { @MainActor [weak self] in self?.receive(update) }
@@ -1027,12 +1031,18 @@ final class DogfoodNotetakerFacade: NotetakerFacade {
     private let prompt = MeetingPromptPanelController()
     private var detection: MeetingDetectionCoordinator?
 
-    init(languageProfileProvider: @escaping @MainActor () -> LanguageProfile = { .default }) {
+    /// `transcription` is the dictation engine's meeting client in the live
+    /// app, so a meeting never loads a second copy of the speech model.
+    init(
+        languageProfileProvider: @escaping @MainActor () -> LanguageProfile = { .default },
+        transcription: any TranscriptionService = WhisperKitTranscriptionService(logsInference: false)
+    ) {
         let store = FileMeetingStore()
         let status = NotetakerStatus()
         let libraryModel = MeetingLibraryModel(store: store)
         let recordingModel = DebugMeetingModel(
             languageProfileProvider: languageProfileProvider,
+            transcription: transcription,
             store: store,
             menuBarStatus: status
         ) { [weak libraryModel] meetingID in

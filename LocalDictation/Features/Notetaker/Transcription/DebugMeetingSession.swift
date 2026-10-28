@@ -20,7 +20,7 @@ enum MeetingPartialIssue: String, Sendable, Hashable, CaseIterable {
 /// Isolated manual test harness. It is never constructed by the live default.
 actor DebugMeetingSession {
     private let permission = AVCaptureMicrophonePermissionService()
-    private let engine = WhisperKitTranscriptionService(logsInference: false)
+    private let engine: any TranscriptionService
     private let system = SystemAudioCapture()
     private lazy var microphone = MeetingMicrophoneCapture(permission: permission)
     private let profile: LanguageProfile
@@ -49,12 +49,14 @@ actor DebugMeetingSession {
     init(
         profile: LanguageProfile,
         title: String,
+        engine: any TranscriptionService,
         persistence: MeetingPersistenceRecorder = MeetingPersistenceRecorder(),
         diarizer: any StreamingSpeakerDiarizationService = ProductionDiarizationFactory.make(),
         emit: @escaping @Sendable (DebugMeetingUpdate) -> Void
     ) {
         self.profile = profile
         self.title = title
+        self.engine = engine
         self.persistence = persistence
         self.diarizer = diarizer
         self.emit = emit
