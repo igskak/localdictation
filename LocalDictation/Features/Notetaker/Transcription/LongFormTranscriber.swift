@@ -211,17 +211,104 @@ struct MeetingSpeechDetector: Sendable {
     /// call's digital stream has no room noise to hallucinate on.
     static let minimumMicrophoneSpeechFrames = 10
 
-    func containsSpeech(in window: MeetingRecognitionAudio) -> Bool {
+    /// A quiet microphone window passes as well when enough of its frames
+    /// stand out from both its own noise floor and the call's echo.
+    ///
+    /// On 03.11 a Safari call held the microphone and voice processing did not
+    /// open: the whole call reached the microphone 36 dB under the system
+    /// track, and Igor's own replies came in just as quiet, at -52 dBFS. The
+    /// dictation threshold dropped both, so not one of his words was kept.
+    func containsSpeech(in window: MeetingRecognitionAudio,
+                        echo: MeetingEchoReference = MeetingEchoReference()) -> Bool {
         guard containsSpeech(in: window.samples) else { return false }
         guard window.source == .microphone else { return true }
-        return MeetingWindowLevel(samples: window.samples).framesAboveDictationThreshold
-            >= Self.minimumMicrophoneSpeechFrames
+        if MeetingWindowLevel(samples: window.samples).framesAboveDictationThreshold
+            >= Self.minimumMicrophoneSpeechFrames {
+            return true
+        }
+        return echo.framesAboveEcho(in: window) >= Self.minimumMicrophoneSpeechFrames
     }
 
     func containsSpeech(in samples: [Float]) -> Bool {
         guard !samples.isEmpty else { return false }
         var detector = EnergyVoiceActivityDetector(configuration: configuration, sampleRate: 16_000)
         return samples.withUnsafeBufferPointer { detector.ingest($0).speechStart != nil }
+    }
+}
+
+/// How loud the call itself was, per 20 ms frame on the meeting grid, so a
+/// microphone frame can be told apart from the call coming back through the
+/// speakers. Only levels are kept, never samples, and only for the last few
+/// minutes.
+struct MeetingEchoReference: Sendable {
+    static let frameSamples = Int64(MeetingWindowLevel.frameSamples)
+    /// Echo arrives after the call's own frame and rings on in the room, so a
+    /// microphone frame is compared with the loudest call frame this close.
+    static let neighbourFrames: Int64 = 10
+    /// Echo measured 36 dB under the call on 03.11; a voice must come within
+    /// this much of the call to count as the user's own.
+    static let echoMarginDecibels = 20.0
+    /// Stationary room noise is flat; speech rises above the window's quiet
+    /// tenth by at least this much.
+    static let noiseFloorMarginDecibels = 12.0
+    static let retainedFrames: Int64 = 300 * 16_000 / frameSamples
+
+    private var squares: [Int64: (sum: Double, count: Int)] = [:]
+    private var newestFrame: Int64 = 0
+
+    init() {}
+
+    mutating func record(_ chunk: MeetingAudioChunk) {
+        guard chunk.source == .system else { return }
+        var offset = 0
+        while offset < chunk.samples.count {
+            let position = chunk.startFrame + Int64(offset)
+            let frame = position / Self.frameSamples
+            let end = min(chunk.samples.count, offset + Int((frame + 1) * Self.frameSamples - position))
+            var sum = 0.0
+            for index in offset..<end { sum += Double(chunk.samples[index]) * Double(chunk.samples[index]) }
+            let entry = squares[frame] ?? (0, 0)
+            squares[frame] = (entry.sum + sum, entry.count + end - offset)
+            newestFrame = max(newestFrame, frame)
+            offset = end
+        }
+        if squares.count > Int(Self.retainedFrames) * 2 {
+            let oldest = newestFrame - Self.retainedFrames
+            squares = squares.filter { $0.key >= oldest }
+        }
+    }
+
+    /// Call loudness in dBFS at one frame; a frame the call never sent is silence.
+    func systemDecibels(at frame: Int64) -> Double {
+        guard let entry = squares[frame], entry.count > 0 else { return MeetingWindowLevel.decibels(0) }
+        return MeetingWindowLevel.decibels((entry.sum / Double(entry.count)).squareRoot())
+    }
+
+    /// Microphone frames above the meeting gate, clear of the window's noise
+    /// floor, and too loud to be the call's echo.
+    func framesAboveEcho(in window: MeetingRecognitionAudio,
+                         gateThreshold: Float = MeetingSpeechDetector.conservativeConfiguration.speechThreshold) -> Int {
+        let size = Int(Self.frameSamples)
+        var levels: [(frame: Int64, decibels: Double)] = []
+        var start = 0
+        while start < window.samples.count {
+            let end = min(start + size, window.samples.count)
+            var sum = 0.0
+            for index in start..<end { sum += Double(window.samples[index]) * Double(window.samples[index]) }
+            let linear = (sum / Double(end - start)).squareRoot()
+            levels.append(((window.startFrame + Int64(start)) / Self.frameSamples, MeetingWindowLevel.decibels(linear)))
+            start = end
+        }
+        guard !levels.isEmpty else { return 0 }
+        let sorted = levels.map(\.decibels).sorted()
+        let floor = sorted[Int(Double(sorted.count - 1) * 0.1)]
+        let gate = MeetingWindowLevel.decibels(Double(gateThreshold))
+        return levels.filter { level in
+            guard level.decibels >= gate, level.decibels >= floor + Self.noiseFloorMarginDecibels else { return false }
+            let call = ((level.frame - Self.neighbourFrames)...(level.frame + Self.neighbourFrames))
+                .map(systemDecibels(at:)).max() ?? MeetingWindowLevel.decibels(0)
+            return level.decibels >= call - Self.echoMarginDecibels
+        }.count
     }
 }
 
@@ -316,7 +403,7 @@ actor LongFormTranscriber {
     private let engine: any TranscriptionService
     private let profile: LanguageProfile
     private let capacity: Int
-    private let speechClassifier: @Sendable (MeetingRecognitionAudio) -> Bool
+    private let speechClassifier: @Sendable (MeetingRecognitionAudio, MeetingEchoReference) -> Bool
     private let uptime: @Sendable () -> TimeInterval
     private var queues: [MeetingAudioSource: [QueuedMeetingWindow]] = [.microphone: [], .system: []]
     private var lastSource: MeetingAudioSource = .system
@@ -325,10 +412,11 @@ actor LongFormTranscriber {
     private var generation: UInt64 = 0
     private(set) var assembler = MeetingTranscriptAssembler()
     private(set) var metrics = LongFormMetrics()
+    private var echo = MeetingEchoReference()
 
     init(engine: any TranscriptionService, profile: LanguageProfile, capacity: Int = 8,
-         speechClassifier: @escaping @Sendable (MeetingRecognitionAudio) -> Bool = {
-             MeetingSpeechDetector().containsSpeech(in: $0)
+         speechClassifier: @escaping @Sendable (MeetingRecognitionAudio, MeetingEchoReference) -> Bool = {
+             MeetingSpeechDetector().containsSpeech(in: $0, echo: $1)
          },
          uptime: @escaping @Sendable () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }) {
         precondition(capacity > 0)
@@ -337,6 +425,12 @@ actor LongFormTranscriber {
         self.capacity = capacity
         self.speechClassifier = speechClassifier
         self.uptime = uptime
+    }
+
+    /// Every system chunk, as it arrives, before the microphone window that
+    /// overlaps it is classified.
+    func recordSystemAudio(_ chunk: MeetingAudioChunk) {
+        echo.record(chunk)
     }
 
     func enqueue(_ window: MeetingRecognitionAudio) throws {
@@ -355,8 +449,9 @@ actor LongFormTranscriber {
         guard let queued = queues[source]?.first else { return false }
         let window = queued.audio
         let level = MeetingWindowLevel(samples: window.samples)
-        if !speechClassifier(window) {
-            logWindow(window, level: level, outcome: "skipped as silent", transcript: nil)
+        let aboveEcho = window.source == .microphone ? echo.framesAboveEcho(in: window) : nil
+        if !speechClassifier(window, echo) {
+            logWindow(window, level: level, aboveEcho: aboveEcho, outcome: "skipped as silent", transcript: nil)
             queues[source]?.removeFirst()
             lastSource = source
             metrics.skippedSilentWindows += 1
@@ -371,9 +466,9 @@ actor LongFormTranscriber {
         let started = uptime()
         metrics.maximumQueueDelay = max(metrics.maximumQueueDelay, started - queued.enqueuedAt)
         let operationGeneration = generation
-        let transcript: Transcript
+        let decoded: Transcript
         do {
-            transcript = try await engine.transcribe(utterance, profile: profile)
+            decoded = try await engine.transcribe(utterance, profile: profile)
         } catch {
             if Task.isCancelled || error as? TranscriptionError == .cancelled {
                 throw LongFormTranscriptionError.cancelled
@@ -381,7 +476,9 @@ actor LongFormTranscriber {
             throw error
         }
         guard !cancelled, generation == operationGeneration else { throw LongFormTranscriptionError.cancelled }
-        logWindow(window, level: level, outcome: "decoded", transcript: transcript)
+        let transcript = decoded.droppingWords(startingAfter: Double(window.samples.count) / 16_000)
+        logWindow(window, level: level, aboveEcho: aboveEcho, outcome: "decoded", transcript: transcript,
+                  droppedWords: decoded.tokens.count - transcript.tokens.count)
         metrics.inferenceSeconds += uptime() - started
         metrics.transcribedAudioSeconds += Double(window.samples.count) / 16_000
         queues[source]?.removeFirst()
@@ -395,16 +492,16 @@ actor LongFormTranscriber {
     /// how loud, and what the model said about its own certainty. Positions are
     /// in seconds on the same 16 kHz grid as `transcript.ndjson`, so a log line
     /// can be matched to its row.
-    private func logWindow(_ window: MeetingRecognitionAudio, level: MeetingWindowLevel,
-                           outcome: String, transcript: Transcript?) {
+    private func logWindow(_ window: MeetingRecognitionAudio, level: MeetingWindowLevel, aboveEcho: Int?,
+                           outcome: String, transcript: Transcript?, droppedWords: Int = 0) {
         let start = String(format: "%.1f", Double(window.startFrame) / 16_000)
         let end = String(format: "%.1f", Double(window.endFrame) / 16_000)
-        var detail = ""
+        var detail = aboveEcho.map { ", above echo \($0)/\(level.frames)" } ?? ""
         if let transcript {
             let noSpeech = transcript.maximumNoSpeechProbability.map { String(format: "%.3f", $0) } ?? "n/a"
             let confidence = transcript.meanConfidence.map { String(format: "%.2f", $0) } ?? "n/a"
             let language = transcript.detectedLanguage?.rawValue ?? "none"
-            detail = ", max no-speech \(noSpeech), tokens \(transcript.tokens.count), mean confidence \(confidence), language \(language)"
+            detail += ", max no-speech \(noSpeech), tokens \(transcript.tokens.count), dropped past end \(droppedWords), mean confidence \(confidence), language \(language)"
         }
         Log.transcription.notice(
             "Meeting window \(window.source.rawValue, privacy: .public) \(start, privacy: .public)-\(end, privacy: .public) s \(outcome, privacy: .public): \(level.summary, privacy: .public)\(detail, privacy: .public)"
@@ -425,5 +522,34 @@ actor LongFormTranscriber {
         generation &+= 1
         metrics.lostIntervals += queuedCount()
         queues = [.microphone: [], .system: []]
+    }
+}
+
+extension Transcript {
+    /// Real speech cannot start after the audio ends. Whisper pads every
+    /// window to thirty seconds and sometimes keeps writing into the padding:
+    /// on 03.11 "Продолжение следует..." twice and "Спасибо!" came back timed
+    /// 18-30 s into windows of 8 s, and ten other windows ended in words timed
+    /// past their end. Those words go; the rest of the window stays.
+    static let pastEndTolerance: TimeInterval = 0.5
+
+    func droppingWords(startingAfter duration: TimeInterval) -> Transcript {
+        let limit = duration + Self.pastEndTolerance
+        guard let cut = tokens.firstIndex(where: { $0.start > limit }) else { return self }
+        let kept = Array(tokens[..<cut])
+        let length = min(kept.last?.range.upperBound ?? 0, text.count)
+        // Only the end is trimmed: the kept tokens' offsets point into the start.
+        var prefix = String(text.prefix(length))
+        while prefix.last?.isWhitespace == true { prefix.removeLast() }
+        return Transcript(
+            text: prefix,
+            tokens: kept,
+            profile: profile,
+            detectedLanguage: detectedLanguage,
+            audioDuration: audioDuration,
+            processingDuration: processingDuration,
+            engineIdentifier: engineIdentifier,
+            maximumNoSpeechProbability: maximumNoSpeechProbability
+        )
     }
 }

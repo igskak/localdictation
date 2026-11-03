@@ -67,7 +67,19 @@ final class MeetingMicrophoneCapture {
             try check(AudioUnitSetProperty(instance, kAudioOutputUnitProperty_EnableIO, kAudioUnitScope_Input, 1, &on, 4))
             try check(AudioUnitSetProperty(instance, kAudioOutputUnitProperty_EnableIO, kAudioUnitScope_Output, 0, &playback, 4))
             var deviceID = device
-            try check(AudioUnitSetProperty(instance, kAudioOutputUnitProperty_CurrentDevice, kAudioUnitScope_Global, 0, &deviceID, 4))
+            if voiceProcessing {
+                // Voice processing has a device per half: the microphone on
+                // the input element, the speakers it cancels on the output
+                // element. With the microphone on element 0, as the plain unit
+                // takes it, initialisation failed with -10875 on every meeting
+                // until 03.11, and the transcript heard the call as echo.
+                try check(AudioUnitSetProperty(instance, kAudioOutputUnitProperty_CurrentDevice, kAudioUnitScope_Global, 1, &deviceID, 4))
+                if var outputID = SystemAudioInput.defaultOutputDeviceID() {
+                    try check(AudioUnitSetProperty(instance, kAudioOutputUnitProperty_CurrentDevice, kAudioUnitScope_Global, 0, &outputID, 4))
+                }
+            } else {
+                try check(AudioUnitSetProperty(instance, kAudioOutputUnitProperty_CurrentDevice, kAudioUnitScope_Global, 0, &deviceID, 4))
+            }
             var hardwareFormat = AudioStreamBasicDescription()
             var formatSize = UInt32(MemoryLayout<AudioStreamBasicDescription>.size)
             try check(AudioUnitGetProperty(instance, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, 1, &hardwareFormat, &formatSize))

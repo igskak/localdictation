@@ -125,6 +125,51 @@ struct MeetingTextCleanup: Sendable {
         self.level = level
     }
 
+    /// Whisper detaches the second half of a hyphenated word or an apostrophe
+    /// ending: "по -моему", "из -за", "pull -request", "27 -го", "Opus 'а".
+    /// Dictation's canonicalizer only joins the forms it knows by morphology,
+    /// which left 38 of them in the 03.11 meeting. A space before the hyphen
+    /// and none after it is the recognizer's spelling, not a dash, so the
+    /// meeting joins every such pair, except a Latin word followed by a short
+    /// Latin one, which can be a command and its flag ("ls -la"). An apostrophe joins only a short
+    /// Cyrillic case ending, so a quotation keeps its space.
+    static func joiningDetachedPieces(_ text: String) -> String {
+        let characters = Array(text)
+        func isWordCharacter(_ character: Character) -> Bool { character.isLetter || character.isNumber }
+        func word(from start: Int, step: Int) -> String {
+            var index = start
+            var result: [Character] = []
+            while characters.indices.contains(index), isWordCharacter(characters[index]) {
+                result.append(characters[index])
+                index += step
+            }
+            return String(step < 0 ? result.reversed() : result)
+        }
+        func isShortLatin(_ word: String) -> Bool {
+            word.count <= 3 && word.unicodeScalars.allSatisfy { $0.isASCII && CharacterSet.letters.contains($0) }
+        }
+        func isLatin(_ word: String) -> Bool {
+            word.unicodeScalars.allSatisfy { $0.isASCII && CharacterSet.letters.contains($0) }
+        }
+        var dropped = Set<Int>()
+        for index in characters.indices.dropFirst().dropLast(2) where characters[index] == " " {
+            guard isWordCharacter(characters[index - 1]) else { continue }
+            let mark = characters[index + 1]
+            let left = word(from: index - 1, step: -1)
+            let right = word(from: index + 2, step: 1)
+            guard !right.isEmpty else { continue }
+            if mark == "-" {
+                if isLatin(left), isShortLatin(right) { continue }
+                dropped.insert(index)
+            } else if mark == "'" || mark == "’" {
+                let ending = right.unicodeScalars.allSatisfy { $0.properties.isAlphabetic && !$0.isASCII }
+                if ending, right.count <= 4 { dropped.insert(index) }
+            }
+        }
+        guard !dropped.isEmpty else { return text }
+        return String(characters.enumerated().filter { !dropped.contains($0.offset) }.map(\.element))
+    }
+
     func clean(_ row: MeetingTranscriptRow) -> MeetingTranscriptRow {
         // Dictation's rule: the detected language when the profile holds it.
         let detected = row.original.detectedLanguage
@@ -141,6 +186,7 @@ struct MeetingTextCleanup: Sendable {
                 addsTerminalPunctuation: false
             )
         ).cleaned
+        cleaned = Self.joiningDetachedPieces(cleaned)
         if level == .clean, language.isVerified {
             cleaned = dictionary.transform(
                 cleaned,

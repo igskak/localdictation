@@ -118,7 +118,7 @@ final class LongFormTranscriberTests: XCTestCase {
         engine.setResult(Transcript(text: "hello", tokens: [], profile: .english, detectedLanguage: .english,
                                     audioDuration: 1, processingDuration: 0, engineIdentifier: "fake"))
         let service = LongFormTranscriber(engine: engine, profile: .english, capacity: 3,
-                                          speechClassifier: { _ in true })
+                                          speechClassifier: { _, _ in true })
         try await service.enqueue(MeetingRecognitionAudio(source: .microphone, startFrame: 0, samples: [1]))
         try await service.enqueue(MeetingRecognitionAudio(source: .microphone, startFrame: 10, samples: [2]))
         try await service.enqueue(MeetingRecognitionAudio(source: .system, startFrame: 1, samples: [3]))
@@ -140,7 +140,7 @@ final class LongFormTranscriberTests: XCTestCase {
         let engine = FakeTranscriptionService()
         engine.setModelState(.unavailable("test", needsUserAction: true))
         let service = LongFormTranscriber(engine: engine, profile: .english,
-                                          speechClassifier: { _ in true })
+                                          speechClassifier: { _, _ in true })
         try await service.enqueue(MeetingRecognitionAudio(source: .system, startFrame: 0, samples: [1]))
         do { _ = try await service.drainOne(); XCTFail("must refuse an unready model") }
         catch { XCTAssertEqual(error as? LongFormTranscriptionError, .modelNotReady) }
@@ -172,7 +172,7 @@ final class LongFormTranscriberTests: XCTestCase {
                                     audioDuration: 1, processingDuration: 0, engineIdentifier: "fake"))
         let clock = TestMeetingClock(10)
         let service = LongFormTranscriber(engine: engine, profile: .english,
-                                          speechClassifier: { _ in true }, uptime: { clock.value })
+                                          speechClassifier: { _, _ in true }, uptime: { clock.value })
         try await service.enqueue(MeetingRecognitionAudio(source: .system, startFrame: 0,
                                                           samples: [Float](repeating: 0.1, count: 16_000)))
         clock.value = 13
@@ -191,7 +191,7 @@ final class LongFormTranscriberTests: XCTestCase {
                                     audioDuration: 1, processingDuration: 0, engineIdentifier: "fake"))
         let gate = engine.blockNextTranscription()
         let service = LongFormTranscriber(engine: engine, profile: .english,
-                                          speechClassifier: { _ in true })
+                                          speechClassifier: { _, _ in true })
         try await service.enqueue(MeetingRecognitionAudio(source: .system, startFrame: 0, samples: [0.1]))
         let draining = Task { try await service.drainOne() }
         while engine.transcribeCount == 0 { await Task.yield() }

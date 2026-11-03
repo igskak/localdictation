@@ -137,7 +137,8 @@ struct SpeakerAttributedRowBuilder: Sendable {
 
         var groups: [[MatchedWord]] = []
         for word in smoothed {
-            if groups.last?.last?.attribution.speakerID == word.attribution.speakerID {
+            if groups.last?.last?.attribution.speakerID == word.attribution.speakerID
+                || (!groups.isEmpty && Self.continuesPreviousWord(word.token.text)) {
                 groups[groups.count - 1].append(word)
             } else {
                 groups.append([word])
@@ -173,6 +174,14 @@ struct SpeakerAttributedRowBuilder: Sendable {
                 text: text
             )
         }
+    }
+
+    /// Whisper writes "кого-то" as "кого" and "-то", and "Opus'а" as "Opus"
+    /// and "'а". A turn never starts on such a piece: on 03.11 one row ended
+    /// in "у кого" and the next began with "-то?".
+    static func continuesPreviousWord(_ text: String) -> Bool {
+        guard let first = text.trimmingCharacters(in: .whitespaces).first else { return false }
+        return first == "-" || first == "'" || first == "’"
     }
 
     /// A speaker run shorter than both of these is the diarizer wavering

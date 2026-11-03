@@ -101,7 +101,7 @@ actor DebugMeetingSession {
             }
             let microphoneBuffer = try microphone.start(selection: .systemDefault)
             let voiceProcessing = microphone.usesVoiceProcessing ? "on" : "off"
-            Log.audio.info("Meeting microphone voice processing: \(voiceProcessing, privacy: .public)")
+            Log.audio.notice("Meeting microphone voice processing: \(voiceProcessing, privacy: .public)")
             let systemProcessor = try SystemAudioChunkProcessor(buffer: systemBuffer, inputSampleRate: systemBuffer.sampleRate, originHostTime: origin)
             let microphoneProcessor = try SystemAudioChunkProcessor(buffer: microphoneBuffer, inputSampleRate: microphoneBuffer.sampleRate, originHostTime: origin, source: .microphone)
             let worker = LongFormTranscriber(engine: engine, profile: profile)
@@ -149,6 +149,7 @@ actor DebugMeetingSession {
                     try microphone.pause()
                     while let chunk = try systemProcessor.take() {
                         await ingestDiarization(chunk)
+                        await worker.recordSystemAudio(chunk)
                         for window in try systemWindows.append(chunk) { try await worker.enqueue(window) }
                     }
                     while let chunk = try microphoneProcessor.take() {
@@ -181,6 +182,7 @@ actor DebugMeetingSession {
                 }
                 while let chunk = try systemProcessor.take() {
                     await ingestDiarization(chunk)
+                    await worker.recordSystemAudio(chunk)
                     for window in try systemWindows.append(chunk) { try await worker.enqueue(window) }
                 }
                 while let chunk = try microphoneProcessor.take() {
@@ -202,7 +204,10 @@ actor DebugMeetingSession {
                 if stopRequested {
                     for (processor, source) in [(systemProcessor, MeetingAudioSource.system), (microphoneProcessor, MeetingAudioSource.microphone)] {
                         let tail = try processor.finish()
-                        if source == .system { await ingestDiarization(tail) }
+                        if source == .system {
+                            await ingestDiarization(tail)
+                            await worker.recordSystemAudio(tail)
+                        }
                         let windows = try source == .system ? systemWindows.append(tail) : microphoneWindows.append(tail)
                         for window in windows { try await worker.enqueue(window) }
                     }

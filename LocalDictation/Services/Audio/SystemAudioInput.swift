@@ -91,10 +91,19 @@ enum SystemAudioInput {
     }
 
     static func defaultInputDeviceID() -> AudioDeviceID? {
+        defaultDeviceID(kAudioHardwarePropertyDefaultInputDevice)
+    }
+
+    /// Voice processing cancels what this device plays.
+    static func defaultOutputDeviceID() -> AudioDeviceID? {
+        defaultDeviceID(kAudioHardwarePropertyDefaultOutputDevice)
+    }
+
+    private static func defaultDeviceID(_ selector: AudioObjectPropertySelector) -> AudioDeviceID? {
         var id = AudioDeviceID(kAudioObjectUnknown)
         var size = UInt32(MemoryLayout<AudioDeviceID>.size)
         var address = AudioObjectPropertyAddress(
-            mSelector: kAudioHardwarePropertyDefaultInputDevice,
+            mSelector: selector,
             mScope: kAudioObjectPropertyScopeGlobal,
             mElement: kAudioObjectPropertyElementMain
         )

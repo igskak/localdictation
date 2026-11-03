@@ -58,6 +58,100 @@ final class MeetingQualityTests: XCTestCase {
         XCTAssertTrue(MeetingSpeechDetector().containsSpeech(in: quiet))
     }
 
+    // MARK: Echo
+
+    func testQuietOwnVoiceWhileTheCallIsSilentIsDecoded() {
+        // 03.11 12:24: the call quiet, Igor's reply at -52 dBFS on a microphone
+        // that voice processing did not reach.
+        let reply = MeetingRecognitionAudio(source: .microphone, startFrame: 0,
+                                            samples: noise(level: 0.00003, frames: 300) + noise(level: 0.0025, frames: 100))
+        var echo = MeetingEchoReference()
+        echo.record(chunk(level: 0, frames: 400))
+
+        XCTAssertTrue(MeetingSpeechDetector().containsSpeech(in: reply, echo: echo))
+    }
+
+    func testTheCallHeardThroughTheSpeakersIsNotDecoded() {
+        // The same -52 dBFS, but 36 dB under the call at the same moment.
+        let echoed = MeetingRecognitionAudio(source: .microphone, startFrame: 0,
+                                             samples: noise(level: 0.00003, frames: 300) + noise(level: 0.0025, frames: 100))
+        var echo = MeetingEchoReference()
+        echo.record(chunk(level: 0, frames: 300))
+        echo.record(chunk(level: 0.16, frames: 100, startingAt: 300))
+
+        XCTAssertEqual(echo.framesAboveEcho(in: echoed), 0)
+        XCTAssertFalse(MeetingSpeechDetector().containsSpeech(in: echoed, echo: echo))
+    }
+
+    func testSteadyRoomNoiseIsNotDecoded() {
+        // After the 03.11 call: minutes of flat -50 dBFS with the call silent.
+        let hum = MeetingRecognitionAudio(source: .microphone, startFrame: 0, samples: noise(level: 0.003, frames: 400))
+
+        XCTAssertFalse(MeetingSpeechDetector().containsSpeech(in: hum, echo: MeetingEchoReference()))
+    }
+
+    func testEchoLevelsAreReadAcrossChunkBoundaries() {
+        var echo = MeetingEchoReference()
+        echo.record(MeetingAudioChunk(source: .system, sequence: 0, startFrame: 0, sampleRate: 16_000,
+                                      samples: [Float](repeating: 0.1, count: 500), isFinal: false))
+        echo.record(MeetingAudioChunk(source: .system, sequence: 1, startFrame: 500, sampleRate: 16_000,
+                                      samples: [Float](repeating: 0.1, count: 140), isFinal: false))
+
+        XCTAssertEqual(echo.systemDecibels(at: 1), -20, accuracy: 0.01)
+        XCTAssertEqual(echo.systemDecibels(at: 2), -120, accuracy: 0.01, "A frame the call never sent is silence")
+    }
+
+    // MARK: Words past the window
+
+    func testWordsTimedAfterTheWindowEndAreDropped() {
+        let transcript = timed([("Чтобы", 0.2, 0.6), ("туннели", 0.6, 1.2), ("Спасибо!", 29.0, 29.6)])
+
+        let kept = transcript.droppingWords(startingAfter: 8)
+
+        XCTAssertEqual(kept.text, "Чтобы туннели")
+        XCTAssertEqual(kept.tokens.map(\.text), ["Чтобы", "туннели"])
+    }
+
+    func testAWindowWrittenEntirelyIntoThePaddingBecomesEmpty() {
+        let transcript = timed([("Продолжение", 18.3, 19.7), ("следует...", 19.7, 21.1)])
+
+        XCTAssertTrue(transcript.droppingWords(startingAfter: 8.2).isEmpty)
+    }
+
+    func testWordsInsideTheWindowAreKept() {
+        let transcript = timed([("Ну", 0.1, 0.3), ("да.", 7.6, 8.4)])
+
+        XCTAssertEqual(transcript.droppingWords(startingAfter: 8), transcript)
+    }
+
+    // MARK: Detached pieces
+
+    func testDetachedHyphenAndApostropheJoinTheirWord() {
+        let pairs = [
+            ("И, по -моему, почти", "И, по-моему, почти"),
+            ("из -за этого", "из-за этого"),
+            ("пишем pull -request", "пишем pull-request"),
+            ("до 27 -го года, 16 -24 недели", "до 27-го года, 16-24 недели"),
+            ("бла -бла -бла", "бла-бла-бла"),
+            ("с CloudFar 'ю и Opus 'а", "с CloudFar'ю и Opus'а"),
+        ]
+        for (raw, expected) in pairs {
+            XCTAssertEqual(MeetingTextCleanup.joiningDetachedPieces(raw), expected, raw)
+        }
+    }
+
+    func testDashesFlagsAndQuotesKeepTheirSpace() {
+        for text in ["это - всё", "запусти ls -la там", "он сказал 'привет' всем", "минус -", "- начало"] {
+            XCTAssertEqual(MeetingTextCleanup.joiningDetachedPieces(text), text)
+        }
+    }
+
+    func testATurnNeverStartsOnASuffix() {
+        XCTAssertTrue(SpeakerAttributedRowBuilder.continuesPreviousWord(" -то?"))
+        XCTAssertTrue(SpeakerAttributedRowBuilder.continuesPreviousWord("'а"))
+        XCTAssertFalse(SpeakerAttributedRowBuilder.continuesPreviousWord(" Ну"))
+    }
+
     // MARK: Cleanup
 
     func testMeetingRowsGetDictationsSurfaceRepairsWithoutSentenceRules() {
@@ -115,6 +209,16 @@ final class MeetingQualityTests: XCTestCase {
             SpeakerWordAttribution(text: "w\(index)", startFrame: Int64(index) * frames,
                                    endFrame: Int64(index + 1) * frames, speakerID: speaker, confidence: 0.8)
         }
+    }
+
+    private func chunk(level: Float, frames: Int, startingAt frame: Int = 0) -> MeetingAudioChunk {
+        MeetingAudioChunk(source: .system, sequence: UInt64(frame), startFrame: Int64(frame * 320), sampleRate: 16_000,
+                          samples: noise(level: level, frames: frames), isFinal: false)
+    }
+
+    private func timed(_ words: [(String, Double, Double)]) -> Transcript {
+        Transcript.assemble(words: words.map { Transcript.Word($0.0, start: $0.1, end: $0.2, confidence: 0.9) },
+                            profile: .russianUkrainian, audioDuration: 30, processingDuration: 0, engineIdentifier: "test")
     }
 
     private func noise(level: Float, frames: Int) -> [Float] {
