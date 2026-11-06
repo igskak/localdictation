@@ -549,9 +549,8 @@ actor WhisperKitTranscriptionService: TranscriptionService {
     ) async throws -> SpeechLanguage {
         guard profile.isMixed else { return profile.primary }
 
-        // The WhisperKit method is spelled `detectLangauge`; the typo is theirs
-        // and is part of the public API.
-        guard let probabilities = try? await engine.detectLangauge(audioArray: samples).langProbs else {
+        // Not `engine.detectLangauge`: see `languageDistribution`.
+        guard let probabilities = try? await engine.languageDistribution(audioArray: samples) else {
             let fallback = recentLanguage(in: profile, caller: caller) ?? profile.primary
             if logs {
                 Log.transcription.notice(
@@ -574,9 +573,12 @@ actor WhisperKitTranscriptionService: TranscriptionService {
         }
         // Logged for every mixed utterance, because "why is this Russian" is a
         // question the user will ask and the answer is a rule, not a mood.
+        // The two leading probabilities ride along, numbers and codes only, so
+        // a doubtful decision can be read back rather than guessed at.
         if logs {
+            let leaders = Self.leaders(profile: profile, probabilities: probabilities)
             Log.transcription.info(
-                "\(profile.shortLabel, privacy: .public) decoded as \(decision.language.rawValue, privacy: .public) (\(decision.reason.rawValue, privacy: .public))"
+                "\(profile.shortLabel, privacy: .public) decoded as \(decision.language.rawValue, privacy: .public) (\(decision.reason.rawValue, privacy: .public)); leaders \(leaders, privacy: .public)"
             )
         }
         return decision.language
@@ -604,13 +606,19 @@ actor WhisperKitTranscriptionService: TranscriptionService {
         }
         // Numbers and language codes only, never words: what the margin needs
         // to be tuned from recordings.
-        let ranked = LanguageDecision.rank(profile: profile, probabilities: probabilities).prefix(2)
-            .map { "\($0.language.rawValue) \(String(format: "%.2f", $0.probability))" }
-            .joined(separator: ", ")
+        let ranked = Self.leaders(profile: profile, probabilities: probabilities)
         Log.transcription.notice(
             "Meeting language \(decision.language.rawValue, privacy: .public) (\(decision.reason.rawValue, privacy: .public)); leaders \(ranked, privacy: .public); prevailing \(prevailing?.rawValue ?? "none", privacy: .public)"
         )
         return decision
+    }
+
+    /// The two selected languages the engine ranks highest, as the log prints
+    /// them: "uk 0.71, ru 0.24".
+    private static func leaders(profile: LanguageProfile, probabilities: [String: Float]) -> String {
+        LanguageDecision.rank(profile: profile, probabilities: probabilities).prefix(2)
+            .map { "\($0.language.rawValue) \(String(format: "%.2f", $0.probability))" }
+            .joined(separator: ", ")
     }
 
     /// The last decoded language, while it is still worth knowing.
@@ -705,6 +713,105 @@ actor WhisperKitTranscriptionService: TranscriptionService {
     /// survive updates and stay visible to the user.
     static func modelDirectory() -> URL? {
         ApplicationSupportDirectory.subdirectory("Models")
+    }
+}
+
+extension WhisperKit {
+    /// Whisper's language detection with the whole distribution kept.
+    ///
+    /// WhisperKit 1.1's own `detectLangauge` returns `langProbs` with exactly
+    /// one entry: the language its greedy sampler picked over all hundred,
+    /// with that pick's log-probability. `LanguageDecision` was written for a
+    /// distribution, so with one entry every in-profile pick was "confident",
+    /// and the margin, the previous utterance and the meeting's prevailing
+    /// language never had a say. On 05.11 a Ukrainian call had 32 windows
+    /// decided as English at log-probabilities down to -1.4, about 25%, and
+    /// two of them came out as English translations of Ukrainian speech.
+    ///
+    /// This runs the same steps as `detectLangauge`, in the same order and
+    /// with the same window, so the encoder input is byte for byte what the
+    /// decode builds and `EncoderOutputReuse` still spares the second pass.
+    /// The only difference is a sampler that keeps the logits of every
+    /// language token before WhisperKit's greedy pick.
+    ///
+    /// Runs on the caller's actor, like the WhisperKit call it replaces, so the
+    /// engine never leaves the transcription service's isolation.
+    nonisolated(nonsending) func languageDistribution(audioArray: [Float]) async throws -> [String: Float] {
+        guard textDecoder.isModelMultilingual, let tokenizer else {
+            throw TranscriptionError.engineFailure("Language detection needs a multilingual model")
+        }
+        let options = DecodingOptions(verbose: false)
+        let decoderInputs = try textDecoder.prepareDecoderInputs(
+            withPrompt: [tokenizer.specialTokens.startOfTranscriptToken]
+        )
+        guard
+            let window = audioProcessor.padOrTrim(
+                fromArray: audioArray,
+                startAt: 0,
+                toLength: featureExtractor.windowSamples ?? Constants.defaultWindowSamples
+            ),
+            let mel = try await featureExtractor.logMelSpectrogram(fromAudio: window),
+            let encoded = try await audioEncoder.encodeFeatures(mel)
+        else {
+            throw TranscriptionError.engineFailure("Language detection produced no encoder output")
+        }
+
+        var languages: [Int: String] = [:]
+        for token in tokenizer.allLanguageTokens {
+            languages[token] = tokenizer.decode(tokens: [token]).trimmingSpecialTokenCharacters()
+        }
+        let capture = LanguageLogitCapture(
+            base: GreedyTokenSampler(
+                temperature: 0,
+                eotToken: tokenizer.specialTokens.endToken,
+                decodingOptions: options
+            ),
+            languages: languages
+        )
+        _ = try await textDecoder.detectLanguage(
+            from: encoded,
+            using: decoderInputs,
+            sampler: capture,
+            options: options,
+            temperature: 0
+        )
+        let distribution = LanguageDecision.distribution(fromLogits: capture.logits)
+        guard !distribution.isEmpty else {
+            throw TranscriptionError.engineFailure("Language detection produced no language scores")
+        }
+        return distribution
+    }
+}
+
+/// Keeps the decoder's score for every language token, then lets WhisperKit's
+/// own greedy sampler pick exactly as it would have.
+///
+/// WhisperKit's language filter has already set every other token to minus
+/// infinity by the time the sampler sees the logits; the language tokens are
+/// left as the model produced them.
+private final class LanguageLogitCapture: TokenSampling {
+    private let base: GreedyTokenSampler
+    private let languages: [Int: String]
+    private(set) var logits: [String: Float] = [:]
+
+    init(base: GreedyTokenSampler, languages: [Int: String]) {
+        self.base = base
+        self.languages = languages
+    }
+
+    func update(tokens: [Int], logits: MLMultiArray, logProbs: [Float]) async -> SamplingResult {
+        if self.logits.isEmpty, let vocabulary = logits.shape.last?.intValue {
+            var captured: [String: Float] = [:]
+            for (token, code) in languages where token < vocabulary {
+                captured[code] = logits[[0, 0, NSNumber(value: token)]].floatValue
+            }
+            self.logits = captured
+        }
+        return await base.update(tokens: tokens, logits: logits, logProbs: logProbs)
+    }
+
+    func finalize(tokens: [Int], logProbs: [Float]) -> SamplingResult {
+        base.finalize(tokens: tokens, logProbs: logProbs)
     }
 }
 

@@ -201,6 +201,54 @@ final class MeetingQualityTests: XCTestCase {
                        .ukrainian)
     }
 
+    // MARK: Language distribution
+
+    func testLanguageLogitsBecomeProbabilitiesOverEveryLanguage() {
+        let distribution = LanguageDecision.distribution(fromLogits: [
+            "uk": 2.0, "en": 1.0, "ru": 0.0, "pl": -Float.infinity,
+        ])
+
+        XCTAssertEqual(distribution.values.reduce(0, +), 1, accuracy: 0.0001)
+        XCTAssertNil(distribution["pl"], "A token the filter suppressed gets no share")
+        XCTAssertEqual(distribution["uk"] ?? 0, 0.665, accuracy: 0.001)
+        XCTAssertEqual(distribution["en"] ?? 0, 0.245, accuracy: 0.001)
+        XCTAssertEqual(distribution["ru"] ?? 0, 0.090, accuracy: 0.001)
+    }
+
+    func testNoUsableLogitsGiveNoDistribution() {
+        XCTAssertTrue(LanguageDecision.distribution(fromLogits: [:]).isEmpty)
+        XCTAssertTrue(LanguageDecision.distribution(fromLogits: ["uk": -Float.infinity, "ru": .nan]).isEmpty)
+    }
+
+    /// 05.11, a Ukrainian standup: WhisperKit's own detector reported only its
+    /// pick, "en" at log-probability -1.3, and with one entry the window was
+    /// confident English and came out translated. With the whole
+    /// distribution the same pick is barely ahead of Ukrainian, and the
+    /// meeting keeps its language.
+    func testAWeakEnglishPickNoLongerTakesAUkrainianMeeting() {
+        let profile = LanguageProfile(.russian, .german, .english, .ukrainian)
+        let distribution = LanguageDecision.distribution(fromLogits: [
+            "en": 1.0, "uk": 0.8, "ru": 0.1, "de": -1.0, "pl": -0.5,
+        ])
+
+        let decision = LanguageDecision.choose(profile: profile, probabilities: distribution,
+                                               previous: .ukrainian, margin: LanguageDecision.meetingMargin)
+
+        XCTAssertEqual(decision.language, .ukrainian)
+        XCTAssertEqual(decision.reason, .continuedFromPrevious)
+    }
+
+    func testAClearPickStillLeavesTheMeetingsLanguage() {
+        let profile = LanguageProfile(.russian, .german, .english, .ukrainian)
+        let distribution = LanguageDecision.distribution(fromLogits: ["en": 4.0, "uk": 1.0, "ru": 0.5])
+
+        let decision = LanguageDecision.choose(profile: profile, probabilities: distribution,
+                                               previous: .ukrainian, margin: LanguageDecision.meetingMargin)
+
+        XCTAssertEqual(decision.language, .english)
+        XCTAssertEqual(decision.reason, .confident)
+    }
+
     // MARK: Helpers
 
     private func attributions(_ speakers: [String], secondsEach: Double) -> [SpeakerWordAttribution] {

@@ -15,6 +15,20 @@ import Foundation
 /// related languages the ranking is a coin toss. The margin and the previous
 /// utterance exist for exactly that case.
 struct LanguageDecision: Sendable, Equatable {
+    /// The decoder's raw scores for language tokens, as probabilities that sum
+    /// to one over every language the engine knows: Whisper's own softmax.
+    ///
+    /// Non-finite scores are the tokens WhisperKit's filter suppressed and get
+    /// no share. Empty when nothing usable came in.
+    static func distribution(fromLogits logits: [String: Float]) -> [String: Float] {
+        let finite = logits.filter { $0.value.isFinite }
+        guard let maximum = finite.values.max() else { return [:] }
+        let weights = finite.mapValues { Foundation.exp($0 - maximum) }
+        let total = weights.values.reduce(0, +)
+        guard total > 0, total.isFinite else { return [:] }
+        return weights.mapValues { $0 / total }
+    }
+
     /// Why this language, in the words the log uses.
     enum Reason: String, Sendable, Equatable {
         /// One language is selected, so nothing was detected at all.
