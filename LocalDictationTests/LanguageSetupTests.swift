@@ -40,6 +40,118 @@ final class LanguageSetupTests: XCTestCase {
         }
     }
 
+    func testReinstallationShowsSetupButRestartAfterSkipDoesNot() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let receipt = directory.appendingPathComponent("onboarding.json")
+        let coordinator = makeCoordinator(InMemoryPreferencesStore())
+        func controller(_ identity: String) -> LanguageSetupWindowController {
+            LanguageSetupWindowController(coordinator: coordinator, loginItem: FakeLoginItemService(),
+                installationAware: true, receiptURL: receipt, installationIdentity: identity)
+        }
+        let first = controller("first-copy")
+        first.presentIfNeeded()
+        XCTAssertTrue(first.isPresenting)
+        first.finish()
+        let restart = controller("first-copy")
+        restart.presentIfNeeded()
+        XCTAssertFalse(restart.isPresenting)
+        let reinstall = controller("second-copy")
+        reinstall.presentIfNeeded()
+        XCTAssertTrue(reinstall.isPresenting)
+        reinstall.finish()
+    }
+
+    func testGuidedSetupPagesFitAndRender() throws {
+        let coordinator = makeCoordinator(InMemoryPreferencesStore())
+        let model = LanguageSetupModel(selection: .default)
+        for page in 0...5 {
+            model.page = page
+            let view = GuidedSetupView(model: model, coordinator: coordinator, notifyWhenReady: {}, finish: {})
+                .environmentObject(coordinator)
+            let hosting = NSHostingView(rootView: view)
+            hosting.frame = NSRect(x: 0, y: 0, width: 520, height: 620)
+            hosting.layoutSubtreeIfNeeded()
+            XCTAssertLessThanOrEqual(hosting.fittingSize.height, 621)
+            if let bitmap = hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds) {
+                hosting.cacheDisplay(in: hosting.bounds, to: bitmap)
+                if let png = bitmap.representation(using: .png, properties: [:]) {
+                    try png.write(to: URL(fileURLWithPath: "/tmp/witness-setup-\(page).png"))
+                }
+            }
+        }
+    }
+
+    /// Exports the actual SwiftUI screens with injected permission/model fixtures.
+    /// Used for reviewing onboarding without a microphone or live model download.
+    func testExportOnboardingPreview() async throws {
+        let directory = URL(fileURLWithPath: "/tmp/witness-onboarding-preview", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let engine = FakeTranscriptionService()
+        engine.setResult(.fixture(words: [("Hello", 0.99), ("from", 0.99), ("Witness.", 0.99)]))
+        let hotkey = FakeHotkeyService()
+        let microphone = FakeMicrophonePermissionService(authorization: .notDetermined)
+        let coordinator = DictationCoordinator(
+            permissionService: microphone, hotkeyService: hotkey,
+            captureService: FakeAudioCaptureService(), transcriptionService: engine,
+            accessibilityService: FakeAccessibilityPermissionService(authorization: .notTrusted),
+            insertionService: FakeTextInsertionService(),
+            preferencesStore: InMemoryPreferencesStore()
+        )
+        coordinator.activate()
+        await coordinator.refreshTranscriptionModelState()
+        let model = LanguageSetupModel(selection: .default)
+        func snapshot(_ name: String, afterLayout: (() async throws -> Void)? = nil) async throws {
+            let hosting = NSHostingView(rootView: FirstRunView(
+                model: model, coordinator: coordinator, confirm: {}, finish: {}, notifyWhenReady: {}
+            ).environmentObject(coordinator).environment(\.locale, Locale(identifier: "en")))
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 520, height: 620),
+                                  styleMask: [.borderless], backing: .buffered, defer: false)
+            window.isReleasedWhenClosed = false
+            window.contentView = hosting
+            hosting.frame = NSRect(x: 0, y: 0, width: 520, height: 620)
+            hosting.layoutSubtreeIfNeeded()
+            try await settle()
+            try await afterLayout?()
+            hosting.layoutSubtreeIfNeeded()
+            let bitmap = try XCTUnwrap(hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds))
+            hosting.cacheDisplay(in: hosting.bounds, to: bitmap)
+            let png = try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
+            try png.write(to: directory.appendingPathComponent(name + ".png"))
+            window.close()
+        }
+        model.step = .welcome
+        try await snapshot("01-welcome")
+        model.step = .languages
+        try await snapshot("02-languages")
+        model.step = .ready; model.page = 0
+        try await snapshot("03-microphone")
+        await coordinator.requestMicrophoneAccess()
+        model.page = 1
+        try await snapshot("04-accessibility")
+        model.page = 2
+        try await snapshot("05-key")
+        engine.setModelState(.preparing(ModelPreparation(phase: .downloading, download: ModelDownloadProgress(
+            completedBytes: 688_000_000, totalBytes: 1_600_000_000, remainingSeconds: 360
+        ))))
+        await coordinator.refreshTranscriptionModelState()
+        model.page = 3
+        try await snapshot("06-model-download")
+        engine.setModelState(.ready)
+        await coordinator.refreshTranscriptionModelState()
+        model.page = 4
+        try await snapshot("07-try-dictation")
+        model.page = 4
+        try await snapshot("08-dictation-result") {
+            coordinator.beginOnboardingTest()
+            hotkey.emit(.pressed); hotkey.emit(.released)
+            try await waitUntil("preview dictation result") { !coordinator.onboardingTestText.isEmpty }
+        }
+        model.page = 5
+        try await snapshot("09-ready")
+        coordinator.deactivate()
+    }
+
     // MARK: - The window
 
     func testTheQuestionLaysOutWithAHundredLanguagesInIt() {

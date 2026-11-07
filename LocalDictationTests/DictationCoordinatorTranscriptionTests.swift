@@ -57,6 +57,29 @@ final class DictationCoordinatorTranscriptionTests: XCTestCase {
         hotkey.emit(.released)
     }
 
+    func testOnboardingDictationIsIsolatedFromInsertionAndHistory() async throws {
+        let engine = FakeTranscriptionService()
+        engine.setResult(.fixture(words: [("hello", 0.9)]))
+        let (coordinator, hotkey, _) = makeCoordinator(transcription: engine)
+        coordinator.beginOnboardingTest()
+        recordOneUtterance(hotkey)
+        try await waitUntil("test result appears") { !coordinator.onboardingTestText.isEmpty }
+        XCTAssertNil(coordinator.lastInsertion)
+        XCTAssertTrue(coordinator.recentDictations.isEmpty)
+        coordinator.endOnboardingTest()
+        XCTAssertNil(coordinator.result)
+        XCTAssertTrue(coordinator.onboardingTestText.isEmpty)
+    }
+
+    func testCancelledModifierGestureDoesNotTranscribe() async throws {
+        let engine = FakeTranscriptionService()
+        let (coordinator, hotkey, _) = makeCoordinator(transcription: engine)
+        hotkey.emit(.pressed)
+        hotkey.emit(.cancelled)
+        try await waitUntil("cancelled recording settles") { coordinator.state == .ready }
+        XCTAssertEqual(engine.transcribeCount, 0)
+    }
+
     func testCompletedUtteranceIsTranscribedAndPublished() async throws {
         let engine = FakeTranscriptionService()
         engine.setResult(.fixture(words: [("Rechnung", 0.9), ("bezahlt", 0.8)], profile: .germanEnglish))

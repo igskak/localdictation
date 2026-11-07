@@ -313,3 +313,22 @@ The product is not directed at children and asks for nothing about age.
 The list at the top is the promise. If a version ever sends something new, this
 document says so before that version is published, and the app's request stays
 exactly as wide as this document is.
+
+## Local onboarding and keyboard gestures (next release)
+
+`onboarding.json` in Application Support stores only a local app-bundle file
+identity, the last setup page, and whether setup was completed, skipped or
+closed. It is retained until this file or the app's local data is removed.
+This distinguishes a replacement installation from a normal restart; manual
+replacement may also show setup again. A one-shot local `onboarding-update`
+marker preserves setup status across a normal Sparkle update and is consumed
+on the following launch. It contains only the previous local bundle identity.
+The file identity is never sent to an external recipient.
+
+The optional single-modifier shortcut observes keyboard modifier changes and
+whether another key was pressed, using macOS Input Monitoring permission.
+It does not read typed characters or retain other key codes or sequences.
+Gesture state exists only in memory and is discarded when the gesture ends.
+Normal shortcuts remain available without this extra permission. Dictation
+in the setup test uses the same local speech engine, keeps its result only in
+memory, and does not insert into another app or change the clipboard.

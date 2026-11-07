@@ -321,6 +321,7 @@ final class DictationCoordinator: ObservableObject {
         self.configuration = configuration
         self.binding = binding
         self.activation = activation
+        hotkeyService.setActivation(activation)
         self.languageProfile = languageProfile
         self.pollInterval = pollInterval
     }
@@ -532,6 +533,7 @@ final class DictationCoordinator: ObservableObject {
     /// the app has to be able to fail and put the working shortcut back.
     private func tryRegister(_ candidate: HotkeyBinding) -> HotkeyRegistrationError? {
         do {
+            hotkeyService.setActivation(activation)
             try hotkeyService.register(candidate) { [weak self] event in
                 self?.receiveHotkeyEvent(event)
             }
@@ -554,11 +556,11 @@ final class DictationCoordinator: ObservableObject {
     /// already taken.
     @discardableResult
     func changeHotkey(to candidate: HotkeyBinding) -> HotkeyRegistrationError? {
-        guard candidate != binding else { return nil }
+        guard candidate != binding else { return registeredHotkey == nil ? tryRegister(candidate) : nil }
         // A shortcut with no modifier is registered system-wide against a
         // bare key, which takes that key away from every application on the
         // Mac including this one's own text fields.
-        guard !candidate.modifiers.isEmpty else { return .noModifier }
+        guard !candidate.modifiers.isEmpty || candidate.isSingleModifier else { return .noModifier }
 
         let previous = binding
         if let error = tryRegister(candidate) {
@@ -621,16 +623,13 @@ final class DictationCoordinator: ObservableObject {
         guard isCapturingHotkey else { return changeHotkey(to: candidate) }
         isCapturingHotkey = false
 
-        guard !candidate.modifiers.isEmpty else {
+        guard !candidate.modifiers.isEmpty || candidate.isSingleModifier else {
             // Nothing was registered while capturing, so the old shortcut
             // has to go back before the refusal is reported.
             registerHotkey()
             return .noModifier
         }
-        guard candidate != binding else {
-            registerHotkey()
-            return nil
-        }
+        guard candidate != binding else { return tryRegister(candidate) }
         return changeHotkey(to: candidate)
     }
 
@@ -638,6 +637,7 @@ final class DictationCoordinator: ObservableObject {
     func setActivation(_ activation: RecordingActivation) {
         guard activation != self.activation else { return }
         self.activation = activation
+        hotkeyService.setActivation(activation)
         persistPreferences()
         Log.hotkey.info("Recording activation is now \(activation.rawValue, privacy: .public)")
     }
@@ -653,11 +653,23 @@ final class DictationCoordinator: ObservableObject {
     }
 
     private func handle(_ event: HotkeyEvent) {
+        if event == .cancelled || event == .unavailable {
+            if state.isCapturing {
+                discardGesture = true
+                endCapture(reason: .hotkeyRelease)
+            }
+            if event == .unavailable {
+                registeredHotkey = nil
+                apply(.hotkeyRegistrationFailed(HotkeyRegistrationError.keyboardAccessRequired.message))
+            }
+            return
+        }
         switch activation {
         case .pushToTalk:
             switch event {
             case .pressed:
                 beginCapture()
+            case .cancelled, .unavailable: break
             case .released:
                 endCapture(reason: .hotkeyRelease)
             }
@@ -676,6 +688,27 @@ final class DictationCoordinator: ObservableObject {
     }
 
     // MARK: - Capture
+
+    private var discardGesture = false
+    @Published private(set) var isOnboardingTest = false
+    @Published private(set) var onboardingTestText = ""
+
+    func beginOnboardingTest() {
+        guard !state.isBusy else { return }
+        onboardingTestText = ""
+        isOnboardingTest = true
+    }
+    func endOnboardingTest() {
+        if state.isBusy { discardGesture = true; endCapture(reason: .hotkeyRelease) }
+        let wasTranscribing = state.isTranscribing
+        cancelTranscription()
+        if wasTranscribing { apply(.transcriptionFinished) }
+        result = nil; transcript = nil
+        releaseRetainedAudio()
+        isOnboardingTest = false
+        onboardingTestText = ""
+    }
+    func stopOnboardingRecording() { endCapture(reason: .hotkeyRelease) }
 
     private func beginCapture() {
         // A locked Mac answers the press instead of recording it.
@@ -704,6 +737,7 @@ final class DictationCoordinator: ObservableObject {
         }
 
         guard apply(.hotkeyPressed) else { return }
+        discardGesture = false
         activeCleanupLevel = cleanupLevel
 
         // A new utterance supersedes whatever is still being transcribed or
@@ -730,7 +764,7 @@ final class DictationCoordinator: ObservableObject {
         // The target is captured here, at the start, and not read again when
         // the text is ready. By then the user may have moved on: transcription
         // takes seconds and a review takes as long as reading does.
-        insertionTarget = insertionService?.captureTarget()
+        insertionTarget = isOnboardingTest ? nil : insertionService?.captureTarget()
         let captureConfiguration = configuration
         let service = captureService
         let interruptionHandler: @Sendable (AudioCaptureError) -> Void = { [weak self] error in
@@ -801,6 +835,11 @@ final class DictationCoordinator: ObservableObject {
         captureIsRunning = false
         pendingEndReason = nil
 
+        if discardGesture {
+            discardGesture = false
+            apply(.utteranceCompleted)
+            return
+        }
         if let utterance {
             // Asked here rather than from the live detector, because a
             // recording made while another app held voice processing arrives
@@ -1715,6 +1754,11 @@ final class DictationCoordinator: ObservableObject {
         // marks no longer stand between the user and their own document: the
         // words appear where they were already typing, every time, and the
         // checking is offered afterwards to whoever wants it.
+        if isOnboardingTest {
+            onboardingTestText = result.cleanedText
+            apply(.transcriptionFinished)
+            return
+        }
         if insertsAutomatically, performInsertion(of: result.cleanedText) { return }
         if !result.isEmpty, !secureInput.isEnabled {
             remember(result.cleanedText)
@@ -1737,7 +1781,7 @@ final class DictationCoordinator: ObservableObject {
     private func analyze(_ transcript: Transcript) -> DictationResult {
         let language = Self.cleanupLanguage(for: transcript)
         let context = activeCleanupLevel == .clean
-            ? textContextService.context(for: insertionTarget).context
+            ? (isOnboardingTest ? nil : textContextService.context(for: insertionTarget).context)
             : nil
         let cleanup = cleanupService.clean(
             transcript.text,

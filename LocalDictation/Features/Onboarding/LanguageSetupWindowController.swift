@@ -18,7 +18,7 @@ struct SystemModelReadyNotificationService: ModelReadyNotificationService {
     func sendReady(hotkey: String) async throws {
         let content = UNMutableNotificationContent()
         content.title = L10n.string("Witness is ready")
-        content.body = L10n.format("The local speech model is ready. Hold %@ and speak.", hotkey)
+        content.body = L10n.format("Your speech model is ready. Open Witness whenever you’d like to try dictation. Your key: %@.", hotkey)
         content.sound = .default
         try await UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: "model-ready", content: content, trigger: nil))
     }
@@ -53,6 +53,11 @@ final class LanguageSetupWindowController: NSObject, NSWindowDelegate {
     /// Set the moment the answer is recorded, so closing the window afterwards
     /// is not mistaken for the question going unanswered.
     private var isAnswered = false
+    private var checkpointObservation: AnyCancellable?
+    private let installationAware: Bool
+    private var receipt: OnboardingReceipt
+    private let receiptURL: URL
+    private let installationIdentity: String
     private var modelReadyObservation: AnyCancellable?
     private var waitingForNotification = false
     private var requestingNotificationPermission = false
@@ -60,20 +65,48 @@ final class LanguageSetupWindowController: NSObject, NSWindowDelegate {
     /// The login item is passed in rather than made here: the real one writes to
     /// the machine's login items, and a test that closed this window would
     /// register the test host.
-    init(coordinator: DictationCoordinator, loginItem: any LoginItemService, notificationService: any ModelReadyNotificationService = SystemModelReadyNotificationService()) {
+    init(coordinator: DictationCoordinator, loginItem: any LoginItemService, notificationService: any ModelReadyNotificationService = SystemModelReadyNotificationService(), installationAware: Bool = false, receiptURL: URL = OnboardingReceipt.url, installationIdentity: String = OnboardingReceipt.currentInstallation) {
+        self.installationAware = installationAware
+        self.receiptURL = receiptURL
+        self.installationIdentity = installationIdentity
+        self.receipt = installationAware ? OnboardingReceipt.load(from: receiptURL) : OnboardingReceipt(installation: "")
         self.coordinator = coordinator
         self.loginItem = loginItem
         self.notificationService = notificationService
         model = LanguageSetupModel(selection: coordinator.languageProfile)
         super.init()
+        if installationAware {
+            isAnswered = !coordinator.needsLanguageSetup
+            if receiptURL == OnboardingReceipt.url, let marker = try? Data(contentsOf: OnboardingReceipt.updateMarkerURL),
+               String(data: marker, encoding: .utf8) == receipt.installation {
+                receipt.installation = installationIdentity
+                receipt.save(to: receiptURL)
+            }
+            if receiptURL == OnboardingReceipt.url { try? FileManager.default.removeItem(at: OnboardingReceipt.updateMarkerURL) }
+            if receipt.installation != installationIdentity {
+                receipt = OnboardingReceipt(installation: installationIdentity)
+                model.step = .welcome
+            } else if coordinator.needsLanguageSetup {
+                model.step = .languages
+            } else {
+                model.step = .ready
+                model.page = min(receipt.page, 4)
+            }
+            model.opensAtLogin = loginItem.state == .enabled
+            checkpointObservation = model.$page.dropFirst().sink { [weak self] page in
+                guard let self else { return }
+                self.receipt.page = page
+                self.receipt.save(to: self.receiptURL)
+            }
+        }
     }
 
     /// Shows the first run, if the question has not been answered.
     ///
     /// Safe to call more than once: a second call while the window is up brings
     /// it forward rather than building another one.
-    func presentIfNeeded() {
-        guard coordinator.needsLanguageSetup else { return }
+    func presentIfNeeded(force: Bool = false) {
+        guard force || (installationAware ? receipt.outcome == "pending" : coordinator.needsLanguageSetup) else { return }
         if let window {
             window.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
@@ -124,10 +157,15 @@ final class LanguageSetupWindowController: NSObject, NSWindowDelegate {
     /// the hotkey is, what macOS will ask for, and what happens after the fifth
     /// dictation.
     func confirmSelection() {
-        guard !isAnswered else { return }
+        if isAnswered {
+            if coordinator.languageProfile != model.selection { coordinator.completeLanguageSetup(with: model.selection) }
+            model.step = .ready
+            return
+        }
         isAnswered = true
         coordinator.completeLanguageSetup(with: model.selection)
         model.step = .ready
+        if installationAware { receipt.save(to: receiptURL) }
     }
 
     /// Keep observing after the setup window closes; the controller lives with the app.
@@ -139,14 +177,14 @@ final class LanguageSetupWindowController: NSObject, NSWindowDelegate {
             do {
                 let allowed = try await notificationService.requestAuthorization()
                 guard allowed else {
-                    model.notificationMessage = L10n.string("Notifications are off. You can enable them in System Settings → Notifications.")
+                    model.notificationMessage = L10n.string("Notifications are off. You can still follow progress here or return from the menu bar. You can enable notifications later in System Settings → Notifications.")
                     return
                 }
                 waitingForNotification = true
-                model.notificationMessage = L10n.string("We’ll notify you when the model is ready. Keep Witness running.")
+                model.notificationMessage = L10n.string("We’ll let you know when the model is ready. You can use other apps while Witness stays open.")
                 observeModelReadiness()
             } catch {
-                model.notificationMessage = L10n.string("Could not enable notifications. Check System Settings → Notifications.")
+                model.notificationMessage = L10n.string("We couldn’t turn on notifications. You can still follow progress here, or enable them in System Settings → Notifications.")
             }
         }
     }
@@ -174,6 +212,7 @@ final class LanguageSetupWindowController: NSObject, NSWindowDelegate {
     /// thing — nothing here is a second question, so nothing here can be left
     /// unanswered.
     func finish() {
+        if installationAware { receipt.outcome = model.page == 5 ? "completed" : "skipped"; receipt.save(to: receiptURL) }
         window?.close()
     }
 
@@ -189,6 +228,8 @@ final class LanguageSetupWindowController: NSObject, NSWindowDelegate {
     var isPresenting: Bool { window?.isVisible == true }
 
     func windowWillClose(_ notification: Notification) {
+        if coordinator.isOnboardingTest { coordinator.endOnboardingTest() }
+        if installationAware && receipt.outcome == "pending" { receipt.outcome = "dismissed"; receipt.save(to: receiptURL) }
         window = nil
         guard !isAnswered else {
             applyLoginChoice()
@@ -220,5 +261,31 @@ final class LanguageSetupWindowController: NSObject, NSWindowDelegate {
         guard model.opensAtLogin, loginItem.state == .disabled else { return }
         let result = loginItem.setEnabled(true)
         Log.application.info("Open at login offered at first run: \(String(describing: result), privacy: .public)")
+    }
+}
+
+/// Only local setup choices and file identity, never content or a network identifier.
+struct OnboardingReceipt: Codable {
+    var installation: String
+    var page = 0
+    var outcome = "pending"
+    static var updateMarkerURL: URL { ApplicationSupportDirectory.file("onboarding-update") }
+    static var url: URL { ApplicationSupportDirectory.file("onboarding.json") }
+    static var currentInstallation: String {
+        let attributes = try? FileManager.default.attributesOfItem(atPath: Bundle.main.bundlePath)
+        let executable = Bundle.main.executablePath.flatMap { try? FileManager.default.attributesOfItem(atPath: $0) }
+        return "\(attributes?[.systemNumber] ?? 0):\(attributes?[.systemFileNumber] ?? 0):\(executable?[.systemFileNumber] ?? 0):\(Bundle.main.bundlePath)"
+    }
+    static func load(from url: URL = Self.url) -> Self {
+        guard let data = try? Data(contentsOf: url), let value = try? JSONDecoder().decode(Self.self, from: data) else {
+            return Self(installation: "")
+        }
+        return value
+    }
+    func save(to url: URL = Self.url) {
+        do {
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try JSONEncoder().encode(self).write(to: url, options: .atomic)
+        } catch { Log.application.error("Could not save onboarding progress") }
     }
 }

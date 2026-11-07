@@ -29,6 +29,66 @@ final class HotkeyBindingTests: XCTestCase {
 
     private static let commandJ = HotkeyBinding(keyCode: 38, modifiers: [.command], keyLabel: "J")
 
+    func testRecapturingCurrentShortcutReportsARegistrationFailure() {
+        let harness = makeHarness()
+        harness.coordinator.beginHotkeyCapture()
+        harness.hotkey.failNextRegistration(with: HotkeyRegistrationError.alreadyInUse)
+        XCTAssertEqual(harness.coordinator.finishHotkeyCapture(with: .optionSpace), .alreadyInUse)
+        XCTAssertNil(harness.coordinator.registeredHotkey)
+    }
+
+    func testRecorderWaitsForReleaseBeforeSavingOneModifier() {
+        var session = HotkeyCaptureSession()
+        XCTAssertNil(session.modifierChanged(keyCode: 61, activeModifierCount: 1))
+        XCTAssertEqual(session.modifierChanged(keyCode: 61, activeModifierCount: 0), .single(61, "Right Option"))
+    }
+
+    func testRecorderDoesNotSaveAModifierWhileTheUserIsBuildingACombination() {
+        var session = HotkeyCaptureSession()
+        XCTAssertNil(session.modifierChanged(keyCode: 55, activeModifierCount: 1))
+        XCTAssertNil(session.modifierChanged(keyCode: 56, activeModifierCount: 2))
+        XCTAssertNil(session.modifierChanged(keyCode: 55, activeModifierCount: 1))
+        XCTAssertNil(session.modifierChanged(keyCode: 56, activeModifierCount: 0))
+        XCTAssertNil(session.modifierChanged(keyCode: 63, activeModifierCount: 1))
+        XCTAssertEqual(session.modifierChanged(keyCode: 63, activeModifierCount: 0), .single(63, "Fn / Globe"))
+    }
+
+    func testModifierGestureIgnoresChordsAndShortHold() {
+        var gesture = ModifierKeyGesture()
+        gesture.begin(clean: true)
+        XCTAssertFalse(gesture.interfere())
+        XCTAssertFalse(gesture.activate())
+        gesture.reset()
+        XCTAssertFalse(gesture.activate())
+        gesture.begin(clean: false)
+        XCTAssertFalse(gesture.activate())
+    }
+
+    func testModifierGestureActivatesOnceAndCancelsWhenItBecomesAShortcut() {
+        var gesture = ModifierKeyGesture()
+        gesture.begin(clean: true)
+        XCTAssertTrue(gesture.activate())
+        XCTAssertFalse(gesture.activate())
+        XCTAssertTrue(gesture.interfere())
+        XCTAssertFalse(gesture.interfere())
+        XCTAssertFalse(gesture.activate())
+    }
+
+    func testSingleModifierIsAcceptedAndPersisted() {
+        let harness = makeHarness()
+        let binding = HotkeyBinding.single(61, "Right Option")
+        XCTAssertTrue(binding.isSingleModifier)
+        XCTAssertNil(harness.coordinator.changeHotkey(to: binding))
+        XCTAssertEqual(harness.preferences.stored.hotkeyBinding, binding)
+    }
+
+    func testBareTypingKeysAreNotSingleModifiers() {
+        for code: UInt32 in [0, 18, 49, 51] {
+            XCTAssertFalse(HotkeyBinding.single(code, "key").isSingleModifier)
+        }
+        XCTAssertTrue(HotkeyBinding.single(65594, "Either Option").isSingleModifier)
+    }
+
     // MARK: - Changing it
 
     func testAFreeCombinationIsTakenAndRemembered() {

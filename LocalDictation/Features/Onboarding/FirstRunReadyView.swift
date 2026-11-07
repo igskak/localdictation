@@ -102,7 +102,7 @@ struct FirstRunReadyView: View {
                     .foregroundStyle(WitnessStyle.muted)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer()
-                Button(coordinator.transcriptionModelState.isReady ? "Start dictating" : "Continue in background", action: finish)
+                Button(coordinator.transcriptionModelState.isReady ? "Done" : "Continue in background", action: finish)
                     .buttonStyle(WitnessPrimaryButtonStyle())
                     .keyboardShortcut(.defaultAction)
             }

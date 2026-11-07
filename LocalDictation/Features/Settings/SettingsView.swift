@@ -636,10 +636,13 @@ struct GlossaryView: View {
 /// coordinator has unregistered the existing shortcut for the duration — so
 /// what the user presses is what they get, including the shortcut they already
 /// have.
-private struct HotkeyRecorderRow: View {
+struct HotkeyRecorderRow: View {
     @EnvironmentObject private var coordinator: DictationCoordinator
     @State private var monitor: Any?
     @State private var failure: String?
+    @State private var saved = false
+    @State private var captureSession = HotkeyCaptureSession()
+    @State private var pendingBinding: HotkeyBinding?
 
     var body: some View {
         Group {
@@ -651,13 +654,16 @@ private struct HotkeyRecorderRow: View {
         // coordinator's own cancel does not cover this — it puts the shortcut
         // back and knows nothing about the monitor.
         .onDisappear { stopCapture(cancelling: true) }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            if let pendingBinding, CGPreflightListenEventAccess() { apply(pendingBinding) }
+        }
     }
 
     @ViewBuilder
     private var content: some View {
-        LabeledContent("Shortcut") {
+        LabeledContent("Activation key") {
             HStack(spacing: 8) {
-                Text(verbatim: coordinator.isCapturingHotkey ? L10n.string("Press a combination…") : coordinator.binding.displayString)
+                Text(verbatim: coordinator.isCapturingHotkey ? L10n.string("Press a key or combination…") : coordinator.binding.displayString)
                     .font(.body.monospaced())
                     .foregroundStyle(coordinator.isCapturingHotkey ? Color.accentColor : .primary)
 
@@ -669,15 +675,27 @@ private struct HotkeyRecorderRow: View {
                     Button("Change…") { startCapture() }
                     Button("Reset") {
                         failure = nil
+                        saved = false
+                        pendingBinding = nil
                         coordinator.resetHotkey()
+                        saved = coordinator.registeredHotkey == coordinator.binding && coordinator.preferencesErrorDescription == nil
                     }
                     .disabled(coordinator.binding == .optionSpace)
                 }
             }
         }
 
-        if coordinator.registeredHotkey == nil, !coordinator.isCapturingHotkey {
-            Text("The shortcut is not registered, so the hotkey does nothing. Pick another combination.")
+        if let pendingBinding {
+            Text("To use this key on its own, allow keyboard access in macOS. You can also choose a combination instead.")
+                .font(.callout).foregroundStyle(.secondary)
+            HStack {
+                Button("Allow keyboard access…") { _ = CGRequestListenEventAccess() }
+                Button("Check again") { apply(pendingBinding) }
+            }
+        }
+
+        if coordinator.registeredHotkey == nil, !coordinator.isCapturingHotkey, pendingBinding == nil {
+            Text("This key isn’t ready to use yet. Check keyboard access or choose another shortcut.")
                 .font(.callout)
                 .foregroundStyle(WitnessStyle.warning)
                 .fixedSize(horizontal: false, vertical: true)
@@ -690,7 +708,16 @@ private struct HotkeyRecorderRow: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
 
-        Text("At least one of ⌘ ⌥ ⌃ ⇧ is required. A bare key would be taken away from every application on this Mac.")
+        if saved {
+            Text("Saved. Your shortcut is ready to use.")
+                .font(.callout)
+                .foregroundStyle(WitnessStyle.success)
+                .accessibilityAddTraits(.updatesFrequently)
+        }
+
+        Text(verbatim: L10n.string(coordinator.isCapturingHotkey
+             ? "Press and release a key such as ⌥, or press a combination. It saves automatically. Escape cancels."
+             : "Use ⌘, ⌥, ⌃, ⇧ or Fn on its own, or a key combination. Letters, numbers and Space need a modifier."))
             .font(.callout)
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
@@ -698,10 +725,13 @@ private struct HotkeyRecorderRow: View {
 
     private func startCapture() {
         failure = nil
+        saved = false
+        pendingBinding = nil
+        captureSession = HotkeyCaptureSession()
         // Defensive: one monitor at a time, whatever the view did.
         removeMonitor()
         coordinator.beginHotkeyCapture()
-        monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+        monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .flagsChanged]) { event in
             capture(event)
             // Swallowed: a settings window that types the user's shortcut into
             // whatever had focus is not what they asked for.
@@ -710,6 +740,13 @@ private struct HotkeyRecorderRow: View {
     }
 
     private func capture(_ event: NSEvent) {
+        if event.type == .flagsChanged {
+            let relevant = event.modifierFlags.intersection([.command, .option, .control, .shift, .function])
+            if let candidate = captureSession.modifierChanged(
+                keyCode: UInt32(event.keyCode), activeModifierCount: relevant.rawValue.nonzeroBitCount
+            ) { apply(candidate) }
+            return
+        }
         if event.keyCode == 53 { // Escape leaves the shortcut alone.
             stopCapture(cancelling: true)
             return
@@ -724,11 +761,23 @@ private struct HotkeyRecorderRow: View {
             )
         )
 
+        apply(candidate)
+    }
+
+    private func apply(_ candidate: HotkeyBinding) {
         removeMonitor()
+        saved = false
+        pendingBinding = nil
         if let error = coordinator.finishHotkeyCapture(with: candidate) {
-            failure = L10n.format("%1$@ cannot be used: %2$@.", candidate.displayString, error.message)
+            if error == .keyboardAccessRequired {
+                pendingBinding = candidate
+                failure = nil
+            } else {
+                failure = L10n.format("%1$@ cannot be used: %2$@.", candidate.displayString, error.message)
+            }
         } else {
-            failure = nil
+            failure = coordinator.preferencesErrorDescription
+            saved = failure == nil && coordinator.registeredHotkey == candidate
         }
     }
 

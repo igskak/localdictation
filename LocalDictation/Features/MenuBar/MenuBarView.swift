@@ -120,6 +120,7 @@ struct MenuBarView: View {
                 RecentDictationsView(items: coordinator.recentDictations)
             }
 
+            Button("Set up / Try dictation") { AppDelegate.showSetup?() }
             actions
 
             Divider().overlay(WitnessStyle.line)

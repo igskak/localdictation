@@ -7,17 +7,18 @@ import Sparkle
 /// The controller lives beyond the Settings window so closing Settings cannot
 /// cancel a download or installation already in progress.
 @MainActor
-final class AppUpdater: ObservableObject {
+final class AppUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
     static let shared = AppUpdater()
 
     @Published private(set) var canCheckForUpdates = false
-    private let controller: SPUStandardUpdaterController
+    private var controller: SPUStandardUpdaterController!
     private var observation: AnyCancellable?
 
-    private init() {
+    private override init() {
+        super.init()
         controller = SPUStandardUpdaterController(
             startingUpdater: true,
-            updaterDelegate: nil,
+            updaterDelegate: self,
             userDriverDelegate: nil
         )
         observation = controller.updater.publisher(for: \.canCheckForUpdates)
@@ -36,6 +37,10 @@ final class AppUpdater: ObservableObject {
             objectWillChange.send()
             controller.updater.automaticallyChecksForUpdates = newValue
         }
+    }
+
+    func updaterWillRelaunchApplication(_ updater: SPUUpdater) {
+        try? Data(OnboardingReceipt.currentInstallation.utf8).write(to: OnboardingReceipt.updateMarkerURL, options: .atomic)
     }
 
     func checkForUpdates() {
