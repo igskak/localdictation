@@ -77,8 +77,8 @@ final class CaptureInterruptionTests: XCTestCase {
         try await waitUntil("the notice appears") { harness.coordinator.captureInterruption != nil }
 
         let message = try XCTUnwrap(harness.coordinator.captureInterruptionMessage)
-        XCTAssertTrue(message.contains("microphone went away"))
-        XCTAssertTrue(message.contains("already said was kept"))
+        XCTAssertTrue(message.contains("microphone disconnected"))
+        XCTAssertTrue(message.contains("captured before disconnection was kept"))
     }
 
     /// A recording the user ended by releasing the key is not the device's to

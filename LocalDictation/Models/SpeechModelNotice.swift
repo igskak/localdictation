@@ -41,7 +41,9 @@ enum SpeechModelNotice: Sendable, Equatable {
 
     var title: String {
         switch self {
-        case .preparing, .starting: L10n.string("The speech model is still arriving")
+        case let .preparing(preparation, _):
+            L10n.string(preparation.phase == .downloading ? "Downloading the speech model" : "Preparing your speech model")
+        case .starting: L10n.string("Downloading the speech model")
         case .failed: L10n.string("The speech model is not ready")
         case .ready: L10n.string("Ready to dictate")
         }
@@ -86,7 +88,7 @@ enum SpeechModelNotice: Sendable, Equatable {
             )
         case let .failed(detail):
             return L10n.format(
-                "Nothing was recorded — the speech model is not ready. %@ Witness is trying again; the menu bar icon shows how it is going.", detail
+                "The speech model is not ready, so nothing was recorded. %@ Witness is retrying. Check progress in the menu bar.", detail
             )
         case let .ready(hotkey):
             let delivery = automaticallyInserts

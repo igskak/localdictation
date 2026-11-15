@@ -27,7 +27,7 @@ struct ReviewStripView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 16) {
             header
 
             if coordinator.prefersRawTranscript {
@@ -37,12 +37,14 @@ struct ReviewStripView: View {
             }
 
             if !presentation.explanations.isEmpty {
+                Divider()
                 explanations
             }
 
+            Divider()
             actions
         }
-        .witnessCard(.warning, padding: 14)
+        .witnessCard(.neutral, padding: 18)
         .onChange(of: result) {
             didCopy = false
             coordinator.stopReplay()
@@ -69,12 +71,12 @@ struct ReviewStripView: View {
             if let secondary = presentation.secondarySummary {
                 Text(verbatim: "· \(secondary)")
                     .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(WitnessStyle.muted)
             }
             Spacer()
             Text(result.profile.shortLabel)
                 .font(.caption2)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(WitnessStyle.muted)
         }
     }
 
@@ -94,18 +96,13 @@ struct ReviewStripView: View {
         for segment in presentation.segments {
             var piece = AttributedString(segment.text)
             if segment.isFlagged {
-                piece.backgroundColor = WitnessStyle.accent.opacity(0.30)
+                piece.backgroundColor = WitnessStyle.highlight
                 piece.inlinePresentationIntent = .stronglyEmphasized
             } else if segment.isMarked {
                 // Drawn, but quietly. A mark the user never asked to be warned
                 // about should be findable, not loud.
                 piece.underlineStyle = .single
-                piece.underlineColor = NSColor(
-                    red: 1,
-                    green: 104 / 255,
-                    blue: 70 / 255,
-                    alpha: 0.78
-                )
+                piece.underlineColor = NSColor(WitnessStyle.warning)
             }
             output.append(piece)
         }
@@ -116,10 +113,10 @@ struct ReviewStripView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Raw transcript, exactly as recognized")
                 .font(.caption2)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(WitnessStyle.muted)
             TranscriptText {
                 Text(result.rawText)
-                    .font(.body.monospaced())
+                    .font(.body)
                     .textSelection(.enabled)
             }
         }
@@ -130,19 +127,19 @@ struct ReviewStripView: View {
             ForEach(presentation.explanations) { explanation in
                 HStack(spacing: 6) {
                     Text(explanation.label)
-                        .font(.caption2.weight(explanation.isFlagged ? .medium : .regular))
-                        .foregroundStyle(explanation.isFlagged ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
+                        .font(.caption.weight(explanation.isFlagged ? .medium : .regular))
+                        .foregroundStyle(explanation.isFlagged ? AnyShapeStyle(.primary) : AnyShapeStyle(WitnessStyle.muted))
                         .padding(.horizontal, 5)
                         .padding(.vertical, 1)
                         .background(
-                            WitnessStyle.accent.opacity(explanation.isFlagged ? 0.22 : 0.08),
+                            WitnessStyle.warning.opacity(explanation.isFlagged ? 0.14 : 0.06),
                             in: Capsule()
                         )
 
                     Text(explanation.fragment)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                        .font(.caption)
+                        .foregroundStyle(WitnessStyle.muted)
+                        .lineLimit(2)
 
                     Spacer()
 

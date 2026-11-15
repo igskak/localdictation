@@ -76,6 +76,7 @@ struct MenuBarView: View {
                 LicenseLockView(
                     presentation: LicensePresentation(state: coordinator.entitlement),
                     openLicenseSettings: {
+                        SettingsNavigation.request(.license)
                         openSettings()
                         NSApp.activate(ignoringOtherApps: true)
                     }
@@ -88,6 +89,7 @@ struct MenuBarView: View {
                 EntitlementNoticeView(
                     notice: notice,
                     openLicenseSettings: {
+                        SettingsNavigation.request(.license)
                         openSettings()
                         NSApp.activate(ignoringOtherApps: true)
                     }
@@ -112,15 +114,14 @@ struct MenuBarView: View {
                 )
             }
 
-            if let summary = coordinator.diagnostics.lastUtterance {
-                LastUtteranceView(summary: summary)
-            }
-
             if !coordinator.recentDictations.isEmpty {
                 RecentDictationsView(items: coordinator.recentDictations)
             }
 
-            Button("Set up / Try dictation") { AppDelegate.showSetup?() }
+            Button { AppDelegate.showSetup?() } label: {
+                Label("Setup and practice", systemImage: "keyboard")
+            }
+            .buttonStyle(WitnessSecondaryButtonStyle())
             actions
 
             Divider().overlay(WitnessStyle.line)
@@ -244,29 +245,9 @@ private struct RecordingLevelView: View {
                 Text(snapshot.voiceActivity.state.label)
             }
             .font(.caption2)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(WitnessStyle.muted)
         }
         .witnessCard(.accent, padding: 12)
-    }
-}
-
-private struct LastUtteranceView: View {
-    let summary: UtteranceSummary
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text("Last utterance")
-                .font(.caption)
-            Text(verbatim: L10n.format(
-                "%.2f s · %d frames · peak %.2f",
-                summary.duration,
-                summary.frameCount,
-                summary.peakLevel
-            ))
-            .font(.caption2)
-            .foregroundStyle(.secondary)
-        }
-        .witnessCard(.neutral, padding: 12)
     }
 }
 
@@ -310,7 +291,7 @@ private struct ModelStateView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(state.label)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(WitnessStyle.muted)
                 .fixedSize(horizontal: false, vertical: true)
 
             switch state {
@@ -371,10 +352,10 @@ struct RecentDictationsView: View {
                     Spacer()
                     Text(items.count, format: .number)
                         .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(WitnessStyle.muted)
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(WitnessStyle.muted)
                 }
                 .frame(minHeight: 32)
                 .contentShape(Rectangle())
@@ -445,7 +426,7 @@ private struct ResultView: View {
                 Spacer()
                 Text(result.profile.shortLabel)
                     .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(WitnessStyle.muted)
             }
 
             ScrollView {
@@ -474,11 +455,7 @@ private struct ResultView: View {
 
                 Spacer()
 
-                if let factor = result.transcript.realTimeFactor {
-                    Text(verbatim: L10n.format("%.2f\u{00d7} real time", factor))
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
+
             }
         }
         .witnessCard(.neutral)
@@ -498,10 +475,10 @@ private struct InsertionOutcomeView: View {
     var body: some View {
         HStack(alignment: .top, spacing: 6) {
             Image(systemName: "info.circle")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(WitnessStyle.muted)
             Text(message)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(WitnessStyle.muted)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -526,7 +503,7 @@ private struct LicenseLockView: View {
                 .font(.caption.weight(.semibold))
             Text(presentation.detail)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(WitnessStyle.muted)
                 .fixedSize(horizontal: false, vertical: true)
 
             Button(L10n.string(presentation.showsActivation ? "Activate…" : "Open License settings"), action: openLicenseSettings)
@@ -554,7 +531,7 @@ private struct EntitlementNoticeView: View {
                 .font(.caption.weight(.semibold))
             Text(notice.detail)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(WitnessStyle.muted)
                 .fixedSize(horizontal: false, vertical: true)
 
             Button(notice.actionTitle, action: openLicenseSettings)
@@ -584,7 +561,7 @@ private struct SecureInputWarningView: View {
                 .font(.caption.weight(.semibold))
             Text(message)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(WitnessStyle.muted)
                 .fixedSize(horizontal: false, vertical: true)
 
             Button("Re-check", action: recheck)
@@ -612,7 +589,7 @@ private struct AccessibilityTrustView: View {
                 .font(.caption.weight(.semibold))
             Text("Witness needs Accessibility access to put text into other applications. Without it, results go to the clipboard.")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(WitnessStyle.muted)
                 .fixedSize(horizontal: false, vertical: true)
 
             HStack {

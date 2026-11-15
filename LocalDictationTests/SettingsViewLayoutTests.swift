@@ -43,8 +43,8 @@ final class SettingsViewLayoutTests: XCTestCase {
     /// SwiftUI to lay every row out for real.
     @discardableResult
     private func render(_ coordinator: DictationCoordinator) -> NSSize {
-        let hosting = NSHostingView(rootView: SettingsView().environmentObject(coordinator))
-        hosting.frame = NSRect(x: 0, y: 0, width: 560, height: 420)
+        let hosting = NSHostingView(rootView: SettingsView(updater: AppUpdater(startingUpdater: false)).environmentObject(coordinator))
+        hosting.frame = NSRect(x: 0, y: 0, width: 900, height: 700)
         hosting.layoutSubtreeIfNeeded()
         let size = hosting.fittingSize
         hosting.removeFromSuperview()
@@ -54,6 +54,39 @@ final class SettingsViewLayoutTests: XCTestCase {
     private func settle(_ turns: Int = 4) async throws {
         for _ in 0..<turns {
             try await Task.sleep(nanoseconds: 20_000_000)
+        }
+    }
+
+    func testSecondaryAndWarningTextKeepReadableContrastInBothAppearances() throws {
+        func luminance(_ color: NSColor) throws -> Double {
+            let rgb = try XCTUnwrap(color.usingColorSpace(.sRGB))
+            func linear(_ component: CGFloat) -> Double {
+                let value = Double(component)
+                return value <= 0.04045 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4)
+            }
+            return 0.2126 * linear(rgb.redComponent) + 0.7152 * linear(rgb.greenComponent) + 0.0722 * linear(rgb.blueComponent)
+        }
+        for name in [NSAppearance.Name.aqua, .darkAqua] {
+            let appearance = try XCTUnwrap(NSAppearance(named: name))
+            var resolved: [(NSColor, NSColor)] = []
+            appearance.performAsCurrentDrawingAppearance {
+                resolved = [
+                    (NSColor(WitnessStyle.muted), NSColor(WitnessStyle.surface)),
+                    (NSColor(WitnessStyle.muted), NSColor(WitnessStyle.canvas)),
+                    (NSColor(WitnessStyle.warning), NSColor(WitnessStyle.surface)),
+                    (.white, NSColor(WitnessStyle.actionFill)),
+                ]
+                // Resolve dynamic colors while the tested appearance is current.
+                resolved = resolved.compactMap { foreground, background in
+                    guard let fg = foreground.usingColorSpace(.sRGB), let bg = background.usingColorSpace(.sRGB) else { return nil }
+                    return (fg, bg)
+                }
+            }
+            XCTAssertEqual(resolved.count, 4)
+            for (foreground, background) in resolved {
+                let first = try luminance(foreground), second = try luminance(background)
+                XCTAssertGreaterThanOrEqual((max(first, second) + 0.05) / (min(first, second) + 0.05), 4.5, name.rawValue)
+            }
         }
     }
 
@@ -69,17 +102,76 @@ final class SettingsViewLayoutTests: XCTestCase {
         for identifier in ["es", "it", "fr"] {
             let coordinator = makeCoordinator()
             let hosting = NSHostingView(
-                rootView: SettingsView()
+                rootView: SettingsView(updater: AppUpdater(startingUpdater: false))
                     .environmentObject(coordinator)
                     .environment(\.locale, Locale(identifier: identifier))
             )
-            hosting.frame = NSRect(x: 0, y: 0, width: 680, height: 540)
+            hosting.frame = NSRect(x: 0, y: 0, width: 900, height: 700)
             hosting.layoutSubtreeIfNeeded()
 
             XCTAssertGreaterThan(hosting.fittingSize.height, 0, identifier)
-            XCTAssertLessThanOrEqual(hosting.fittingSize.width, 700, identifier)
+            XCTAssertLessThanOrEqual(hosting.fittingSize.width, 900, identifier)
             hosting.removeFromSuperview()
             try await settle()
+        }
+    }
+
+    func testEverySettingsSectionFitsInBothAppearancesAndAllInterfaceLanguages() {
+        let coordinator = makeCoordinator()
+        defer { coordinator.deactivate() }
+        let updater = AppUpdater(startingUpdater: false)
+        for locale in ["en", "de", "es", "it", "fr"] {
+            for scheme in [ColorScheme.light, .dark] {
+                for section in SettingsSection.allCases {
+                    let hosting = NSHostingView(rootView:
+                        SettingsView(initialSelection: section, updater: updater)
+                            .environmentObject(coordinator)
+                            .environment(\.locale, Locale(identifier: locale))
+                            .environment(\.colorScheme, scheme)
+                    )
+                    hosting.frame = NSRect(x: 0, y: 0, width: 900, height: 700)
+                    hosting.layoutSubtreeIfNeeded()
+                    let context = "\(locale), \(scheme), \(section.rawValue)"
+                    XCTAssertLessThanOrEqual(hosting.fittingSize.width, 900, context)
+                    XCTAssertLessThanOrEqual(hosting.fittingSize.height, 700, context)
+                    hosting.removeFromSuperview()
+                }
+            }
+        }
+    }
+
+    /// Captures real SwiftUI views using in-memory stores and a stopped update
+    /// scheduler, without using a microphone or starting a model download.
+    func testExportRedesignedSettingsPreview() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("witness-ui-refresh-preview", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let coordinator = makeCoordinator()
+        defer { coordinator.deactivate() }
+        let updater = AppUpdater(startingUpdater: false)
+        for (section, scheme, name) in [
+            (SettingsSection.dictation, ColorScheme.light, "settings-light"),
+            (.dictation, .dark, "settings-dark"),
+            (.cleanup, .light, "cleanup-light"),
+            (.privacy, .light, "privacy-light"),
+        ] {
+            let hosting = NSHostingView(rootView:
+                SettingsView(initialSelection: section, updater: updater)
+                    .environmentObject(coordinator)
+                    .environment(\.colorScheme, scheme)
+            )
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 900, height: 700),
+                                  styleMask: [.borderless], backing: .buffered, defer: false)
+            window.isReleasedWhenClosed = false
+            window.appearance = NSAppearance(named: scheme == .light ? .aqua : .darkAqua)
+            window.contentView = hosting
+            hosting.frame = NSRect(x: 0, y: 0, width: 900, height: 700)
+            hosting.layoutSubtreeIfNeeded()
+            try await settle()
+            let bitmap = try XCTUnwrap(hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds))
+            hosting.cacheDisplay(in: hosting.bounds, to: bitmap)
+            let png = try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
+            try png.write(to: directory.appendingPathComponent(name + ".png"))
+            window.close()
         }
     }
 

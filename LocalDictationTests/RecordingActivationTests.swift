@@ -58,6 +58,14 @@ final class RecordingActivationTests: XCTestCase {
 
     // MARK: - Toggle
 
+    func testModelPreparationTitlesDistinguishDownloadFromLocalPreparation() {
+        let downloading = SpeechModelNotice.preparing(ModelPreparation(phase: .downloading), hotkey: "Option")
+        let compiling = SpeechModelNotice.preparing(ModelPreparation(phase: .compilingForThisSystem), hotkey: "Option")
+        XCTAssertEqual(downloading.title, L10n.string("Downloading the speech model"))
+        XCTAssertEqual(compiling.title, L10n.string("Preparing your speech model"))
+        XCTAssertNotEqual(downloading.title, compiling.title)
+    }
+
     func testInToggleModeLettingGoOfTheKeyDoesNotEndTheRecording() async throws {
         let harness = makeHarness(activation: .toggle)
 

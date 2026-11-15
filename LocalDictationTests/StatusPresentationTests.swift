@@ -86,7 +86,7 @@ final class StatusPresentationTests: XCTestCase {
         let compiling = TranscriptionModelState.preparing(
             ModelPreparation(phase: .compilingForThisSystem)
         )
-        XCTAssertTrue(compiling.label.lowercased().contains("macos version"))
+        XCTAssertTrue(compiling.label.lowercased().contains("macos update"))
         XCTAssertNotEqual(compiling.label, loading.label)
     }
 

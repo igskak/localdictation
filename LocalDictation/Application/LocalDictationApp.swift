@@ -1,25 +1,40 @@
 import SwiftUI
+import AppKit
 
 /// The visual language shared by every Witness surface.
 ///
-/// These values deliberately mirror the landing page. Keeping them here makes
-/// the menu, onboarding, settings, paywall, and review panel feel like one
-/// product, while every screen continues to use native SwiftUI controls.
+/// Adaptive surfaces keep all windows in the system appearance. Native controls
+/// retain their keyboard, focus, accessibility, and increased-contrast behavior.
 enum WitnessStyle {
-    static let canvas = Color(red: 17 / 255, green: 18 / 255, blue: 16 / 255)
-    static let surface = Color(red: 27 / 255, green: 28 / 255, blue: 25 / 255)
-    static let raisedSurface = Color(red: 34 / 255, green: 35 / 255, blue: 31 / 255)
-    static let ink = Color(red: 244 / 255, green: 244 / 255, blue: 239 / 255)
-    static let muted = Color(red: 178 / 255, green: 177 / 255, blue: 170 / 255)
-    static let faint = Color(red: 139 / 255, green: 138 / 255, blue: 131 / 255)
-    static let line = Color.white.opacity(0.11)
-    static let strongLine = Color.white.opacity(0.17)
-    static let accent = Color(red: 1, green: 104 / 255, blue: 70 / 255)
-    static let success = Color(red: 143 / 255, green: 196 / 255, blue: 134 / 255)
-    static let warning = Color(red: 245 / 255, green: 174 / 255, blue: 92 / 255)
+    static let canvas = adaptive(light: 0xf5f5f7, dark: 0x19191c)
+    static let sidebar = adaptive(light: 0xececf0, dark: 0x242428)
+    static let surface = adaptive(light: 0xffffff, dark: 0x2a2a2f)
+    static let raisedSurface = adaptive(light: 0xececf0, dark: 0x35353b)
+    static let ink = Color.primary
+    static let muted = adaptive(light: 0x63636d, dark: 0xb5b5c0)
+    static let faint = muted
+    static let line = Color(nsColor: .separatorColor).opacity(0.55)
+    static let strongLine = Color(nsColor: .separatorColor)
+    static let accent = adaptive(light: 0x075fc9, dark: 0x75b5ff)
+    static let actionFill = Color(red: 7 / 255, green: 95 / 255, blue: 201 / 255)
+    static let success = adaptive(light: 0x187c45, dark: 0x77d69b)
+    static let warning = adaptive(light: 0x8a5700, dark: 0xf5c46b)
+    static let highlight = adaptive(light: 0xffedb2, dark: 0x665319)
 
-    static let cornerRadius: CGFloat = 14
+    static let cornerRadius: CGFloat = 15
     static let compactCornerRadius: CGFloat = 10
+
+    private static func adaptive(light: UInt32, dark: UInt32) -> Color {
+        Color(nsColor: NSColor(name: nil) { appearance in
+            let value = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? dark : light
+            return NSColor(
+                srgbRed: CGFloat((value >> 16) & 0xff) / 255,
+                green: CGFloat((value >> 8) & 0xff) / 255,
+                blue: CGFloat(value & 0xff) / 255,
+                alpha: 1
+            )
+        })
+    }
 }
 
 enum WitnessCardTone {
@@ -29,20 +44,13 @@ enum WitnessCardTone {
     case warning
 
     fileprivate var fill: Color {
-        switch self {
-        case .neutral: WitnessStyle.surface
-        case .accent: WitnessStyle.accent.opacity(0.10)
-        case .success: WitnessStyle.success.opacity(0.10)
-        case .warning: WitnessStyle.warning.opacity(0.10)
-        }
+        WitnessStyle.surface
     }
 
     fileprivate var border: Color {
         switch self {
         case .neutral: WitnessStyle.line
-        case .accent: WitnessStyle.accent.opacity(0.34)
-        case .success: WitnessStyle.success.opacity(0.32)
-        case .warning: WitnessStyle.warning.opacity(0.34)
+        case .accent, .success, .warning: WitnessStyle.line
         }
     }
 }
@@ -54,12 +62,12 @@ struct WitnessBrandMark: View {
         HStack(spacing: max(1.5, size * 0.07)) {
             ForEach(Array([0.32, 0.55, 0.78, 0.55, 0.32].enumerated()), id: \.offset) { _, height in
                 Capsule()
-                    .fill(WitnessStyle.canvas)
+                    .fill(.white)
                     .frame(width: max(2, size * 0.075), height: size * height)
             }
         }
         .frame(width: size, height: size)
-        .background(WitnessStyle.ink, in: RoundedRectangle(cornerRadius: size * 0.29, style: .continuous))
+        .background(WitnessStyle.actionFill, in: RoundedRectangle(cornerRadius: size * 0.29, style: .continuous))
         .accessibilityHidden(true)
     }
 }
@@ -92,6 +100,85 @@ struct WitnessIconTile: View {
     }
 }
 
+struct WitnessSetupProgress: View {
+    let step: Int
+    let total: Int
+
+    var body: some View {
+        HStack(spacing: 5) {
+            ForEach(0..<total, id: \.self) { index in
+                Capsule()
+                    .fill(index < step ? WitnessStyle.accent : WitnessStyle.raisedSurface)
+                    .frame(height: 4)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(L10n.format("Step %lld of %lld", Int64(step), Int64(total)))
+    }
+}
+
+/// Native fields in shared, inset groups. A single container keeps settings,
+/// vocabulary, diagnostics, and licensing visually consistent in both themes.
+struct WitnessSettingsForm<Content: View>: View {
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) { content }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(24)
+        }
+        .labeledContentStyle(WitnessSettingsLabelStyle())
+    }
+}
+
+private struct WitnessSettingsLabelStyle: LabeledContentStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 16) {
+            configuration.label
+            Spacer(minLength: 0)
+            configuration.content
+        }
+    }
+}
+
+private struct WitnessSwitchStyle: ToggleStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 16) {
+            configuration.label.accessibilityHidden(true)
+            Spacer(minLength: 0)
+            Toggle(configuration)
+                .labelsHidden()
+                .toggleStyle(.switch)
+        }
+    }
+}
+
+struct WitnessSettingsSection<Content: View>: View {
+    let title: String?
+    let content: Content
+
+    init(_ title: String? = nil, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            if let title {
+                Text(LocalizedStringKey(title))
+                    .font(.callout.weight(.semibold))
+                    .foregroundStyle(WitnessStyle.muted)
+                    .padding(.horizontal, 3)
+                    .accessibilityAddTraits(.isHeader)
+            }
+            VStack(alignment: .leading, spacing: 14) { content }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .witnessCard(padding: 16)
+        }
+    }
+}
+
 private struct WitnessCardModifier: ViewModifier {
     let tone: WitnessCardTone
     let padding: CGFloat
@@ -114,7 +201,7 @@ private struct WitnessWindowModifier: ViewModifier {
             .foregroundStyle(WitnessStyle.ink)
             .tint(WitnessStyle.accent)
             .background(WitnessStyle.canvas)
-            .preferredColorScheme(.dark)
+            .toggleStyle(WitnessSwitchStyle())
     }
 }
 
@@ -124,12 +211,12 @@ struct WitnessPrimaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.callout.weight(.semibold))
-            .foregroundStyle(Color(red: 36 / 255, green: 18 / 255, blue: 13 / 255))
+            .foregroundStyle(.white)
             .padding(.horizontal, 16)
             .frame(minHeight: 34)
             .background(
-                configuration.isPressed ? WitnessStyle.accent.opacity(0.82) : WitnessStyle.accent,
-                in: Capsule()
+                WitnessStyle.actionFill,
+                in: RoundedRectangle(cornerRadius: 9, style: .continuous)
             )
             .opacity(isEnabled ? (configuration.isPressed ? 0.88 : 1) : 0.42)
     }
@@ -146,10 +233,10 @@ struct WitnessSecondaryButtonStyle: ButtonStyle {
             .frame(minHeight: 32)
             .background(
                 configuration.isPressed ? WitnessStyle.raisedSurface : WitnessStyle.surface,
-                in: Capsule()
+                in: RoundedRectangle(cornerRadius: 9, style: .continuous)
             )
             .overlay {
-                Capsule().stroke(WitnessStyle.strongLine, lineWidth: 1)
+                RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(WitnessStyle.line, lineWidth: 1)
             }
             .opacity(isEnabled ? (configuration.isPressed ? 0.78 : 1) : 0.42)
     }
@@ -162,6 +249,11 @@ extension View {
 
     func witnessWindow() -> some View {
         modifier(WitnessWindowModifier())
+    }
+
+    func witnessSettingsForm() -> some View {
+        self.background(WitnessStyle.canvas)
+            .controlSize(.regular)
     }
 }
 

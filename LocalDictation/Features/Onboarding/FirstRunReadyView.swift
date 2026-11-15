@@ -29,7 +29,7 @@ struct FirstRunReadyView: View {
             HStack {
                 WitnessBrand()
                 Spacer()
-                Text("SETUP · 2 OF 2")
+                Text("Setup")
                     .font(.caption2.weight(.semibold))
                     .tracking(0.8)
                     .foregroundStyle(WitnessStyle.faint)
@@ -37,8 +37,8 @@ struct FirstRunReadyView: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 Text("Let’s get Witness ready")
-                    .font(.largeTitle.weight(.medium))
-                    .tracking(-1.2)
+                    .font(.system(size: 27, weight: .semibold))
+                    .tracking(-0.6)
                 Text(verbatim: L10n.string("Allow access below, then we’ll prepare your private speech model."))
                 .font(.callout)
                 .foregroundStyle(WitnessStyle.muted)
@@ -60,10 +60,8 @@ struct FirstRunReadyView: View {
                     if coordinator.hasEntitlementService {
                         step(
                             symbol: "envelope",
-                            title: "The first three days ask for nothing",
-                            detail: "They start at your first dictation, not now. After them an email address keeps "
-                                + "it running for ten more days, free. Nothing you dictate ever leaves this Mac, and "
-                                + "that does not change when you activate."
+                            title: "Three days free, no email needed",
+                            detail: "Your three free days start with your first successful dictation. Add your email afterwards for ten more free days. Your speech stays on this Mac."
                         )
                     }
                 }
@@ -73,7 +71,7 @@ struct FirstRunReadyView: View {
                     Image(systemName: "shield.checkered")
                         .foregroundStyle(WitnessStyle.success)
                         .accessibilityHidden(true)
-                    Text(verbatim: L10n.string("Nothing you dictate ever leaves this Mac. Nine events about setting it up and about the trial do — the install, the speech model arriving or failing to, a press that finds it still arriving, a refused microphone, the trial starting, the email ask, and the offers — with no more than an app version, a macOS version, and a random number made at install. Settings → Privacy turns them off."))
+                    Text(verbatim: L10n.string("Your dictation stays on this Mac. Witness can share nine types of setup and trial events, with the app version, macOS version and a random installation ID. These include installation, model download progress and failures, attempts before the model is ready, microphone denial, trial start, the email prompt and offers shown. You can turn sharing off in Settings → Privacy."))
                         .font(.caption)
                         .foregroundStyle(WitnessStyle.muted)
                         .fixedSize(horizontal: false, vertical: true)
@@ -90,14 +88,14 @@ struct FirstRunReadyView: View {
                     Text(verbatim: L10n.string("Open Witness when I log in"))
                         .font(.callout.weight(.medium))
                 }
-                Text(verbatim: L10n.string("The hotkey only works while Witness is running, and it has no Dock icon. Without this, a restart leaves the hotkey silent until you open the app again."))
+                Text(verbatim: L10n.string("Start Witness at login so your dictation shortcut is always available."))
                     .font(.caption)
                     .foregroundStyle(WitnessStyle.muted)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
             HStack {
-                Text("Everything here is in Settings, and the menu bar icon is where the app lives.")
+                Text("You can change these choices later in Settings. Open Witness from the menu bar.")
                     .font(.caption)
                     .foregroundStyle(WitnessStyle.muted)
                     .fixedSize(horizontal: false, vertical: true)
@@ -209,7 +207,7 @@ struct FirstRunReadyView: View {
                     }
                     Text(coordinator.transcriptionModelState.label)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(WitnessStyle.muted)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             case .ready:
@@ -240,7 +238,7 @@ struct FirstRunReadyView: View {
     private var modelTitle: String {
         switch coordinator.transcriptionModelState {
         case .ready: L10n.string("The speech model is ready")
-        case .failed: L10n.string("The speech model did not arrive")
+        case .failed: L10n.string("The speech model could not be downloaded")
         case let .preparing(preparation):
             preparation.phase == .downloading ? L10n.string("The speech model is downloading") : L10n.string("The speech model is preparing")
         case .unavailable: L10n.string("The speech model is not ready")

@@ -14,7 +14,7 @@ enum LicenseKeyError: Error, Sendable, Equatable {
     var message: String {
         switch self {
         case .malformed:
-            L10n.string("That does not look like a license key. Copy the whole line from the activation email, including the LD1 at the front.")
+            L10n.string("This license key looks incomplete. Copy the full key from your email, including the LD1 prefix.")
         case let .unsupportedVersion(version):
             L10n.format("This key is version %@, which this build does not know how to read. Update Witness.", version)
         case .noAuthority:

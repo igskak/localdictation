@@ -545,7 +545,7 @@ final class LanguageSetupTests: XCTestCase {
 
         let path = try XCTUnwrap(L10n.bundle.path(forResource: "de", ofType: "lproj"))
         let german = try XCTUnwrap(Bundle(path: path))
-        for key in ["Open Witness when I log in", "The hotkey only works while Witness is running, and it has no Dock icon. Without this, a restart leaves the hotkey silent until you open the app again."] {
+        for key in ["Open Witness when I log in", "Start Witness at login so your dictation shortcut is always available."] {
             XCTAssertNotEqual(german.localizedString(forKey: key, value: nil, table: nil), key)
         }
     }

@@ -40,7 +40,7 @@ struct LicensePresentation: Sendable, Equatable {
     /// and unlocks the app before the mail is even sent. Saying so here costs a
     /// line and saves the person who would otherwise sit waiting for an email
     /// in order to use software that is already working.
-    private(set) var activationHint = L10n.string("The key comes straight back here and unlocks the app — there is nothing to fetch from your mail and nothing to paste. The address and an identifier for this Mac are the only things sent: when you press the button, and, for a subscription, about once a month to renew its key. No audio, no text, and nothing from your dictionary ever leaves this Mac.")
+    private(set) var activationHint = L10n.string("Enter your email to activate Witness here, with no key to paste. We send your email and this Mac’s identifier; subscriptions refresh about once a month. Audio, text and dictionary contents are never sent.")
     /// Whether to offer the page where a subscription is cancelled, paid for
     /// again, or looked up. Only somebody who holds, or has just lost, one.
     private(set) var showsSubscriptionManagement = false
@@ -57,10 +57,10 @@ struct LicensePresentation: Sendable, Equatable {
                 // already paid reads this screen too, and a sentence about free
                 // days tells them what they could have had without paying.
                 headline = L10n.string("Ready to use")
-                detail = L10n.format("Witness asks for nothing until %@. After that it asks for your email address, to carry on.", Self.moment.string(from: expiresAt))
+                detail = L10n.format("Use Witness until %@. Add your email afterwards to continue.", Self.moment.string(from: expiresAt))
             } else {
-                headline = L10n.string("Ready to use, nothing asked for yet")
-                detail = L10n.string("The first three days need no email and no key. After that, Witness asks for your email address, to carry on.")
+                headline = L10n.string("Ready to use")
+                detail = L10n.string("Use Witness for three days without an email address. Then add your email to continue.")
             }
 
         case let .licensed(license):
@@ -69,8 +69,8 @@ struct LicensePresentation: Sendable, Equatable {
             switch license.kind {
             case .trial:
                 showsOffers = true
-                headline = L10n.string("Trial, activated")
-                detail = Self.remaining(license, now: now, suffix: L10n.string("A license keeps it after that, on this Mac and one more."))
+                headline = L10n.string("Trial active")
+                detail = Self.remaining(license, now: now, suffix: L10n.string("A license covers this Mac and one more."))
                 retrieveInstead()
             case .annual:
                 showsOffers = false
@@ -78,13 +78,13 @@ struct LicensePresentation: Sendable, Equatable {
                 // app replaces it by itself, so "12 days left" would be a number
                 // about the key rather than about what the person paid for.
                 headline = L10n.string("Annual subscription")
-                detail = L10n.format("Licensed to %@. It renews by itself while the subscription runs, and Witness picks up its new key in the background. You can manage or cancel it any time.", license.email)
+                detail = L10n.format("Licensed to %@. Your subscription renews automatically. You can manage or cancel it at any time.", license.email)
                 showsSubscriptionManagement = true
             case .lifetime:
                 showsOffers = false
                 headline = L10n.string("Lifetime license")
                 detail = L10n.format(
-                    "Licensed to %1$@. This Mac needs nothing further — no renewal, and no connection. It covers version %2$lld and every update to it.",
+                    "Licensed to %1$@. Includes version %2$lld and its updates. No renewal or internet connection is needed for dictation.",
                     license.email,
                     Int64(LifetimeUpdatePolicy.coveredMajor(issuedAt: license.issuedAt))
                 )
@@ -97,7 +97,7 @@ struct LicensePresentation: Sendable, Equatable {
                 showsOffers = false
                 showsActivation = true
                 headline = L10n.string("Activate to keep dictating")
-                detail = L10n.string("The first three days are over. Enter your email address to carry on. No payment is needed at this step, and nothing you have dictated has left this Mac.")
+                detail = L10n.string("Your first three days are over. Enter your email to continue. No payment is needed at this step. Your dictation stays on this Mac.")
             case let .expired(.trial, at):
                 symbol = "lock"
                 showsOffers = true
@@ -108,7 +108,7 @@ struct LicensePresentation: Sendable, Equatable {
                 // activation is worth slightly more — and a duplicated number
                 // is what went stale here: this said "Fourteen" in English and
                 // "vierzehn" in German through two releases of a ten-day trial.
-                detail = L10n.format("The trial ran out on %@. Your dictionary and settings are untouched and come straight back with a license.", Self.moment.string(from: at))
+                detail = L10n.format("Your trial ended on %@. Choose a license to continue. Your dictionary and settings are still here.", Self.moment.string(from: at))
                 retrieveInstead()
             case let .expired(.annual, at):
                 symbol = "lock"
@@ -116,14 +116,14 @@ struct LicensePresentation: Sendable, Equatable {
                 showsActivation = false
                 showsSubscriptionManagement = true
                 headline = L10n.string("Subscription not renewed")
-                detail = L10n.format("Witness could not renew its key, and the last one ran out on %@. If a payment did not go through, fix it under Manage subscription, then press the button below. Nothing local was removed.", Self.moment.string(from: at))
+                detail = L10n.format("Your subscription key expired on %@. Check your payment under Manage subscription, then request your key again. Your dictionary and settings are unchanged.", Self.moment.string(from: at))
                 retrieveInstead()
             case let .expired(kind, at):
                 symbol = "lock"
                 showsOffers = true
                 showsActivation = false
                 headline = L10n.format("%@ license expired", kind.displayName)
-                detail = L10n.format("It ran out on %@. Renewing unlocks dictation again on this Mac; nothing local was removed.", Self.moment.string(from: at))
+                detail = L10n.format("Your license expired on %@. Renew it to continue dictating. Your local data is unchanged.", Self.moment.string(from: at))
                 retrieveInstead()
 
             // The one refusal in this product that is not about time. The
@@ -135,7 +135,7 @@ struct LicensePresentation: Sendable, Equatable {
                 showsActivation = false
                 headline = L10n.string("This version is newer than your license")
                 detail = L10n.format(
-                    "Your lifetime license covers version %1$lld and every update to it, forever. This is version %2$lld. Download version %1$lld again from the website and it works exactly as it did — or move to version %2$lld below.",
+                    "Your lifetime license includes version %1$lld and its updates. You are using version %2$lld. You can keep using version %1$lld forever or buy a license for version %2$lld.",
                     Int64(covered),
                     Int64(running)
                 )
@@ -150,7 +150,7 @@ struct LicensePresentation: Sendable, Equatable {
         offersKeyRetrieval = true
         activationTitle = L10n.string("Already bought a license?")
         activationButtonTitle = L10n.string("Send my key")
-        activationHint = L10n.string("The address you bought with fetches a key for this Mac. It and an identifier for this Mac are the only things sent: when you press the button, and, for a subscription, about once a month to renew its key. No audio, no text, and nothing from your dictionary.")
+        activationHint = L10n.string("Use the email address from your purchase to activate this Mac. We send only your email and this Mac’s identifier. Annual subscriptions refresh automatically about once a month.")
     }
 
     private static func remaining(_ license: License, now: Date, suffix: String) -> String {
@@ -187,11 +187,11 @@ struct LicensePresentation: Sendable, Equatable {
     static func activationSucceeded(_ kind: LicenseKind?) -> String {
         switch kind {
         case .trial:
-            L10n.string("Activated, and there is nothing else to enter. The trial runs for ten days from today.")
+            L10n.string("Trial activated. You have ten free days from today.")
         case .annual:
-            L10n.string("Your annual subscription is on this Mac now. There is nothing else to enter.")
+            L10n.string("Your annual subscription is active on this Mac.")
         case .lifetime:
-            L10n.string("Your lifetime license is on this Mac now. There is nothing else to enter — no renewal, and no connection.")
+            L10n.string("Your lifetime license is active on this Mac. No renewal is needed.")
         case nil:
             L10n.string("The key for this Mac was accepted.")
         }
@@ -225,7 +225,7 @@ struct LicensePresentation: Sendable, Equatable {
     /// mail, and promising one there would be a sentence about something that
     /// did not happen.
     static var keyByMailNote: String {
-        L10n.string("A copy of the key is also on its way to that address. You do not need it now — it is for when you reinstall Witness or replace this Mac. If it never arrives, press the button again: the same key comes back here and the mail is retried.")
+        L10n.string("We’re also sending a copy of your key by email for reinstalling Witness or moving to another Mac. If it doesn’t arrive, request the key again. Witness is already activated.")
     }
 
     /// "1 day", "5 days". Small, and the alternative is a string with a

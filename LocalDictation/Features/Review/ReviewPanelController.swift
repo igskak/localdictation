@@ -362,8 +362,7 @@ final class ReviewPanelController {
         panel.isMovableByWindowBackground = true
         panel.titleVisibility = .hidden
         panel.titlebarAppearsTransparent = true
-        panel.backgroundColor = NSColor(red: 17 / 255, green: 18 / 255, blue: 16 / 255, alpha: 1)
-        panel.appearance = NSAppearance(named: .darkAqua)
+        panel.backgroundColor = NSColor.windowBackgroundColor
         panel.hasShadow = true
         panel.isReleasedWhenClosed = false
         for button in [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton] {

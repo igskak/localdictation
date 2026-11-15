@@ -62,8 +62,8 @@ final class LocalizationTests: XCTestCase {
             "Lifetime",
             "Annual",
             "Buy",
-            "The first three days need no email and no key. After that, Witness asks for your email address, to carry on.",
-            "The first three days are over. Enter your email address to carry on. No payment is needed at this step, and nothing you have dictated has left this Mac.",
+            "Use Witness for three days without an email address. Then add your email to continue.",
+            "Your first three days are over. Enter your email to continue. No payment is needed at this step. Your dictation stays on this Mac.",
         ]
 
         for key in essentialKeys {
@@ -152,11 +152,11 @@ final class LocalizationTests: XCTestCase {
         let essentialKeys = [
             "Which languages do you speak?",
             "Every utterance is recognized as one of the languages you pick here, and never as one you did not. Pick as many as you actually use — there is nothing to switch between afterwards.",
-            "Recognition + calibrated verification",
-            "German, English, Russian, and Ukrainian are measured end to end. Spanish, Italian, and French also get calibrated review marks for values, dates, names, dictionary terms, and malformed words; advanced cleanup stays conservative until recorded-speech measurement is complete. Other languages are recognized without language-specific guesses.",
+            "Recognition and review",
+            "German, English, Russian and Ukrainian support tested recognition, cleanup and review. Spanish, Italian and French also have calibrated review marks; advanced cleanup remains limited. Other languages support recognition without language-specific review rules.",
             "Let’s get Witness ready",
-            "The first three days ask for nothing",
-            "Nothing you dictate ever leaves this Mac. Nine events about setting it up and about the trial do — the install, the speech model arriving or failing to, a press that finds it still arriving, a refused microphone, the trial starting, the email ask, and the offers — with no more than an app version, a macOS version, and a random number made at install. Settings → Privacy turns them off.",
+            "Three days free, no email needed",
+            "Your dictation stays on this Mac. Witness can share nine types of setup and trial events, with the app version, macOS version and a random installation ID. These include installation, model download progress and failures, attempts before the model is ready, microphone denial, trial start, the email prompt and offers shown. You can turn sharing off in Settings → Privacy.",
             "Open Witness when I log in",
             "Allow microphone access",
             "Allow typing into other apps",
@@ -201,13 +201,13 @@ final class LocalizationTests: XCTestCase {
             "Amount",
             "Date",
             "Name",
-            "Not a word",
+            "Unusual spelling",
             "Uncertain",
             "Nothing was heard",
             "Nothing was recognized",
             "Copied to the clipboard. Grant Accessibility access to have it typed for you.",
             "Nothing was inserted: the focus is in a password field. The text is here and was not copied.",
-            "The speech model is still arriving",
+            "Downloading the speech model",
             "Recent dictations",
             "%.2f s · %d frames · peak %.2f",
             "%.2f× real time",
@@ -250,13 +250,13 @@ final class LocalizationTests: XCTestCase {
             "Input source",
             "Audio stays in memory on this Mac. Nothing is written to disk during normal capture, and nothing you dictate is ever sent anywhere. A recording is discarded as soon as the app decides no review is needed, and otherwise when the review ends.",
             "Send nine events about setup and the trial",
-            "Insert automatically when nothing needs review",
+            "Insert text automatically",
             "Accessibility access",
             "Your languages",
             "Add a term or correction",
             "When Witness writes “%@”, replace it with “%@”.",
             "Remove this term",
-            "This file is the only thing the app persists. Transcripts and recordings stay in memory.",
+            "Your dictionary is saved on this Mac. Recordings and transcripts stay in memory.",
         ]
 
         for key in essentialKeys {
@@ -353,7 +353,7 @@ final class LocalizationTests: XCTestCase {
             "Date",
             "Name",
             "Close to “%@”",
-            "Not a word",
+            "Unusual spelling",
             "%@ word",
             "Uncertain",
             "Filler removed",
@@ -387,12 +387,12 @@ final class LocalizationTests: XCTestCase {
         let catalog = try catalog(named: "Localizable")
         let strings = try XCTUnwrap(catalog["strings"] as? [String: Any])
         let reviewed: [String: [String: String]] = [
-            "Watch this term": [
-                "es": "Vigilar este término",
-                "it": "Controlla questo termine",
-                "fr": "Surveiller ce terme",
+            "Mark similar spellings": [
+                "es": "Señalar palabras parecidas",
+                "it": "Segnala grafie simili",
+                "fr": "Signaler les graphies proches",
             ],
-            "Clean": ["es": "Pulido", "it": "Rifinito", "fr": "Soigné"],
+            "Extended": ["es": "Avanzada", "it": "Avanzata", "fr": "Avancé"],
             "Nothing flagged": [
                 "es": "Nada que revisar",
                 "it": "Niente da controllare",
@@ -426,7 +426,7 @@ final class LocalizationTests: XCTestCase {
             XCTAssertFalse(value.contains("fase 6"), locale)
         }
 
-        let telemetryKey = "On, the app says when it was installed, when the speech model starts arriving and whether it arrived, when a press finds it still arriving, when the microphone is refused, when a trial starts, when it asks for an email, and when it puts the offers on screen — with the app version, the macOS version, and a random number made at install that is not derived from this Mac. The six about setup are sent once for this installation and never again. That is the whole message, and nothing in it is about what you said. Off, it sends none of them and nothing else changes."
+        let telemetryKey = "Shared events cover installation; model download start, completion or failure; attempts before the model is ready; microphone denial; trial start; the email prompt; and offers shown. Each includes the app version, macOS version and a random installation ID. The six setup events are sent once per installation. Turning this off stops all nine event types."
         let telemetryEntry = try XCTUnwrap(strings[telemetryKey] as? [String: Any])
         let telemetryLocalizations = try XCTUnwrap(telemetryEntry["localizations"] as? [String: Any])
         let italian = try translation(in: telemetryLocalizations, locale: "it", key: telemetryKey)
@@ -447,7 +447,9 @@ final class LocalizationTests: XCTestCase {
                     && !(unit["value"] as? String ?? "").isEmpty
             }
         }.count
-        XCTAssertEqual(completeCount, 608)
+        // The withdrawal declaration intentionally keeps its reviewed English
+        // and German copy. Every ordinary product string has all UI locales.
+        XCTAssertEqual(completeCount, strings.count - 1)
     }
 
     func testNewMarketTranslationsPreserveFormatArguments() throws {
@@ -461,9 +463,20 @@ final class LocalizationTests: XCTestCase {
             else { continue }
 
             let sourceArguments = formatArguments(in: key)
-            for locale in expansionLocales {
+            for locale in ["de"] + expansionLocales {
                 let value = try translation(in: localizations, locale: locale, key: key)
                 XCTAssertEqual(formatArguments(in: value), sourceArguments, "\(locale): \(key)")
+            }
+        }
+    }
+
+    func testEverySettingsDestinationHasTranslatedNavigation() throws {
+        let strings = try XCTUnwrap(try catalog(named: "Localizable")["strings"] as? [String: Any])
+        for section in SettingsSection.allCases {
+            let entry = try XCTUnwrap(strings[section.title] as? [String: Any], section.title)
+            let localizations = try XCTUnwrap(entry["localizations"] as? [String: Any])
+            for locale in ["de"] + expansionLocales {
+                XCTAssertFalse(try translation(in: localizations, locale: locale, key: section.title).isEmpty)
             }
         }
     }
@@ -509,11 +522,11 @@ final class LocalizationTests: XCTestCase {
     func testTheEndedTrialSentenceIsStillTranslated() throws {
         let path = try XCTUnwrap(L10n.bundle.path(forResource: "de", ofType: "lproj"))
         let germanBundle = try XCTUnwrap(Bundle(path: path))
-        let key = "The trial ran out on %@. Your dictionary and settings are untouched and come straight back with a license."
+        let key = "Your trial ended on %@. Choose a license to continue. Your dictionary and settings are still here."
         let german = germanBundle.localizedString(forKey: key, value: nil, table: nil)
 
         XCTAssertNotEqual(german, key, "the German translation did not survive the key change")
-        XCTAssertTrue(german.hasPrefix("Der Test ist am %@ abgelaufen."), german)
+        XCTAssertTrue(german.hasPrefix("Deine Testphase ist am %@ abgelaufen."), german)
     }
 
     private func catalog(named name: String) throws -> [String: Any] {

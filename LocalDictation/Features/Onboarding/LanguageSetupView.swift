@@ -118,9 +118,9 @@ struct LanguageSetupView: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 Text("Which languages do you speak?")
-                    .font(.largeTitle.weight(.medium))
-                    .tracking(-1.2)
-                Text("Choose the languages you use for dictation. Witness recognizes speech within this selection, so you can speak without switching languages manually.")
+                    .font(.system(size: 27, weight: .semibold))
+                    .tracking(-0.6)
+                Text("Choose the languages you speak. Witness detects them automatically as you dictate.")
                     .font(.callout)
                     .foregroundStyle(WitnessStyle.muted)
                     .fixedSize(horizontal: false, vertical: true)
@@ -130,9 +130,11 @@ struct LanguageSetupView: View {
 
             HStack {
                 Button("Skip", action: skip)
+                    .buttonStyle(.plain)
+                    .foregroundStyle(WitnessStyle.muted)
                 Text(model.selection.shortLabel)
                     .font(.callout.monospaced())
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(WitnessStyle.muted)
                 Spacer()
                 Button("Continue", action: confirm)
                     .buttonStyle(WitnessPrimaryButtonStyle())
@@ -141,7 +143,7 @@ struct LanguageSetupView: View {
 
             Text("You can change this at any time in Settings \u{2192} Languages.")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(WitnessStyle.muted)
         }
         .padding(28)
         .frame(width: 520, height: 620)
@@ -167,16 +169,30 @@ struct FirstRunView: View {
         case .welcome:
             VStack(alignment: .leading, spacing: 24) {
                 WitnessBrand()
-                Text("Welcome to Witness").font(.largeTitle)
-                Text("Choose your languages and a comfortable key, then try dictation. Your speech stays on this Mac.")
-                Text("During setup, Witness downloads a speech model. This usually takes 5–15 minutes. We’ll let you know here when it’s ready to try.")
+                Spacer(minLength: 0)
+                Image(systemName: "waveform")
+                    .font(.system(size: 35, weight: .medium))
+                    .foregroundStyle(WitnessStyle.accent)
+                    .frame(width: 76, height: 76)
+                    .background(WitnessStyle.accent.opacity(0.10), in: RoundedRectangle(cornerRadius: 23))
+                    .accessibilityHidden(true)
+                Text("Welcome to Witness")
+                    .font(.system(size: 30, weight: .semibold)).tracking(-0.7)
+                Text("Choose your languages and a shortcut, then try dictation. Your speech stays on this Mac.")
+                    .font(.body).fixedSize(horizontal: false, vertical: true)
+                Text("Witness downloads a speech model during setup. This usually takes 5–15 minutes. You can try dictation as soon as it is ready.")
+                    .font(.callout)
                     .foregroundStyle(WitnessStyle.muted)
-                Spacer()
+                    .fixedSize(horizontal: false, vertical: true)
+                    .witnessCard()
+                Spacer(minLength: 0)
                 HStack {
                     Button("Skip", action: finish)
+                        .buttonStyle(.plain).foregroundStyle(WitnessStyle.muted)
                     Spacer()
                     Button("Set up Witness") { model.step = .languages }
                         .buttonStyle(WitnessPrimaryButtonStyle())
+                        .keyboardShortcut(.defaultAction)
                 }
             }.padding(28).frame(width: 520, height: 620).witnessWindow()
         case .languages:
@@ -193,29 +209,39 @@ struct GuidedSetupView: View {
     let notifyWhenReady: () -> Void
     let finish: () -> Void
 
-    private var titles: [String] { ["Microphone access", "Type into other apps", "Choose your key", "Preparing your speech model", "Try your first dictation", "Ready when you are"] }
+    private var titles: [String] { ["Microphone access", "Type into other apps", "Choose your shortcut", "Preparing your speech model", "Try your first dictation", "You’re ready to dictate"] }
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack {
                 WitnessBrand()
                 Spacer()
-                Text(verbatim: "\(model.page + 1) / 6").foregroundStyle(WitnessStyle.muted)
+                Text(verbatim: L10n.format("Step %lld of %lld", Int64(model.page + 1), 6))
+                    .font(.caption).foregroundStyle(WitnessStyle.muted)
             }
-            Text(verbatim: L10n.string(titles[min(model.page, 5)])).font(.largeTitle)
+            WitnessSetupProgress(step: model.page + 1, total: 6)
+            Text(LocalizedStringKey(titles[min(model.page, 5)]))
+                .font(.system(size: 27, weight: .semibold)).tracking(-0.6)
+                .fixedSize(horizontal: false, vertical: true)
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) { content }
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .witnessCard(padding: 18)
             }
+            .buttonStyle(WitnessSecondaryButtonStyle())
             if !coordinator.transcriptionModelState.isReady && model.page != 3 {
                 Text(coordinator.transcriptionModelState.label).font(.caption).foregroundStyle(WitnessStyle.muted)
             }
-            HStack {
+            Divider()
+            HStack(spacing: 14) {
                 Button("Skip", action: finish)
+                    .buttonStyle(.plain).foregroundStyle(WitnessStyle.muted)
                 Button("Back") { leaveTest(); if model.page > 0 { model.page -= 1 } else { model.step = .languages } }
+                    .buttonStyle(WitnessSecondaryButtonStyle())
                 Spacer()
                 Button(L10n.string(model.page == 5 ? "Done" : "Next")) { advance() }
                     .buttonStyle(WitnessPrimaryButtonStyle())
                     .disabled(!model.canAdvance(using: coordinator))
+                    .keyboardShortcut(.defaultAction)
             }
         }
         .padding(28).frame(width: 520, height: 620).witnessWindow()
@@ -250,19 +276,19 @@ struct GuidedSetupView: View {
             } else if coordinator.microphoneAuthorization == .notDetermined {
                 Button("Allow microphone…") { Task { await coordinator.requestMicrophoneAccess() } }
             } else {
-                Text("Microphone access is off for Witness. You can enable it in Privacy & Security → Microphone. On a managed Mac, an administrator may need to help.")
+                Text("Enable Witness in System Settings → Privacy & Security → Microphone. On a managed Mac, you may need an administrator’s help.")
                 Button("Open Privacy Settings") { coordinator.openSystemSettings() }
                 Button("Re-check") { coordinator.refreshAuthorization() }
             }
             Text("Your dictation stays on this Mac. Witness also sends limited setup and trial events. You can turn these off in Settings → Privacy.")
                 .font(.caption).foregroundStyle(WitnessStyle.muted)
             DisclosureGroup("About setup and privacy") {
-            Text("Nothing you dictate ever leaves this Mac. Nine events about setting it up and about the trial do — the install, the speech model arriving or failing to, a press that finds it still arriving, a refused microphone, the trial starting, the email ask, and the offers — with no more than an app version, a macOS version, and a random number made at install. Settings → Privacy turns them off.")
+            Text("Your dictation stays on this Mac. Witness can share nine types of setup and trial events, with the app version, macOS version and a random installation ID. These include installation, model download progress and failures, attempts before the model is ready, microphone denial, trial start, the email prompt and offers shown. You can turn sharing off in Settings → Privacy.")
                 .font(.caption).foregroundStyle(WitnessStyle.muted)
             }.font(.caption)
 
         case 1:
-            Text("To let Witness type at your cursor, enable it in Privacy & Security → Accessibility. When you come back, we’ll check the permission for you.")
+            Text("Enable Witness in System Settings → Privacy & Security → Accessibility. This lets it insert text at your cursor. We’ll check the permission when you return.")
             if coordinator.needsAccessibilityTrust {
                 Button("Allow typing into other apps") { coordinator.requestAccessibilitySetup() }
                 Button("Re-check") { coordinator.refreshAccessibilityAuthorization() }
@@ -280,18 +306,19 @@ struct GuidedSetupView: View {
             }
             Text(coordinator.activation.explanation)
         case 3:
-            Text("To keep your speech private, Witness recognizes it on this Mac. First, we need to download a speech model. This usually takes 5–15 minutes, depending on your connection and Mac.")
-            Text("Please leave this window open so we can guide you to your first dictation when the model is ready. You can follow the progress below. Your audio stays on your Mac.")
+            Text("Witness needs a speech model to recognize your voice on this Mac. The first download and preparation usually take 5–15 minutes.")
+            Text("The progress appears below. Once the model is ready, you can try your first dictation.")
             if case let .preparing(preparation) = coordinator.transcriptionModelState {
                 if let progress = preparation.progress { ProgressView(value: progress) }
                 else { ProgressView() }
             }
             Text(coordinator.transcriptionModelState.label)
-            Button("Try again") { Task { await coordinator.prepareTranscriptionModel() } }
-                .disabled(coordinator.transcriptionModelState.isPreparing)
+            if !coordinator.transcriptionModelState.isPreparing && !coordinator.transcriptionModelState.isReady {
+                Button("Try again") { Task { await coordinator.prepareTranscriptionModel() } }
+            }
             Button("Notify me when ready", action: notifyWhenReady)
             Text(verbatim: L10n.string(model.notificationMessage)).font(.caption)
-            Text("You’re welcome to minimize this window while you wait. If you close it, preparation continues while Witness is running. You can return anytime from the menu bar → Set up / Try dictation.").font(.callout).foregroundStyle(WitnessStyle.muted)
+            Text("You can minimize or close this window. Preparation continues while Witness is running. Return from the menu bar → Setup and practice.").font(.callout).foregroundStyle(WitnessStyle.muted)
         case 4:
             if coordinator.transcriptionModelState.isReady { Label("The speech model is ready", systemImage: "checkmark.circle").foregroundStyle(WitnessStyle.success) }
             if !model.testPrerequisitesAreReady(using: coordinator) {
@@ -336,7 +363,7 @@ struct GuidedSetupView: View {
 
             Text(verbatim: coordinator.binding.displayString).font(.title)
             Text(coordinator.activation.explanation)
-            Text("Witness lives in the menu bar. You can return to Set up / Try dictation anytime.")
+            Text("Find Witness in the menu bar. You can reopen Setup and practice at any time.")
             Toggle("Open Witness when I log in", isOn: $model.opensAtLogin)
             Text("The first three days start at your first successful dictation. Afterwards, an email address activates ten more free days. Your dictation stays on this Mac.").font(.caption)
         }

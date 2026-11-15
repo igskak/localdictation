@@ -8,16 +8,18 @@ import Sparkle
 /// cancel a download or installation already in progress.
 @MainActor
 final class AppUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
-    static let shared = AppUpdater()
+    static let shared = AppUpdater(startingUpdater: true)
 
     @Published private(set) var canCheckForUpdates = false
     private var controller: SPUStandardUpdaterController!
     private var observation: AnyCancellable?
 
-    private override init() {
+    /// Layout previews and tests can construct the adapter without starting
+    /// Sparkle's scheduler or making an update request.
+    init(startingUpdater: Bool) {
         super.init()
         controller = SPUStandardUpdaterController(
-            startingUpdater: true,
+            startingUpdater: startingUpdater,
             updaterDelegate: self,
             userDriverDelegate: nil
         )

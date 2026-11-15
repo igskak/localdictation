@@ -19,7 +19,7 @@ final class LicensePresentationTests: XCTestCase {
         let standing = GraceStanding(expiresAt: now.addingTimeInterval(3600))
         let presentation = LicensePresentation(state: .ungated(standing), now: now)
 
-        XCTAssertTrue(presentation.detail.contains("asks for nothing until"))
+        XCTAssertTrue(presentation.detail.contains("Use Witness until"))
         XCTAssertFalse(presentation.detail.contains("ten"), "it does not say what an address unlocks")
     }
 
@@ -83,7 +83,7 @@ final class LicensePresentationTests: XCTestCase {
         XCTAssertTrue(presentation.offersKeyRetrieval)
         XCTAssertFalse(presentation.showsActivation, "the offer still leads")
         XCTAssertEqual(presentation.activationButtonTitle, "Send my key")
-        XCTAssertTrue(presentation.activationHint.contains("bought with"))
+        XCTAssertTrue(presentation.activationHint.contains("email address from your purchase"))
     }
 
     func testAnActivatedTrialCanFetchTheLicenseThatReplacesIt() {
@@ -147,18 +147,18 @@ final class LicensePresentationTests: XCTestCase {
     func testActivationSaysItIsDoneAndWhatTheMailedKeyIsFor() {
         for kind in [LicenseKind.trial, .annual, .lifetime] {
             XCTAssertTrue(
-                LicensePresentation.activationSucceeded(kind).contains("nothing else to enter"),
+                LicensePresentation.activationSucceeded(kind).contains(kind == .trial ? "activated" : "active"),
                 "\(kind.rawValue) does not say the work is finished"
             )
         }
 
         let note = LicensePresentation.keyByMailNote
-        XCTAssertTrue(note.contains("You do not need it now"))
-        XCTAssertTrue(note.contains("reinstall") && note.contains("replace this Mac"))
+        XCTAssertTrue(note.contains("Witness is already activated"))
+        XCTAssertTrue(note.contains("reinstall") && note.contains("another Mac"))
         // Never a claim about delivery: this app is told a key, not whether a
         // mail arrived, and `Service/src/activate.js` mails on a best effort.
         XCTAssertFalse(note.contains("has been sent") || note.contains("was sent"))
-        XCTAssertTrue(note.contains("press the button again"), "the recovery has to be named, not implied")
+        XCTAssertTrue(note.contains("request the key again"), "the recovery has to be named, not implied")
     }
 
     /// Said before the press as well as after it. The button reads "Send me a
@@ -167,16 +167,16 @@ final class LicensePresentationTests: XCTestCase {
         let presentation = LicensePresentation(state: .locked(.activationRequired), now: now)
 
         XCTAssertEqual(presentation.activationButtonTitle, "Send me a key")
-        XCTAssertTrue(presentation.activationHint.contains("nothing to paste"), presentation.activationHint)
+        XCTAssertTrue(presentation.activationHint.contains("no key to paste"), presentation.activationHint)
     }
 
     func testTheSuccessSentenceDescribesWhatArrivedAndNotWhatWasAsked() {
         XCTAssertEqual(
             LicensePresentation.activationSucceeded(.annual),
-            "Your annual subscription is on this Mac now. There is nothing else to enter."
+            "Your annual subscription is active on this Mac."
         )
         XCTAssertTrue(LicensePresentation.activationSucceeded(.lifetime).contains("lifetime"))
-        XCTAssertTrue(LicensePresentation.activationSucceeded(.trial).contains("ten days"))
+        XCTAssertTrue(LicensePresentation.activationSucceeded(.trial).contains("ten free days from today"))
         // It used to say the days ran "from your first dictation". They never
         // did — the service issues them from the moment of activation.
         XCTAssertFalse(LicensePresentation.activationSucceeded(.trial).contains("first dictation"))

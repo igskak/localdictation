@@ -54,7 +54,7 @@ enum ClipboardReason: String, Sendable, Equatable, CaseIterable {
         case .notTrusted:
             L10n.string("Copied to the clipboard. Grant Accessibility access to have it typed for you.")
         case .cannotSynthesizeEvents:
-            L10n.string("Copied to the clipboard: macOS is not letting Witness press ⌘V for you. Its Accessibility permission stops applying when the app itself changes, so switching Witness off and on again in System Settings → Privacy & Security → Accessibility is what restores it.")
+            L10n.string("Text copied. To restore automatic insertion, turn Witness off and on in System Settings → Privacy & Security → Accessibility.")
         case .noTarget:
             L10n.string("Copied to the clipboard — there was no other application to put it in.")
         case .targetChanged:
@@ -62,7 +62,7 @@ enum ClipboardReason: String, Sendable, Equatable, CaseIterable {
         case .insertionFailed:
             L10n.string("Copied to the clipboard: that application would not accept the text directly.")
         case .unverifiedPaste:
-            L10n.string("The new dictation is on the clipboard. Check what the application pasted; Witness could not verify that it used this recording.")
+            L10n.string("Your dictation is on the clipboard. Check the text in the target app; Witness could not confirm that the latest result was pasted.")
         }
     }
 }
@@ -91,9 +91,9 @@ enum RefusalReason: String, Sendable, Equatable, CaseIterable {
             return L10n.string("Nothing was inserted: the focus is in a password field. The text is here and was not copied.")
         case .secureInput:
             guard let holder else {
-                return L10n.string("Nothing was inserted: an application has secure input enabled, which blocks dictation everywhere until it stops. The text is here and was not copied.")
+                return L10n.string("An app has Secure Input enabled, which blocks dictation. Leave the password field or close that app, then try again. Your text remains in Witness and was not copied.")
             }
-            return L10n.format("Nothing was inserted: %@ has secure input enabled, which blocks dictation everywhere until it stops. Switching to it and clicking into an ordinary field usually clears it; quitting it always does. The text is here and was not copied.", holder)
+            return L10n.format("%@ has Secure Input enabled, which blocks dictation. Switch to a regular text field in that app or quit it, then try again. Your text remains in Witness and was not copied.", holder)
         }
     }
 }

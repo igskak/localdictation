@@ -20,32 +20,34 @@ struct LanguageSelectionEditor: View {
             TextField("Search languages", text: $search)
                 .textFieldStyle(.roundedBorder)
                 .font(.callout)
+                .accessibilityLabel("Search languages")
 
             List {
                 if !verifiedMatches.isEmpty {
-                    Section("Measured end to end") {
+                    Section("Recognition, cleanup and review") {
                         ForEach(verifiedMatches) { row($0) }
                     }
                 }
 
                 if !riskCalibratedMatches.isEmpty {
-                    Section("Recognition + calibrated verification") {
+                    Section("Recognition and review") {
                         ForEach(riskCalibratedMatches) { row($0) }
                     }
                 }
 
                 if !otherMatches.isEmpty {
-                    Section("Everything else the engine knows") {
+                    Section("More recognition languages") {
                         ForEach(otherMatches) { row($0) }
                     }
                 }
 
-                if verifiedMatches.isEmpty, otherMatches.isEmpty {
-                    Text(verbatim: L10n.format("No language here is called “%@”.", search))
-                        .foregroundStyle(.secondary)
+                if verifiedMatches.isEmpty, riskCalibratedMatches.isEmpty, otherMatches.isEmpty {
+                    Text(verbatim: L10n.format("No languages match “%@”.", search))
+                        .foregroundStyle(WitnessStyle.muted)
                 }
             }
-            .frame(minHeight: 220)
+            .listStyle(.inset)
+            .frame(minHeight: 180)
             .scrollContentBackground(.hidden)
             .background(WitnessStyle.surface)
             .clipShape(RoundedRectangle(cornerRadius: WitnessStyle.cornerRadius, style: .continuous))
@@ -54,13 +56,15 @@ struct LanguageSelectionEditor: View {
                     .stroke(WitnessStyle.line, lineWidth: 1)
             }
 
-            Text("German, English, Russian, and Ukrainian are measured end to end. Spanish, Italian, and French also get calibrated review marks for values, dates, names, dictionary terms, and malformed words; advanced cleanup stays conservative until recorded-speech measurement is complete. Other languages are recognized without language-specific guesses.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            DisclosureGroup("Language support") {
+                Text("German, English, Russian and Ukrainian support tested recognition, cleanup and review. Spanish, Italian and French also have calibrated review marks; advanced cleanup remains limited. Other languages support recognition without language-specific review rules.")
+                    .font(.caption).foregroundStyle(WitnessStyle.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }.font(.caption)
 
             preferredRow
         }
+        .toggleStyle(.checkbox)
         .tint(WitnessStyle.accent)
     }
 
@@ -72,7 +76,7 @@ struct LanguageSelectionEditor: View {
                 Text(language.displayName)
                 if language.nativeName != language.displayName {
                     Text(language.nativeName)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(WitnessStyle.muted)
                 }
             }
         }
@@ -95,9 +99,9 @@ struct LanguageSelectionEditor: View {
                 Spacer()
             }
 
-            Text("The preferred language decides a short phrase that could be either — \u{201C}okay\u{201D}, \u{201C}ja\u{201D}, a name on its own. A sentence long enough to be recognized is decided by what was said, not by this.")
+            Text("For short or ambiguous phrases, Witness favors your preferred language.")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(WitnessStyle.muted)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }

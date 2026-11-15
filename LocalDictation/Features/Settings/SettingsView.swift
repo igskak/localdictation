@@ -4,170 +4,205 @@ import SwiftUI
 import UniformTypeIdentifiers
 #endif
 
-struct SettingsView: View {
-    @EnvironmentObject private var coordinator: DictationCoordinator
-    @ObservedObject private var updater = AppUpdater.shared
-    @State private var availableAudioInputs: [SystemAudioInput.Device] = []
+enum SettingsSection: String, CaseIterable, Identifiable {
+    case dictation, languages, cleanup, dictionary, privacy, license, updates, diagnostics, audio
 
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                WitnessBrand()
-                Spacer()
-                Text("Settings")
-                    .font(.callout.weight(.medium))
-                    .foregroundStyle(WitnessStyle.muted)
-            }
-            .padding(.horizontal, 22)
-            .padding(.vertical, 16)
-
-            Divider().overlay(WitnessStyle.line)
-
-            TabView {
-                generalTab
-                    .tabItem { Label("General", systemImage: "gearshape") }
-
-                LanguagesView()
-                    .tabItem { Label("Languages", systemImage: "globe") }
-
-                BoundarySettingsView()
-                    .tabItem { Label("Boundary", systemImage: "waveform") }
-
-                GlossaryView()
-                    .tabItem { Label("Dictionary", systemImage: "character.book.closed") }
-
-                LicenseView()
-                    .tabItem { Label("License", systemImage: "key") }
-
-                DiagnosticsView()
-                    .tabItem { Label("Diagnostics", systemImage: "stethoscope") }
-            }
-            .padding(.horizontal, 8)
-            .padding(.bottom, 8)
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .dictation: "Dictation"
+        case .languages: "Languages"
+        case .cleanup: "Text cleanup"
+        case .dictionary: "Dictionary"
+        case .privacy: "Privacy"
+        case .license: "License"
+        case .updates: "Updates"
+        case .diagnostics: "Diagnostics"
+        case .audio: "Audio tuning"
         }
-        .frame(width: 680, height: 540)
-        .witnessWindow()
-        .navigationTitle("Witness Settings")
+    }
+    var symbol: String {
+        switch self {
+        case .dictation: "mic"
+        case .languages: "globe"
+        case .cleanup: "slider.horizontal.3"
+        case .dictionary: "character.book.closed"
+        case .privacy: "hand.raised"
+        case .license: "key"
+        case .updates: "arrow.down.circle"
+        case .diagnostics: "stethoscope"
+        case .audio: "waveform"
+        }
+    }
+}
+
+/// A request survives the Settings window being constructed after the action.
+/// Nothing is persisted; an already-open window also receives the request.
+@MainActor
+enum SettingsNavigation {
+    static let didRequest = Notification.Name("WitnessSettingsDestinationRequested")
+    private static var pending: SettingsSection?
+
+    static func request(_ section: SettingsSection) {
+        pending = section
+        NotificationCenter.default.post(name: didRequest, object: nil)
     }
 
-    private var generalTab: some View {
-        Form {
-            Section("Shortcut") {
-                HotkeyRecorderRow()
-                Picker("Mode", selection: activationBinding) {
-                    ForEach(RecordingActivation.allCases) { activation in
-                        Text(activation.displayName).tag(activation)
+    static func consume() -> SettingsSection? {
+        defer { pending = nil }
+        return pending
+    }
+}
+
+struct SettingsView: View {
+    @EnvironmentObject private var coordinator: DictationCoordinator
+    @ObservedObject private var updater: AppUpdater
+    @State private var availableAudioInputs: [SystemAudioInput.Device] = []
+    @State private var selection: SettingsSection = .dictation
+
+    init(initialSelection: SettingsSection = .dictation, updater: AppUpdater = .shared) {
+        _selection = State(initialValue: initialSelection)
+        self.updater = updater
+    }
+
+    var body: some View {
+        HStack(spacing: 0) {
+            sidebar
+            Divider()
+            VStack(alignment: .leading, spacing: 0) {
+                Text(LocalizedStringKey(selection.title))
+                    .font(.system(size: 27, weight: .semibold))
+                    .tracking(-0.6)
+                    .padding(.horizontal, 28)
+                    .padding(.top, 28)
+                    .padding(.bottom, 8)
+                    .accessibilityAddTraits(.isHeader)
+                page
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+        .frame(minWidth: 780, idealWidth: 900, minHeight: 600, idealHeight: 700)
+        .witnessWindow()
+        .navigationTitle("Witness Settings")
+        .onAppear {
+            refreshAudioInputs()
+            if let requested = SettingsNavigation.consume() { selection = requested }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: SettingsNavigation.didRequest)) { _ in
+            if let requested = SettingsNavigation.consume() { selection = requested }
+        }
+        .onChange(of: selection) { coordinator.cancelHotkeyCapture() }
+        .onDisappear { coordinator.cancelHotkeyCapture() }
+    }
+
+    private var sidebar: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            WitnessBrand().padding(.horizontal, 10)
+            ScrollView {
+                VStack(spacing: 4) {
+                    ForEach(SettingsSection.allCases) { section in
+                        Button {
+                            selection = section
+                        } label: {
+                            HStack(spacing: 10) {
+                                Image(systemName: section.symbol)
+                                    .frame(width: 20)
+                                    .accessibilityHidden(true)
+                                Text(LocalizedStringKey(section.title))
+                                    .fixedSize(horizontal: false, vertical: true)
+                                Spacer(minLength: 0)
+                            }
+                            .font(.callout.weight(selection == section ? .semibold : .regular))
+                            .foregroundStyle(selection == section ? WitnessStyle.accent : WitnessStyle.ink)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(selection == section ? WitnessStyle.accent.opacity(0.12) : .clear,
+                                        in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                            .contentShape(RoundedRectangle(cornerRadius: 9))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityAddTraits(selection == section ? [.isSelected] : [])
+                        .padding(.top, section == .diagnostics ? 16 : 0)
                     }
+                }
+            }
+            Spacer(minLength: 0)
+            Label("On this Mac", systemImage: "lock.shield")
+                .font(.caption)
+                .foregroundStyle(WitnessStyle.muted)
+                .padding(.horizontal, 10)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 28)
+        .frame(width: 215)
+        .background(WitnessStyle.sidebar)
+    }
+
+    @ViewBuilder private var page: some View {
+        switch selection {
+        case .dictation: dictationPage
+        case .languages: LanguagesView()
+        case .cleanup: cleanupPage
+        case .dictionary: GlossaryView()
+        case .privacy: privacyPage
+        case .license: LicenseView()
+        case .updates: updatesPage
+        case .diagnostics: DiagnosticsView()
+        case .audio: BoundarySettingsView()
+        }
+    }
+
+    private var dictationPage: some View {
+        WitnessSettingsForm {
+            WitnessSettingsSection("Shortcut") {
+                HotkeyRecorderRow()
+                LabeledContent("Mode") {
+                    Picker("Mode", selection: activationBinding) {
+                        ForEach(RecordingActivation.allCases) { activation in
+                            Text(activation.displayName).tag(activation)
+                        }
+                    }
+                    .labelsHidden()
+                    .fixedSize()
                 }
                 Text(coordinator.activation.explanation)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .font(.callout).foregroundStyle(WitnessStyle.muted)
                     .fixedSize(horizontal: false, vertical: true)
-                LabeledContent(
-                    "Status",
-                    value: StatusPresentation(
-                        state: coordinator.state,
-                        binding: coordinator.binding,
-                        activation: coordinator.activation
-                    ).title
-                )
             }
-
-            Section("Startup") {
-                LaunchAtLoginRow()
-            }
-
-            Section("Cleanup") {
-                Picker("Level", selection: cleanupLevelBinding) {
-                    ForEach(CleanupLevel.allCases) { level in
-                        Text(level.displayName).tag(level)
+            WitnessSettingsSection("Microphone") {
+                LabeledContent("Input source") {
+                    Picker("Input source", selection: audioInputBinding) {
+                        Text("Mac built-in microphone").tag(AudioInputSelection.builtIn)
+                        Text("macOS default input").tag(AudioInputSelection.systemDefault)
+                        ForEach(availableAudioInputs) { device in
+                            Text(device.name).tag(AudioInputSelection.device(uid: device.uid))
+                        }
+                        if case let .device(uid) = coordinator.audioInputSelection,
+                           !availableAudioInputs.contains(where: { $0.uid == uid }) {
+                            Text("Previously selected microphone (unavailable)").tag(AudioInputSelection.device(uid: uid))
+                        }
                     }
-                }
-                .pickerStyle(.segmented)
-                .accessibilityLabel("Cleanup level")
-
-                Text(coordinator.cleanupLevel.explanation)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                LabeledContent("Example") {
-                    Text(coordinator.cleanupLevel.example)
-                        .font(.callout.monospaced())
-                        .multilineTextAlignment(.trailing)
-                }
-
-                Text("All cleanup runs on this Mac. Raw recognized text remains available in review.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            Section("Updates") {
-                LabeledContent("Installed version", value: AppVersion.short)
-                Button("Check for updates…") { updater.checkForUpdates() }
-                    .disabled(!updater.canCheckForUpdates)
-                Toggle(
-                    "Check for updates automatically",
-                    isOn: Binding(
-                        get: { updater.automaticallyChecksForUpdates },
-                        set: { updater.automaticallyChecksForUpdates = $0 }
-                    )
-                )
-                Text("Once a day Witness asks GitHub whether a newer signed version exists, and offers it if so. Nothing is installed until you confirm. You can also check yourself with the button above.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            Section("Microphone") {
-                Picker("Input source", selection: audioInputBinding) {
-                    Text("Mac built-in microphone").tag(AudioInputSelection.builtIn)
-                    Text("macOS default input").tag(AudioInputSelection.systemDefault)
-                    ForEach(availableAudioInputs) { device in
-                        Text(device.name).tag(AudioInputSelection.device(uid: device.uid))
-                    }
-                    if case let .device(uid) = coordinator.audioInputSelection,
-                       !availableAudioInputs.contains(where: { $0.uid == uid }) {
-                        Text("Previously selected microphone (unavailable)")
-                            .tag(AudioInputSelection.device(uid: uid))
-                    }
+                    .labelsHidden()
                 }
                 Button("Refresh microphones") { refreshAudioInputs() }
                 if case let .device(uid) = coordinator.audioInputSelection,
                    !availableAudioInputs.contains(where: { $0.uid == uid }) {
                     Text("The selected microphone is unavailable. Witness will use another available microphone until it returns.")
-                        .font(.callout)
-                        .foregroundStyle(WitnessStyle.warning)
+                        .font(.callout).foregroundStyle(WitnessStyle.warning)
                 }
                 if coordinator.audioInputSelection == .builtIn,
                    !availableAudioInputs.contains(where: \.isBuiltIn) {
                     Text("The Mac microphone is unavailable. Witness will use another available microphone.")
-                        .font(.callout)
-                        .foregroundStyle(WitnessStyle.warning)
+                        .font(.callout).foregroundStyle(WitnessStyle.warning)
                 }
-                Text("The Mac microphone keeps dictation independent of AirPods connected to your iPhone. Changes apply to the next recording; Witness does not change the macOS sound input.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                Text("Microphone changes apply to the next recording.")
+                    .font(.callout).foregroundStyle(WitnessStyle.muted)
             }
-
-            Section("Privacy") {
-                Text("Audio stays in memory on this Mac. Nothing is written to disk during normal capture, and nothing you dictate is ever sent anywhere. A recording is discarded as soon as the app decides no review is needed, and otherwise when the review ends.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                Toggle("Send nine events about setup and the trial", isOn: $coordinator.sharesProductEvents)
-                Text("On, the app says when it was installed, when the speech model starts arriving and whether it arrived, when a press finds it still arriving, when the microphone is refused, when a trial starts, when it asks for an email, and when it puts the offers on screen — with the app version, the macOS version, and a random number made at install that is not derived from this Mac. The six about setup are sent once for this installation and never again. That is the whole message, and nothing in it is about what you said. Off, it sends none of them and nothing else changes.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            Section("Insertion") {
-                Toggle("Insert automatically when nothing needs review", isOn: $coordinator.insertsAutomatically)
-                Text("On, a result with nothing worth checking goes straight into the application you were typing in. Off, it waits in this menu for an explicit insert. A result that does need review always waits for you either way.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+            WitnessSettingsSection("Insertion") {
+                Toggle("Insert text automatically", isOn: $coordinator.insertsAutomatically)
+                Text("When enabled, text is inserted at your cursor. Any review marks remain available afterwards.")
+                    .font(.callout).foregroundStyle(WitnessStyle.muted)
                 LabeledContent("Accessibility access", value: L10n.string(coordinator.accessibilityAuthorization == .trusted ? "Granted" : "Not granted"))
                 if coordinator.needsAccessibilityTrust {
                     HStack {
@@ -175,43 +210,85 @@ struct SettingsView: View {
                         Button("Open Settings") { coordinator.openAccessibilitySettings() }
                         Button("Re-check") { coordinator.refreshAccessibilityAuthorization() }
                     }
-                    Text("Without Accessibility access the text is copied to the clipboard instead. A development build loses this permission on every rebuild, because macOS keys it to the code signature.")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
+                    Text("Without Accessibility access, you can copy your dictation and paste it into another app.")
+                        .font(.callout).foregroundStyle(WitnessStyle.muted)
                 }
             }
-
-            Section("Review") {
-                Text("The review step appears only when a fragment is worth checking — an amount, a date, a name, a dictionary near-miss, or a word the app removed. When nothing is marked, the text is simply ready and the recording is discarded immediately.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+            WitnessSettingsSection("Startup") { LaunchAtLoginRow() }
+            if let error = coordinator.preferencesErrorDescription {
+                WitnessSettingsSection("Last error") { Text(error).foregroundStyle(WitnessStyle.warning) }
             }
+        }
+        .witnessSettingsForm()
+    }
 
-            Section("Phase") {
-                Text("Phase 6 adds the trial, activation, and licensing. Dictation itself is unchanged: the words still go straight into the application you were typing in, and everything about them still stays on this Mac.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                if let location = coordinator.preferencesLocationDescription {
-                    LabeledContent("Settings file", value: location)
-                        .font(.caption)
+    private var cleanupPage: some View {
+        WitnessSettingsForm {
+            WitnessSettingsSection("Cleanup") {
+                Picker("Level", selection: cleanupLevelBinding) {
+                    ForEach(CleanupLevel.allCases) { level in Text(level.displayName).tag(level) }
                 }
-                if let error = coordinator.preferencesErrorDescription {
-                    Text(error)
-                        .font(.callout)
-                        .foregroundStyle(WitnessStyle.warning)
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .accessibilityLabel("Cleanup level")
+                Text(coordinator.cleanupLevel.explanation)
+                    .font(.callout).foregroundStyle(WitnessStyle.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            WitnessSettingsSection("Example (English)") {
+                Text(coordinator.cleanupLevel.example)
+                    .font(.body).textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            WitnessSettingsSection("Review") {
+                Text("Witness marks details worth checking, such as amounts, dates, names and cleanup changes. A mark is a prompt to check, not a verdict.")
+                    .font(.callout).foregroundStyle(WitnessStyle.muted)
+                Text("All cleanup runs on this Mac. Raw recognized text remains available in review.")
+                    .font(.callout).foregroundStyle(WitnessStyle.muted)
+            }
+        }.witnessSettingsForm()
+    }
+
+    private var privacyPage: some View {
+        WitnessSettingsForm {
+            WitnessSettingsSection("On this Mac") {
+                Label("Speech recognition and text cleanup run locally.", systemImage: "lock.shield")
+                Text("Audio stays in memory until processing or review ends. Recordings and transcripts are not saved or sent to a server.")
+                    .font(.callout).foregroundStyle(WitnessStyle.muted)
+            }
+            WitnessSettingsSection("Product events") {
+                Toggle("Share setup and trial events", isOn: $coordinator.sharesProductEvents)
+                Text("Nine event types help us understand setup and the trial. They never include your audio, text, dictionary or app contents.")
+                    .font(.callout).foregroundStyle(WitnessStyle.muted)
+                DisclosureGroup("What is shared") {
+                    Text("Shared events cover installation; model download start, completion or failure; attempts before the model is ready; microphone denial; trial start; the email prompt; and offers shown. Each includes the app version, macOS version and a random installation ID. The six setup events are sent once per installation. Turning this off stops all nine event types.")
+                        .font(.callout).foregroundStyle(WitnessStyle.muted)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
-        }
-        .formStyle(.grouped)
-        .scrollContentBackground(.hidden)
-        .background(WitnessStyle.canvas)
-        .onAppear { refreshAudioInputs() }
-        .onDisappear {
-            // A settings window closed mid-capture would otherwise leave the
-            // app with no shortcut registered and no sign of why.
-            coordinator.cancelHotkeyCapture()
-        }
+            WitnessSettingsSection("Privacy policy") {
+                Link("Read the privacy policy", destination: URL(string: "https://witnessmac.com/en/privacy")!)
+                Text("The policy lists what is sent for activation, payments, updates and product events, who receives it and how long it is kept.")
+                    .font(.callout).foregroundStyle(WitnessStyle.muted)
+            }
+        }.witnessSettingsForm()
+    }
+
+    private var updatesPage: some View {
+        WitnessSettingsForm {
+            WitnessSettingsSection("Updates") {
+                LabeledContent("Installed version", value: AppVersion.short)
+                Button("Check for updates…") { updater.checkForUpdates() }
+                    .buttonStyle(WitnessPrimaryButtonStyle())
+                    .disabled(!updater.canCheckForUpdates)
+                Toggle("Check for updates automatically", isOn: Binding(
+                    get: { updater.automaticallyChecksForUpdates },
+                    set: { updater.automaticallyChecksForUpdates = $0 }
+                ))
+                Text("Witness checks GitHub for updates once a day. You choose when to install them.")
+                    .font(.callout).foregroundStyle(WitnessStyle.muted)
+            }
+        }.witnessSettingsForm()
     }
 
     /// The picker needs a two-way binding; the coordinator owns the value and
@@ -248,8 +325,8 @@ struct BoundarySettingsView: View {
     @EnvironmentObject private var coordinator: DictationCoordinator
 
     var body: some View {
-        Form {
-            Section("Voice activity thresholds") {
+        WitnessSettingsForm {
+            WitnessSettingsSection("Voice activity thresholds") {
                 LabeledContent("Speech threshold (RMS)") {
                     Slider(
                         value: $coordinator.configuration.voiceActivity.speechThreshold,
@@ -279,7 +356,7 @@ struct BoundarySettingsView: View {
                 )
             }
 
-            Section("Boundaries") {
+            WitnessSettingsSection("Boundaries") {
                 LabeledContent("Trailing silence") {
                     Slider(
                         value: $coordinator.configuration.voiceActivity.trailingSilenceDuration,
@@ -310,14 +387,12 @@ struct BoundarySettingsView: View {
                 )
             }
 
-            Section {
-                Text("Trailing silence is reported, never used to trim captured speech. Changes apply to the next recording. These thresholds are the one thing in Settings that is not written to disk — they are tuning, and they start from the defaults on every launch.")
+            WitnessSettingsSection {
+                Text("These settings apply to the next recording and reset when Witness restarts. Trailing silence is measured but never used to trim speech.")
                     .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(WitnessStyle.muted)
             }
         }
-        .formStyle(.grouped)
-        .scrollContentBackground(.hidden)
         .background(WitnessStyle.canvas)
     }
 }
@@ -326,8 +401,8 @@ struct DiagnosticsView: View {
     @EnvironmentObject private var coordinator: DictationCoordinator
 
     var body: some View {
-        Form {
-            Section("Input") {
+        WitnessSettingsForm {
+            WitnessSettingsSection("Input") {
                 LabeledContent("Device", value: coordinator.diagnostics.format?.inputDescription ?? L10n.string("Not opened yet"))
                 LabeledContent(
                     "Normalized output",
@@ -336,7 +411,7 @@ struct DiagnosticsView: View {
                 )
             }
 
-            Section("Current buffer") {
+            WitnessSettingsSection("Current buffer") {
                 let snapshot = coordinator.diagnostics.snapshot
                 LabeledContent("Duration", value: L10n.format("%.2f s", snapshot.duration))
                 LabeledContent(
@@ -356,7 +431,7 @@ struct DiagnosticsView: View {
             }
 
             if let summary = coordinator.diagnostics.lastUtterance {
-                Section("Last utterance") {
+                WitnessSettingsSection("Last utterance") {
                     LabeledContent("Duration", value: L10n.format("%.2f s", summary.duration))
                     LabeledContent("Frames", value: L10n.format("%lld", Int64(summary.frameCount)))
                     LabeledContent("Sample rate", value: L10n.format("%lld Hz", Int64(summary.sampleRate.rounded())))
@@ -367,7 +442,7 @@ struct DiagnosticsView: View {
             }
 
             if let risk = coordinator.diagnostics.lastRisk {
-                Section("Last result") {
+                WitnessSettingsSection("Last result") {
                     LabeledContent("Cleanup edits", value: L10n.format("%lld", Int64(risk.editCount)))
                     LabeledContent("Edit kinds", value: risk.editKinds.isEmpty ? "\u{2014}" : risk.editKinds.joined(separator: ", "))
                     LabeledContent("Risk spans", value: L10n.format("%lld", Int64(risk.spanCount)))
@@ -377,27 +452,27 @@ struct DiagnosticsView: View {
                     LabeledContent("Attention", value: L10n.string(risk.deservesAttention ? "Offered" : "None"))
                 }
 
-                Section("Last insertion") {
+                WitnessSettingsSection("Last insertion") {
                     LabeledContent("Outcome", value: coordinator.diagnostics.lastInsertion?.outcome ?? "\u{2014}")
                     LabeledContent("Target", value: coordinator.diagnostics.lastInsertion?.targetIdentity ?? "\u{2014}")
-                    Text("The method and the application, which is what anyone asks first when an app misbehaves. The inserted text appears nowhere in here and in no log line.")
+                    Text("Shows the insertion method and target app. Dictated text is not included in diagnostics or logs.")
                         .font(.callout)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(WitnessStyle.muted)
                 }
 
-                Section("Audio lifetime") {
+                WitnessSettingsSection("Audio lifetime") {
                     LabeledContent(
                         "Retained frames",
                         value: L10n.format("%lld", Int64(coordinator.retainedAudioFrameCount))
                     )
-                    Text("A recording is held only while a review can still use it. Zero here means the app is no longer holding the last utterance.")
+                    Text("Audio is kept in memory while review is available. Zero means the last recording has been released.")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(WitnessStyle.muted)
                 }
             }
 
             if let error = coordinator.diagnostics.lastErrorDescription {
-                Section("Last error") {
+                WitnessSettingsSection("Last error") {
                     Text(error)
                         .font(.callout)
                         .foregroundStyle(WitnessStyle.warning)
@@ -405,7 +480,7 @@ struct DiagnosticsView: View {
             }
 
             #if DEBUG
-            Section("Debug export") {
+            WitnessSettingsSection("Debug export") {
                 Button("Export last utterance as WAV…") {
                     exportLastUtterance()
                 }
@@ -413,12 +488,10 @@ struct DiagnosticsView: View {
 
                 Text("Debug builds only. Writes a file solely to the location you choose in the save panel; normal capture never touches the file system.")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(WitnessStyle.muted)
             }
             #endif
         }
-        .formStyle(.grouped)
-        .scrollContentBackground(.hidden)
         .background(WitnessStyle.canvas)
     }
 
@@ -459,7 +532,7 @@ private struct LanguagesView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Your languages")
                         .font(.headline)
-                    Text("Witness only listens for languages you choose.")
+                    Text("Witness recognizes the languages you select.")
                         .font(.caption)
                         .foregroundStyle(WitnessStyle.muted)
                 }
@@ -467,9 +540,9 @@ private struct LanguagesView: View {
 
             LanguageSelectionEditor(selection: $coordinator.languageProfile)
 
-            Text("Selecting more languages costs nothing on a sentence the engine can hear clearly. It costs on the short ones: two words in Russian and two in Ukrainian look much alike, and the more languages are in play the more often one of those lands in the wrong one.")
+            Text("Choose the languages you use regularly. A smaller selection can help with short or similar-sounding phrases.")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(WitnessStyle.muted)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(18)
@@ -491,8 +564,8 @@ struct GlossaryView: View {
     @State private var language: SpeechLanguage?
 
     var body: some View {
-        Form {
-            Section("Add a term or correction") {
+        WitnessSettingsForm {
+            WitnessSettingsSection("Add a term or correction") {
                 VStack(alignment: .leading, spacing: 8) {
                     TextField("Preferred spelling or phrase", text: $term)
                         .onSubmit(add)
@@ -500,10 +573,10 @@ struct GlossaryView: View {
                         .onSubmit(add)
                     HStack {
                         Text(replacement.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                             ? "Watch this term"
+                             ? "Mark similar spellings"
                              : "Replace the second phrase with the preferred spelling")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(WitnessStyle.muted)
                         Spacer()
                     Picker("", selection: chosenLanguage) {
                         // The languages the user speaks, not a fixed four. A
@@ -521,9 +594,9 @@ struct GlossaryView: View {
                     }
                 }
 
-                Text("Corrections are explicit and stay on this Mac. A watched term without a correction is only used to mark near misses for review.")
+                Text("Add a correction to replace a specific phrase. Without one, the term is only used to flag similar spellings. Your dictionary stays on this Mac.")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(WitnessStyle.muted)
             }
 
             // Every language that has terms, including one the user has since
@@ -532,7 +605,7 @@ struct GlossaryView: View {
             ForEach(languagesWithTerms) { language in
                 let entries = coordinator.glossary.entries(for: language)
                 if !entries.isEmpty {
-                    Section(language.displayName) {
+                    WitnessSettingsSection(language.displayName) {
                         ForEach(entries) { entry in
                             HStack {
                                 VStack(alignment: .leading) {
@@ -544,7 +617,7 @@ struct GlossaryView: View {
                                             entry.normalizedTerm
                                         ))
                                             .font(.caption)
-                                            .foregroundStyle(.secondary)
+                                            .foregroundStyle(WitnessStyle.muted)
                                     }
                                 }
                                 Spacer()
@@ -563,35 +636,33 @@ struct GlossaryView: View {
             }
 
             if coordinator.glossary.entries.isEmpty {
-                Section {
-                    Text("No terms yet. Add the names and words you dictate often and would notice being wrong.")
+                WitnessSettingsSection {
+                    Text("Add names, words or phrases you use often.")
                         .font(.callout)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(WitnessStyle.muted)
                 }
             }
 
-            Section("Storage") {
+            WitnessSettingsSection("Storage") {
                 if let location = coordinator.glossaryLocationDescription {
                     Text(location)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(WitnessStyle.muted)
                         .textSelection(.enabled)
                 }
-                Text("This file is the only thing the app persists. Transcripts and recordings stay in memory.")
+                Text("Your dictionary is saved on this Mac. Recordings and transcripts stay in memory.")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(WitnessStyle.muted)
             }
 
             if let error = coordinator.glossaryErrorDescription {
-                Section("Last error") {
+                WitnessSettingsSection("Last error") {
                     Text(error)
                         .font(.callout)
                         .foregroundStyle(WitnessStyle.warning)
                 }
             }
         }
-        .formStyle(.grouped)
-        .scrollContentBackground(.hidden)
         .background(WitnessStyle.canvas)
     }
 
@@ -686,7 +757,7 @@ struct HotkeyRecorderRow: View {
 
         if let pendingBinding, coordinator.hotkeySelectionError == .keyboardAccessRequired {
             Text("To use this key on its own, allow keyboard access in macOS. You can also choose a combination instead.")
-                .font(.callout).foregroundStyle(.secondary)
+                .font(.callout).foregroundStyle(WitnessStyle.muted)
             HStack {
                 Button("Allow keyboard access…") { _ = CGRequestListenEventAccess() }
                 Button("Check again") { apply(pendingBinding) }
@@ -726,7 +797,7 @@ struct HotkeyRecorderRow: View {
              ? "Press and release a key such as ⌥, or press a combination. It saves automatically. Escape cancels."
              : "Use ⌘, ⌥, ⌃, ⇧ or Fn on its own, or a key combination. Letters, numbers and Space need a modifier."))
             .font(.callout)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(WitnessStyle.muted)
             .fixedSize(horizontal: false, vertical: true)
     }
 
@@ -811,9 +882,9 @@ private struct LaunchAtLoginRow: View {
         )
         .disabled(isRefused)
 
-        Text("An app with no Dock icon is one nobody remembers to open, and a hotkey belonging to an app that is not running reads as a broken hotkey.")
+        Text("Witness needs to be running for your shortcut to work.")
             .font(.callout)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(WitnessStyle.muted)
             .fixedSize(horizontal: false, vertical: true)
 
         if let explanation = controller.state.explanation {

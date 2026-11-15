@@ -48,7 +48,7 @@ struct EntitlementNotice: Sendable, Equatable {
             guard days <= Self.ungatedWarningDays else { return nil }
 
             headline = L10n.string("Your last day before activation")
-            detail = L10n.format("The first three days ask for nothing; they end %@. After that Witness asks for your email address, to carry on.", Self.moment.string(from: expiresAt))
+            detail = L10n.format("Your first three days end on %@. Add your email to keep dictating after that.", Self.moment.string(from: expiresAt))
             actionTitle = L10n.string("Activate…")
             symbol = "envelope"
             // There is no gentler step before this one — the notice appears on
@@ -66,7 +66,7 @@ struct EntitlementNotice: Sendable, Equatable {
                 headline = days <= 1
                     ? L10n.string("The trial ends today")
                     : L10n.format("The trial ends in %lld days", Int64(days))
-                detail = L10n.format("It runs out on %@. A license keeps this Mac dictating; your dictionary and settings stay exactly as they are either way. Have a promo code? It goes in on the payment page.", Self.moment.string(from: expiresAt))
+                detail = L10n.format("Your trial ends on %@. Choose a license to keep dictating on two Macs. Your dictionary and settings are kept. Promo codes can be entered at checkout.", Self.moment.string(from: expiresAt))
                 actionTitle = L10n.string("Open License settings")
                 symbol = "clock.badge.exclamationmark"
                 isPressing = days <= 1
@@ -80,7 +80,7 @@ struct EntitlementNotice: Sendable, Equatable {
                 headline = days <= 1
                     ? L10n.string("Your key ends today")
                     : L10n.format("Your key ends in %lld days", Int64(days))
-                detail = L10n.format("The key on this Mac runs out on %@, and Witness has not been able to fetch a new one. Open Witness with an internet connection; if a payment did not go through, fix it under Manage subscription.", Self.moment.string(from: expiresAt))
+                detail = L10n.format("Your subscription key expires on %@ and could not be renewed. Connect to the internet and open Witness. If needed, check your payment under Manage subscription.", Self.moment.string(from: expiresAt))
                 actionTitle = L10n.string("Open License settings")
                 symbol = "clock.badge.exclamationmark"
                 isPressing = days <= Self.trialWarningDays
