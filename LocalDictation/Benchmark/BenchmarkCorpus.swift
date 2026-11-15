@@ -11,6 +11,10 @@ struct BenchmarkSample: Sendable, Codable, Equatable {
     /// Profile identifier such as `de` or `de+en`. Defaults to the language's
     /// own single-language profile.
     let profile: String?
+    /// What the sample is there to test, such as `yes-no` or `paragraphs`, so
+    /// a report can say which kind of sentence an engine gets wrong. Optional;
+    /// older manifests have none.
+    var kind: String? = nil
 
     var languageProfile: LanguageProfile {
         if let profile, let resolved = LanguageProfile.profile(id: profile) { return resolved }

@@ -86,11 +86,22 @@ actor WhisperKitTranscriptionService: TranscriptionService {
     /// `SpeechModelDownloadSize.pinnedVariantBytes` was measured for.
     static let defaultModelVariant = "openai_whisper-large-v3-v20240930_turbo"
 
+    /// Text Whisper is conditioned on before each utterance, per language.
+    ///
+    /// Whisper continues the style of its previous text, punctuation density
+    /// included, so a short punctuated passage with a question in it is the
+    /// cheapest lever on how often it writes `?`. Empty in the shipped app:
+    /// it stays a benchmark knob until the punctuation corpus says it helps
+    /// without making Whisper echo the prompt into silence.
+    private let decodingPrompts: [SpeechLanguage: String]
+
     init(
         modelVariant: String = WhisperKitTranscriptionService.defaultModelVariant,
-        reusesEncoderOutput: Bool = true
+        reusesEncoderOutput: Bool = true,
+        decodingPrompts: [SpeechLanguage: String] = [:]
     ) {
         self.modelVariant = modelVariant
+        self.decodingPrompts = decodingPrompts
         encoder = reusesEncoderOutput ? ReusingAudioEncoder() : nil
     }
 
@@ -403,7 +414,10 @@ actor WhisperKitTranscriptionService: TranscriptionService {
 
         let results = try await decode(
             utterance.samples,
-            options: Self.decodingOptions(pinnedTo: language),
+            options: Self.decodingOptions(
+                pinnedTo: language,
+                promptTokens: promptTokens(for: language, using: engine)
+            ),
             using: engine
         )
         let decodedAt = Date()
@@ -515,15 +529,26 @@ actor WhisperKitTranscriptionService: TranscriptionService {
 
     /// Whisper decodes one language per pass, and since Phase 7 that language
     /// is always decided in advance.
-    private static func decodingOptions(pinnedTo language: SpeechLanguage) -> DecodingOptions {
+    private static func decodingOptions(pinnedTo language: SpeechLanguage, promptTokens: [Int]? = nil) -> DecodingOptions {
         DecodingOptions(
             verbose: false,
             task: .transcribe,
             language: language.rawValue,
             detectLanguage: false,
             skipSpecialTokens: true,
-            wordTimestamps: true
+            wordTimestamps: true,
+            promptTokens: promptTokens
         )
+    }
+
+    /// The configured prompt as decoder tokens, or nil when this language has
+    /// none. Special tokens are filtered here as well as in WhisperKit, so a
+    /// prompt can never smuggle in a language or task token.
+    private func promptTokens(for language: SpeechLanguage, using engine: WhisperKit) -> [Int]? {
+        guard let prompt = decodingPrompts[language], let tokenizer = engine.tokenizer else { return nil }
+        let tokens = tokenizer.encode(text: " " + prompt.trimmingCharacters(in: .whitespacesAndNewlines))
+            .filter { $0 < tokenizer.specialTokens.specialTokenBegin }
+        return tokens.isEmpty ? nil : tokens
     }
 
     // MARK: - Result mapping

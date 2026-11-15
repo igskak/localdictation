@@ -23,7 +23,10 @@ struct TextNormalizer: Sendable, Equatable {
     /// Punctuation removed before scoring. Apostrophes and hyphens are kept
     /// because they carry meaning inside words in every supported language —
     /// German compounds, Ukrainian `з'їзд`, English contractions.
-    private static let strippedPunctuation: Set<Character> = [
+    ///
+    /// Internal so `PunctuationScorer` splits words exactly where this
+    /// normalizer does; two definitions of a word would misalign the marks.
+    static let strippedPunctuation: Set<Character> = [
         ".", ",", "!", "?", ";", ":", "…", "\"", "«", "»", "„", "“", "”",
         "(", ")", "[", "]", "{", "}", "/", "\\", "*", "_", "—", "–",
     ]

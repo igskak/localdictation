@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1F7E4C65FC8F0A63639E392C /* PunctuationBenchmark.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5C6FA1089E00B49989FC70A /* PunctuationBenchmark.swift */; };
+		2C34D8DEE5D72CB89D9D4796 /* PunctuationScorer.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC808E1865ADDAC706519A88 /* PunctuationScorer.swift */; };
+		2A913423254630692D339CEB /* PunctuationBenchmarkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86C7B87BFA0B559578AB8BD4 /* PunctuationBenchmarkTests.swift */; };
+		4825A5755C04E2E7674B9D80 /* PunctuationScorerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F92F9F06964415AE116E0CCA /* PunctuationScorerTests.swift */; };
 		B00000000000000000000001 /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = B00000000000000000000002 /* WhisperKit */; };
 		B90000000000000000000001 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = B90000000000000000000002 /* Sparkle */; };
 		421F0FBED82B2D1950A539BF /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50491C4960DA92FD199C987C /* AppDelegate.swift */; };
@@ -260,6 +264,10 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		F5C6FA1089E00B49989FC70A /* PunctuationBenchmark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PunctuationBenchmark.swift; sourceTree = "<group>"; };
+		FC808E1865ADDAC706519A88 /* PunctuationScorer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PunctuationScorer.swift; sourceTree = "<group>"; };
+		86C7B87BFA0B559578AB8BD4 /* PunctuationBenchmarkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PunctuationBenchmarkTests.swift; sourceTree = "<group>"; };
+		F92F9F06964415AE116E0CCA /* PunctuationScorerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PunctuationScorerTests.swift; sourceTree = "<group>"; };
 		50491C4960DA92FD199C987C /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		EFDA3EAA35986CEDBD04AFA3 /* LocalDictationApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalDictationApp.swift; sourceTree = "<group>"; };
 		F0805C63EB40C3DA16681754 /* AdaptiveCleanupBenchmark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveCleanupBenchmark.swift; sourceTree = "<group>"; };
@@ -539,6 +547,8 @@
 				6E34ACB658D2DB3613DDC895 /* AdaptiveCleanupScorer.swift */,
 				F19D27E122F1FBF34B7B75F2 /* BenchmarkCorpus.swift */,
 				63A8F3C2D273F46049CA8934 /* BenchmarkRunner.swift */,
+				F5C6FA1089E00B49989FC70A /* PunctuationBenchmark.swift */,
+				FC808E1865ADDAC706519A88 /* PunctuationScorer.swift */,
 				08D762A3EEBB4556393D87CB /* Phase9LegacyCleanup.swift */,
 				F52755165EDA3EE66EE4DE2B /* RiskBenchmark.swift */,
 				266905ECCA8C778B7454A4E6 /* StructuralCleanupScorer.swift */,
@@ -948,6 +958,8 @@
 				212E3A0E3F2C267713E461B3 /* ApplicationSupportDirectoryTests.swift */,
 				E724DC5B9AB291F8DE43FC73 /* AudioFormatConverterTests.swift */,
 				3DF1EB70F3CC77FC666095A7 /* BenchmarkRunnerTests.swift */,
+				86C7B87BFA0B559578AB8BD4 /* PunctuationBenchmarkTests.swift */,
+				F92F9F06964415AE116E0CCA /* PunctuationScorerTests.swift */,
 				6C64D3C5A6BF8CCA2A02B5ED /* BoundedPCMBufferTests.swift */,
 				93CF5E4D633AE25175C43744 /* CaptureInterruptionTests.swift */,
 				300C15129730DCED75EEEA82 /* CapturePrivacyTests.swift */,
@@ -1167,6 +1179,8 @@
 				F930C61B86F0F2E85821F88F /* AdaptiveCleanupScorer.swift in Sources */,
 				BA0119C5273BC5427F8B3105 /* BenchmarkCorpus.swift in Sources */,
 				B9D2789F59A8FFC22284812A /* BenchmarkRunner.swift in Sources */,
+				1F7E4C65FC8F0A63639E392C /* PunctuationBenchmark.swift in Sources */,
+				2C34D8DEE5D72CB89D9D4796 /* PunctuationScorer.swift in Sources */,
 				4971D78EE942E934622BF126 /* Phase9LegacyCleanup.swift in Sources */,
 				1001E7899ADF5414CEF2202A /* RiskBenchmark.swift in Sources */,
 				9ECD5FCD79453B86C46B6D36 /* StructuralCleanupScorer.swift in Sources */,
@@ -1320,6 +1334,8 @@
 				0E91A18B48A3D839F69FA867 /* ApplicationSupportDirectoryTests.swift in Sources */,
 				3C6766FB84D9FB7521A6A7AF /* AudioFormatConverterTests.swift in Sources */,
 				15CED33DBC5D93E4502DB6E9 /* BenchmarkRunnerTests.swift in Sources */,
+				2A913423254630692D339CEB /* PunctuationBenchmarkTests.swift in Sources */,
+				4825A5755C04E2E7674B9D80 /* PunctuationScorerTests.swift in Sources */,
 				7079653106E703087BDD7F7F /* BoundedPCMBufferTests.swift in Sources */,
 				DA485ED8CF282C4408931D97 /* CaptureInterruptionTests.swift in Sources */,
 				35ACFD2E3FD3DF60844C2AB9 /* CapturePrivacyTests.swift in Sources */,
