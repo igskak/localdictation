@@ -216,6 +216,7 @@ python3 Tools/generate_pbxproj.py
 
 - [WhisperKit](https://github.com/argmaxinc/WhisperKit) 1.1.0, MIT. Rationale in `docs/PHASE_2_BENCHMARK.md`: no system framework at the macOS 14.4 deployment target returns the per-word confidence Phase 3 is built on.
 - [Sparkle](https://sparkle-project.org/) 2.10.0, MIT. It provides verified in-app updates for direct-distribution macOS apps; macOS has no equivalent system updater. Its complete notice, including bundled code notices, is in `LocalDictation/Resources/Sparkle-LICENSE.txt` and the built app.
+- [FluidAudio](https://github.com/FluidInference/FluidAudio) 0.17.7, Apache-2.0. It is pinned behind a local wrapper and used only by explicitly flagged Notetaker dogfood builds to run the bundled Nemotron 3 diarization model through Core ML. The exact model revision, OpenMDW 1.1 notice, distribution decision, and production quality gate are documented in `docs/NOTETAKER_DIARIZATION_MODEL_SLICE.md`.
 
 ## Privacy
 

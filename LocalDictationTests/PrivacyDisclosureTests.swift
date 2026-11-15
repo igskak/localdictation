@@ -151,4 +151,20 @@ final class PrivacyDisclosureTests: XCTestCase {
             "docs/PRIVACY.md does not name the host the app actually sends to: \(host)"
         )
     }
+
+    func testMeetingStorageAndDeletionAreDisclosedBeforeEnablement() throws {
+        let text = try policy()
+        for claim in [
+            "Start meeting note",
+            "Application Support/Witness/Meetings",
+            "manifest.json",
+            "transcript.ndjson",
+            "notes.json",
+            "no raw audio",
+            "permanently delete",
+            "cannot be undone"
+        ] {
+            XCTAssertTrue(text.contains(claim), "docs/PRIVACY.md does not disclose meeting claim: \(claim)")
+        }
+    }
 }

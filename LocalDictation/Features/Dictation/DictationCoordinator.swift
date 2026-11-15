@@ -900,7 +900,7 @@ final class DictationCoordinator: ObservableObject {
             lastUtteranceSamples = utterance.samples
             #endif
             Log.audio.info(
-                "Utterance completed: \(String(format: "%.2f", summary.duration)) s at \(Int(summary.sampleRate)) Hz, dropped \(summary.droppedFrameCount), reason \(summary.endReason.rawValue, privacy: .public)"
+                "Utterance completed: \(String(format: "%.2f", summary.duration), privacy: .public) s at \(Int(summary.sampleRate), privacy: .public) Hz, rms \(String(format: "%.5f", summary.rmsLevel), privacy: .public), peak \(String(format: "%.5f", summary.peakLevel), privacy: .public), heard speech \(summary.heardSpeech, privacy: .public), dropped \(summary.droppedFrameCount, privacy: .public), reason \(summary.endReason.rawValue, privacy: .public)"
             )
         }
 
@@ -1972,7 +1972,9 @@ final class DictationCoordinator: ObservableObject {
 
 extension DictationCoordinator {
     /// Live composition root.
-    static func makeLive() -> DictationCoordinator {
+    static func makeLive(
+        transcriptionService: WhisperKitTranscriptionService = WhisperKitTranscriptionService()
+    ) -> DictationCoordinator {
         // One trust reader, shared: the coordinator shows the state and the
         // insertion service gates on it, and two readers could disagree.
         let accessibility = AXAccessibilityPermissionService()
@@ -1997,7 +1999,7 @@ extension DictationCoordinator {
             // the only admitted candidate that returns per-token confidence,
             // which Phase 3 requires. `AppleSpeechTranscriptionService` stays in
             // the codebase as the comparison the benchmark scores it against.
-            transcriptionService: WhisperKitTranscriptionService(),
+            transcriptionService: transcriptionService,
             cleanupService: AdaptiveCleanupService(),
             textContextService: AXTextContextService(
                 permissionService: accessibility,

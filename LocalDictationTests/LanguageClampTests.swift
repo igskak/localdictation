@@ -1,4 +1,5 @@
 import XCTest
+import WhisperKit
 @testable import Witness
 
 /// From the second live session: a Ukrainian utterance on a UK+EN profile came
@@ -9,6 +10,14 @@ import XCTest
 /// the user selected. These cover the pure half of the clamp; the decode path
 /// itself needs the model and is exercised by the benchmark.
 final class LanguageClampTests: XCTestCase {
+    func testDictationAllowsOnlyOneTemperatureFallback() {
+        let options = WhisperKitTranscriptionService.decodingOptions(pinnedTo: .russian)
+
+        XCTAssertEqual(options.temperatureFallbackCount, 1)
+        XCTAssertEqual(options.language, "ru")
+        XCTAssertFalse(options.detectLanguage)
+    }
+
     func testTheProfileLanguageWithTheHighestProbabilityWins() {
         let best = WhisperKitTranscriptionService.bestLanguage(
             in: .ukrainianEnglish,

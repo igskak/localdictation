@@ -261,22 +261,27 @@ extension View {
 struct LocalDictationApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var coordinator: DictationCoordinator
+    @StateObject private var notetakerStatus: NotetakerStatus
+    private let notetaker: any NotetakerFacade
 
     init() {
         // Before `makeLive`, which is what constructs the stores: the folder has
         // to have been carried across from the product's old name before
         // anything looks inside it for a licence.
         ApplicationSupportDirectory.prepare()
-        let coordinator = DictationCoordinator.makeLive()
-        _coordinator = StateObject(wrappedValue: coordinator)
+        let composition = ApplicationComposition.makeLive()
+        _coordinator = StateObject(wrappedValue: composition.dictationCoordinator)
+        _notetakerStatus = StateObject(wrappedValue: composition.notetaker.status)
+        notetaker = composition.notetaker
         // The delegate activates the coordinator once AppKit has finished
         // launching, so hotkey registration happens against a live event target.
-        AppDelegate.coordinator = coordinator
+        AppDelegate.coordinator = composition.dictationCoordinator
+        AppDelegate.notetaker = composition.notetaker
     }
 
     var body: some Scene {
         MenuBarExtra {
-            MenuBarView()
+            MenuBarView(notetaker: notetaker)
                 .environmentObject(coordinator)
         } label: {
             // The indicator lives here because this is the one place that is on
@@ -284,8 +289,8 @@ struct LocalDictationApp: App {
             // label as a template image, so the alert is the symbol itself
             // rather than a badge drawn over one.
             Label(
-                "Witness",
-                systemImage: StatusPresentation(
+                notetakerStatus.accessibilityLabel,
+                systemImage: notetakerStatus.systemImage ?? StatusPresentation(
                     state: coordinator.state,
                     binding: coordinator.binding,
                     // Carried into the label since the app fetches the model
@@ -305,5 +310,59 @@ struct LocalDictationApp: App {
             SettingsView()
                 .environmentObject(coordinator)
         }
+    }
+}
+
+/// Live application composition. Dictation is constructed exactly as before;
+/// the Notetaker gate is resolved beside it without letting a disabled feature
+/// construct any of its future system-facing dependencies.
+@MainActor
+struct ApplicationComposition {
+    let dictationCoordinator: DictationCoordinator
+    let notetaker: any NotetakerFacade
+
+    static func make(
+        notetakerAvailability: NotetakerAvailability,
+        makeDictationCoordinator: () -> DictationCoordinator,
+        makeAvailableNotetaker: (DictationCoordinator) -> any NotetakerFacade
+    ) -> ApplicationComposition {
+        let coordinator = makeDictationCoordinator()
+        return ApplicationComposition(
+            dictationCoordinator: coordinator,
+            notetaker: NotetakerCompositionRoot.make(
+                availability: notetakerAvailability,
+                buildAvailableSubsystem: { makeAvailableNotetaker(coordinator) }
+            )
+        )
+    }
+
+    static func makeLive(
+        notetakerAvailability: NotetakerAvailability = .liveDefault
+    ) -> ApplicationComposition {
+        // One speech engine for the whole app. The Notetaker reaches it through
+        // `meetingClient` instead of loading the 1.27 GB model a second time.
+        let speech = WhisperKitTranscriptionService()
+        return make(
+            notetakerAvailability: notetakerAvailability,
+            makeDictationCoordinator: { DictationCoordinator.makeLive(transcriptionService: speech) },
+            // A normal Release never invokes this closure. The separately
+            // built dogfood DMG enables it with NOTETAKER_DOGFOOD so the
+            // testable UI cannot accidentally ship in the public build.
+            makeAvailableNotetaker: { coordinator in
+                DogfoodNotetakerFacade(
+                    languageProfileProvider: { [weak coordinator] in
+                        coordinator?.languageProfile ?? .default
+                    },
+                    transcription: speech.meetingClient,
+                    // Read when each meeting starts, like the language profile.
+                    cleanupProvider: { [weak coordinator] in
+                        MeetingTextCleanup(
+                            glossary: coordinator?.glossary ?? .empty,
+                            level: coordinator?.cleanupLevel ?? .conservative
+                        )
+                    }
+                )
+            }
+        )
     }
 }

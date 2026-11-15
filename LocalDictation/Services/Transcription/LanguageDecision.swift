@@ -15,6 +15,20 @@ import Foundation
 /// related languages the ranking is a coin toss. The margin and the previous
 /// utterance exist for exactly that case.
 struct LanguageDecision: Sendable, Equatable {
+    /// The decoder's raw scores for language tokens, as probabilities that sum
+    /// to one over every language the engine knows: Whisper's own softmax.
+    ///
+    /// Non-finite scores are the tokens WhisperKit's filter suppressed and get
+    /// no share. Empty when nothing usable came in.
+    static func distribution(fromLogits logits: [String: Float]) -> [String: Float] {
+        let finite = logits.filter { $0.value.isFinite }
+        guard let maximum = finite.values.max() else { return [:] }
+        let weights = finite.mapValues { Foundation.exp($0 - maximum) }
+        let total = weights.values.reduce(0, +)
+        guard total > 0, total.isFinite else { return [:] }
+        return weights.mapValues { $0 / total }
+    }
+
     /// Why this language, in the words the log uses.
     enum Reason: String, Sendable, Equatable {
         /// One language is selected, so nothing was detected at all.
@@ -49,6 +63,33 @@ struct LanguageDecision: Sendable, Equatable {
     /// Long enough to cover a pause for thought in the middle of a paragraph,
     /// short enough that yesterday's language has no opinion about today's.
     static let recencyWindow: TimeInterval = 120
+
+    /// The margin a meeting window needs to leave the meeting's language.
+    ///
+    /// A starting value like `defaultMargin`, chosen wider because a meeting
+    /// asks the detector every ten seconds for an hour of compressed call
+    /// audio: on 28.10 ten of 99 windows of a Ukrainian call came back as
+    /// Russian, "Доброе время." among them. Each meeting window logs its two
+    /// leading probabilities so this can be measured rather than argued.
+    static let meetingMargin: Float = 0.35
+
+    /// The language a meeting has been confidently in most often, newest
+    /// winning a tie. Only confident windows count: an ambiguous one decided
+    /// by this very rule must not vote for itself.
+    static func prevailing(
+        in history: [SpeechLanguage],
+        profile: LanguageProfile
+    ) -> SpeechLanguage? {
+        var counts: [SpeechLanguage: Int] = [:]
+        var lastSeen: [SpeechLanguage: Int] = [:]
+        for (index, language) in history.enumerated() where profile.contains(language) {
+            counts[language, default: 0] += 1
+            lastSeen[language] = index
+        }
+        return counts.max { lhs, rhs in
+            lhs.value == rhs.value ? lastSeen[lhs.key, default: 0] < lastSeen[rhs.key, default: 0] : lhs.value < rhs.value
+        }?.key
+    }
 
     static func choose(
         profile: LanguageProfile,
