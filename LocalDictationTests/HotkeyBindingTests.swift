@@ -29,6 +29,29 @@ final class HotkeyBindingTests: XCTestCase {
 
     private static let commandJ = HotkeyBinding(keyCode: 38, modifiers: [.command], keyLabel: "J")
 
+    func testRetryingTheStoredKeyRecoversRegistrationFailureWithoutChangingTheBinding() {
+        let harness = makeHarness()
+        harness.coordinator.deactivate()
+        harness.hotkey.failNextRegistration(with: HotkeyRegistrationError.keyboardAccessRequired)
+        harness.coordinator.activate()
+        guard case .failed(.hotkeyRegistration) = harness.coordinator.state else {
+            return XCTFail("Expected registration failure")
+        }
+        XCTAssertNil(harness.coordinator.changeHotkey(to: harness.coordinator.binding))
+        XCTAssertEqual(harness.coordinator.state, .ready)
+        XCTAssertTrue(harness.coordinator.isHotkeySelectionReady)
+    }
+
+    func testKeepingTheCurrentKeyRetriesItsRegistrationAndRecovers() {
+        let harness = makeHarness()
+        harness.coordinator.deactivate()
+        harness.hotkey.failNextRegistration(with: HotkeyRegistrationError.alreadyInUse)
+        harness.coordinator.activate()
+        harness.coordinator.keepCurrentHotkey()
+        XCTAssertEqual(harness.coordinator.state, .ready)
+        XCTAssertTrue(harness.coordinator.isHotkeySelectionReady)
+    }
+
     func testRecapturingCurrentShortcutReportsARegistrationFailure() {
         let harness = makeHarness()
         harness.coordinator.beginHotkeyCapture()

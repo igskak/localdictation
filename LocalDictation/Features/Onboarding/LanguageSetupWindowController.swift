@@ -90,14 +90,20 @@ final class LanguageSetupWindowController: NSObject, NSWindowDelegate {
                 model.step = .languages
             } else {
                 model.step = .ready
-                model.page = min(receipt.page, 4)
+                model.page = min(max(receipt.page, 0), 4)
+                if model.page > 1 && coordinator.needsAccessibilityTrust && !receipt.usesClipboardOnly {
+                    model.page = 1
+                }
             }
+            model.usesClipboardOnly = receipt.usesClipboardOnly
             model.opensAtLogin = loginItem.state == .enabled
-            checkpointObservation = model.$page.dropFirst().sink { [weak self] page in
-                guard let self else { return }
-                self.receipt.page = page
-                self.receipt.save(to: self.receiptURL)
-            }
+            checkpointObservation = Publishers.CombineLatest(model.$page, model.$usesClipboardOnly)
+                .dropFirst().sink { [weak self] page, usesClipboardOnly in
+                    guard let self else { return }
+                    self.receipt.page = page
+                    self.receipt.usesClipboardOnly = usesClipboardOnly
+                    self.receipt.save(to: self.receiptURL)
+                }
         }
     }
 
@@ -108,6 +114,7 @@ final class LanguageSetupWindowController: NSObject, NSWindowDelegate {
     func presentIfNeeded(force: Bool = false) {
         guard force || (installationAware ? receipt.outcome == "pending" : coordinator.needsLanguageSetup) else { return }
         if let window {
+            if window.isMiniaturized { window.deminiaturize(nil) }
             window.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
             return
@@ -115,7 +122,7 @@ final class LanguageSetupWindowController: NSObject, NSWindowDelegate {
 
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 520, height: 620),
-            styleMask: [.titled, .closable],
+            styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false
         )
@@ -123,6 +130,7 @@ final class LanguageSetupWindowController: NSObject, NSWindowDelegate {
         window.titlebarAppearsTransparent = true
         window.backgroundColor = NSColor(red: 17 / 255, green: 18 / 255, blue: 16 / 255, alpha: 1)
         window.appearance = NSAppearance(named: .darkAqua)
+        model.isInteractive = false
         window.contentView = NSHostingView(
             rootView: FirstRunView(
                 model: model,
@@ -227,8 +235,32 @@ final class LanguageSetupWindowController: NSObject, NSWindowDelegate {
     /// Whether the window is up at all, in either of its two states.
     var isPresenting: Bool { window?.isVisible == true }
 
+    func windowDidBecomeKey(_ notification: Notification) {
+        model.isInteractive = true
+        model.synchronizeReadiness(using: coordinator)
+    }
+
+    func windowDidResignKey(_ notification: Notification) {
+        pauseTest()
+    }
+
+    func windowDidMiniaturize(_ notification: Notification) {
+        pauseTest()
+    }
+
+    func windowDidDeminiaturize(_ notification: Notification) {
+        model.isInteractive = window?.isKeyWindow == true
+        model.synchronizeReadiness(using: coordinator)
+    }
+
+    private func pauseTest() {
+        model.isInteractive = false
+        if coordinator.isOnboardingTest { coordinator.endOnboardingTest(preserveResult: true) }
+    }
+
     func windowWillClose(_ notification: Notification) {
-        if coordinator.isOnboardingTest { coordinator.endOnboardingTest() }
+        model.isInteractive = false
+        model.clearTest(using: coordinator)
         if installationAware && receipt.outcome == "pending" { receipt.outcome = "dismissed"; receipt.save(to: receiptURL) }
         window = nil
         guard !isAnswered else {
@@ -269,6 +301,18 @@ struct OnboardingReceipt: Codable {
     var installation: String
     var page = 0
     var outcome = "pending"
+    var usesClipboardOnly = false
+
+    init(installation: String) { self.installation = installation }
+
+    private enum CodingKeys: String, CodingKey { case installation, page, outcome, usesClipboardOnly }
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        installation = try container.decode(String.self, forKey: .installation)
+        page = try container.decodeIfPresent(Int.self, forKey: .page) ?? 0
+        outcome = try container.decodeIfPresent(String.self, forKey: .outcome) ?? "pending"
+        usesClipboardOnly = try container.decodeIfPresent(Bool.self, forKey: .usesClipboardOnly) ?? false
+    }
     static var updateMarkerURL: URL { ApplicationSupportDirectory.file("onboarding-update") }
     static var url: URL { ApplicationSupportDirectory.file("onboarding.json") }
     static var currentInstallation: String {

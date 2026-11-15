@@ -65,3 +65,12 @@ The complete Xcode suite passed: 986 tests passed, 5 skipped, zero failures.
 The translation catalogue check now covers 589 complete entries. The Node
 fixture check preserves the entry-point symlink so it also runs from an isolated
 release worktree. Service fixture bytes and signing behavior are unchanged.
+
+
+## Release candidate — 0.6.24 (build 25)
+
+Onboarding permission/readiness, shortcut recovery, minimized-window behavior and
+activation-aware notices are covered in `docs/ONBOARDING_AUDIT_2026-11-15.md`.
+The complete Xcode suite passed: 998 tests passed, 5 skipped, zero failures.
+Distribution is pending renewed Apple Developer Program agreements;
+`Tools/release.sh --check` currently receives Apple's HTTP 403 agreement error.

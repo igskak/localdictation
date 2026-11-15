@@ -516,6 +516,23 @@ final class DictationCoordinator: ObservableObject {
 
     // MARK: - Hotkey
 
+    /// A rejected choice remains explicit until it is fixed or the user keeps the old key.
+    @Published private(set) var pendingHotkeyBinding: HotkeyBinding?
+    @Published private(set) var hotkeySelectionError: HotkeyRegistrationError?
+
+    var isHotkeySelectionReady: Bool {
+        registeredHotkey == binding && !isCapturingHotkey
+            && pendingHotkeyBinding == nil && preferencesErrorDescription == nil
+    }
+
+    func keepCurrentHotkey() {
+        pendingHotkeyBinding = nil
+        hotkeySelectionError = nil
+        if registeredHotkey == nil { registerHotkey() }
+        if preferencesErrorDescription != nil { persistPreferences() }
+        if registeredHotkey == binding, case .failed(.hotkeyRegistration) = state { recoverFromFailure() }
+    }
+
     private func registerHotkey() {
         if let error = tryRegister(binding) {
             registeredHotkey = nil
@@ -556,38 +573,41 @@ final class DictationCoordinator: ObservableObject {
     /// already taken.
     @discardableResult
     func changeHotkey(to candidate: HotkeyBinding) -> HotkeyRegistrationError? {
-        guard candidate != binding else { return registeredHotkey == nil ? tryRegister(candidate) : nil }
-        // A shortcut with no modifier is registered system-wide against a
-        // bare key, which takes that key away from every application on the
-        // Mac including this one's own text fields.
-        guard !candidate.modifiers.isEmpty || candidate.isSingleModifier else { return .noModifier }
-
+        pendingHotkeyBinding = candidate
+        hotkeySelectionError = nil
+        guard !candidate.modifiers.isEmpty || candidate.isSingleModifier else {
+            hotkeySelectionError = .noModifier
+            return .noModifier
+        }
+        if candidate == binding {
+            if registeredHotkey == nil, let error = tryRegister(candidate) {
+                hotkeySelectionError = error
+                return error
+            }
+            if preferencesErrorDescription != nil { persistPreferences() }
+            if preferencesErrorDescription == nil { pendingHotkeyBinding = nil }
+            if case .failed(.hotkeyRegistration) = state { recoverFromFailure() }
+            return nil
+        }
         let previous = binding
         if let error = tryRegister(candidate) {
+            hotkeySelectionError = error
             Log.hotkey.error("Hotkey change refused: \(error.message, privacy: .public)")
-            // Put the working one back. `tryRegister` unregisters before it
-            // registers, so at this point nothing is listening at all.
             if let restoreError = tryRegister(previous) {
                 apply(.hotkeyRegistrationFailed(restoreError.message))
             }
             return error
         }
-
         binding = candidate
         persistPreferences()
+        if preferencesErrorDescription == nil { pendingHotkeyBinding = nil }
         Log.hotkey.info("Hotkey changed to \(candidate.displayString, privacy: .public)")
-        // Registration failure is a state, so a successful change has to
-        // clear it or the app stays broken-looking after it is fixed.
         if case .failed(.hotkeyRegistration) = state { recoverFromFailure() }
         return nil
     }
 
     func resetHotkey() {
         isCapturingHotkey = false
-        if binding == .optionSpace {
-            if registeredHotkey == nil { registerHotkey() }
-            return
-        }
         changeHotkey(to: .optionSpace)
     }
 
@@ -600,6 +620,8 @@ final class DictationCoordinator: ObservableObject {
     /// and pressing it would start recording into the settings window.
     func beginHotkeyCapture() {
         guard !isCapturingHotkey else { return }
+        pendingHotkeyBinding = nil
+        hotkeySelectionError = nil
         isCapturingHotkey = true
         hotkeyService.unregister()
         registeredHotkey = nil
@@ -614,7 +636,7 @@ final class DictationCoordinator: ObservableObject {
     func cancelHotkeyCapture() {
         guard isCapturingHotkey else { return }
         isCapturingHotkey = false
-        registerHotkey()
+        keepCurrentHotkey()
     }
 
     /// Takes the combination the user pressed.
@@ -627,9 +649,10 @@ final class DictationCoordinator: ObservableObject {
             // Nothing was registered while capturing, so the old shortcut
             // has to go back before the refusal is reported.
             registerHotkey()
+            pendingHotkeyBinding = candidate
+            hotkeySelectionError = .noModifier
             return .noModifier
         }
-        guard candidate != binding else { return tryRegister(candidate) }
         return changeHotkey(to: candidate)
     }
 
@@ -692,13 +715,15 @@ final class DictationCoordinator: ObservableObject {
     private var discardGesture = false
     @Published private(set) var isOnboardingTest = false
     @Published private(set) var onboardingTestText = ""
+    @Published private(set) var onboardingTestResult: DictationResult?
 
     func beginOnboardingTest() {
         guard !state.isBusy else { return }
         onboardingTestText = ""
+        onboardingTestResult = nil
         isOnboardingTest = true
     }
-    func endOnboardingTest() {
+    func endOnboardingTest(preserveResult: Bool = false) {
         if state.isBusy { discardGesture = true; endCapture(reason: .hotkeyRelease) }
         let wasTranscribing = state.isTranscribing
         cancelTranscription()
@@ -706,7 +731,10 @@ final class DictationCoordinator: ObservableObject {
         result = nil; transcript = nil
         releaseRetainedAudio()
         isOnboardingTest = false
-        onboardingTestText = ""
+        if !preserveResult {
+            onboardingTestText = ""
+            onboardingTestResult = nil
+        }
     }
     func stopOnboardingRecording() { endCapture(reason: .hotkeyRelease) }
 
@@ -1241,6 +1269,14 @@ final class DictationCoordinator: ObservableObject {
         accessibilityAuthorization = accessibilityService.requestTrust()
     }
 
+    /// Called only by the user's setup action, never by a status refresh.
+    func requestAccessibilitySetup() {
+        guard needsAccessibilityTrust else { return }
+        requestAccessibilityTrust()
+        if needsAccessibilityTrust { openAccessibilitySettings() }
+        refreshAccessibilityAuthorization()
+    }
+
     func openAccessibilitySettings() {
         accessibilityService?.openSystemSettings()
     }
@@ -1755,6 +1791,7 @@ final class DictationCoordinator: ObservableObject {
         // words appear where they were already typing, every time, and the
         // checking is offered afterwards to whoever wants it.
         if isOnboardingTest {
+            onboardingTestResult = result
             onboardingTestText = result.cleanedText
             apply(.transcriptionFinished)
             return

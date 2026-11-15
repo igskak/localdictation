@@ -20,6 +20,8 @@ final class LanguageSetupModel: ObservableObject {
     }
 
     @Published var page = 0
+    @Published var usesClipboardOnly = false
+    @Published var isInteractive = true
     @Published var selection: LanguageProfile
     @Published var step: Step = .languages
     /// Whether the app should open itself at login, as the second screen shows
@@ -31,6 +33,66 @@ final class LanguageSetupModel: ObservableObject {
     init(selection: LanguageProfile) {
         self.selection = selection
     }
+    func insertionChoiceIsReady(using coordinator: DictationCoordinator) -> Bool {
+        !coordinator.needsAccessibilityTrust || usesClipboardOnly
+    }
+
+    func testPrerequisitesAreReady(using coordinator: DictationCoordinator) -> Bool {
+        !coordinator.needsLanguageSetup && coordinator.microphoneAuthorization == .authorized
+            && coordinator.isHotkeySelectionReady && coordinator.transcriptionModelState.isReady
+            && insertionChoiceIsReady(using: coordinator)
+    }
+
+    func canAdvance(using coordinator: DictationCoordinator) -> Bool {
+        switch page {
+        case 0: coordinator.microphoneAuthorization == .authorized
+        case 1: insertionChoiceIsReady(using: coordinator)
+        case 2: insertionChoiceIsReady(using: coordinator) && coordinator.isHotkeySelectionReady
+        case 3: testPrerequisitesAreReady(using: coordinator)
+        case 4: testPrerequisitesAreReady(using: coordinator) && !coordinator.onboardingTestText.isEmpty
+        default: true
+        }
+    }
+
+    func synchronizeReadiness(using coordinator: DictationCoordinator) {
+        if page == 3 && coordinator.transcriptionModelState.isReady { page = 4 }
+        guard page == 4 else { return }
+        if isInteractive && testPrerequisitesAreReady(using: coordinator) {
+            if !coordinator.isOnboardingTest && coordinator.onboardingTestText.isEmpty {
+                coordinator.beginOnboardingTest()
+            }
+        } else if coordinator.isOnboardingTest {
+            coordinator.endOnboardingTest(preserveResult: true)
+        }
+    }
+
+    func advance(using coordinator: DictationCoordinator) {
+        guard canAdvance(using: coordinator), page < 5 else { return }
+        clearTest(using: coordinator)
+        page += 1
+        synchronizeReadiness(using: coordinator)
+    }
+
+    func continueWithClipboard(using coordinator: DictationCoordinator) {
+        usesClipboardOnly = true
+        advance(using: coordinator)
+    }
+
+    func clearTest(using coordinator: DictationCoordinator) {
+        if coordinator.isOnboardingTest || !coordinator.onboardingTestText.isEmpty {
+            coordinator.endOnboardingTest()
+        }
+    }
+
+    func showRequiredSetup(using coordinator: DictationCoordinator) {
+        clearTest(using: coordinator)
+        if coordinator.needsLanguageSetup { step = .languages }
+        else if coordinator.microphoneAuthorization != .authorized { page = 0 }
+        else if !insertionChoiceIsReady(using: coordinator) { page = 1 }
+        else if !coordinator.isHotkeySelectionReady { page = 2 }
+        else { page = 3 }
+    }
+
 }
 
 /// The one question the app asks before it is used.
@@ -153,42 +215,30 @@ struct GuidedSetupView: View {
                 Spacer()
                 Button(L10n.string(model.page == 5 ? "Done" : "Next")) { advance() }
                     .buttonStyle(WitnessPrimaryButtonStyle())
-                    .disabled(!canAdvance)
+                    .disabled(!model.canAdvance(using: coordinator))
             }
         }
         .padding(28).frame(width: 520, height: 620).witnessWindow()
-        .onChange(of: coordinator.transcriptionModelState.isReady) { _, ready in
-            if ready && model.page == 3 { model.page = 4; enterTest() }
-        }
-        .onAppear {
-            if model.page == 3 && coordinator.transcriptionModelState.isReady { model.page = 4 }
-            if model.page == 4 { enterTest() }
-        }
+        .onChange(of: coordinator.transcriptionModelState.isReady) { _, _ in synchronize() }
+        .onChange(of: coordinator.state) { _, _ in synchronize() }
+        .onChange(of: coordinator.microphoneAuthorization) { _, _ in synchronize() }
+        .onChange(of: coordinator.registeredHotkey) { _, _ in synchronize() }
+        .onChange(of: coordinator.pendingHotkeyBinding) { _, _ in synchronize() }
+        .onChange(of: coordinator.needsAccessibilityTrust) { _, _ in synchronize() }
+        .onChange(of: model.isInteractive) { _, _ in synchronize() }
+        .onAppear { synchronize() }
         .onDisappear { leaveTest() }
     }
 
-    private var canAdvance: Bool {
-        switch model.page {
-        case 0: coordinator.microphoneAuthorization == .authorized
-        case 2: coordinator.registeredHotkey != nil && coordinator.preferencesErrorDescription == nil
-        case 3: coordinator.transcriptionModelState.isReady
-        case 4: !coordinator.onboardingTestText.isEmpty
-        default: true
-        }
-    }
+    private func synchronize() { model.synchronizeReadiness(using: coordinator) }
     private func enterTest() {
-        guard coordinator.microphoneAuthorization == .authorized,
-              coordinator.registeredHotkey != nil,
-              coordinator.transcriptionModelState.isReady else { return }
+        guard model.isInteractive, model.testPrerequisitesAreReady(using: coordinator) else { return }
         coordinator.beginOnboardingTest()
     }
-    private func leaveTest() { if coordinator.isOnboardingTest { coordinator.endOnboardingTest() } }
+    private func leaveTest() { model.clearTest(using: coordinator) }
     private func advance() {
         if model.page == 5 { finish(); return }
-        leaveTest()
-        model.page += 1
-        if model.page == 3 && coordinator.transcriptionModelState.isReady { model.page = 4 }
-        if model.page == 4 { enterTest() }
+        model.advance(using: coordinator)
     }
 
     @ViewBuilder private var content: some View {
@@ -214,9 +264,14 @@ struct GuidedSetupView: View {
         case 1:
             Text("To let Witness type at your cursor, enable it in Privacy & Security → Accessibility. When you come back, we’ll check the permission for you.")
             if coordinator.needsAccessibilityTrust {
-                Button("Open Accessibility Settings") { coordinator.openAccessibilitySettings() }
+                Button("Allow typing into other apps") { coordinator.requestAccessibilitySetup() }
                 Button("Re-check") { coordinator.refreshAccessibilityAuthorization() }
                 Text("You can set this up later. Without this permission, you can paste your dictation from the clipboard into other apps.").font(.callout)
+                if model.usesClipboardOnly {
+                    Label("Copy and paste selected", systemImage: "doc.on.clipboard")
+                } else {
+                    Button("Continue with copy and paste") { model.continueWithClipboard(using: coordinator) }
+                }
             } else { Label("Witness can type for you", systemImage: "checkmark.circle") }
         case 2:
             HotkeyRecorderRow().environmentObject(coordinator)
@@ -239,9 +294,9 @@ struct GuidedSetupView: View {
             Text("You’re welcome to minimize this window while you wait. If you close it, preparation continues while Witness is running. You can return anytime from the menu bar → Set up / Try dictation.").font(.callout).foregroundStyle(WitnessStyle.muted)
         case 4:
             if coordinator.transcriptionModelState.isReady { Label("The speech model is ready", systemImage: "checkmark.circle").foregroundStyle(WitnessStyle.success) }
-            if !coordinator.isOnboardingTest {
+            if !model.testPrerequisitesAreReady(using: coordinator) {
                 Text("A few setup steps are still needed before you can try dictation. Let’s check the microphone, your key and the speech model.")
-                Button("Check setup") { model.page = 0 }
+                Button("Check setup") { model.showRequiredSetup(using: coordinator) }
             }
             Text(coordinator.activation == .pushToTalk
                  ? L10n.format("Hold %@ and say a few words to try dictation.", coordinator.binding.displayString)
@@ -258,17 +313,30 @@ struct GuidedSetupView: View {
             if coordinator.state.isCapturing { Button("Stop recording") { coordinator.stopOnboardingRecording() } }
             if !coordinator.onboardingTestText.isEmpty {
                 Text(verbatim: coordinator.onboardingTestText).textSelection(.enabled).witnessCard()
-                if let result = coordinator.result, result.deservesAttention {
+                if let result = coordinator.onboardingTestResult, result.deservesAttention {
                     Text("A few words may need a second look. The original recognized text is below to help you check.").foregroundStyle(WitnessStyle.warning)
-                    Text(verbatim: coordinator.transcript?.text ?? "").textSelection(.enabled)
+                    Text(verbatim: result.transcript.text).textSelection(.enabled)
                 }
                 Button("Try again") { enterTest() }
             }
         default:
             Label("Your first dictation worked", systemImage: "checkmark.circle").foregroundStyle(WitnessStyle.success)
+            if coordinator.canInsert && !coordinator.needsAccessibilityTrust && coordinator.insertsAutomatically {
+                Label("Automatic insertion is enabled", systemImage: "checkmark.circle")
+                Text("Your voice test worked here. You can now try inserting text in another app.")
+            } else {
+                Label("Automatic insertion is not enabled", systemImage: "info.circle")
+                Text("Your voice test worked here. You can copy your dictation from Witness and paste it into another app.")
+                if coordinator.needsAccessibilityTrust {
+                    Button("Set up automatic insertion") { model.page = 1 }
+                } else if !coordinator.insertsAutomatically {
+                    Text("You can enable automatic insertion in Settings.").font(.callout)
+                }
+            }
+
             Text(verbatim: coordinator.binding.displayString).font(.title)
             Text(coordinator.activation.explanation)
-            Text("Witness lives in the menu bar. Place your cursor in another app and use your key. Set up / Try dictation is always available in the menu.")
+            Text("Witness lives in the menu bar. You can return to Set up / Try dictation anytime.")
             Toggle("Open Witness when I log in", isOn: $model.opensAtLogin)
             Text("The first three days start at your first successful dictation. Afterwards, an email address activates ten more free days. Your dictation stays on this Mac.").font(.caption)
         }

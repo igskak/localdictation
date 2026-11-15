@@ -447,7 +447,7 @@ final class LocalizationTests: XCTestCase {
                     && !(unit["value"] as? String ?? "").isEmpty
             }
         }.count
-        XCTAssertEqual(completeCount, 589)
+        XCTAssertEqual(completeCount, 608)
     }
 
     func testNewMarketTranslationsPreserveFormatArguments() throws {

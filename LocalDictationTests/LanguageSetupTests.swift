@@ -124,12 +124,13 @@ final class LanguageSetupTests: XCTestCase {
         try await snapshot("01-welcome")
         model.step = .languages
         try await snapshot("02-languages")
+        coordinator.completeLanguageSetup(with: model.selection)
         model.step = .ready; model.page = 0
         try await snapshot("03-microphone")
         await coordinator.requestMicrophoneAccess()
         model.page = 1
         try await snapshot("04-accessibility")
-        model.page = 2
+        model.continueWithClipboard(using: coordinator)
         try await snapshot("05-key")
         engine.setModelState(.preparing(ModelPreparation(phase: .downloading, download: ModelDownloadProgress(
             completedBytes: 688_000_000, totalBytes: 1_600_000_000, remainingSeconds: 360
@@ -150,6 +151,161 @@ final class LanguageSetupTests: XCTestCase {
         model.page = 5
         try await snapshot("09-ready")
         coordinator.deactivate()
+    }
+
+    private func guidedHarness(trusted: Bool = false) async -> (
+        DictationCoordinator, LanguageSetupModel, FakeAccessibilityPermissionService,
+        FakeHotkeyService, FakeAudioCaptureService, FakeTranscriptionService
+    ) {
+        let access = FakeAccessibilityPermissionService(authorization: trusted ? .trusted : .notTrusted)
+        let hotkey = FakeHotkeyService()
+        let capture = FakeAudioCaptureService()
+        let engine = FakeTranscriptionService()
+        var preferences = Preferences.default
+        preferences.hasChosenLanguages = true
+        let coordinator = DictationCoordinator(
+            permissionService: FakeMicrophonePermissionService(authorization: .authorized),
+            hotkeyService: hotkey, captureService: capture, transcriptionService: engine,
+            accessibilityService: access, insertionService: FakeTextInsertionService(),
+            preferencesStore: InMemoryPreferencesStore(preferences)
+        )
+        coordinator.activate()
+        await coordinator.refreshTranscriptionModelState()
+        return (coordinator, LanguageSetupModel(selection: .default), access, hotkey, capture, engine)
+    }
+
+    func testAccessibilitySetupRequestsTrustAndOpensSettingsOnlyWhenMissing() async {
+        let (coordinator, _, access, _, _, _) = await guidedHarness()
+        XCTAssertEqual(access.requestCount, 0)
+        coordinator.requestAccessibilitySetup()
+        XCTAssertEqual(access.requestCount, 1)
+        XCTAssertEqual(access.openSettingsCount, 1)
+        access.set(.trusted)
+        coordinator.refreshAccessibilityAuthorization()
+        coordinator.requestAccessibilitySetup()
+        XCTAssertEqual(access.requestCount, 1)
+        XCTAssertEqual(access.openSettingsCount, 1)
+    }
+
+    func testAccessibilityRequiresAnExplicitClipboardChoiceToContinue() async {
+        let (coordinator, model, _, _, _, _) = await guidedHarness()
+        model.page = 1
+        XCTAssertFalse(model.canAdvance(using: coordinator))
+        model.advance(using: coordinator)
+        XCTAssertEqual(model.page, 1)
+        model.continueWithClipboard(using: coordinator)
+        XCTAssertEqual(model.page, 2)
+        XCTAssertTrue(model.usesClipboardOnly)
+        XCTAssertTrue(model.canAdvance(using: coordinator))
+    }
+
+    func testRejectedSingleKeyBlocksNextUntilFallbackIsExplicitlyChosen() async {
+        let (coordinator, model, _, hotkey, _, _) = await guidedHarness(trusted: true)
+        model.page = 2
+        hotkey.failNextRegistration(with: HotkeyRegistrationError.keyboardAccessRequired)
+        let requested = HotkeyBinding.single(61, "Right Option")
+        XCTAssertEqual(coordinator.changeHotkey(to: requested), .keyboardAccessRequired)
+        XCTAssertEqual(coordinator.registeredHotkey, .optionSpace)
+        XCTAssertEqual(coordinator.pendingHotkeyBinding, requested)
+        coordinator.cancelHotkeyCapture() // A disappearing recorder must not clear a refused choice.
+        XCTAssertFalse(model.canAdvance(using: coordinator))
+        model.advance(using: coordinator)
+        XCTAssertEqual(model.page, 2)
+        coordinator.keepCurrentHotkey()
+        XCTAssertNil(coordinator.pendingHotkeyBinding)
+        XCTAssertTrue(model.canAdvance(using: coordinator))
+    }
+
+    func testRetryingPendingSingleKeyFinishesTheActualChoice() async {
+        let (coordinator, model, _, hotkey, _, _) = await guidedHarness(trusted: true)
+        model.page = 2
+        hotkey.failNextRegistration(with: HotkeyRegistrationError.keyboardAccessRequired)
+        let requested = HotkeyBinding.single(61, "Right Option")
+        _ = coordinator.changeHotkey(to: requested)
+        XCTAssertNil(coordinator.changeHotkey(to: requested))
+        XCTAssertEqual(coordinator.binding, requested)
+        XCTAssertNil(coordinator.pendingHotkeyBinding)
+        XCTAssertTrue(model.canAdvance(using: coordinator))
+    }
+
+    func testModelReadyWhileMinimizedDoesNotArmTheMicrophoneTest() async {
+        let (coordinator, model, _, _, capture, engine) = await guidedHarness(trusted: true)
+        engine.setModelState(.preparing(ModelPreparation(phase: .downloading, progress: 0.5)))
+        await coordinator.refreshTranscriptionModelState()
+        model.page = 3
+        model.isInteractive = false
+        engine.setModelState(.ready)
+        await coordinator.refreshTranscriptionModelState()
+        model.synchronizeReadiness(using: coordinator)
+        XCTAssertEqual(model.page, 4)
+        XCTAssertFalse(coordinator.isOnboardingTest)
+        XCTAssertEqual(capture.startCount, 0)
+        model.isInteractive = true
+        model.synchronizeReadiness(using: coordinator)
+        XCTAssertTrue(coordinator.isOnboardingTest)
+        XCTAssertEqual(capture.startCount, 0, "Returning prepares the test but never starts recording")
+        model.clearTest(using: coordinator)
+    }
+
+    func testTestStartsAfterMissingPermissionIsGrantedOnTheSamePage() async {
+        let (coordinator, model, access, _, _, _) = await guidedHarness()
+        model.page = 4
+        model.synchronizeReadiness(using: coordinator)
+        XCTAssertFalse(coordinator.isOnboardingTest)
+        access.set(.trusted)
+        coordinator.refreshAccessibilityAuthorization()
+        model.synchronizeReadiness(using: coordinator)
+        XCTAssertTrue(coordinator.isOnboardingTest)
+        access.set(.notTrusted)
+        coordinator.refreshAccessibilityAuthorization()
+        model.synchronizeReadiness(using: coordinator)
+        XCTAssertFalse(coordinator.isOnboardingTest)
+        XCTAssertFalse(model.canAdvance(using: coordinator))
+    }
+
+    func testCompletedVoiceTestSurvivesPausingButClearsWhenLeavingTheStep() async throws {
+        let (coordinator, model, _, hotkey, _, engine) = await guidedHarness(trusted: true)
+        engine.setResult(.fixture(words: [("hello", 0.99)]))
+        model.page = 4
+        model.synchronizeReadiness(using: coordinator)
+        hotkey.emit(.pressed); hotkey.emit(.released)
+        try await waitUntil("test result ready") { coordinator.onboardingTestResult != nil }
+        let text = coordinator.onboardingTestText
+        model.isInteractive = false
+        model.synchronizeReadiness(using: coordinator)
+        XCTAssertFalse(coordinator.isOnboardingTest)
+        XCTAssertEqual(coordinator.onboardingTestText, text)
+        XCTAssertEqual(coordinator.onboardingTestResult?.cleanedText, text)
+        XCTAssertNil(coordinator.result, "Paused test data cannot be inserted using the general menu")
+        model.isInteractive = true
+        model.synchronizeReadiness(using: coordinator)
+        XCTAssertFalse(coordinator.isOnboardingTest, "Keep the completed test instead of arming a new one")
+        XCTAssertTrue(model.canAdvance(using: coordinator))
+        model.advance(using: coordinator)
+        XCTAssertEqual(model.page, 5)
+        XCTAssertTrue(coordinator.onboardingTestText.isEmpty)
+        XCTAssertNil(coordinator.onboardingTestResult)
+    }
+
+    func testOnboardingWindowCanBeMinimized() {
+        let controller = LanguageSetupWindowController(
+            coordinator: makeCoordinator(InMemoryPreferencesStore()), loginItem: FakeLoginItemService()
+        )
+        controller.presentIfNeeded()
+        XCTAssertTrue(controller.window?.styleMask.contains(.miniaturizable) == true)
+        controller.finish()
+    }
+
+    func testClipboardChoiceReceiptMigratesAndRoundTrips() throws {
+        let old = Data(#"{"installation":"fixture","page":3,"outcome":"dismissed"}"#.utf8)
+        let decoder = JSONDecoder()
+        var receipt = try decoder.decode(OnboardingReceipt.self, from: old)
+        XCTAssertFalse(receipt.usesClipboardOnly)
+        XCTAssertEqual(receipt.page, 3)
+        receipt.usesClipboardOnly = true
+        let restored = try decoder.decode(OnboardingReceipt.self, from: JSONEncoder().encode(receipt))
+        XCTAssertTrue(restored.usesClipboardOnly)
+        XCTAssertEqual(restored.outcome, "dismissed")
     }
 
     // MARK: - The window

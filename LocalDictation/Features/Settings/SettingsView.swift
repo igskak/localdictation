@@ -642,7 +642,7 @@ struct HotkeyRecorderRow: View {
     @State private var failure: String?
     @State private var saved = false
     @State private var captureSession = HotkeyCaptureSession()
-    @State private var pendingBinding: HotkeyBinding?
+    private var pendingBinding: HotkeyBinding? { coordinator.pendingHotkeyBinding }
 
     var body: some View {
         Group {
@@ -655,7 +655,7 @@ struct HotkeyRecorderRow: View {
         // back and knows nothing about the monitor.
         .onDisappear { stopCapture(cancelling: true) }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
-            if let pendingBinding, CGPreflightListenEventAccess() { apply(pendingBinding) }
+            if let pendingBinding, coordinator.hotkeySelectionError == .keyboardAccessRequired, CGPreflightListenEventAccess() { apply(pendingBinding) }
         }
     }
 
@@ -676,7 +676,6 @@ struct HotkeyRecorderRow: View {
                     Button("Reset") {
                         failure = nil
                         saved = false
-                        pendingBinding = nil
                         coordinator.resetHotkey()
                         saved = coordinator.registeredHotkey == coordinator.binding && coordinator.preferencesErrorDescription == nil
                     }
@@ -685,12 +684,20 @@ struct HotkeyRecorderRow: View {
             }
         }
 
-        if let pendingBinding {
+        if let pendingBinding, coordinator.hotkeySelectionError == .keyboardAccessRequired {
             Text("To use this key on its own, allow keyboard access in macOS. You can also choose a combination instead.")
                 .font(.callout).foregroundStyle(.secondary)
             HStack {
                 Button("Allow keyboard access…") { _ = CGRequestListenEventAccess() }
                 Button("Check again") { apply(pendingBinding) }
+            }
+        }
+
+        if pendingBinding != nil, coordinator.registeredHotkey == coordinator.binding {
+            Button("Keep current shortcut") {
+                coordinator.keepCurrentHotkey()
+                failure = coordinator.preferencesErrorDescription
+                saved = false
             }
         }
 
@@ -726,7 +733,6 @@ struct HotkeyRecorderRow: View {
     private func startCapture() {
         failure = nil
         saved = false
-        pendingBinding = nil
         captureSession = HotkeyCaptureSession()
         // Defensive: one monitor at a time, whatever the view did.
         removeMonitor()
@@ -767,10 +773,8 @@ struct HotkeyRecorderRow: View {
     private func apply(_ candidate: HotkeyBinding) {
         removeMonitor()
         saved = false
-        pendingBinding = nil
         if let error = coordinator.finishHotkeyCapture(with: candidate) {
             if error == .keyboardAccessRequired {
-                pendingBinding = candidate
                 failure = nil
             } else {
                 failure = L10n.format("%1$@ cannot be used: %2$@.", candidate.displayString, error.message)
