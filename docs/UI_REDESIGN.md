@@ -112,3 +112,45 @@ and the macOS minimum remains 14.4. The downloaded DMG also passed stapler and
 Gatekeeper checks. This verifies the update artifacts and trust chain; an
 interactive Sparkle installation and a first run on a separate clean Mac were
 not performed in this session.
+
+## Published release — 0.6.26 (build 27)
+
+Published on 15 November 2026 at 22:29 Europe/Prague:
+[Witness 0.6.26](https://github.com/igskak/localdictation/releases/tag/v0.6.26).
+The release tag identifies source commit
+`0b3d38b0491050f109cb80b749be1b7a9e84f621`.
+
+This release checks the current macOS notification authorization before
+requesting it. When the system permission was previously denied, Witness shows
+an **Allow Notifications / Don’t Allow** choice; Allow opens Notification
+settings. Existing grants start model-ready monitoring without another request.
+The explanatory copy is localized in English, German, Spanish, Italian, and
+French.
+
+The clean release checkout was archived, signed, notarized, and packaged with
+`Tools/release.sh`. Apple accepted both submissions:
+
+- App: `7918bab2-7c67-4adc-bb8f-53209e4ce457`.
+- DMG: `23629354-c1da-4191-883e-2c69047a7198`.
+
+Both tickets were stapled and validated. Gatekeeper reported **accepted,
+Notarized Developer ID** for the app and DMG. The release commit passed 1005
+tests; 3 were skipped and none failed.
+
+The signed Sparkle feed and `Witness.dmg` were uploaded together and the release
+was made the latest stable version. The website download route needed no
+deployment. Fetching `https://witnessmac.com/download` returned HTTP 200 and a
+DMG with the same SHA-256 as the published asset. The public feed also returned
+HTTP 200. The DMG is 5,859,052 bytes; its SHA-256 is:
+
+```text
+2a1826d92517b6aae61a0741c179ac8335d6616ed36c0f68ea6b68ae6dd0e472
+```
+
+The appcast SHA-256 is
+`a84f42b839503b573786d7b47261fc5276c102bdd4330d7fe7e6d4487a45010e`. Both
+public artifacts match the signed local files. The DMG and appcast signatures
+passed Ed25519 verification with the public key from the preceding published
+0.6.25 app. The build increases from 26 to 27, the feed points to the versioned
+0.6.26 asset, and the macOS minimum remains 14.4. An interactive Sparkle update
+and a first run on a separate clean Mac were not performed in this session.
