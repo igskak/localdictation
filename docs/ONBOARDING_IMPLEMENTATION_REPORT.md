@@ -72,5 +72,6 @@ release worktree. Service fixture bytes and signing behavior are unchanged.
 Onboarding permission/readiness, shortcut recovery, minimized-window behavior and
 activation-aware notices are covered in `docs/ONBOARDING_AUDIT_2026-11-15.md`.
 The complete Xcode suite passed: 998 tests passed, 5 skipped, zero failures.
-Distribution is pending renewed Apple Developer Program agreements;
-`Tools/release.sh --check` currently receives Apple's HTTP 403 agreement error.
+Apple initially blocked notarization until the account holder renewed the
+Developer Program agreement. After the account was refreshed, both the app and
+DMG were accepted and stapled by Apple Notary.
