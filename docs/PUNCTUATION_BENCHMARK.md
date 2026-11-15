@@ -1,6 +1,6 @@
 # Punctuation and structure benchmark
 
-Status: **harness and synthetic corpus in place; live corpus not yet recorded.**
+Status: **harness, synthetic corpus, Parakeet comparison and the Clean structure pass in place; live corpus not yet recorded.**
 
 ## Why this exists
 
@@ -86,6 +86,10 @@ xcodebuild test -project LocalDictation.xcodeproj -scheme LocalDictation \
   -only-testing:LocalDictationTests/PunctuationBenchmarkTests/testRunAgainstThePunctuationCorpusIfPresent
 ```
 
+- `TEST_RUNNER_BENCHMARK_ENGINE` is `whisperkit`, `parakeet-v3` or
+  `parakeet-ultra` (FluidAudio downloads the Parakeet weights into
+  `Models/fluidaudio/` on first use; both are CC-BY-4.0, which needs
+  attribution before anything ships with them).
 - `TEST_RUNNER_BENCHMARK_MODEL=<variant>` runs another WhisperKit variant from
   `argmaxinc/whisperkit-coreml`, downloading it into the app's model folder on
   first use. `openai_whisper-large-v3_turbo` is full large-v3 (32 decoder
@@ -168,5 +172,55 @@ empty, WER rose from 2% to 29% and question recall fell from 68% to 40%. This
 matches WhisperKit's own warning that `<|startofprev|>` biases the decoder
 toward ending a segment early. A static prompt is not a punctuation lever on
 this stack.
+
+**Parakeet** (FluidAudio 0.17.7, `ParakeetTranscriptionService`):
+
+| Engine | RU `?` | UK `?` | DE `?` | EN `?` | RU yes-no | UK yes-no | RTF |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Whisper turbo (shipped) | 45% | 27% | 100% | 100% | 4/8 | 0/8 | 0.21 |
+| Parakeet TDT 0.6B v3 | 45% | 27% | 95% | 95% | 3/8 | 1/8 | 0.02 |
+| Parakeet Ultra | 50% | 23% | 100% | 100% | 3/8 | 0/8 | 0.02 |
+
+Ten times faster on the M1 and no better at questions. On the older
+`tts-smoke` corpus (24 sentences dense with amounts and dates) Whisper scores
+WER 15.4%, numeric error 40%, confidence separation 0.097; Parakeet v3 21.5%,
+37%, 0.117; Ultra 20.8%, 43%, 0.134. Most of the WER gap is number formatting.
+Parakeet cannot be told the language either (its hint only filters the
+script), so it cannot keep Ukrainian from being written as Russian. Verdict:
+Whisper stays the dictation engine; Parakeet is a tester's switch
+(`DictationEngineChoice`) for trying the speed on a real voice.
+
+**Structure pass in Clean** (`StructurePass`, Whisper turbo, 2026-11-16).
+Clean now adds two things the recognizer does not write, both as
+punctuation-only edits the review can show:
+
+- **Paragraphs** after a pause of at least 1.0 s that follows a finished
+  sentence, with five or more words on each side. Paragraph recall went from
+  0% to 67% in every language at 100% precision.
+- **Question marks in Russian and Ukrainian** where Whisper wrote a period or
+  nothing, when the words say so (a sentence opening with a question word and
+  no comma; `чи`, `ли`, `разве`, `хіба`, `невже`) or when the melody does: the
+  voice ends at least one semitone above the speaker's median with its high
+  point late (`QuestionProsodyPolicy`). Pitch is measured with YIN over the
+  audio already in memory, tens of milliseconds per utterance, only in Clean.
+
+| Language | `?` recall before → after | `?` precision | `?→.` | `.` F1 |
+| --- | ---: | ---: | ---: | ---: |
+| Russian | 45% → 82% | 91% → 95% | 8 → 0 | 87% → 97% |
+| Ukrainian | 27% → 36% | 86% → 89% | 16 → 14 | 79% → 81% |
+| German, English | 100% → 100% | 100% | 0 | unchanged |
+
+The first prosody rule (a rise over the preceding two seconds) reached 82% in
+Russian too but put `?` on statements in Ukrainian (precision 53%): the
+Ukrainian voice rises inside statements as often as inside questions. The
+rule that shipped uses only where the voice ends, which no statement in the
+corpus did. What remains: Ukrainian yes/no questions (the synthetic voice
+barely marks them), a question swallowed into the next sentence with a comma
+(`Цена нормальная, мне кажется…`), and Whisper's own `?` after an indirect
+question, which the pass never removes. All of it needs the live corpus,
+where real intonation will either confirm or break these thresholds.
+
+`sentence-ends-<variant>.csv` next to each report lists every reference
+sentence end with its melody and pause; the thresholds are read off it.
 
 Reports with every question mistake: `Benchmark/punctuation-tts/report-*.md`.

@@ -11,6 +11,9 @@ struct CleanupOptions: Sendable, Equatable {
     var context: DictationTextContext? = nil
     /// Used only for the current utterance; never persisted or logged.
     var timing: CleanupTimingEvidence? = nil
+    /// The utterance's pitch, for the question repair in Clean. Ephemeral and
+    /// content-derived like `timing`.
+    var prosody: ProsodyEvidence? = nil
     var collapsesWhitespace: Bool = true
     var fixesPunctuationSpacing: Bool = true
     var removesFillers: Bool = true

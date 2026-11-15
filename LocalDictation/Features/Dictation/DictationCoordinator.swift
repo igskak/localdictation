@@ -1716,12 +1716,20 @@ final class DictationCoordinator: ObservableObject {
 
         transcriptionGeneration += 1
         let generation = transcriptionGeneration
+        // Only Clean reads the melody, so only Clean pays for measuring it.
+        let measuresProsody = activeCleanupLevel == .clean
 
         transcriptionTask = Task { [weak self] in
             do {
                 let result = try await transcriptionService.transcribe(utterance, profile: profile)
                 try Task.checkCancellation()
-                self?.transcriptionDidFinish(result, generation: generation)
+                let prosody = measuresProsody
+                    ? await Task.detached(priority: .userInitiated) {
+                        PitchTracker.evidence(samples: utterance.samples, sampleRate: utterance.sampleRate)
+                    }.value
+                    : nil
+                try Task.checkCancellation()
+                self?.transcriptionDidFinish(result, prosody: prosody, generation: generation)
             } catch is CancellationError {
                 return
             } catch TranscriptionError.cancelled {
@@ -1742,7 +1750,7 @@ final class DictationCoordinator: ObservableObject {
         transcriptionGeneration += 1
     }
 
-    private func transcriptionDidFinish(_ transcript: Transcript, generation: Int) {
+    private func transcriptionDidFinish(_ transcript: Transcript, prosody: ProsodyEvidence? = nil, generation: Int) {
         guard generation == transcriptionGeneration else { return }
         transcriptionTask = nil
         self.transcript = transcript
@@ -1753,7 +1761,7 @@ final class DictationCoordinator: ObservableObject {
             """
         )
 
-        let result = analyze(transcript)
+        let result = analyze(transcript, prosody: prosody)
         self.result = result
         prefersRawTranscript = false
         // What the ungated window is spent on: text the user actually got.
@@ -1815,7 +1823,7 @@ final class DictationCoordinator: ObservableObject {
     /// Pure with respect to the coordinator's state: it reads the injected
     /// services and the current glossary and returns a value. That is what lets
     /// the same three stages run inside the measurement harness with no app.
-    private func analyze(_ transcript: Transcript) -> DictationResult {
+    private func analyze(_ transcript: Transcript, prosody: ProsodyEvidence? = nil) -> DictationResult {
         let language = Self.cleanupLanguage(for: transcript)
         let context = activeCleanupLevel == .clean
             ? (isOnboardingTest ? nil : textContextService.context(for: insertionTarget).context)
@@ -1827,7 +1835,8 @@ final class DictationCoordinator: ObservableObject {
                 level: activeCleanupLevel,
                 glossary: glossary.entries(for: language),
                 context: context,
-                timing: CleanupTimingEvidence.validated(transcript: transcript)
+                timing: CleanupTimingEvidence.validated(transcript: transcript),
+                prosody: prosody
             )
         )
         let spans = riskEngine.analyze(
@@ -1973,7 +1982,7 @@ final class DictationCoordinator: ObservableObject {
 extension DictationCoordinator {
     /// Live composition root.
     static func makeLive(
-        transcriptionService: WhisperKitTranscriptionService = WhisperKitTranscriptionService()
+        transcriptionService: any TranscriptionService = WhisperKitTranscriptionService()
     ) -> DictationCoordinator {
         // One trust reader, shared: the coordinator shows the state and the
         // insertion service gates on it, and two readers could disagree.

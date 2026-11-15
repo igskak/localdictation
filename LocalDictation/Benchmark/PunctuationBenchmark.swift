@@ -1,10 +1,22 @@
 #if DEBUG
 import Foundation
 
-/// One sample scored twice: as Whisper wrote it, and as the app would insert
-/// it after Conservative cleanup. The two differ only by what our own rules
-/// add, which is how the report separates the engine's punctuation mistakes
-/// from ours.
+/// The melody and pause at one reference sentence end, for calibrating the
+/// question and paragraph thresholds against what the reference says.
+struct SentenceEndObservation: Sendable, Equatable {
+    let reference: BoundaryMark
+    let paragraphBreak: Bool
+    let engine: BoundaryMark
+    let ending: SentenceEndingProsody?
+    /// Silence between this word and the next one, from the engine's timings.
+    let gapAfter: TimeInterval?
+}
+
+/// One sample scored three times: as the engine wrote it, as the app inserts
+/// it after Conservative cleanup (the fresh-install default), and after Clean,
+/// which adds the structure pass. Engine against inserted separates the
+/// engine's mistakes from our rules'; inserted against clean shows what the
+/// structure pass buys.
 struct PunctuationSampleResult: Sendable, Equatable {
     let audio: String
     let language: SpeechLanguage
@@ -12,9 +24,12 @@ struct PunctuationSampleResult: Sendable, Equatable {
     let reference: String
     let engineText: String
     let insertedText: String
+    var cleanText: String = ""
     let word: ErrorRate
     let engine: PunctuationScore
     let inserted: PunctuationScore
+    var clean: PunctuationScore = .zero
+    var sentenceEnds: [SentenceEndObservation] = []
     let audioDuration: TimeInterval
     let processingDuration: TimeInterval
 
@@ -78,6 +93,7 @@ enum PunctuationBenchmark {
                     transcript: transcript,
                     sample: sample,
                     audioDuration: utterance.duration,
+                    prosody: PitchTracker.evidence(samples: utterance.samples, sampleRate: utterance.sampleRate),
                     cleanup: cleanup,
                     normalizer: normalizer
                 ))
@@ -102,6 +118,7 @@ enum PunctuationBenchmark {
         transcript: Transcript,
         sample: BenchmarkSample,
         audioDuration: TimeInterval,
+        prosody: ProsodyEvidence? = nil,
         cleanup: any CleanupService = AdaptiveCleanupService(),
         normalizer: TextNormalizer = .default
     ) -> PunctuationSampleResult {
@@ -120,8 +137,16 @@ enum PunctuationBenchmark {
                 timing: CleanupTimingEvidence.validated(transcript: transcript)
             )
         ).cleaned
+        // Clean without application context: what a dictation into an
+        // unknown text field gets.
+        let timing = CleanupTimingEvidence.validated(transcript: transcript)
+        let cleaned = cleanup.clean(
+            transcript.text,
+            language: cleanupLanguage,
+            options: CleanupOptions(level: .clean, timing: timing, prosody: prosody)
+        ).cleaned
 
-        return PunctuationSampleResult(
+        var result = PunctuationSampleResult(
             audio: sample.audio,
             language: language,
             kind: sample.kind,
@@ -149,6 +174,47 @@ enum PunctuationBenchmark {
             audioDuration: audioDuration,
             processingDuration: transcript.processingDuration
         )
+        result.cleanText = cleaned
+        result.clean = PunctuationScorer.score(
+            reference: sample.reference,
+            hypothesis: cleaned,
+            language: language,
+            normalizer: normalizer
+        )
+        result.sentenceEnds = observations(transcript: transcript, sample: sample, prosody: prosody, normalizer: normalizer)
+        return result
+    }
+
+    /// Every reference word that ends a sentence, with the melody and the
+    /// pause the engine's timings put after it.
+    static func observations(
+        transcript: Transcript,
+        sample: BenchmarkSample,
+        prosody: ProsodyEvidence?,
+        normalizer: TextNormalizer = .default
+    ) -> [SentenceEndObservation] {
+        let pairs = PunctuationScorer.alignment(
+            reference: sample.reference,
+            hypothesis: transcript.text,
+            language: sample.language,
+            normalizer: normalizer
+        )
+        let tokens = transcript.tokens
+        return pairs.compactMap { pair in
+            guard pair.reference.mark.endsSentence || pair.reference.paragraphBreak,
+                  let word = pair.hypothesis,
+                  let index = tokens.lastIndex(where: { $0.range.overlaps(word.range) })
+            else { return nil }
+            let token = tokens[index]
+            let gap = index + 1 < tokens.count ? tokens[index + 1].start - token.end : nil
+            return SentenceEndObservation(
+                reference: pair.reference.mark,
+                paragraphBreak: pair.reference.paragraphBreak,
+                engine: word.mark,
+                ending: prosody?.ending(at: token.end),
+                gapAfter: gap
+            )
+        }
     }
 }
 
@@ -180,7 +246,11 @@ extension PunctuationReport {
             let audio = subset.reduce(0) { $0 + $1.audioDuration }
             let processing = subset.reduce(0) { $0 + $1.processingDuration }
             let open = Double(subset.filter(\.engineLeftEndOpen).count) / Double(subset.count)
-            for (stage, path) in [("engine", \PunctuationSampleResult.engine), ("inserted", \PunctuationSampleResult.inserted)] {
+            for (stage, path) in [
+                ("engine", \PunctuationSampleResult.engine),
+                ("inserted", \PunctuationSampleResult.inserted),
+                ("clean", \PunctuationSampleResult.clean),
+            ] {
                 let score = pooled(subset, path)
                 let isEngine = stage == "engine"
                 lines.append(
@@ -197,28 +267,33 @@ extension PunctuationReport {
 
         if !kinds.isEmpty {
             lines.append("")
-            lines.append("### Question recall by sentence kind (inserted text)")
+            lines.append("### Question recall by sentence kind (inserted → clean)")
             lines.append("")
             lines.append("| Kind | " + languages.map(\.displayName).joined(separator: " | ") + " |")
             lines.append("| --- |" + languages.map { _ in " ---: |" }.joined())
             for kind in kinds {
                 let cells = languages.map { language -> String in
                     let subset = results.filter { $0.language == language && $0.kind == kind }
-                    let score = pooled(subset, \.inserted)
-                    guard score.support(.question) > 0 else { return "" }
-                    return "\(score.count(reference: .question, hypothesis: .question))/\(score.support(.question))"
+                    let inserted = pooled(subset, \.inserted)
+                    let clean = pooled(subset, \.clean)
+                    guard inserted.support(.question) > 0 else { return "" }
+                    let hits = inserted.count(reference: .question, hypothesis: .question)
+                    let repaired = clean.count(reference: .question, hypothesis: .question)
+                    let total = inserted.support(.question)
+                    return hits == repaired ? "\(hits)/\(total)" : "\(hits) → \(repaired)/\(total)"
                 }
                 guard cells.contains(where: { !$0.isEmpty }) else { continue }
                 lines.append("| \(kind) | " + cells.joined(separator: " | ") + " |")
             }
         }
 
-        // A question missed, or a question mark where the reference has none.
-        let misses = results.filter { result in
-            let hits = result.inserted.count(reference: .question, hypothesis: .question)
-            return result.inserted.support(.question) > hits
-                || result.inserted.count(hypothesis: .question) > hits
+        // A question missed, or a question mark where the reference has
+        // none, in either the inserted or the clean text.
+        func isMistaken(_ score: PunctuationScore) -> Bool {
+            let hits = score.count(reference: .question, hypothesis: .question)
+            return score.support(.question) > hits || score.count(hypothesis: .question) > hits
         }
+        let misses = results.filter { isMistaken($0.inserted) || isMistaken($0.clean) }
         if !misses.isEmpty {
             lines.append("")
             lines.append("### Question mistakes")
@@ -230,6 +305,9 @@ extension PunctuationReport {
                 if result.insertedText != result.engineText {
                     lines.append("  - inserted: `\(Self.oneLine(result.insertedText))`")
                 }
+                if result.cleanText != result.insertedText {
+                    lines.append("  - clean: `\(Self.oneLine(result.cleanText))`")
+                }
             }
         }
 
@@ -240,6 +318,26 @@ extension PunctuationReport {
             for failure in failures { lines.append("- \(failure)") }
         }
         return lines.joined(separator: "\n")
+    }
+
+    /// One row per reference sentence end: what the reference and the engine
+    /// put there, the melody, and the pause. The thresholds in
+    /// `StructurePass.Policy` are read off this table.
+    func sentenceEndCSV() -> String {
+        func number(_ value: Float?) -> String { value.map { String(format: "%.2f", $0) } ?? "" }
+        var rows = ["audio,language,kind,reference,paragraph,engine,peak,tail,rise,position,gap"]
+        for result in results {
+            for end in result.sentenceEnds {
+                rows.append([
+                    result.audio, result.language.rawValue, result.kind ?? "",
+                    end.reference.symbol, end.paragraphBreak ? "1" : "0", end.engine.symbol,
+                    number(end.ending?.peak), number(end.ending?.tail), number(end.ending?.rise),
+                    number(end.ending?.peakPosition),
+                    end.gapAfter.map { String(format: "%.2f", $0) } ?? "",
+                ].joined(separator: ","))
+            }
+        }
+        return rows.joined(separator: "\n") + "\n"
     }
 
     /// Paragraph breaks shown as `¶`, so a sample stays on one Markdown line.

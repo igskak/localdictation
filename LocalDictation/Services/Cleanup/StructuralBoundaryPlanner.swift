@@ -109,8 +109,11 @@ struct StructuralBoundaryPlanner: Sendable {
             let stem = text.dropLast()
             let gap = right.start - left.end
             let between = source[left.rawRange.upperBound..<right.rawRange.lowerBound]
-            let hasCompletedSentence = text.hasSuffix(".") && stem.count > 1
-                && stem.allSatisfy(\.isLetter) && !abbreviations.contains(stem.lowercased())
+            // A question or an exclamation finishes a sentence as surely as a
+            // period does; only a period can also close an abbreviation.
+            let closing = text.last
+            let hasCompletedSentence = (closing == "." || closing == "?" || closing == "!") && stem.count > 1
+                && stem.allSatisfy(\.isLetter) && (closing != "." || !abbreviations.contains(stem.lowercased()))
             let hasPreviewClause = policy.allowsUnpunctuatedParagraphs
                 && text.count > 1 && text.allSatisfy(\.isLetter)
             guard gap >= threshold, hasCompletedSentence || hasPreviewClause,

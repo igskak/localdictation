@@ -12,6 +12,7 @@ struct AdaptiveCleanupService: CleanupService {
     private let lists = ListTransformer()
     private let typedValues = TypedValueFormatter()
     private let contextCompositor = ContextCompositor()
+    private let structure = StructurePass()
 
     func clean(_ raw: String, language: SpeechLanguage, options: CleanupOptions) -> CleanupResult {
         switch options.level {
@@ -144,6 +145,21 @@ struct AdaptiveCleanupService: CleanupService {
                 if !paragraphs.isEmpty {
                     result = append(StructuralBoundaryTransformer().paragraphs(paragraphs, in: result.cleaned, language: language), to: result)
                 }
+            }
+            // Paragraphs first: the planner checks the raw token under each
+            // boundary, and a repaired question mark would no longer match it.
+            if let paragraphs = structure.paragraphs(
+                raw: raw, result: result, timing: options.timing, language: language,
+                category: options.context?.category ?? .other,
+                protected: ProtectedSpanDetector().detect(in: raw, language: language, glossary: options.glossary)
+            ) {
+                result = append(paragraphs, to: result)
+            }
+            if options.context?.category != .codeTerminal,
+               let questions = structure.questions(
+                   result: result, timing: options.timing, prosody: options.prosody, language: language
+               ) {
+                result = append(questions, to: result)
             }
             let final = conservative.clean(
                 result.cleaned,

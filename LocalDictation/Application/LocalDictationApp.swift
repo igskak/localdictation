@@ -344,7 +344,9 @@ struct ApplicationComposition {
         let speech = WhisperKitTranscriptionService()
         return make(
             notetakerAvailability: notetakerAvailability,
-            makeDictationCoordinator: { DictationCoordinator.makeLive(transcriptionService: speech) },
+            makeDictationCoordinator: {
+                DictationCoordinator.makeLive(transcriptionService: DictationEngineChoice.current.engine(sharing: speech))
+            },
             // A normal Release never invokes this closure. The separately
             // built dogfood DMG enables it with NOTETAKER_DOGFOOD so the
             // testable UI cannot accidentally ship in the public build.

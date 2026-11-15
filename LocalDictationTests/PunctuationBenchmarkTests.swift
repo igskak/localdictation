@@ -95,8 +95,8 @@ final class PunctuationBenchmarkTests: XCTestCase {
     /// corpus as `report-<variant>.md`.
     func testRunAgainstThePunctuationCorpusIfPresent() async throws {
         let environment = ProcessInfo.processInfo.environment
-        guard environment["BENCHMARK_ENGINE"]?.lowercased() == "whisperkit" else {
-            throw XCTSkip("Needs the Whisper model; run with TEST_RUNNER_BENCHMARK_ENGINE=whisperkit")
+        guard let selected = BenchmarkEngineSelection(environment: environment) else {
+            throw XCTSkip("Needs a real engine; run with TEST_RUNNER_BENCHMARK_ENGINE=whisperkit, parakeet-v3 or parakeet-ultra")
         }
         let directory = environment["BENCHMARK_CORPUS"].map { URL(fileURLWithPath: $0) }
             ?? BenchmarkRunnerTests.corpusDirectory.appendingPathComponent("punctuation-tts")
@@ -105,21 +105,23 @@ final class PunctuationBenchmarkTests: XCTestCase {
         }
         executionTimeAllowance = 7200
 
-        let model = environment["BENCHMARK_MODEL"] ?? WhisperKitTranscriptionService.defaultModelVariant
-        let prompted = environment["BENCHMARK_PROMPT"]?.lowercased() == "style"
-        let engine = WhisperKitTranscriptionService(
-            modelVariant: model,
-            decodingPrompts: prompted ? PunctuationBenchmark.stylePrompts : [:]
-        )
-        let variant = model + (prompted ? " + style prompt" : "")
-
         let corpus = try BenchmarkCorpus.load(from: directory)
-        let report = await PunctuationBenchmark.run(engine: engine, variant: variant, corpus: corpus, directory: directory)
+        let report = await PunctuationBenchmark.run(
+            engine: selected.engine,
+            variant: selected.label,
+            corpus: corpus,
+            directory: directory
+        )
         let markdown = report.markdown()
         print("\n\(markdown)\n")
 
-        let fileName = "report-\(model)\(prompted ? "-prompt" : "").md"
+        let fileName = "report-\(selected.fileStem).md"
         try markdown.write(to: directory.appendingPathComponent(fileName), atomically: true, encoding: .utf8)
+        try report.sentenceEndCSV().write(
+            to: directory.appendingPathComponent("sentence-ends-\(selected.fileStem).csv"),
+            atomically: true,
+            encoding: .utf8
+        )
 
         XCTAssertEqual(
             report.results.count + report.failures.count,

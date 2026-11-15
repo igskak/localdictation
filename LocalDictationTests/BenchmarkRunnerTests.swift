@@ -205,7 +205,8 @@ final class BenchmarkRunnerTests: XCTestCase {
     /// The rendered report is written next to the corpus for pasting into
     /// `docs/PHASE_2_BENCHMARK.md`.
     func testRunAgainstTheInstalledCorpusIfPresent() async throws {
-        let directory = Self.corpusDirectory
+        let directory = ProcessInfo.processInfo.environment["BENCHMARK_CORPUS"].map { URL(fileURLWithPath: $0) }
+            ?? Self.corpusDirectory
         guard FileManager.default.fileExists(
             atPath: directory.appendingPathComponent(BenchmarkCorpus.manifestName).path
         ) else {
@@ -229,6 +230,12 @@ final class BenchmarkRunnerTests: XCTestCase {
         case "apple":
             executionTimeAllowance = 1800
             engine = AppleSpeechTranscriptionService()
+        case "parakeet-v3", "parakeet":
+            executionTimeAllowance = 3600
+            engine = ParakeetTranscriptionService(variant: .v3)
+        case "parakeet-ultra":
+            executionTimeAllowance = 3600
+            engine = ParakeetTranscriptionService(variant: .ultra)
         default:
             let fake = FakeTranscriptionService()
             fake.setResult(.fixture(words: [("placeholder", 0.5)]))

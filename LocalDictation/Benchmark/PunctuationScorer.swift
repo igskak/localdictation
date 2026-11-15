@@ -44,6 +44,8 @@ struct PunctuatedWord: Sendable, Equatable {
     let mark: BoundaryMark
     /// A line break follows this word.
     let paragraphBreak: Bool
+    /// Where the word sits in the text it was read from, in `Character`s.
+    var range: Range<Int> = 0..<0
 }
 
 /// Punctuation and paragraph agreement between a reference and a hypothesis.
@@ -166,20 +168,22 @@ enum PunctuationScorer {
         normalizer: TextNormalizer = .default
     ) -> [PunctuatedWord] {
         let characters = Array(text.precomposedStringWithCanonicalMapping)
-        var words: [(word: String, mark: BoundaryMark, paragraphBreak: Bool)] = []
+        var words: [(word: String, mark: BoundaryMark, paragraphBreak: Bool, range: Range<Int>)] = []
         var current = ""
+        var currentStart = 0
 
-        func flush() {
+        func flush(at end: Int) {
             guard !current.isEmpty else { return }
             let normalized = normalizer.normalize(current, language: language)
             current = ""
             guard !normalized.isEmpty else { return }
-            words.append((normalized, .unmarked, false))
+            words.append((normalized, .unmarked, false, currentStart..<end))
         }
 
         for (index, character) in characters.enumerated() {
             let separates = character.isWhitespace || TextNormalizer.strippedPunctuation.contains(character)
             guard separates else {
+                if current.isEmpty { currentStart = index }
                 current.append(character)
                 continue
             }
@@ -188,7 +192,7 @@ enum PunctuationScorer {
                 && (current.last?.isNumber ?? false)
                 && index + 1 < characters.count
                 && characters[index + 1].isNumber
-            flush()
+            flush(at: index)
             guard !insideNumber, !words.isEmpty else { continue }
 
             if character.isNewline {
@@ -197,11 +201,38 @@ enum PunctuationScorer {
                 words[words.count - 1].mark = mark
             }
         }
-        flush()
+        flush(at: characters.count)
 
         // A break after the last word is the end of the text, not a paragraph.
         if !words.isEmpty { words[words.count - 1].paragraphBreak = false }
-        return words.map { PunctuatedWord(word: $0.word, mark: $0.mark, paragraphBreak: $0.paragraphBreak) }
+        return words.map {
+            PunctuatedWord(word: $0.word, mark: $0.mark, paragraphBreak: $0.paragraphBreak, range: $0.range)
+        }
+    }
+
+    /// Every reference word with the hypothesis word aligned to it, nil where
+    /// the hypothesis dropped it.
+    static func alignment(
+        reference: String,
+        hypothesis: String,
+        language: SpeechLanguage,
+        normalizer: TextNormalizer = .default
+    ) -> [(reference: PunctuatedWord, hypothesis: PunctuatedWord?)] {
+        let referenceWords = punctuatedWords(reference, language: language, normalizer: normalizer)
+        let hypothesisWords = punctuatedWords(hypothesis, language: language, normalizer: normalizer)
+        return TranscriptionScorer.align(
+            reference: referenceWords.map(\.word),
+            hypothesis: hypothesisWords.map(\.word)
+        ).compactMap { operation in
+            switch operation {
+            case let .match(reference, hypothesis), let .substitution(reference, hypothesis):
+                (referenceWords[reference], hypothesisWords[hypothesis])
+            case let .deletion(reference):
+                (referenceWords[reference], nil)
+            case .insertion:
+                nil
+            }
+        }
     }
 
     static func score(
