@@ -5,12 +5,17 @@ import UserNotifications
 
 @MainActor
 protocol ModelReadyNotificationService {
+    func authorizationStatus() async -> UNAuthorizationStatus
     func requestAuthorization() async throws -> Bool
     func sendReady(hotkey: String) async throws
 }
 
 @MainActor
 struct SystemModelReadyNotificationService: ModelReadyNotificationService {
+    func authorizationStatus() async -> UNAuthorizationStatus {
+        await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
+    }
+
     func requestAuthorization() async throws -> Bool {
         try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
     }
@@ -181,18 +186,50 @@ final class LanguageSetupWindowController: NSObject, NSWindowDelegate {
         requestingNotificationPermission = true
         Task { @MainActor in
             defer { requestingNotificationPermission = false }
+            let status = await notificationService.authorizationStatus()
+            guard status != .denied else {
+                presentNotificationSettingsPrompt()
+                return
+            }
+
+            if status == .authorized || status == .provisional {
+                beginWaitingForModelReady()
+                return
+            }
+
             do {
                 let allowed = try await notificationService.requestAuthorization()
-                guard allowed else {
-                    model.notificationMessage = L10n.string("Notifications are off. You can still follow progress here or return from the menu bar. You can enable notifications later in System Settings → Notifications.")
-                    return
-                }
-                waitingForNotification = true
-                model.notificationMessage = L10n.string("We’ll let you know when the model is ready. You can use other apps while Witness stays open.")
-                observeModelReadiness()
+                guard allowed else { return }
+                beginWaitingForModelReady()
             } catch {
-                model.notificationMessage = L10n.string("We couldn’t turn on notifications. You can still follow progress here, or enable them in System Settings → Notifications.")
+                Log.application.error("Could not request model-ready notifications: \(String(describing: error), privacy: .public)")
+                presentNotificationSettingsPrompt()
             }
+        }
+    }
+
+    private func beginWaitingForModelReady() {
+        waitingForNotification = true
+        model.notificationMessage = L10n.string("We’ll let you know when the model is ready. You can use other apps while Witness stays open.")
+        observeModelReadiness()
+    }
+
+    private func presentNotificationSettingsPrompt() {
+        let alert = NSAlert()
+        alert.messageText = L10n.string("Get notified when the speech model is ready?")
+        alert.informativeText = L10n.string("Allow notifications for Witness to get a notification when the download finishes.")
+        alert.addButton(withTitle: L10n.string("Allow Notifications"))
+        alert.addButton(withTitle: L10n.string("Don’t Allow"))
+
+        let openSettings: (NSApplication.ModalResponse) -> Void = { response in
+            guard response == .alertFirstButtonReturn,
+                  let url = URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension") else { return }
+            NSWorkspace.shared.open(url)
+        }
+        if let window, window.isVisible {
+            alert.beginSheetModal(for: window, completionHandler: openSettings)
+        } else {
+            openSettings(alert.runModal())
         }
     }
 
