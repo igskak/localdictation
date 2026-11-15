@@ -48,7 +48,32 @@ final class RiskFalsePositiveTests: XCTestCase {
         // Deadlines are spoken in the genitive: "до пятницы", "до п'ятниці".
         XCTAssertTrue(CriticalTokens.isDate("пятницы"))
         XCTAssertTrue(CriticalTokens.isDate("п'ятниці"))
+        XCTAssertTrue(CriticalTokens.isDate("viernes"))
+        XCTAssertTrue(CriticalTokens.isDate("venerdì"))
+        XCTAssertTrue(CriticalTokens.isDate("vendredi"))
         XCTAssertFalse(CriticalTokens.isDate("Rechnung"))
+    }
+
+    func testNewMarketVocabularyDoesNotLeakIntoAnotherLanguage() {
+        XCTAssertTrue(CriticalTokens.isNumeric("once", language: .spanish))
+        XCTAssertFalse(CriticalTokens.isNumeric("once", language: .english))
+        XCTAssertTrue(CriticalTokens.isDate("mayo", language: .spanish))
+        XCTAssertFalse(CriticalTokens.isDate("mayo", language: .italian))
+    }
+
+    func testRomanceDatesAmountsAndTitledNamesAreMarked() {
+        let fixtures: [(String, SpeechLanguage, String, String)] = [
+            ("La señora García pagará 1450 euros el viernes.", .spanish, "García", "viernes"),
+            ("La signora Rossi pagherà 1450 euro venerdì.", .italian, "Rossi", "venerdì"),
+            ("Madame Martin paiera 1450 euros vendredi.", .french, "Martin", "vendredi"),
+        ]
+
+        for (text, language, name, weekday) in fixtures {
+            let result = spans(text, language: language, profile: LanguageProfile(language))
+            XCTAssertEqual(reasons(for: "1450", in: result), ["Number"], language.rawValue)
+            XCTAssertEqual(reasons(for: name, in: result), ["Name"], language.rawValue)
+            XCTAssertEqual(reasons(for: weekday, in: result), ["Date"], language.rawValue)
+        }
     }
 
     /// German capitalizes weekdays too, and its entity rule is switched off, so

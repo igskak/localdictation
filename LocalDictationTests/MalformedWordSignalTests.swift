@@ -47,6 +47,14 @@ final class MalformedWordSignalTests: XCTestCase {
             XCTAssertFalse(MalformedWordSignal.hasImpossibleShape(word, language: .english), "\(word) is a word somebody says on purpose")
         }
         XCTAssertFalse(MalformedWordSignal.hasImpossibleShape("бодрствовать", language: .russian))
+        for (word, language) in [
+            ("información", SpeechLanguage.spanish),
+            ("connessione", .italian),
+            ("cœur", .french),
+            ("rythme", .french),
+        ] {
+            XCTAssertFalse(MalformedWordSignal.hasImpossibleShape(word, language: language), "\(word) is ordinary \(language.rawValue)")
+        }
     }
 
     /// German compounds pile consonants up at their seams, and they are
@@ -72,6 +80,12 @@ final class MalformedWordSignalTests: XCTestCase {
 
     func testTheOriginalComplaintIsMarked() {
         XCTAssertEqual(marks("ррверка прошла успешно", language: .russian), ["ррверка"])
+    }
+
+    func testCalibratedRomanceLanguagesMarkImpossibleUnknownWords() {
+        XCTAssertEqual(marks("pproyecto aprobado", language: .spanish), ["pproyecto"])
+        XCTAssertEqual(marks("pprogetto approvato", language: .italian), ["pprogetto"])
+        XCTAssertEqual(marks("pprojet approuvé", language: .french), ["pprojet"])
     }
 
     func testTheWordItWasConfusedWithIsNotMarked() {

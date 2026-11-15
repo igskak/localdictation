@@ -76,8 +76,7 @@ final class PaywallWindowController: NSObject, NSWindowDelegate {
         )
         window.title = "Witness"
         window.titlebarAppearsTransparent = true
-        window.backgroundColor = NSColor(red: 17 / 255, green: 18 / 255, blue: 16 / 255, alpha: 1)
-        window.appearance = NSAppearance(named: .darkAqua)
+        window.backgroundColor = NSColor.windowBackgroundColor
         window.contentView = NSHostingView(
             rootView: PaywallView(
                 coordinator: coordinator,
@@ -111,6 +110,7 @@ final class PaywallWindowController: NSObject, NSWindowDelegate {
     /// on macOS 14; if a future system renames it the button stops working
     /// rather than crashing, and this line is where to look.
     private func openLicenseSettings() {
+        SettingsNavigation.request(.license)
         if !NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil) {
             Log.application.error("Could not open Settings from the paywall")
         }
@@ -195,7 +195,7 @@ struct PaywallView: View {
                     .font(.title3.weight(.semibold))
                 Text(presentation.detail)
                     .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(WitnessStyle.muted)
                     .fixedSize(horizontal: false, vertical: true)
                 if let notice {
                     Text(notice)
@@ -233,10 +233,10 @@ struct PaywallView: View {
             Text(
                 coordinator.canRequestActivation
                     ? presentation.activationHint
-                    : L10n.string("This build has no activation service yet. Press “Enter a key…” and paste one instead — that path works offline and is what the app checks in either case.")
+                    : L10n.string("Email activation is unavailable in this build. Choose “Enter a key…” to activate offline.")
             )
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(WitnessStyle.muted)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .witnessCard(.neutral)
@@ -266,16 +266,16 @@ struct PaywallView: View {
             // never learns it. `/buy` prefills it when the partner's link was
             // opened in the same browser; this line is for everybody else.
             if StoreFront.isOpen {
-                Text("Have a promo code? Enter it on the payment page. If you opened a partner’s link in this browser, it is filled in already.")
+                Text("Enter a promo code on the payment page. A code from a partner link may already be filled in.")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(WitnessStyle.muted)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
             if !StoreFront.isOpen {
-                Text("Checkout is not open yet. When it is, these buttons hand the purchase to Stripe in your browser — the app never sees a card number.")
+                Text("Purchases are not available yet. When they open, payment will take place in your browser through Stripe.")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(WitnessStyle.muted)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }

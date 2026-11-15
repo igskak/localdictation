@@ -10,8 +10,8 @@ enum CleanupLevel: String, Sendable, Equatable, Codable, CaseIterable, Identifia
     var displayName: String {
         switch self {
         case .verbatim: L10n.string("Verbatim")
-        case .conservative: L10n.string("Conservative")
-        case .clean: L10n.string("Clean")
+        case .conservative: L10n.string("Gentle")
+        case .clean: L10n.string("Extended")
         }
     }
 
@@ -20,9 +20,9 @@ enum CleanupLevel: String, Sendable, Equatable, Codable, CaseIterable, Identifia
         case .verbatim:
             L10n.string("Exactly what the speech engine recognized, with no cleanup.")
         case .conservative:
-            L10n.string("Tidies spacing, capitalization, punctuation, and some recognized forms; removes unambiguous fillers.")
+            L10n.string("Fixes spacing, capitalization and punctuation, and removes clear filler words.")
         case .clean:
-            L10n.string("Also follows spoken commands and explicit corrections, formats lists and values, and adapts the join to the current field.")
+            L10n.string("Also applies spoken commands and explicit corrections, and formats lists and values.")
         }
     }
 
@@ -61,9 +61,9 @@ enum RecordingActivation: String, Sendable, Equatable, Codable, CaseIterable, Id
     var explanation: String {
         switch self {
         case .pushToTalk:
-            L10n.string("The microphone is open only while the key is down. Best for a sentence at a time.")
+            L10n.string("Hold the shortcut while you speak. Release it to stop recording.")
         case .toggle:
-            L10n.string("One press starts, the next finishes. Best for anything longer than a key is comfortable to hold.")
+            L10n.string("Press once to start recording. Press again to stop.")
         }
     }
 }

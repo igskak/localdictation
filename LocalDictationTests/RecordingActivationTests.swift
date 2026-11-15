@@ -32,7 +32,39 @@ final class RecordingActivationTests: XCTestCase {
         return Harness(coordinator: coordinator, hotkey: hotkey, capture: capture, preferences: preferences)
     }
 
+    func testEveryModelNoticeUsesTheActualRecordingModeAndCurrentKey() {
+        let key = "Right Option"
+        let notices: [SpeechModelNotice] = [
+            .starting(hotkey: "old-key"),
+            .preparing(ModelPreparation(phase: .loading), hotkey: "old-key"),
+            .preparing(ModelPreparation(phase: .downloading, progress: 0.5), hotkey: "old-key"),
+            .preparing(ModelPreparation(phase: .compilingForThisSystem), hotkey: "old-key"),
+            .ready(hotkey: "old-key")
+        ]
+        for notice in notices {
+            let message = notice.message(activation: .toggle, automaticallyInserts: false, currentHotkey: key)
+            XCTAssertTrue(message.contains(L10n.format("Press %@ to start, then press it again to finish.", key)))
+            XCTAssertFalse(message.contains("old-key"))
+            XCTAssertFalse(message.contains(L10n.format("Hold %@ while you speak, then release it to finish.", key)))
+        }
+        let ready = SpeechModelNotice.ready(hotkey: key)
+        XCTAssertTrue(ready.message(activation: .pushToTalk, automaticallyInserts: true)
+            .contains(L10n.string("Text will appear at your cursor.")))
+        XCTAssertTrue(ready.message(activation: .toggle, automaticallyInserts: false)
+            .contains(L10n.string("You can copy your dictation from Witness.")))
+        XCTAssertFalse(ready.message(activation: .toggle, automaticallyInserts: false)
+            .contains(L10n.string("Text will appear at your cursor.")))
+    }
+
     // MARK: - Toggle
+
+    func testModelPreparationTitlesDistinguishDownloadFromLocalPreparation() {
+        let downloading = SpeechModelNotice.preparing(ModelPreparation(phase: .downloading), hotkey: "Option")
+        let compiling = SpeechModelNotice.preparing(ModelPreparation(phase: .compilingForThisSystem), hotkey: "Option")
+        XCTAssertEqual(downloading.title, L10n.string("Downloading the speech model"))
+        XCTAssertEqual(compiling.title, L10n.string("Preparing your speech model"))
+        XCTAssertNotEqual(downloading.title, compiling.title)
+    }
 
     func testInToggleModeLettingGoOfTheKeyDoesNotEndTheRecording() async throws {
         let harness = makeHarness(activation: .toggle)

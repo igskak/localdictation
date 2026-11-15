@@ -254,7 +254,8 @@ final class ActivationServiceParityTests: XCTestCase {
 
         let process = Process()
         process.executableURL = node
-        process.arguments = [generator.path, "--out", output.path]
+        // Entry-point detection compares argv with import.meta.url; preserve /tmp symlinks on both sides.
+        process.arguments = ["--preserve-symlinks-main", generator.path, "--out", output.path]
         let pipe = Pipe()
         process.standardOutput = pipe
         process.standardError = pipe

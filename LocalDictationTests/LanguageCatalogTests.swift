@@ -43,6 +43,14 @@ final class LanguageCatalogTests: XCTestCase {
         XCTAssertFalse(try XCTUnwrap(SpeechLanguage(rawValue: "pl")).isVerified)
     }
 
+    func testSpanishItalianAndFrenchHaveCalibratedRiskSignalsWithoutPretendingToBeEndToEndVerified() {
+        let romance: Set<SpeechLanguage> = [.spanish, .italian, .french]
+
+        XCTAssertTrue(romance.allSatisfy(\.hasCalibratedRiskSignals))
+        XCTAssertTrue(romance.allSatisfy { !$0.isVerified })
+        XCTAssertTrue(romance.isSubset(of: Set(SpeechLanguage.riskCalibrated)))
+    }
+
     func testTheFlagsThatAreThisProductsOwnPointAtRealLanguages() {
         let codes = Set(LanguageCatalog.all.map(\.code))
         XCTAssertTrue(LanguageCatalog.verifiedCodes.isSubset(of: codes))

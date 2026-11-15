@@ -56,6 +56,7 @@ final class ReviewPanelController {
     private var silenceObserver: AnyCancellable?
     private var interruptionObserver: AnyCancellable?
     private var speechModelObserver: AnyCancellable?
+    private var modelInstructionObserver: AnyCancellable?
     private var contentObserver: AnyCancellable?
 
     init(coordinator: DictationCoordinator) {
@@ -105,6 +106,15 @@ final class ReviewPanelController {
             .sink { [weak self] _ in
                 Task { @MainActor in self?.presentAftermath() }
             }
+        modelInstructionObserver = Publishers.CombineLatest4(
+            coordinator.$activation, coordinator.$binding,
+            coordinator.$accessibilityAuthorization, coordinator.$insertsAutomatically
+        ).dropFirst().sink { [weak self] _ in
+            Task { @MainActor in
+                guard let self, self.coordinator.speechModelNotice != nil else { return }
+                self.presentAftermath()
+            }
+        }
         // The one thing that changes the panel's height while it is open.
         // A new result does not: it arrives with a state change, which shows
         // the panel again and measures it then.
@@ -217,7 +227,12 @@ final class ReviewPanelController {
         // anything else on screen beside it would be about a different press.
         if let notice = coordinator.speechModelNotice {
             showNotice(
-                message: notice.message,
+                message: notice.message(
+                    activation: coordinator.activation,
+                    automaticallyInserts: coordinator.canInsert && !coordinator.needsAccessibilityTrust
+                        && coordinator.insertsAutomatically && !coordinator.isOnboardingTest,
+                    currentHotkey: coordinator.binding.displayString
+                ),
                 symbol: notice.systemImage,
                 flaggedCount: 0,
                 duration: notice.isReady ? Self.modelReadyDuration : Self.modelNoticeDuration
@@ -347,8 +362,7 @@ final class ReviewPanelController {
         panel.isMovableByWindowBackground = true
         panel.titleVisibility = .hidden
         panel.titlebarAppearsTransparent = true
-        panel.backgroundColor = NSColor(red: 17 / 255, green: 18 / 255, blue: 16 / 255, alpha: 1)
-        panel.appearance = NSAppearance(named: .darkAqua)
+        panel.backgroundColor = NSColor.windowBackgroundColor
         panel.hasShadow = true
         panel.isReleasedWhenClosed = false
         for button in [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton] {

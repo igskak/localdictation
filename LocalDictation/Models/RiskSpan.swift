@@ -27,7 +27,7 @@ enum RiskReason: Sendable, Equatable {
         case .date: L10n.string("Date")
         case .namedEntity: L10n.string("Name")
         case let .glossaryNearMiss(term): L10n.format("Close to “%@”", term)
-        case .malformedWord: L10n.string("Not a word")
+        case .malformedWord: L10n.string("Unusual spelling")
         case let .cleanupEdit(kind): kind.label
         case let .languageSwitch(language): L10n.format("%@ word", language.displayName)
         case .lowConfidence: L10n.string("Uncertain")

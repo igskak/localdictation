@@ -61,7 +61,7 @@ struct StatusPresentation: Sendable, Equatable {
             let isArriving = modelState.isPreparing
             title = L10n.string(isArriving ? "Getting the speech model" : "The speech model is not ready")
             detail = isArriving
-                ? L10n.format("%@ It happens once. Dictation starts the moment it is here.", modelState.label)
+                ? L10n.format("%@ You can dictate when preparation is complete.", modelState.label)
                 : modelState.label
             systemImage = isArriving ? "arrow.down.circle" : "exclamationmark.triangle"
             tint = isArriving ? .neutral : .warning
@@ -161,7 +161,7 @@ struct StatusPresentation: Sendable, Equatable {
             showsRecoveryAction = false
 
         case .starting:
-            title = L10n.string("Starting capture")
+            title = L10n.string("Starting recording")
             detail = L10n.string("Opening the microphone.")
             systemImage = "waveform.circle"
             tint = .active
@@ -179,8 +179,8 @@ struct StatusPresentation: Sendable, Equatable {
             showsRecoveryAction = false
 
         case .finishing:
-            title = L10n.string("Finishing utterance")
-            detail = L10n.string("Closing the capture buffer.")
+            title = L10n.string("Finishing recording")
+            detail = L10n.string("Preparing your recording for transcription.")
             systemImage = "waveform.circle"
             tint = .active
             showsPermissionRequest = false
@@ -272,6 +272,7 @@ struct StatusPresentation: Sendable, Equatable {
 
     private static let dayFormatter: DateFormatter = {
         let formatter = DateFormatter()
+        formatter.locale = L10n.interfaceLocale
         formatter.dateStyle = .medium
         formatter.timeStyle = .none
         return formatter

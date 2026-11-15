@@ -20,6 +20,11 @@ struct ConservativeCleanupService: CleanupService {
         .english: ["uh", "uhm", "um", "erm", "hmm", "mhm"],
         .russian: ["ээ", "эээ", "эм", "ммм", "мм"],
         .ukrainian: ["ее", "еее", "ем", "ммм", "мм"],
+        // Only transcription interjections that do not double as ordinary
+        // content words in the corresponding language.
+        .spanish: ["em", "mmm", "mmmm"],
+        .italian: ["ehm", "mmm", "mmmm"],
+        .french: ["euh", "heu", "mmm", "mmmm"],
     ]
 
     private static let sentenceTerminators: Set<Character> = [".", "!", "?", "…"]

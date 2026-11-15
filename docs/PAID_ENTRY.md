@@ -31,23 +31,23 @@ returns the paid key instead of a trial.
 | A refund or dispute cancels the Stripe subscription | `Service/src/billing.js`, `webhook.js` | committed; needs `STRIPE_API_KEY` |
 | `POST /v1/subscriptions/cancel` (the website's cancellation button) | `Service/src/cancel.js` | committed; needs `STRIPE_API_KEY` |
 | A lapsed or refunded address is told so, not handed a trial | `activate.js` (`subscription_inactive`) | committed |
-| Silent key refresh in the app | `LicenseRefreshPolicy`, `EntitlementService.refreshSubscriptionKeyIfDue` | committed, **0.6.21 not released** |
+| Silent key refresh in the app | `LicenseRefreshPolicy`, `EntitlementService.refreshSubscriptionKeyIfDue` | committed; included in the 0.6.22 release |
 | Neutral copy before a key arrives | `LicensePresentation`, `EntitlementNotice`, `StatusPresentation` | committed |
 | Manage subscription (Settings, paywall) | `StoreFront.manageSubscription` → `witnessmac.com/manage` | committed |
 | Sparkle checks once a day, with a Settings switch | `Info.plist`, `AppUpdater`, `SettingsView` | committed |
-| `/start`, `/en/start`, `/start/danke`, `/kuendigen`, `/manage`, `/buy?plan=intro`, terms, privacy | website branch `feat/paid-entry-start` | **PR open, not merged** |
+| Paid entry, return, and cancellation routes in DE/EN/ES/IT/FR; `/manage`; `/buy?plan=intro`; English legal set | website `main` | deployed 27.10.2026 |
 | Switch the ads | `~/Pet Project/witness-ads/paid_entry_switch.py` | dry run passes; `--apply` is Igor's |
 
 ## Still switched off, on purpose
 
-- **The website is not deployed.** The Payment Link exists and is wired into the
-  PR, but `witnessmac.com/start` does not exist until the PR is merged and
-  deployed. The link itself already works: anybody who has its address can buy
-  through it.
+- **The ads remain switched off.** The production website and Payment Link are
+  live, but the complete real-card purchase, activation, portal, refund, and
+  cancellation checks still come before traffic is sent to them.
 - **The customer portal link is set** (activated 20.10.2026 on the shared default
-  configuration); `/manage` redirects to it once the website PR is deployed.
-- **`STRIPE_API_KEY` is not set.** Refunds still kill the licence; they do not
-  cancel the subscription, and the cancellation form does nothing.
+  configuration); the deployed `/manage` route redirects to it.
+- **`STRIPE_API_KEY` is set** in the production activation service. The
+  integration still needs the real-card refund and cancellation proof in step
+  9; the presence of a secret is not proof that Stripe accepted either action.
 
 ## What is done in Stripe (20.10.2026)
 
@@ -97,10 +97,12 @@ returns the paid key instead of a trial.
    `PAYMENT_LINK_INTRO = "plink_…"`, `cd Service && npm test`, `npx wrangler
    deploy`, and check `/v1/health`. `PAYMENT_LINK_INTRO` is already in
    `wrangler.toml`.
-7. **App:** release 0.6.21 (`docs/PHASE_6_RELEASE.md`). It must be the latest
+7. **App:** release 0.6.22 (`docs/PHASE_6_RELEASE.md`). It must be the latest
    release before the first sale: an older build does not refresh its key and a
    buyer on it is locked out after about a month.
-8. **Website:** merge the PR and deploy (both links are already in it).
+8. **Website (done 27.10.2026):** production deploy includes the paid-entry,
+   return, and cancellation routes for DE/EN/ES/IT/FR. ES/IT/FR link only the
+   English legal set and mark those links `(EN)`.
 9. **Test in production with a real card:** buy the €4,99, install on a clean
    Mac, wait out the three days (or move the Mac's clock), enter the address, see
    "Annual subscription". Then refund it in Stripe and check that the licence is

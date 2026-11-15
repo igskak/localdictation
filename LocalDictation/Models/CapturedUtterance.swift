@@ -6,6 +6,14 @@ enum UtteranceEndReason: String, Sendable, Equatable {
     case hotkeyRelease
     case maximumDuration
     case interrupted
+
+    var label: String {
+        switch self {
+        case .hotkeyRelease: L10n.string("Hotkey released")
+        case .maximumDuration: L10n.string("Maximum duration reached")
+        case .interrupted: L10n.string("Interrupted")
+        }
+    }
 }
 
 /// One completed in-memory utterance.

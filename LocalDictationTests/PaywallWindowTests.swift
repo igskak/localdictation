@@ -135,6 +135,25 @@ final class PaywallWindowTests: XCTestCase {
         XCTAssertGreaterThan(size.height, 0)
     }
 
+    func testThePaywallLaysOutInTheExpansionLocales() async throws {
+        let harness = makeHarness()
+        try await lock(harness)
+
+        for identifier in ["es", "it", "fr"] {
+            let view = PaywallView(
+                coordinator: harness.coordinator,
+                openLicenseSettings: {},
+                dismiss: {}
+            )
+            .environment(\.locale, Locale(identifier: identifier))
+            let size = render(view)
+
+            XCTAssertGreaterThan(size.width, 0, identifier)
+            XCTAssertGreaterThan(size.height, 0, identifier)
+            XCTAssertLessThanOrEqual(size.width, 560, "\(identifier) paywall grew beyond a practical window width")
+        }
+    }
+
     // MARK: - Who gets the address form
 
     /// The paywall is where somebody stands when they come back from paying,

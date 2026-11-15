@@ -255,7 +255,7 @@ enum BenchmarkRunner {
                 hypothesis: transcript.text,
                 language: language,
                 normalizer: normalizer,
-                selecting: CriticalTokens.isNumeric
+                selecting: { CriticalTokens.isNumeric($0, language: language) }
             ),
             calibration: TranscriptionScorer.calibration(
                 of: transcript,

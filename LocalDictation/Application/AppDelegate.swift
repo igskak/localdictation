@@ -5,6 +5,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Set by `LocalDictationApp` during scene construction so the delegate can
     /// drive launch, activation, and termination hooks.
     static weak var coordinator: DictationCoordinator?
+    static var showSetup: (() -> Void)?
 
     /// Owns the floating review panel for the lifetime of the app. It has to
     /// live somewhere outside the menu bar scene: the review has to be able to
@@ -48,10 +49,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // After `activate`, which is what reads the settings file: whether the
         // question has been answered is a fact from disk, not an assumption
         // about how new this installation is.
-        if let coordinator = Self.coordinator, coordinator.needsLanguageSetup {
-            let setup = LanguageSetupWindowController(coordinator: coordinator, loginItem: SMAppServiceLoginItem())
+        if let coordinator = Self.coordinator {
+            let setup = LanguageSetupWindowController(coordinator: coordinator, loginItem: SMAppServiceLoginItem(), installationAware: true)
             languageSetup = setup
             setup.presentIfNeeded()
+            Self.showSetup = { [weak setup] in setup?.presentIfNeeded(force: true) }
         }
         // Last, and detached: the question above is what the user is waiting
         // for, and the sweep is housekeeping nobody is looking at.
@@ -80,8 +82,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// launch. A running app with no window has nothing to show for that click,
     /// so it opens Settings, or the first-run question while it is unanswered.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        if let languageSetup, Self.coordinator?.needsLanguageSetup == true {
-            languageSetup.presentIfNeeded()
+        if let languageSetup, languageSetup.isPresenting || Self.coordinator?.needsLanguageSetup == true {
+            languageSetup.presentIfNeeded(force: true)
         } else {
             NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
         }

@@ -80,6 +80,51 @@ enum ProseCorpus {
         "Пропоную обговорити це голосом, а не листами.",
     ]
 
+    static let spanish = [
+        "He leído el borrador y la estructura funciona bien.",
+        "El equipo de soporte observa el mismo comportamiento que la semana pasada.",
+        "Revisa de nuevo el segundo párrafo antes de enviarlo.",
+        "La fecha de la revisión todavía no está fijada.",
+        "Debemos actualizar la documentación cuando llegue el cambio.",
+        "El problema solo aparece cuando la conexión es lenta.",
+        "Agrupé varias tareas porque comparten la misma causa.",
+        "El departamento jurídico todavía revisa el contrato.",
+        "Confirma si los datos del informe anterior siguen vigentes.",
+        "Podemos mover la conversación a la próxima semana.",
+        "El informe está terminado pero falta el resumen.",
+        "Propongo resolverlo en una llamada en lugar de otro correo.",
+    ]
+
+    static let italian = [
+        "Ho letto la bozza e la struttura funziona bene.",
+        "Il supporto vede lo stesso comportamento della settimana scorsa.",
+        "Controlla di nuovo il secondo paragrafo prima di inviarlo.",
+        "La data della revisione non è ancora fissata.",
+        "Dovremmo aggiornare la documentazione quando arriva la modifica.",
+        "Il problema compare soltanto quando la connessione è lenta.",
+        "Ho riunito diverse attività perché hanno la stessa causa.",
+        "Il reparto legale sta ancora esaminando il contratto.",
+        "Conferma se i dati del vecchio rapporto sono ancora validi.",
+        "Possiamo spostare la conversazione alla prossima settimana.",
+        "Il rapporto è pronto ma manca ancora il riepilogo.",
+        "Propongo di risolvere tutto con una chiamata invece di un'altra email.",
+    ]
+
+    static let french = [
+        "J'ai lu le brouillon et la structure fonctionne bien.",
+        "Le support observe le même comportement que la semaine dernière.",
+        "Relis le deuxième paragraphe avant de l'envoyer.",
+        "La date de la revue n'est pas encore fixée.",
+        "Nous devrions actualiser la documentation après cette modification.",
+        "Le problème apparaît seulement quand la connexion est lente.",
+        "J'ai regroupé plusieurs tâches parce qu'elles ont la même cause.",
+        "Le service juridique examine encore le contrat.",
+        "Confirme si les données de l'ancien rapport sont toujours valables.",
+        "Nous pouvons déplacer la conversation à la semaine prochaine.",
+        "Le rapport est terminé mais le résumé manque encore.",
+        "Je propose de régler cela pendant un appel plutôt que par mail.",
+    ]
+
     /// A tenth of the sentences carry a figure, which is roughly the rate at
     /// which ordinary work prose does. Kept in one place so the ratio is a
     /// visible decision rather than an accident of who wrote which sentence.
@@ -92,6 +137,12 @@ enum ProseCorpus {
         (.russian, "Мы получили 12 комментариев, в основном про структуру."),
         (.ukrainian, "Відповідь надійшла 14 травня, тобто на три дні пізніше."),
         (.ukrainian, "Ми отримали 12 коментарів, здебільшого про структуру."),
+        (.spanish, "La respuesta llegó el 14 de mayo, tres días más tarde."),
+        (.spanish, "Recibimos 12 comentarios, la mayoría sobre la estructura."),
+        (.italian, "La risposta è arrivata il 14 maggio, tre giorni dopo."),
+        (.italian, "Abbiamo ricevuto 12 commenti, soprattutto sulla struttura."),
+        (.french, "La réponse est arrivée le 14 mai, trois jours plus tard."),
+        (.french, "Nous avons reçu 12 commentaires, surtout sur la structure."),
     ]
 
     /// Sentences whose proper nouns came out **right**.
@@ -116,6 +167,12 @@ enum ProseCorpus {
         (.russian, "Обсуждение мы перенесли во Флок, там вся команда."),
         (.ukrainian, "Я скинув нотатку в Notion і написав Анні."),
         (.ukrainian, "Обговорення ми перенесли у Флок, там уся команда."),
+        (.spanish, "Guardé la nota en Notion y avisé a Ana."),
+        (.spanish, "Jenkins terminó la compilación durante la noche."),
+        (.italian, "Ho salvato la nota in Notion e avvisato Anna."),
+        (.italian, "Jenkins ha completato la compilazione durante la notte."),
+        (.french, "J'ai enregistré la note dans Notion et prévenu Anna."),
+        (.french, "Jenkins a terminé la compilation pendant la nuit."),
     ]
 
     static var corpus: BenchmarkCorpus {
@@ -125,6 +182,9 @@ enum ProseCorpus {
             (.english, english),
             (.russian, russian),
             (.ukrainian, ukrainian),
+            (.spanish, spanish),
+            (.italian, italian),
+            (.french, french),
         ]
         for (language, sentences) in plain {
             for (index, sentence) in sentences.enumerated() {

@@ -81,3 +81,29 @@ extension HotkeyModifiers {
         self = modifiers
     }
 }
+
+/// Waits for modifier release, so Option+Space is captured as a combination
+/// rather than saving Option before the user can press Space.
+struct HotkeyCaptureSession {
+    private var firstModifier: UInt32?
+    private var mixedModifiers = false
+
+    mutating func modifierChanged(keyCode: UInt32, activeModifierCount: Int) -> HotkeyBinding? {
+        if activeModifierCount == 0 {
+            let candidate = mixedModifiers ? nil : firstModifier.flatMap(Self.singleBinding)
+            self = Self()
+            return candidate
+        }
+        guard let _ = Self.singleBinding(keyCode) else { return nil }
+        if firstModifier == nil { firstModifier = keyCode }
+        if activeModifierCount != 1 || firstModifier != keyCode { mixedModifiers = true }
+        return nil
+    }
+
+    private static func singleBinding(_ code: UInt32) -> HotkeyBinding? {
+        let labels: [UInt32: String] = [54: "Right Command", 55: "Left Command",
+            56: "Left Shift", 60: "Right Shift", 58: "Left Option", 61: "Right Option",
+            59: "Left Control", 62: "Right Control", 63: "Fn / Globe"]
+        return labels[code].map { HotkeyBinding.single(code, $0) }
+    }
+}

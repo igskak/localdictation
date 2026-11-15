@@ -125,7 +125,7 @@ enum TranscriptionModelState: Sendable, Equatable {
             case .loading:
                 L10n.string("Loading the speech model…")
             case .compilingForThisSystem:
-                L10n.string("Preparing the speech model for this Mac. The first time on a new macOS version takes several minutes; after that it is seconds.")
+                L10n.string("Preparing the speech model for this Mac. This can take several minutes after a macOS update.")
             }
         case .ready: L10n.string("Ready")
         case let .failed(detail): detail

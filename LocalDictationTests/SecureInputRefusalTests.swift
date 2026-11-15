@@ -64,7 +64,7 @@ final class SecureInputRefusalTests: XCTestCase {
     func testAnUnnamedHolderStillGetsAWholeSentence() {
         let message = RefusalReason.secureInput.message()
 
-        XCTAssertTrue(message.contains("secure input"))
+        XCTAssertTrue(message.localizedCaseInsensitiveContains("secure input"))
         XCTAssertTrue(message.contains("was not copied"))
         XCTAssertFalse(message.contains("nil"))
     }

@@ -178,7 +178,7 @@ final class EntitlementServiceTests: XCTestCase {
         XCTAssertEqual(changes.last?.license?.kind, .trial, "the view is told, rather than having to ask again")
 
         let presentation = LicensePresentation(state: service.state, now: clock.value)
-        XCTAssertEqual(presentation.headline, "Trial, activated")
+        XCTAssertEqual(presentation.headline, "Trial active")
         XCTAssertTrue(presentation.detail.contains("10 days left"), presentation.detail)
         XCTAssertFalse(presentation.showsActivation, "the form that was just used is no longer the thing to do")
         XCTAssertTrue(presentation.showsOffers, "a running trial is where the offers belong")

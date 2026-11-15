@@ -20,6 +20,9 @@ struct EntityRiskSignal: RiskSignal {
         .english: ["mr", "mrs", "ms", "miss", "dr", "prof", "professor"],
         .russian: ["господин", "госпожа", "г-н", "г-жа", "доктор", "профессор"],
         .ukrainian: ["пан", "пані", "добродій", "доктор", "професор"],
+        .spanish: ["señor", "señora", "sr", "sra", "doctor", "doctora", "profesor", "profesora"],
+        .italian: ["signor", "signora", "sig", "dottor", "dottoressa", "professor", "professoressa"],
+        .french: ["monsieur", "madame", "dr", "docteur", "professeur"],
     ]
 
     /// Capitalization says nothing about nouns in a language that capitalizes

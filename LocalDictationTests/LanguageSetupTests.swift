@@ -40,6 +40,274 @@ final class LanguageSetupTests: XCTestCase {
         }
     }
 
+    func testReinstallationShowsSetupButRestartAfterSkipDoesNot() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let receipt = directory.appendingPathComponent("onboarding.json")
+        let coordinator = makeCoordinator(InMemoryPreferencesStore())
+        func controller(_ identity: String) -> LanguageSetupWindowController {
+            LanguageSetupWindowController(coordinator: coordinator, loginItem: FakeLoginItemService(),
+                installationAware: true, receiptURL: receipt, installationIdentity: identity)
+        }
+        let first = controller("first-copy")
+        first.presentIfNeeded()
+        XCTAssertTrue(first.isPresenting)
+        first.finish()
+        let restart = controller("first-copy")
+        restart.presentIfNeeded()
+        XCTAssertFalse(restart.isPresenting)
+        let reinstall = controller("second-copy")
+        reinstall.presentIfNeeded()
+        XCTAssertTrue(reinstall.isPresenting)
+        reinstall.finish()
+    }
+
+    func testGuidedSetupPagesFitAndRender() throws {
+        let coordinator = makeCoordinator(InMemoryPreferencesStore())
+        let model = LanguageSetupModel(selection: .default)
+        for page in 0...5 {
+            model.page = page
+            let view = GuidedSetupView(model: model, coordinator: coordinator, notifyWhenReady: {}, finish: {})
+                .environmentObject(coordinator)
+            let hosting = NSHostingView(rootView: view)
+            hosting.frame = NSRect(x: 0, y: 0, width: 520, height: 620)
+            hosting.layoutSubtreeIfNeeded()
+            XCTAssertLessThanOrEqual(hosting.fittingSize.height, 621)
+            if let bitmap = hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds) {
+                hosting.cacheDisplay(in: hosting.bounds, to: bitmap)
+                if let png = bitmap.representation(using: .png, properties: [:]) {
+                    try png.write(to: URL(fileURLWithPath: "/tmp/witness-setup-\(page).png"))
+                }
+            }
+        }
+    }
+
+    /// Exports the actual SwiftUI screens with injected permission/model fixtures.
+    /// Used for reviewing onboarding without a microphone or live model download.
+    func testExportOnboardingPreview() async throws {
+        let directory = URL(fileURLWithPath: "/tmp/witness-onboarding-preview", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let engine = FakeTranscriptionService()
+        engine.setResult(.fixture(words: [("Hello", 0.99), ("from", 0.99), ("Witness.", 0.99)]))
+        let hotkey = FakeHotkeyService()
+        let microphone = FakeMicrophonePermissionService(authorization: .notDetermined)
+        let coordinator = DictationCoordinator(
+            permissionService: microphone, hotkeyService: hotkey,
+            captureService: FakeAudioCaptureService(), transcriptionService: engine,
+            accessibilityService: FakeAccessibilityPermissionService(authorization: .notTrusted),
+            insertionService: FakeTextInsertionService(),
+            preferencesStore: InMemoryPreferencesStore()
+        )
+        coordinator.activate()
+        await coordinator.refreshTranscriptionModelState()
+        let model = LanguageSetupModel(selection: .default)
+        func snapshot(_ name: String, afterLayout: (() async throws -> Void)? = nil) async throws {
+            let hosting = NSHostingView(rootView: FirstRunView(
+                model: model, coordinator: coordinator, confirm: {}, finish: {}, notifyWhenReady: {}
+            ).environmentObject(coordinator).environment(\.locale, Locale(identifier: "en")))
+            let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 520, height: 620),
+                                  styleMask: [.borderless], backing: .buffered, defer: false)
+            window.isReleasedWhenClosed = false
+            window.contentView = hosting
+            hosting.frame = NSRect(x: 0, y: 0, width: 520, height: 620)
+            hosting.layoutSubtreeIfNeeded()
+            try await settle()
+            try await afterLayout?()
+            hosting.layoutSubtreeIfNeeded()
+            let bitmap = try XCTUnwrap(hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds))
+            hosting.cacheDisplay(in: hosting.bounds, to: bitmap)
+            let png = try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
+            try png.write(to: directory.appendingPathComponent(name + ".png"))
+            window.close()
+        }
+        model.step = .welcome
+        try await snapshot("01-welcome")
+        model.step = .languages
+        try await snapshot("02-languages")
+        coordinator.completeLanguageSetup(with: model.selection)
+        model.step = .ready; model.page = 0
+        try await snapshot("03-microphone")
+        await coordinator.requestMicrophoneAccess()
+        model.page = 1
+        try await snapshot("04-accessibility")
+        model.continueWithClipboard(using: coordinator)
+        try await snapshot("05-key")
+        engine.setModelState(.preparing(ModelPreparation(phase: .downloading, download: ModelDownloadProgress(
+            completedBytes: 688_000_000, totalBytes: 1_600_000_000, remainingSeconds: 360
+        ))))
+        await coordinator.refreshTranscriptionModelState()
+        model.page = 3
+        try await snapshot("06-model-download")
+        engine.setModelState(.ready)
+        await coordinator.refreshTranscriptionModelState()
+        model.page = 4
+        try await snapshot("07-try-dictation")
+        model.page = 4
+        try await snapshot("08-dictation-result") {
+            coordinator.beginOnboardingTest()
+            hotkey.emit(.pressed); hotkey.emit(.released)
+            try await waitUntil("preview dictation result") { !coordinator.onboardingTestText.isEmpty }
+        }
+        model.page = 5
+        try await snapshot("09-ready")
+        coordinator.deactivate()
+    }
+
+    private func guidedHarness(trusted: Bool = false) async -> (
+        DictationCoordinator, LanguageSetupModel, FakeAccessibilityPermissionService,
+        FakeHotkeyService, FakeAudioCaptureService, FakeTranscriptionService
+    ) {
+        let access = FakeAccessibilityPermissionService(authorization: trusted ? .trusted : .notTrusted)
+        let hotkey = FakeHotkeyService()
+        let capture = FakeAudioCaptureService()
+        let engine = FakeTranscriptionService()
+        var preferences = Preferences.default
+        preferences.hasChosenLanguages = true
+        let coordinator = DictationCoordinator(
+            permissionService: FakeMicrophonePermissionService(authorization: .authorized),
+            hotkeyService: hotkey, captureService: capture, transcriptionService: engine,
+            accessibilityService: access, insertionService: FakeTextInsertionService(),
+            preferencesStore: InMemoryPreferencesStore(preferences)
+        )
+        coordinator.activate()
+        await coordinator.refreshTranscriptionModelState()
+        return (coordinator, LanguageSetupModel(selection: .default), access, hotkey, capture, engine)
+    }
+
+    func testAccessibilitySetupRequestsTrustAndOpensSettingsOnlyWhenMissing() async {
+        let (coordinator, _, access, _, _, _) = await guidedHarness()
+        XCTAssertEqual(access.requestCount, 0)
+        coordinator.requestAccessibilitySetup()
+        XCTAssertEqual(access.requestCount, 1)
+        XCTAssertEqual(access.openSettingsCount, 1)
+        access.set(.trusted)
+        coordinator.refreshAccessibilityAuthorization()
+        coordinator.requestAccessibilitySetup()
+        XCTAssertEqual(access.requestCount, 1)
+        XCTAssertEqual(access.openSettingsCount, 1)
+    }
+
+    func testAccessibilityRequiresAnExplicitClipboardChoiceToContinue() async {
+        let (coordinator, model, _, _, _, _) = await guidedHarness()
+        model.page = 1
+        XCTAssertFalse(model.canAdvance(using: coordinator))
+        model.advance(using: coordinator)
+        XCTAssertEqual(model.page, 1)
+        model.continueWithClipboard(using: coordinator)
+        XCTAssertEqual(model.page, 2)
+        XCTAssertTrue(model.usesClipboardOnly)
+        XCTAssertTrue(model.canAdvance(using: coordinator))
+    }
+
+    func testRejectedSingleKeyBlocksNextUntilFallbackIsExplicitlyChosen() async {
+        let (coordinator, model, _, hotkey, _, _) = await guidedHarness(trusted: true)
+        model.page = 2
+        hotkey.failNextRegistration(with: HotkeyRegistrationError.keyboardAccessRequired)
+        let requested = HotkeyBinding.single(61, "Right Option")
+        XCTAssertEqual(coordinator.changeHotkey(to: requested), .keyboardAccessRequired)
+        XCTAssertEqual(coordinator.registeredHotkey, .optionSpace)
+        XCTAssertEqual(coordinator.pendingHotkeyBinding, requested)
+        coordinator.cancelHotkeyCapture() // A disappearing recorder must not clear a refused choice.
+        XCTAssertFalse(model.canAdvance(using: coordinator))
+        model.advance(using: coordinator)
+        XCTAssertEqual(model.page, 2)
+        coordinator.keepCurrentHotkey()
+        XCTAssertNil(coordinator.pendingHotkeyBinding)
+        XCTAssertTrue(model.canAdvance(using: coordinator))
+    }
+
+    func testRetryingPendingSingleKeyFinishesTheActualChoice() async {
+        let (coordinator, model, _, hotkey, _, _) = await guidedHarness(trusted: true)
+        model.page = 2
+        hotkey.failNextRegistration(with: HotkeyRegistrationError.keyboardAccessRequired)
+        let requested = HotkeyBinding.single(61, "Right Option")
+        _ = coordinator.changeHotkey(to: requested)
+        XCTAssertNil(coordinator.changeHotkey(to: requested))
+        XCTAssertEqual(coordinator.binding, requested)
+        XCTAssertNil(coordinator.pendingHotkeyBinding)
+        XCTAssertTrue(model.canAdvance(using: coordinator))
+    }
+
+    func testModelReadyWhileMinimizedDoesNotArmTheMicrophoneTest() async {
+        let (coordinator, model, _, _, capture, engine) = await guidedHarness(trusted: true)
+        engine.setModelState(.preparing(ModelPreparation(phase: .downloading, progress: 0.5)))
+        await coordinator.refreshTranscriptionModelState()
+        model.page = 3
+        model.isInteractive = false
+        engine.setModelState(.ready)
+        await coordinator.refreshTranscriptionModelState()
+        model.synchronizeReadiness(using: coordinator)
+        XCTAssertEqual(model.page, 4)
+        XCTAssertFalse(coordinator.isOnboardingTest)
+        XCTAssertEqual(capture.startCount, 0)
+        model.isInteractive = true
+        model.synchronizeReadiness(using: coordinator)
+        XCTAssertTrue(coordinator.isOnboardingTest)
+        XCTAssertEqual(capture.startCount, 0, "Returning prepares the test but never starts recording")
+        model.clearTest(using: coordinator)
+    }
+
+    func testTestStartsAfterMissingPermissionIsGrantedOnTheSamePage() async {
+        let (coordinator, model, access, _, _, _) = await guidedHarness()
+        model.page = 4
+        model.synchronizeReadiness(using: coordinator)
+        XCTAssertFalse(coordinator.isOnboardingTest)
+        access.set(.trusted)
+        coordinator.refreshAccessibilityAuthorization()
+        model.synchronizeReadiness(using: coordinator)
+        XCTAssertTrue(coordinator.isOnboardingTest)
+        access.set(.notTrusted)
+        coordinator.refreshAccessibilityAuthorization()
+        model.synchronizeReadiness(using: coordinator)
+        XCTAssertFalse(coordinator.isOnboardingTest)
+        XCTAssertFalse(model.canAdvance(using: coordinator))
+    }
+
+    func testCompletedVoiceTestSurvivesPausingButClearsWhenLeavingTheStep() async throws {
+        let (coordinator, model, _, hotkey, _, engine) = await guidedHarness(trusted: true)
+        engine.setResult(.fixture(words: [("hello", 0.99)]))
+        model.page = 4
+        model.synchronizeReadiness(using: coordinator)
+        hotkey.emit(.pressed); hotkey.emit(.released)
+        try await waitUntil("test result ready") { coordinator.onboardingTestResult != nil }
+        let text = coordinator.onboardingTestText
+        model.isInteractive = false
+        model.synchronizeReadiness(using: coordinator)
+        XCTAssertFalse(coordinator.isOnboardingTest)
+        XCTAssertEqual(coordinator.onboardingTestText, text)
+        XCTAssertEqual(coordinator.onboardingTestResult?.cleanedText, text)
+        XCTAssertNil(coordinator.result, "Paused test data cannot be inserted using the general menu")
+        model.isInteractive = true
+        model.synchronizeReadiness(using: coordinator)
+        XCTAssertFalse(coordinator.isOnboardingTest, "Keep the completed test instead of arming a new one")
+        XCTAssertTrue(model.canAdvance(using: coordinator))
+        model.advance(using: coordinator)
+        XCTAssertEqual(model.page, 5)
+        XCTAssertTrue(coordinator.onboardingTestText.isEmpty)
+        XCTAssertNil(coordinator.onboardingTestResult)
+    }
+
+    func testOnboardingWindowCanBeMinimized() {
+        let controller = LanguageSetupWindowController(
+            coordinator: makeCoordinator(InMemoryPreferencesStore()), loginItem: FakeLoginItemService()
+        )
+        controller.presentIfNeeded()
+        XCTAssertTrue(controller.window?.styleMask.contains(.miniaturizable) == true)
+        controller.finish()
+    }
+
+    func testClipboardChoiceReceiptMigratesAndRoundTrips() throws {
+        let old = Data(#"{"installation":"fixture","page":3,"outcome":"dismissed"}"#.utf8)
+        let decoder = JSONDecoder()
+        var receipt = try decoder.decode(OnboardingReceipt.self, from: old)
+        XCTAssertFalse(receipt.usesClipboardOnly)
+        XCTAssertEqual(receipt.page, 3)
+        receipt.usesClipboardOnly = true
+        let restored = try decoder.decode(OnboardingReceipt.self, from: JSONEncoder().encode(receipt))
+        XCTAssertTrue(restored.usesClipboardOnly)
+        XCTAssertEqual(restored.outcome, "dismissed")
+    }
+
     // MARK: - The window
 
     func testTheQuestionLaysOutWithAHundredLanguagesInIt() {
@@ -48,6 +316,25 @@ final class LanguageSetupTests: XCTestCase {
 
         XCTAssertGreaterThan(size.width, 0)
         XCTAssertGreaterThan(size.height, 0)
+    }
+
+    func testBothFirstRunScreensLayOutInTheExpansionLocales() {
+        for identifier in ["es", "it", "fr"] {
+            let model = LanguageSetupModel(selection: .default)
+            let question = LanguageSetupView(model: model) {}
+                .environment(\.locale, Locale(identifier: identifier))
+            let questionSize = render(question)
+
+            let (coordinator, _, _) = makeUnpermittedCoordinator()
+            let permissions = FirstRunReadyView(coordinator: coordinator) {}
+                .environment(\.locale, Locale(identifier: identifier))
+            let permissionsSize = render(permissions)
+
+            XCTAssertEqual(questionSize.width, 520, accuracy: 1, identifier)
+            XCTAssertEqual(permissionsSize.width, 520, accuracy: 1, identifier)
+            XCTAssertGreaterThan(questionSize.height, 0, identifier)
+            XCTAssertGreaterThan(permissionsSize.height, 0, identifier)
+        }
     }
 
     func testTheEditorLaysOutOnItsOwnAsSettingsShowsIt() {
@@ -258,7 +545,7 @@ final class LanguageSetupTests: XCTestCase {
 
         let path = try XCTUnwrap(L10n.bundle.path(forResource: "de", ofType: "lproj"))
         let german = try XCTUnwrap(Bundle(path: path))
-        for key in ["Open Witness when I log in", "The hotkey only works while Witness is running, and it has no Dock icon. Without this, a restart leaves the hotkey silent until you open the app again."] {
+        for key in ["Open Witness when I log in", "Start Witness at login so your dictation shortcut is always available."] {
             XCTAssertNotEqual(german.localizedString(forKey: key, value: nil, table: nil), key)
         }
     }

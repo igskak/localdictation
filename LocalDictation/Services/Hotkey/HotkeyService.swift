@@ -29,12 +29,18 @@ struct HotkeyBinding: Sendable, Equatable {
     /// Phase 1 default: push-to-talk on Option + Space.
     static let optionSpace = HotkeyBinding(keyCode: 49, modifiers: .option, keyLabel: "Space")
 
-    var displayString: String { "\(modifiers.displayString)\(keyLabel)" }
+    var isSingleModifier: Bool { modifiers.isEmpty && [54,55,56,58,59,60,61,62,63].contains(keyCode & 0xFFFF) }
+    var displayString: String { "\(modifiers.displayString)\(isSingleModifier ? L10n.string(keyLabel) : keyLabel)" }
+    static func single(_ code: UInt32, _ label: String) -> Self {
+        Self(keyCode: code, modifiers: [], keyLabel: label)
+    }
 }
 
 enum HotkeyEvent: String, Sendable, Equatable {
     case pressed
     case released
+    case cancelled
+    case unavailable
 }
 
 enum HotkeyRegistrationError: Error, Sendable, Equatable {
@@ -44,11 +50,14 @@ enum HotkeyRegistrationError: Error, Sendable, Equatable {
     /// away from every application on the Mac, including this app's own text
     /// fields, so it is refused before it reaches the system rather than after.
     case noModifier
+    case keyboardAccessRequired
     case handlerInstallationFailed(status: Int32)
     case registrationFailed(status: Int32)
 
     var message: String {
         switch self {
+        case .keyboardAccessRequired:
+            L10n.string("allow Input Monitoring in System Settings, then try again")
         case .alreadyInUse:
             L10n.string("the shortcut is already used by macOS or another app")
         case .noModifier:
@@ -67,4 +76,30 @@ protocol HotkeyService: AnyObject, Sendable {
     var registeredBinding: HotkeyBinding? { get }
     func register(_ binding: HotkeyBinding, handler: @escaping @Sendable (HotkeyEvent) -> Void) throws
     func unregister()
+    func setActivation(_ activation: RecordingActivation)
+}
+
+extension HotkeyService {
+    func setActivation(_ activation: RecordingActivation) {}
+}
+
+/// The pure part of modifier detection; system adapters supply physical key state.
+struct ModifierKeyGesture: Sendable {
+    private(set) var held = false
+    private(set) var invalid = false
+    private(set) var started = false
+    mutating func begin(clean: Bool) { held = true; invalid = !clean; started = false }
+    mutating func activate() -> Bool {
+        guard held, !invalid, !started else { return false }
+        started = true
+        return true
+    }
+    mutating func interfere() -> Bool {
+        guard held else { return false }
+        invalid = true
+        let cancel = started
+        started = false
+        return cancel
+    }
+    mutating func reset() { self = Self() }
 }

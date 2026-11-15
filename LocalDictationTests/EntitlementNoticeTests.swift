@@ -79,7 +79,7 @@ final class EntitlementNoticeTests: XCTestCase {
         let standing = GraceStanding(expiresAt: now.addingTimeInterval(3600))
         let notice = try XCTUnwrap(EntitlementNotice(state: .ungated(standing), now: now))
 
-        XCTAssertTrue(notice.detail.contains("asks for your email address"))
+        XCTAssertTrue(notice.detail.contains("Add your email"))
         XCTAssertFalse(notice.detail.lowercased().contains("free"), "a buyer reads this too")
         XCTAssertFalse(notice.detail.contains("whichever comes first"), "there is only one way for the window to end now")
     }

@@ -57,6 +57,10 @@ struct SpeechLanguage: RawRepresentable, Sendable, Hashable, Identifiable, Compa
     /// this language, as opposed to recognition alone. `docs/PHASE_7.md`.
     var isVerified: Bool { LanguageCatalog.verifiedCodes.contains(rawValue) }
 
+    /// Whether language-dependent review marks are calibrated for this
+    /// language. This does not enable the advanced cleanup pipeline.
+    var hasCalibratedRiskSignals: Bool { LanguageCatalog.riskCalibratedCodes.contains(rawValue) }
+
     /// Whether the language capitalizes every noun, which is what makes a
     /// capital letter mid-sentence worthless as evidence of a name.
     var capitalizesNouns: Bool { LanguageCatalog.nounCapitalizingCodes.contains(rawValue) }
@@ -75,6 +79,9 @@ struct SpeechLanguage: RawRepresentable, Sendable, Hashable, Identifiable, Compa
         case "en": "en-US"
         case "ru": "ru-RU"
         case "uk": "uk-UA"
+        case "es": "es-ES"
+        case "it": "it-IT"
+        case "fr": "fr-FR"
         default: rawValue
         }
     }
@@ -89,10 +96,20 @@ struct SpeechLanguage: RawRepresentable, Sendable, Hashable, Identifiable, Compa
     static let english = SpeechLanguage(known: "en")
     static let russian = SpeechLanguage(known: "ru")
     static let ukrainian = SpeechLanguage(known: "uk")
+    static let spanish = SpeechLanguage(known: "es")
+    static let italian = SpeechLanguage(known: "it")
+    static let french = SpeechLanguage(known: "fr")
 
     /// The verified tier, in the order the picker shows it.
     static let verified: [SpeechLanguage] = LanguageCatalog.all
         .filter { LanguageCatalog.verifiedCodes.contains($0.code) }
+        .map { SpeechLanguage(known: $0.code) }
+
+    /// Review highlighting calibrated on correct-text corpora. The first four
+    /// are also verified end to end; ES/IT/FR are not promoted until their
+    /// recorded recognition corpus passes.
+    static let riskCalibrated: [SpeechLanguage] = LanguageCatalog.all
+        .filter { LanguageCatalog.riskCalibratedCodes.contains($0.code) }
         .map { SpeechLanguage(known: $0.code) }
 
     /// Every language the engine knows, sorted by English name.

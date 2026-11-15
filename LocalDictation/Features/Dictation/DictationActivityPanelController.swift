@@ -66,7 +66,7 @@ struct AccessibilityTextCaretLocator: TextCaretLocating {
 
 @MainActor
 final class DictationActivityPanelController {
-    private static let size = NSSize(width: 100, height: 28)
+    private static let size = NSSize(width: 120, height: 32)
     private let coordinator: DictationCoordinator
     private let caretLocator: any TextCaretLocating
     private var panel: NSPanel?
@@ -181,7 +181,7 @@ private struct DictationActivityView: View {
                         .frame(width: 7, height: 7)
                         .opacity(reduceMotion || phase == 0 ? 1 : 0.55)
                     Text(L10n.string("Recording"))
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(WitnessStyle.ink)
                 case .processing:
                     HStack(spacing: 4) {
@@ -192,11 +192,13 @@ private struct DictationActivityView: View {
                                 .opacity(reduceMotion || phase == index ? 0.95 : 0.35)
                         }
                     }
-                    .frame(maxWidth: .infinity)
+                    Text(L10n.string("Processing"))
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(WitnessStyle.ink)
                 }
             }
-            .frame(width: 100, height: 28)
-            .background(WitnessStyle.surface.opacity(0.96), in: Capsule())
+            .frame(width: 120, height: 32)
+            .background(WitnessStyle.surface, in: Capsule())
             .overlay { Capsule().stroke(WitnessStyle.strongLine, lineWidth: 1) }
         }
         .accessibilityElement(children: .ignore)

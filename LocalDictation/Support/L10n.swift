@@ -22,7 +22,11 @@ enum L10n {
     static func format(_ source: String, _ arguments: any CVarArg...) -> String {
         String(
             format: string(source),
-            locale: Locale.autoupdatingCurrent,
+            // The user can choose a per-app language in System Settings. In
+            // that case the region locale and the interface locale differ;
+            // punctuation in translated UI should follow the language the app
+            // is actually showing, not the language of the rest of the Mac.
+            locale: interfaceLocale,
             arguments: arguments
         )
     }

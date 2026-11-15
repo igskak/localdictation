@@ -17,7 +17,12 @@ struct NumberRiskSignal: RiskSignal {
             // with the word.
             let previous = words[max(index - window, 0)..<index].map(\.text)
             let next = words[(index + 1)..<min(index + 1 + window, words.count)].map(\.text)
-            guard let category = CriticalTokens.category(of: word.text, precededBy: previous, followedBy: next) else { return nil }
+            guard let category = CriticalTokens.category(
+                of: word.text,
+                language: context.language,
+                precededBy: previous,
+                followedBy: next
+            ) else { return nil }
             let reason: RiskReason = switch category {
             case .number: .number
             case .currency: .currency

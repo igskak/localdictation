@@ -94,9 +94,9 @@ enum AudioCaptureError: Error, Sendable, Equatable {
     var interruptionMessage: String {
         switch self {
         case .inputDeviceChanged:
-            L10n.string("The microphone changed while you were speaking, so the recording ended there. Whatever you had already said was kept.")
+            L10n.string("The microphone changed, so recording stopped. The audio captured before the change was kept.")
         case .noInputDevice:
-            L10n.string("The microphone went away while you were speaking, so the recording ended there. Whatever you had already said was kept.")
+            L10n.string("The microphone disconnected, so recording stopped. The audio captured before disconnection was kept.")
         default:
             L10n.format("The recording ended early: %@. Whatever you had already said was kept.", message.lowercased())
         }

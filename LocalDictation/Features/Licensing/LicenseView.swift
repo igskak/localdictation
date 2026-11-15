@@ -27,7 +27,7 @@ struct LicenseView: View {
     }
 
     var body: some View {
-        Form {
+        WitnessSettingsForm {
             standing
 
             // The form appears when it is the thing to do, and also when the
@@ -50,13 +50,11 @@ struct LicenseView: View {
 
             thisMac
         }
-        .formStyle(.grouped)
-        .scrollContentBackground(.hidden)
         .background(WitnessStyle.canvas)
     }
 
     private var standing: some View {
-        Section {
+        WitnessSettingsSection {
             HStack(alignment: .top, spacing: 10) {
                 WitnessIconTile(systemImage: presentation.symbol, tint: WitnessStyle.accent)
                 VStack(alignment: .leading, spacing: 4) {
@@ -64,7 +62,7 @@ struct LicenseView: View {
                         .font(.headline)
                     Text(presentation.detail)
                         .font(.callout)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(WitnessStyle.muted)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -85,7 +83,7 @@ struct LicenseView: View {
                         if let note {
                             Text(note)
                                 .font(.callout)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(WitnessStyle.muted)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
@@ -95,7 +93,7 @@ struct LicenseView: View {
     }
 
     private var activation: some View {
-        Section(presentation.activationTitle) {
+        WitnessSettingsSection(presentation.activationTitle) {
             TextField("Email address", text: $email, prompt: Text("you@example.com"))
                 .textFieldStyle(.roundedBorder)
                 .disabled(isRequesting)
@@ -115,30 +113,30 @@ struct LicenseView: View {
             Text(
                 coordinator.canRequestActivation
                     ? presentation.activationHint
-                    : L10n.string("This build has no activation service yet. Paste a key below instead — that path works offline and is what the app checks in either case.")
+                    : L10n.string("Email activation is unavailable in this build. You can still activate offline with a license key below.")
             )
             .font(.callout)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(WitnessStyle.muted)
             .fixedSize(horizontal: false, vertical: true)
         }
     }
 
     private var subscription: some View {
-        Section("Subscription") {
+        WitnessSettingsSection("Subscription") {
             Button("Manage subscription") {
                 if let url = StoreFront.manageSubscription { StoreFront.open(url) }
             }
             .buttonStyle(WitnessSecondaryButtonStyle())
 
-            Text("Opens a page in your browser where you can cancel, change the card, or download invoices. You sign in there with the email address you paid with.")
+            Text("Manage your subscription, payment method and invoices in your browser. Sign in with the email address you used to pay.")
                 .font(.callout)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(WitnessStyle.muted)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
 
     private var manualKey: some View {
-        Section("Enter a key") {
+        WitnessSettingsSection("Enter a key") {
             TextField("License key", text: $key, prompt: Text("LD1.…"))
                 .textFieldStyle(.roundedBorder)
                 .font(.system(.body, design: .monospaced))
@@ -159,16 +157,16 @@ struct LicenseView: View {
             }
 
             if !coordinator.licenseAuthorityIsConfigured {
-                Text("This is a development build: it carries no authority key, so no license can verify here. Only the ungated window applies.")
+                Text("License verification is unavailable in this development build because no verification key is configured.")
                     .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(WitnessStyle.muted)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
 
     private var offers: some View {
-        Section("Licenses") {
+        WitnessSettingsSection("Licenses") {
             if StoreFront.isOpen { CheckoutConsent(coordinator: coordinator) }
 
             OfferRow(
@@ -185,7 +183,7 @@ struct LicenseView: View {
                 // does not kill a cancelled licence — it runs to the date it
                 // was paid for — and that is worth saying at the moment of the
                 // decision rather than in a support reply.
-                detail: L10n.string("Renews automatically each year, and can be cancelled any time — it then runs to its date. Covers two Macs."),
+                detail: L10n.string("Renews each year. Cancel anytime; access continues until the paid period ends. Covers two Macs."),
                 isBuyable: StoreFront.annualCheckout != nil && coordinator.hasCheckoutConsent
             ) { coordinator.openCheckout(.annual) }
 
@@ -193,23 +191,23 @@ struct LicenseView: View {
             // never learns it. `/buy` prefills it when the partner's link was
             // opened in the same browser; this line is for everybody else.
             if StoreFront.isOpen {
-                Text("Have a promo code? Enter it on the payment page. If you opened a partner’s link in this browser, it is filled in already.")
+                Text("Enter a promo code on the payment page. A code from a partner link may already be filled in.")
                     .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(WitnessStyle.muted)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
             if !StoreFront.isOpen {
-                Text("Checkout is not open yet. When it is, these buttons open the payment page in your browser — the app never sees a card number, and the key still comes back here, to this Mac.")
+                Text("Purchases are not available yet. Payment will take place in your browser; Witness never receives your card details.")
                     .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(WitnessStyle.muted)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
 
     private var thisMac: some View {
-        Section("This Mac") {
+        WitnessSettingsSection("This Mac") {
             if let identifier = coordinator.deviceIdentifier {
                 LabeledContent("Identifier", value: identifier)
                     .textSelection(.enabled)
@@ -223,9 +221,9 @@ struct LicenseView: View {
                     .font(.callout)
                     .foregroundStyle(WitnessStyle.warning)
             }
-            Text("The identifier is a one-way hash of this Mac's hardware UUID. It is what makes a license cover two Macs rather than any number of them, and it cannot be turned back into a serial number or matched against anything outside this app.")
+            Text("This identifier links your license to this Mac. It is derived from the hardware UUID using a one-way hash and does not contain your serial number.")
                 .font(.callout)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(WitnessStyle.muted)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -314,7 +312,7 @@ struct OfferRow: View {
                     .font(.body.weight(.medium))
                 Text(detail)
                     .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(WitnessStyle.muted)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer()
@@ -361,9 +359,10 @@ struct CheckoutConsent: View {
                 Text("Send my license key as soon as I have paid. I understand that I give up my right of withdrawal once delivery begins.")
                     .fixedSize(horizontal: false, vertical: true)
             }
+            .toggleStyle(.checkbox)
             Text("Ich verlange ausdrücklich die sofortige Ausführung des Vertrags und bestätige, dass ich dadurch mein Widerrufsrecht verliere.")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(WitnessStyle.muted)
                 .fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 14) {
                 if let terms = StoreFront.termsURL {

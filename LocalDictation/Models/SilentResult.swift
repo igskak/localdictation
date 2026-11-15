@@ -36,17 +36,16 @@ enum SilentResult: Sendable, Equatable {
     /// where they are already looking.
     var message: String {
         switch self {
-        case let .nothingHeard(duration, peakLevel, inputDeviceName):
+        case let .nothingHeard(duration, _, inputDeviceName):
             let device = inputDeviceName.map { "“\($0)”" } ?? L10n.string("the current input device")
             return L10n.format(
-                "The microphone was open for %1$@ and never picked up speech (peak level %2$@). Check that %3$@ is what you are speaking into, and that it is not muted.",
+                "No speech was detected during %1$@. Check that %2$@ is the microphone you are using and that it is not muted.",
                 Self.seconds(duration),
-                Self.level(peakLevel),
                 device
             )
         case let .nothingRecognized(duration, profileLabel):
             return L10n.format(
-                "%1$@ of speech came back empty, so nothing was inserted. Say it again, or check that the language profile — %2$@ — is the one you spoke.",
+                "No words were recognized in %1$@ of audio. Try again or check your language selection: %2$@.",
                 Self.seconds(duration),
                 profileLabel
             )
@@ -72,10 +71,10 @@ enum SilentResult: Sendable, Equatable {
     }
 
     private static func seconds(_ duration: TimeInterval) -> String {
-        String(format: "%.1f s", duration)
+        L10n.format("%.1f s", duration)
     }
 
     private static func level(_ level: Float) -> String {
-        String(format: "%.3f", level)
+        String(format: "%.3f", locale: Locale.autoupdatingCurrent, level)
     }
 }

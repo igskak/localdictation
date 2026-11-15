@@ -41,7 +41,9 @@ enum SpeechModelNotice: Sendable, Equatable {
 
     var title: String {
         switch self {
-        case .preparing, .starting: L10n.string("The speech model is still arriving")
+        case let .preparing(preparation, _):
+            L10n.string(preparation.phase == .downloading ? "Downloading the speech model" : "Preparing your speech model")
+        case .starting: L10n.string("Downloading the speech model")
         case .failed: L10n.string("The speech model is not ready")
         case .ready: L10n.string("Ready to dictate")
         }
@@ -49,40 +51,50 @@ enum SpeechModelNotice: Sendable, Equatable {
 
     /// The sentence the user reads, in the panel that appears where they are
     /// already looking rather than in a menu they have no reason to open.
-    var message: String {
+    var message: String { message(activation: .pushToTalk, automaticallyInserts: true) }
+
+    func message(activation: RecordingActivation, automaticallyInserts: Bool, currentHotkey: String? = nil) -> String {
+        func instruction(_ originalHotkey: String) -> String {
+            let key = currentHotkey ?? originalHotkey
+            switch activation {
+            case .pushToTalk:
+                return L10n.format("Hold %@ while you speak, then release it to finish.", key)
+            case .toggle:
+                return L10n.format("Press %@ to start, then press it again to finish.", key)
+            }
+        }
         switch self {
         case let .preparing(preparation, hotkey):
             switch preparation.phase {
             case .downloading:
                 return L10n.format(
-                    "Nothing was recorded yet — Witness is downloading the speech model%@. It happens once, and afterwards recognition runs entirely on this Mac. Hold %@ again when it is here; Witness will say so.",
-                    Self.progressClause(preparation),
-                    hotkey
+                    "Witness is downloading the speech model%@. Nothing has been recorded. When it is ready: %@",
+                    Self.progressClause(preparation), instruction(hotkey)
                 )
             case .loading:
                 return L10n.format(
-                    "Nothing was recorded yet — the speech model is loading. That takes seconds. Hold %@ again in a moment.",
-                    hotkey
+                    "The speech model is loading. Nothing has been recorded. Once it is ready: %@", instruction(hotkey)
                 )
             case .compilingForThisSystem:
                 return L10n.format(
-                    "Nothing was recorded yet — macOS is preparing the speech model for this Mac. It happens once per macOS version and takes a few minutes. Hold %@ again when it is here; Witness will say so.",
-                    hotkey
+                    "macOS is preparing the speech model for this Mac. This may take a few minutes. Nothing has been recorded. When it is ready: %@",
+                    instruction(hotkey)
                 )
             }
         case let .starting(hotkey):
             return L10n.format(
-                "Nothing was recorded yet — the speech model is not on this Mac. The download has just started: about %@, once. The menu bar shows how far it has got and how long is left. Hold %@ again when it is here; Witness will say so.",
-                SpeechModelDownloadSize.pinnedVariantSizeText,
-                hotkey
+                "The speech model download has started: about %@. Nothing has been recorded. We will let you know when it is ready. Then: %@",
+                SpeechModelDownloadSize.pinnedVariantSizeText, instruction(hotkey)
             )
         case let .failed(detail):
             return L10n.format(
-                "Nothing was recorded — the speech model is not ready. %@ Witness is trying again; the menu bar icon shows how it is going.",
-                detail
+                "The speech model is not ready, so nothing was recorded. %@ Witness is retrying. Check progress in the menu bar.", detail
             )
         case let .ready(hotkey):
-            return L10n.format("The speech model is ready. Hold %@ and speak — the text lands where your cursor is.", hotkey)
+            let delivery = automaticallyInserts
+                ? L10n.string("Text will appear at your cursor.")
+                : L10n.string("You can copy your dictation from Witness.")
+            return L10n.format("The speech model is ready. %@ %@", instruction(hotkey), delivery)
         }
     }
 

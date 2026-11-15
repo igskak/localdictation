@@ -10,7 +10,7 @@ import Foundation
 /// everywhere or the numbers are not a regression guard.
 ///
 /// `supports` is a real question and not a formality. macOS ships spelling for
-/// German, English, Russian, and Ukrainian, but a dictionary can be absent, and
+/// the calibrated languages, but a dictionary can be absent, and
 /// a signal whose evidence is missing must produce nothing rather than guess.
 protocol LexiconChecking: Sendable {
     func supports(_ language: SpeechLanguage) -> Bool
