@@ -75,3 +75,40 @@ microphone, model download, or OS permission prompt.
 Build output: `build/UIRefresh/Build/Products/Debug/Witness.app`.
 Test results: `build/UIRefresh-verified-tests.xcresult`.
 Screenshots: `outputs/ui-refresh-2026-11-15/`.
+
+## Published release — 0.6.25 (build 26)
+
+Published on 15 November 2026 at 20:45 Europe/Prague:
+[Witness 0.6.25](https://github.com/igskak/localdictation/releases/tag/v0.6.25).
+The release tag identifies source commit
+`e42a79cfa7eadcb23b628d2123621bfa86c2f195`.
+
+The distribution was built from a clean, detached checkout with
+`Tools/release.sh`. Apple accepted both submissions:
+
+- App: `0cb0b2a3-616d-4256-b770-66925125012f`.
+- DMG: `e8579fde-a123-4697-8e58-a5a98d33f4d7`.
+
+Both tickets were stapled and validated. Gatekeeper reported **accepted,
+Notarized Developer ID** for the app and DMG. The release commit was tested
+again: 1005 passed, 3 skipped, zero failures.
+
+`Witness.dmg` and the signed `appcast.xml` were uploaded together and the
+release was made the latest stable version. The existing website download
+route needs no deployment: it already uses the latest GitHub release.
+
+Post-publication checks downloaded the DMG through
+`https://witnessmac.com/download` with HTTP 200 and fetched the public update
+feed. The DMG is 5,857,136 bytes; its SHA-256 is:
+
+```text
+15bbb1a9531f5fc1a5df942e20f5c28cd26281aa2d462a0728cbb7857e57cade
+```
+
+The public DMG and feed passed Ed25519 verification with the public key
+extracted from the preceding published, signed 0.6.24 app. The key is unchanged,
+the build increases from 25 to 26, the feed points to the versioned 0.6.25 asset,
+and the macOS minimum remains 14.4. The downloaded DMG also passed stapler and
+Gatekeeper checks. This verifies the update artifacts and trust chain; an
+interactive Sparkle installation and a first run on a separate clean Mac were
+not performed in this session.
