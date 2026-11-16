@@ -48,6 +48,7 @@ actor ParakeetTranscriptionService: TranscriptionService {
     /// is released at every `await`, so a second caller would start a second
     /// load of the same weights.
     private var loadTask: Task<Void, any Error>?
+    private var inferenceTurns = InferenceTurns<CheckedContinuation<Void, Never>>()
 
     init(variant: Variant = .ultra) {
         self.variant = variant
@@ -133,6 +134,8 @@ actor ParakeetTranscriptionService: TranscriptionService {
             throw TranscriptionError.modelUnavailable("The speech model is not loaded yet.")
         }
         let manager = try await loadedManager()
+        await beginInference()
+        defer { inferenceTurns.leave()?.resume() }
         try Task.checkCancellation()
 
         let started = Date()
@@ -161,6 +164,11 @@ actor ParakeetTranscriptionService: TranscriptionService {
             processingDuration: Date().timeIntervalSince(started),
             engineIdentifier: identifier
         )
+    }
+
+    private func beginInference() async {
+        guard !inferenceTurns.enter() else { return }
+        await withCheckedContinuation { inferenceTurns.wait($0) }
     }
 
     // MARK: - Language

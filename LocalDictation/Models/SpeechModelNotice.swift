@@ -82,6 +82,9 @@ enum SpeechModelNotice: Sendable, Equatable {
                 )
             }
         case let .starting(hotkey):
+            if DictationEngineChoice.active != .whisper {
+                return "The selected speech model download has started. Nothing has been recorded. We will let you know when it is ready. Then: " + instruction(hotkey)
+            }
             return L10n.format(
                 "The speech model download has started: about %@. Nothing has been recorded. We will let you know when it is ready. Then: %@",
                 SpeechModelDownloadSize.pinnedVariantSizeText, instruction(hotkey)

@@ -339,13 +339,12 @@ struct ApplicationComposition {
     static func makeLive(
         notetakerAvailability: NotetakerAvailability = .liveDefault
     ) -> ApplicationComposition {
-        // One speech engine for the whole app. The Notetaker reaches it through
-        // `meetingClient` instead of loading the 1.27 GB model a second time.
-        let speech = WhisperKitTranscriptionService()
+        // One selected model, loaded once for dictation and meeting windows.
+        let speech = DictationEngineChoice.active.makeClients()
         return make(
             notetakerAvailability: notetakerAvailability,
             makeDictationCoordinator: {
-                DictationCoordinator.makeLive(transcriptionService: DictationEngineChoice.current.engine(sharing: speech))
+                DictationCoordinator.makeLive(transcriptionService: speech.dictation)
             },
             // A normal Release never invokes this closure. The separately
             // built dogfood DMG enables it with NOTETAKER_DOGFOOD so the
@@ -355,7 +354,7 @@ struct ApplicationComposition {
                     languageProfileProvider: { [weak coordinator] in
                         coordinator?.languageProfile ?? .default
                     },
-                    transcription: speech.meetingClient,
+                    transcription: speech.meeting,
                     // Read when each meeting starts, like the language profile.
                     cleanupProvider: { [weak coordinator] in
                         MeetingTextCleanup(

@@ -12,6 +12,9 @@ build_args=(-project LocalDictation.xcodeproj -scheme LocalDictation
     -configuration Release -destination 'platform=macOS,arch=arm64'
     ARCHS=arm64 ONLY_ACTIVE_ARCH=YES
     ENABLE_HARDENED_RUNTIME=NO CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM=)
+if [ -n "${XCODE_DERIVED_DATA_PATH:-}" ]; then
+    build_args+=(-derivedDataPath "$XCODE_DERIVED_DATA_PATH")
+fi
 compilation_conditions='$(inherited) WITNESS_PHASE_9_1_PREVIEW'
 if [ "${NOTETAKER_DOGFOOD:-0}" = 1 ]; then
     compilation_conditions="$compilation_conditions NOTETAKER_DOGFOOD NOTETAKER_DIARIZATION"

@@ -70,6 +70,7 @@ actor DebugMeetingSession {
     }
 
     func start(processID: pid_t) async throws {
+        guard engine.supports(profile) else { throw TranscriptionError.unsupportedProfile(profile) }
         emit(.status("Preparing the local speech model…"))
         let state = await engine.modelState(for: profile)
         guard state.isReady || state.canPrepareUnattended else { throw DebugMeetingError.modelUnavailable }

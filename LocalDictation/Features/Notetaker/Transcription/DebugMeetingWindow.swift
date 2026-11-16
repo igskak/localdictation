@@ -422,6 +422,8 @@ final class DebugMeetingModel: ObservableObject {
             ("Zoom, Chrome, or Safari closed or changed while Witness was starting. Open the meeting and try again.", .retryStart)
         case DebugMeetingError.modelUnavailable:
             ("The selected local speech model is unavailable. Prepare it in Witness and try again.", nil)
+        case let error as TranscriptionError:
+            (error.message, nil)
         case is MeetingStoreError:
             ("The meeting could not be saved locally. Check available disk space and folder access, then try again.", nil)
         default:

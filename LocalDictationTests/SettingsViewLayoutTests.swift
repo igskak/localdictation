@@ -151,6 +151,8 @@ final class SettingsViewLayoutTests: XCTestCase {
         for (section, scheme, name) in [
             (SettingsSection.dictation, ColorScheme.light, "settings-light"),
             (.dictation, .dark, "settings-dark"),
+            (.speechModel, .light, "speech-model-light"),
+            (.speechModel, .dark, "speech-model-dark"),
             (.cleanup, .light, "cleanup-light"),
             (.privacy, .light, "privacy-light"),
         ] {

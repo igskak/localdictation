@@ -28,8 +28,13 @@ actor WhisperKitTranscriptionService: TranscriptionService {
         case meeting
     }
 
-    nonisolated let identifier = "whisperkit"
-    nonisolated let displayName = "WhisperKit (Whisper large-v3 turbo)"
+    nonisolated var identifier: String {
+        modelVariant == Self.defaultModelVariant ? "whisperkit" : "whisperkit-large-v3"
+    }
+    nonisolated var displayName: String {
+        modelVariant == Self.defaultModelVariant
+            ? "Whisper large-v3 turbo" : "Whisper large-v3 (full)"
+    }
 
     /// Pinned to a multilingual variant on purpose. `recommendedModels()` can
     /// return a distil-whisper build, which is far weaker outside English and
@@ -176,10 +181,9 @@ actor WhisperKitTranscriptionService: TranscriptionService {
         return Self.installedModelFolder(variant: modelVariant) != nil
             ? .unavailable("Speech model is installed but not loaded yet", needsUserAction: false)
             : .unavailable(
-                L10n.format(
-                    "The speech model has not been downloaded yet (about %@)",
-                    SpeechModelDownloadSize.pinnedVariantSizeText
-                ),
+                modelVariant == Self.defaultModelVariant
+                    ? L10n.format("The speech model has not been downloaded yet (about %@)", SpeechModelDownloadSize.pinnedVariantSizeText)
+                    : "The selected Whisper model has not been downloaded yet (about 3.2 GB)",
                 needsUserAction: true
             )
     }
