@@ -123,8 +123,7 @@ struct SettingsView: View {
                             .padding(.horizontal, 12)
                             .padding(.vertical, 10)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(selection == section ? WitnessStyle.accent.opacity(0.12) : .clear,
-                                        in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                            .background { if selection == section { WitnessControlSurface() } }
                             .contentShape(RoundedRectangle(cornerRadius: 9))
                         }
                         .buttonStyle(.plain)
@@ -141,8 +140,8 @@ struct SettingsView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 28)
-        .frame(width: 215)
-        .background(WitnessStyle.sidebar)
+        .frame(width: 194)
+        .background { WitnessNavigationSurface() }
     }
 
     @ViewBuilder private var page: some View {

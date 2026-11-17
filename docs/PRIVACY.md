@@ -84,8 +84,8 @@ not learn corrections from dictations or from text in other applications.
 
 ## Local meeting notes
 
-The Notetaker feature remains disabled in ordinary Release builds while it is
-tested. In a build where it is explicitly enabled, no meeting file is created
+Notetaker is available as a demo. Speaker separation is still being improved;
+speaker labels can be inaccurate. No meeting file is created
 by launch, process discovery or a meeting suggestion. Local persistence begins
 only after you press **Start meeting note**.
 
@@ -101,7 +101,7 @@ meeting URL, imported participant list, or recording of any kind. Renaming or
 reassigning a speaker is local to that meeting and can be reset to the original
 attribution.
 
-The diarization dogfood build bundles its model and performs speaker separation
+The Notetaker demo bundles its diarization model and performs speaker separation
 locally on the already captured in-memory system/process-tap audio. It does not
 download a model at runtime, upload audio or derived embeddings, or write either
 to disk. Only anonymous speaker IDs, timestamps, and local confidence evidence

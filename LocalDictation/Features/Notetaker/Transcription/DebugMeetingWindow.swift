@@ -463,13 +463,7 @@ struct DebugMeetingView: View {
             WitnessBrand()
             Text("Meeting Note")
                 .font(.title3.weight(.semibold))
-            Text("TEST BUILD")
-                .font(.caption2.weight(.bold))
-                .tracking(0.7)
-                .foregroundStyle(WitnessStyle.warning)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(WitnessStyle.warning.opacity(0.12), in: Capsule())
+            NotetakerDemoBadge()
             Button(action: openHistory) {
                 Label("History", systemImage: "clock.arrow.circlepath")
             }
@@ -495,6 +489,7 @@ struct DebugMeetingView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 statusCard
+                NotetakerDemoNotice()
                 actionButtons
                 if let failure = model.failureMessage { failureCard(failure) }
                 automaticSourceNote

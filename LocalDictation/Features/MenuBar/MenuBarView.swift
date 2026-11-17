@@ -1,183 +1,46 @@
 import AppKit
 import SwiftUI
 
+enum MenuBarTab: String, CaseIterable {
+    case dictation, notetaker
+}
+
 struct MenuBarView: View {
     @EnvironmentObject private var coordinator: DictationCoordinator
     @Environment(\.openSettings) private var openSettings
     @ObservedObject private var notetakerStatus: NotetakerStatus
+    @ObservedObject private var modelSelection: SpeechModelSelection
+    @State private var tab: MenuBarTab = .dictation
+    @State private var showsResult = false
+    @State private var contentHeight: CGFloat = 420
     private let notetaker: any NotetakerFacade
 
-    init(notetaker: any NotetakerFacade = UnavailableNotetakerFacade()) {
+    init(notetaker: any NotetakerFacade = UnavailableNotetakerFacade(), modelSelection: SpeechModelSelection = .shared, initialTab: MenuBarTab = .dictation) {
         self.notetaker = notetaker
         _notetakerStatus = ObservedObject(wrappedValue: notetaker.status)
+        self.modelSelection = modelSelection
+        _tab = State(initialValue: initialTab)
     }
 
     private var presentation: StatusPresentation {
-        StatusPresentation(
-            state: coordinator.state,
-            binding: coordinator.binding,
-            modelState: coordinator.transcriptionModelState,
-            attentionIsPending: coordinator.attentionIsPending,
-            silentResult: coordinator.silentResult,
-            captureInterruption: coordinator.captureInterruptionMessage,
-            activation: coordinator.activation
-        )
+        StatusPresentation(state: coordinator.state, binding: coordinator.binding,
+            modelState: coordinator.transcriptionModelState, attentionIsPending: coordinator.attentionIsPending,
+            silentResult: coordinator.silentResult, captureInterruption: coordinator.captureInterruptionMessage,
+            activation: coordinator.activation)
     }
+    private var hasNotetaker: Bool { notetaker.menuBarItem != nil }
+    private var maximumHeight: CGFloat { max(300, (NSScreen.main?.visibleFrame.height ?? 800) - 80) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                WitnessBrand(compact: true)
-                Spacer()
-                Label("On this Mac", systemImage: "shield.checkered")
-                    .font(.caption2.weight(.medium))
-                    .foregroundStyle(WitnessStyle.success)
+        ScrollView {
+            panel.onGeometryChange(for: CGFloat.self) { geometry in
+                geometry.size.height
+            } action: { height in
+                contentHeight = height
             }
-
-            header
-
-            if let suggestion = notetaker.suggestion {
-                MeetingSuggestionCard(suggestion: suggestion)
-            }
-
-            if let item = notetaker.menuBarItem {
-                Button(action: item.action) {
-                    Label(item.title, systemImage: item.systemImage)
-                }
-            }
-
-            if let item = notetaker.historyMenuItem {
-                Button(action: item.action) {
-                    Label(item.title, systemImage: item.systemImage)
-                }
-            }
-
-            if let item = notetaker.stopMenuItem {
-                Button(action: item.action) {
-                    Label(item.title, systemImage: item.systemImage)
-                }
-            }
-
-            if coordinator.state == .recording || coordinator.state == .finishing {
-                RecordingLevelView(snapshot: coordinator.diagnostics.snapshot)
-            }
-
-            if coordinator.hasTranscriptionEngine {
-                LanguagePinPicker(
-                    profile: coordinator.languageProfile,
-                    pinned: $coordinator.pinnedLanguage
-                )
-
-                if !coordinator.transcriptionModelState.isReady {
-                    ModelStateView(state: coordinator.transcriptionModelState) {
-                        Task { await coordinator.prepareTranscriptionModel() }
-                    }
-                }
-            }
-
-            if let result = coordinator.result, !result.isEmpty {
-                ResultView(
-                    result: result,
-                    prefersRaw: coordinator.prefersRawTranscript,
-                    canInsert: coordinator.canInsert && coordinator.hasInsertableResult,
-                    insertTitle: insertTitle,
-                    insert: { coordinator.insertCurrentResult() }
-                )
-
-                // The second way into the review, and the one that still works
-                // after the chip has faded. The menu is where a user goes when
-                // they have already started doubting the text, so the offer has
-                // to be here rather than only in something that disappears.
-                if coordinator.canOpenReview {
-                    Button {
-                        coordinator.openReview()
-                    } label: {
-                        Label(reviewTitle(for: result), systemImage: "exclamationmark.triangle")
-                    }
-                }
-            }
-
-            if let outcome = coordinator.lastInsertion, let message = outcome.message {
-                InsertionOutcomeView(message: message)
-            }
-
-            if presentation.showsLicenseAction {
-                LicenseLockView(
-                    presentation: LicensePresentation(state: coordinator.entitlement),
-                    openLicenseSettings: {
-                        SettingsNavigation.request(.license)
-                        openSettings()
-                        NSApp.activate(ignoringOtherApps: true)
-                    }
-                )
-            } else if let notice = EntitlementNotice(state: coordinator.entitlement) {
-                // The warning before the wall. `EntitlementNotice` returns
-                // `nil` for every state that has nothing urgent to say, so this
-                // is empty for a lifetime license, for a trial with a week
-                // left, and for a Mac that has not dictated yet.
-                EntitlementNoticeView(
-                    notice: notice,
-                    openLicenseSettings: {
-                        SettingsNavigation.request(.license)
-                        openSettings()
-                        NSApp.activate(ignoringOtherApps: true)
-                    }
-                )
-            }
-
-            // Above the Accessibility ask on purpose: while secure input is
-            // on, granting Accessibility changes nothing, and an offer to fix
-            // the wrong thing is how someone spends ten minutes in System
-            // Settings and still cannot dictate.
-            if let warning = coordinator.secureInputWarning {
-                SecureInputWarningView(message: warning) {
-                    coordinator.refreshAuthorization()
-                }
-            }
-
-            if coordinator.needsAccessibilityTrust {
-                AccessibilityTrustView(
-                    grant: { coordinator.requestAccessibilityTrust() },
-                    openSettings: { coordinator.openAccessibilitySettings() },
-                    recheck: { coordinator.refreshAccessibilityAuthorization() }
-                )
-            }
-
-            if !coordinator.recentDictations.isEmpty {
-                RecentDictationsView(items: coordinator.recentDictations)
-            }
-
-            Button { AppDelegate.showSetup?() } label: {
-                Label("Setup and practice", systemImage: "keyboard")
-            }
-            .buttonStyle(WitnessSecondaryButtonStyle())
-            actions
-
-            Divider().overlay(WitnessStyle.line)
-
-            HStack {
-                Button {
-                    openSettings()
-                    NSApp.activate(ignoringOtherApps: true)
-                } label: {
-                    Label("Settings", systemImage: "slider.horizontal.3")
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(WitnessStyle.muted)
-
-                Spacer()
-
-                Button("Quit") {
-                    NSApplication.shared.terminate(nil)
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(WitnessStyle.faint)
-                .keyboardShortcut("q")
-            }
-            .font(.caption)
         }
-        .padding(18)
-        .frame(width: 380)
+        .scrollDisabled(contentHeight <= maximumHeight)
+        .frame(width: 398, height: min(contentHeight, maximumHeight))
         .witnessWindow()
         .onAppear {
             coordinator.refreshAuthorization()
@@ -188,67 +51,220 @@ struct MenuBarView: View {
         }
     }
 
+    private var panel: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 10) {
+                WitnessBrand(compact: true)
+                Spacer()
+                Label("On this Mac", systemImage: "lock")
+                    .font(.caption2).foregroundStyle(WitnessStyle.muted)
+                Menu {
+                    Button("Setup and practice") { AppDelegate.showSetup?() }
+                    Divider()
+                    Button("Quit") { NSApplication.shared.terminate(nil) }.keyboardShortcut("q")
+                } label: {
+                    Image(systemName: "ellipsis").frame(width: 26, height: 26)
+                }
+                .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
+                .accessibilityLabel("More actions")
+            }
+            if hasNotetaker { tabs }
+            // Recording and actionable notices belong above both tabs.
+            if notetakerStatus.isActive || notetakerStatus.state == .attention { meetingActivity }
+            if let suggestion = notetaker.suggestion { MeetingSuggestionCard(suggestion: suggestion) }
+            globalNotices
+            if tab == .dictation || !hasNotetaker { dictation }
+            else { meeting }
+            Divider().overlay(WitnessStyle.line)
+            HStack {
+                Button { showSettings() } label: { Label("Settings", systemImage: "slider.horizontal.3") }
+                    .buttonStyle(.plain).foregroundStyle(WitnessStyle.muted)
+                Spacer()
+                Text("Private by design").foregroundStyle(WitnessStyle.muted)
+            }.font(.caption)
+        }
+        .padding(20)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var tabs: some View {
+        HStack(spacing: 4) {
+            tabButton(.dictation, title: "Dictation", symbol: "mic")
+            tabButton(.notetaker, title: "Notetaker", symbol: "note.text")
+        }
+        .padding(4)
+        .background(WitnessStyle.raisedSurface, in: RoundedRectangle(cornerRadius: 15))
+    }
+
+    private func tabButton(_ value: MenuBarTab, title: String, symbol: String) -> some View {
+        Button { tab = value } label: {
+            HStack(spacing: 6) {
+                Image(systemName: symbol).accessibilityHidden(true)
+                Text(LocalizedStringKey(title))
+                if value == .notetaker { NotetakerDemoBadge() }
+            }
+            .font(.caption.weight(.medium))
+            .frame(maxWidth: .infinity).padding(.vertical, 8)
+            .contentShape(RoundedRectangle(cornerRadius: 11))
+        }
+        .buttonStyle(.plain)
+        .background {
+            if tab == value { WitnessControlSurface(cornerRadius: 11) }
+        }
+        .foregroundStyle(tab == value ? WitnessStyle.ink : WitnessStyle.muted)
+        .accessibilityAddTraits(tab == value ? [.isSelected] : [])
+    }
+
+    private var dictation: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if !showsGlobalDictationStatus { compactStatus }
+            if coordinator.hasTranscriptionEngine {
+                LanguagePinPicker(profile: coordinator.languageProfile, pinned: $coordinator.pinnedLanguage)
+                if !coordinator.transcriptionModelState.isReady {
+                    ModelStateView(state: coordinator.transcriptionModelState) {
+                        Task { await coordinator.prepareTranscriptionModel() }
+                    }
+                }
+            }
+            if let result = coordinator.result, !result.isEmpty {
+                DisclosureGroup("Last dictation", isExpanded: $showsResult) {
+                    ResultView(result: result, prefersRaw: coordinator.prefersRawTranscript,
+                        canInsert: coordinator.canInsert && coordinator.hasInsertableResult,
+                        insertTitle: insertTitle, insert: { coordinator.insertCurrentResult() })
+                }.font(.caption)
+            }
+            if !coordinator.recentDictations.isEmpty { RecentDictationsView(items: coordinator.recentDictations) }
+            modelLabel
+        }
+    }
+
+    private var compactStatus: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(spacing: 10) {
+                Label(presentation.title, systemImage: presentation.systemImage)
+                    .font(.callout.weight(.medium)).foregroundStyle(tintColor)
+                Spacer(minLength: 0)
+                if presentation.showsShortcut, coordinator.isHotkeySelectionReady {
+                    Text(verbatim: coordinator.binding.displayString)
+                        .font(.caption.weight(.medium))
+                        .padding(.horizontal, 9).padding(.vertical, 4)
+                        .background(WitnessStyle.surface, in: RoundedRectangle(cornerRadius: 7))
+                        .overlay { RoundedRectangle(cornerRadius: 7).stroke(WitnessStyle.line, lineWidth: 1) }
+                        .accessibilityLabel(L10n.format("Shortcut: %@", coordinator.binding.displayString))
+                }
+            }
+            Text(presentation.detail).font(.caption).foregroundStyle(WitnessStyle.muted)
+                .fixedSize(horizontal: false, vertical: true)
+            actions
+        }.padding(.vertical, 4)
+    }
+
+    private var showsGlobalDictationStatus: Bool {
+        presentation.tint == .warning || coordinator.state.isBusy
+    }
+
+    @ViewBuilder private var globalNotices: some View {
+        if showsGlobalDictationStatus { compactStatus }
+        if coordinator.state == .recording || coordinator.state == .finishing {
+            RecordingLevelView(snapshot: coordinator.diagnostics.snapshot)
+        }
+        if coordinator.canOpenReview, let result = coordinator.result, !result.isEmpty {
+            Button { coordinator.openReview() } label: {
+                Label(reviewTitle(for: result), systemImage: "exclamationmark.triangle")
+                    .font(.callout.weight(.medium)).frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(WitnessSecondaryButtonStyle()).foregroundStyle(WitnessStyle.warning)
+        }
+        if let outcome = coordinator.lastInsertion, let message = outcome.message { InsertionOutcomeView(message: message) }
+        if presentation.showsLicenseAction {
+            LicenseLockView(presentation: LicensePresentation(state: coordinator.entitlement), openLicenseSettings: { showSettings(.license) })
+        } else if let notice = EntitlementNotice(state: coordinator.entitlement) {
+            EntitlementNoticeView(notice: notice, openLicenseSettings: { showSettings(.license) })
+        }
+        if let warning = coordinator.secureInputWarning {
+            SecureInputWarningView(message: warning) { coordinator.refreshAuthorization() }
+        }
+        if coordinator.needsAccessibilityTrust {
+            AccessibilityTrustView(grant: { coordinator.requestAccessibilityTrust() },
+                openSettings: { coordinator.openAccessibilitySettings() }, recheck: { coordinator.refreshAccessibilityAuthorization() })
+        }
+    }
+
+    private var meeting: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(spacing: 9) {
+                WitnessIconTile(systemImage: "note.text", tint: WitnessStyle.accent)
+                Text("A note for every meeting").font(.title3.weight(.semibold))
+                Text("Capture a local transcript from your microphone and the meeting app.")
+                    .font(.callout).foregroundStyle(WitnessStyle.muted).multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }.frame(maxWidth: .infinity).padding(.top, 6)
+            NotetakerDemoNotice()
+            if let item = notetaker.menuBarItem {
+                Button(action: item.action) { Label(LocalizedStringKey(item.title), systemImage: item.systemImage).frame(maxWidth: .infinity) }
+                    .buttonStyle(WitnessPrimaryButtonStyle())
+            }
+            if let item = notetaker.historyMenuItem {
+                Button(action: item.action) { Label(LocalizedStringKey(item.title), systemImage: item.systemImage) }
+                    .buttonStyle(.plain).font(.callout).foregroundStyle(WitnessStyle.muted)
+            }
+            modelLabel
+        }
+    }
+
+    private var meetingActivity: some View {
+        HStack(spacing: 9) {
+            Label(LocalizedStringKey(notetakerStatus.activityTitle), systemImage: notetakerStatus.systemImage ?? "note.text")
+                .font(.callout.weight(.medium))
+            Spacer(minLength: 0)
+            if let item = notetaker.stopMenuItem {
+                Button("Stop recording", action: item.action).font(.caption).help(LocalizedStringKey(item.title))
+            }
+            if let item = notetaker.menuBarItem {
+                Button("Open", action: item.action).font(.caption)
+            }
+        }
+        .foregroundStyle(notetakerStatus.state == .attention ? WitnessStyle.warning : WitnessStyle.accent)
+        .witnessCard(.accent, padding: 12)
+    }
+
+    private var modelLabel: some View {
+        Button { showSettings(.speechModel) } label: {
+            Label(modelSelection.active.title, systemImage: "waveform")
+                .font(.caption2).foregroundStyle(WitnessStyle.muted)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }.buttonStyle(.plain).help("Choose a speech model")
+    }
+    private func showSettings(_ section: SettingsSection? = nil) {
+        if let section { SettingsNavigation.request(section) }
+        openSettings()
+        NSApp.activate(ignoringOtherApps: true)
+    }
     private var insertTitle: String {
         guard let target = coordinator.insertionTargetName else { return L10n.string("Insert") }
         return L10n.format("Insert into %@", target)
     }
-
     private func reviewTitle(for result: DictationResult) -> String {
-        let count = result.flaggedSpans.count
-        switch count {
-        case 0: return L10n.string("Check what was marked")
-        case 1: return L10n.string("Check 1 flagged fragment")
-        default: return L10n.format("Check %lld flagged fragments", Int64(count))
+        switch result.flaggedSpans.count {
+        case 0: L10n.string("Check what was marked")
+        case 1: L10n.string("Check 1 flagged fragment")
+        default: L10n.format("Check %lld flagged fragments", Int64(result.flaggedSpans.count))
         }
     }
-
-    private var header: some View {
-        HStack(alignment: .top, spacing: 12) {
-            WitnessIconTile(systemImage: presentation.systemImage, tint: tintColor)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(presentation.title)
-                    .font(.headline)
-                Text(presentation.detail)
-                    .font(.callout)
-                    .foregroundStyle(WitnessStyle.muted)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .witnessCard(presentation.tint == .warning ? .warning : presentation.tint == .ready ? .success : .neutral)
-    }
-
-    @ViewBuilder
-    private var actions: some View {
+    @ViewBuilder private var actions: some View {
         if presentation.showsPermissionRequest {
-            Button("Allow microphone access…") {
-                Task { await coordinator.requestMicrophoneAccess() }
-            }
-            .buttonStyle(WitnessPrimaryButtonStyle())
+            Button("Allow microphone access…") { Task { await coordinator.requestMicrophoneAccess() } }.buttonStyle(WitnessPrimaryButtonStyle())
         }
-
         if presentation.showsSystemSettingsShortcut {
             HStack {
-                Button("Open Privacy Settings") {
-                    coordinator.openSystemSettings()
-                }
-                .buttonStyle(WitnessPrimaryButtonStyle())
-                Button("Re-check") {
-                    coordinator.refreshAuthorization()
-                }
-                .buttonStyle(WitnessSecondaryButtonStyle())
+                Button("Open Privacy Settings") { coordinator.openSystemSettings() }.buttonStyle(WitnessPrimaryButtonStyle())
+                Button("Re-check") { coordinator.refreshAuthorization() }.buttonStyle(WitnessSecondaryButtonStyle())
             }
         }
-
         if presentation.showsRecoveryAction {
-            Button("Try again") {
-                coordinator.recoverFromFailure()
-            }
-            .buttonStyle(WitnessPrimaryButtonStyle())
+            Button("Try again") { coordinator.recoverFromFailure() }.buttonStyle(WitnessPrimaryButtonStyle())
         }
     }
-
     private var tintColor: Color {
         switch presentation.tint {
         case .neutral: WitnessStyle.muted

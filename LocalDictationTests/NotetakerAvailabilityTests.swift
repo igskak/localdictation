@@ -3,8 +3,8 @@ import XCTest
 
 @MainActor
 final class NotetakerAvailabilityTests: XCTestCase {
-    func testLiveDefaultIsDisabled() {
-        XCTAssertEqual(NotetakerAvailability.liveDefault, .disabled)
+    func testLiveDefaultEnablesPublicDemo() {
+        XCTAssertEqual(NotetakerAvailability.liveDefault, .enabled)
     }
 
     func testDisabledCompositionCreatesNoNotetakerEffectsAndPreservesDictation() {

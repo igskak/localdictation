@@ -6,12 +6,12 @@ import AppKit
 /// Adaptive surfaces keep all windows in the system appearance. Native controls
 /// retain their keyboard, focus, accessibility, and increased-contrast behavior.
 enum WitnessStyle {
-    static let canvas = adaptive(light: 0xf5f5f7, dark: 0x19191c)
-    static let sidebar = adaptive(light: 0xececf0, dark: 0x242428)
-    static let surface = adaptive(light: 0xffffff, dark: 0x2a2a2f)
-    static let raisedSurface = adaptive(light: 0xececf0, dark: 0x35353b)
+    static let canvas = adaptive(light: 0xf6f8fc, dark: 0x19212d)
+    static let sidebar = adaptive(light: 0xe8eef7, dark: 0x222e40)
+    static let surface = adaptive(light: 0xffffff, dark: 0x252e3c)
+    static let raisedSurface = adaptive(light: 0xe8edf5, dark: 0x111a27)
     static let ink = Color.primary
-    static let muted = adaptive(light: 0x63636d, dark: 0xb5b5c0)
+    static let muted = adaptive(light: 0x626e7e, dark: 0xafbacb)
     static let faint = muted
     static let line = Color(nsColor: .separatorColor).opacity(0.55)
     static let strongLine = Color(nsColor: .separatorColor)
@@ -21,8 +21,8 @@ enum WitnessStyle {
     static let warning = adaptive(light: 0x8a5700, dark: 0xf5c46b)
     static let highlight = adaptive(light: 0xffedb2, dark: 0x665319)
 
-    static let cornerRadius: CGFloat = 15
-    static let compactCornerRadius: CGFloat = 10
+    static let cornerRadius: CGFloat = 18
+    static let compactCornerRadius: CGFloat = 12
 
     private static func adaptive(light: UInt32, dark: UInt32) -> Color {
         Color(nsColor: NSColor(name: nil) { appearance in
@@ -67,7 +67,7 @@ struct WitnessBrandMark: View {
             }
         }
         .frame(width: size, height: size)
-        .background(WitnessStyle.actionFill, in: RoundedRectangle(cornerRadius: size * 0.29, style: .continuous))
+        .background(WitnessStyle.actionFill.gradient, in: RoundedRectangle(cornerRadius: size * 0.29, style: .continuous))
         .accessibilityHidden(true)
     }
 }
@@ -108,10 +108,11 @@ struct WitnessSetupProgress: View {
         HStack(spacing: 5) {
             ForEach(0..<total, id: \.self) { index in
                 Capsule()
-                    .fill(index < step ? WitnessStyle.accent : WitnessStyle.raisedSurface)
-                    .frame(height: 4)
+                    .fill(index == step - 1 ? WitnessStyle.accent : WitnessStyle.muted.opacity(0.25))
+                    .frame(width: index == step - 1 ? 16 : 4, height: 4)
             }
         }
+        .frame(maxWidth: .infinity)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(L10n.format("Step %lld of %lld", Int64(step), Int64(total)))
     }
@@ -213,11 +214,12 @@ struct WitnessPrimaryButtonStyle: ButtonStyle {
             .font(.callout.weight(.semibold))
             .foregroundStyle(.white)
             .padding(.horizontal, 16)
-            .frame(minHeight: 34)
+            .frame(minHeight: 38)
             .background(
-                WitnessStyle.actionFill,
-                in: RoundedRectangle(cornerRadius: 9, style: .continuous)
+                WitnessStyle.actionFill.gradient,
+                in: Capsule()
             )
+            .overlay { Capsule().strokeBorder(.white.opacity(0.22), lineWidth: 1).allowsHitTesting(false) }
             .opacity(isEnabled ? (configuration.isPressed ? 0.88 : 1) : 0.42)
     }
 }
@@ -233,10 +235,10 @@ struct WitnessSecondaryButtonStyle: ButtonStyle {
             .frame(minHeight: 32)
             .background(
                 configuration.isPressed ? WitnessStyle.raisedSurface : WitnessStyle.surface,
-                in: RoundedRectangle(cornerRadius: 9, style: .continuous)
+                in: RoundedRectangle(cornerRadius: 12, style: .continuous)
             )
             .overlay {
-                RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(WitnessStyle.line, lineWidth: 1)
+                RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(WitnessStyle.line, lineWidth: 1)
             }
             .opacity(isEnabled ? (configuration.isPressed ? 0.78 : 1) : 0.42)
     }
@@ -346,9 +348,8 @@ struct ApplicationComposition {
             makeDictationCoordinator: {
                 DictationCoordinator.makeLive(transcriptionService: speech.dictation)
             },
-            // A normal Release never invokes this closure. The separately
-            // built dogfood DMG enables it with NOTETAKER_DOGFOOD so the
-            // testable UI cannot accidentally ship in the public build.
+            // The public demo uses the same account settings and local engine.
+            // An injected disabled gate still constructs no meeting services.
             makeAvailableNotetaker: { coordinator in
                 DogfoodNotetakerFacade(
                     languageProfileProvider: { [weak coordinator] in

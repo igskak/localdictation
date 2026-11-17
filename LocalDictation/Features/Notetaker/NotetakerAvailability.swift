@@ -3,18 +3,14 @@ import Foundation
 
 /// The single product gate for the Notetaker subsystem.
 ///
-/// The shipping default stays disabled until the release gate changes it. The
+/// The public demo is enabled; the same gate remains injectable in tests. The
 /// composition root is the only place that switches on this value: callers get
 /// a facade either way and never scatter availability checks through the app.
 enum NotetakerAvailability: Sendable, Equatable {
     case disabled
     case enabled
 
-    #if NOTETAKER_DOGFOOD
     static let liveDefault: NotetakerAvailability = .enabled
-    #else
-    static let liveDefault: NotetakerAvailability = .disabled
-    #endif
 }
 
 /// A menu action supplied by an available Notetaker implementation.
@@ -75,6 +71,18 @@ final class NotetakerStatus: ObservableObject {
         switch state {
         case .preparing, .recording, .paused, .finishing: true
         case .idle, .suggestion, .attention: false
+        }
+    }
+
+    var activityTitle: String {
+        switch state {
+        case .idle: "Meeting note"
+        case .suggestion: "Meeting detected"
+        case .preparing: "Starting meeting note"
+        case .recording: "Recording meeting"
+        case .paused: "Meeting paused"
+        case .finishing: "Finishing meeting note"
+        case .attention: "Meeting note needs attention"
         }
     }
 

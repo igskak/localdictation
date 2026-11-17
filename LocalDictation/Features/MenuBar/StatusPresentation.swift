@@ -14,6 +14,8 @@ struct StatusPresentation: Sendable, Equatable {
     let detail: String
     let systemImage: String
     let tint: StatusTint
+    var showsShortcut: Bool { tint == .ready || tint == .active }
+
     /// Actions the menu should offer for this state.
     let showsPermissionRequest: Bool
     let showsSystemSettingsShortcut: Bool

@@ -210,7 +210,7 @@ struct GuidedSetupView: View {
     let notifyWhenReady: () -> Void
     let finish: () -> Void
 
-    private var titles: [String] { ["Microphone access", "Type into other apps", "Choose your shortcut", "Preparing your speech model", "Try your first dictation", "You’re ready to dictate", "Choose a speech model"] }
+    private var titles: [String] { ["Microphone access", "Type into other apps", "Choose your shortcut", "Preparing your speech model", "Try your first dictation", "You’re ready to dictate", "Find your favorite model"] }
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack {
@@ -219,14 +219,16 @@ struct GuidedSetupView: View {
                 Text(verbatim: L10n.format("Step %lld of %lld", Int64(model.page + 1), 7))
                     .font(.caption).foregroundStyle(WitnessStyle.muted)
             }
-            WitnessSetupProgress(step: model.page + 1, total: 7)
-            Text(LocalizedStringKey(titles[min(model.page, 6)]))
-                .font(.system(size: 27, weight: .semibold)).tracking(-0.6)
-                .fixedSize(horizontal: false, vertical: true)
+            if model.page != 6 {
+                Text(LocalizedStringKey(titles[min(model.page, 6)]))
+                    .font(.system(size: 27, weight: .semibold)).tracking(-0.6)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) { content }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .witnessCard(padding: 18)
+                    .padding(18)
+                    .background(model.page == 6 ? .clear : WitnessStyle.surface, in: RoundedRectangle(cornerRadius: 18))
             }
             .buttonStyle(WitnessSecondaryButtonStyle())
             if !coordinator.transcriptionModelState.isReady && model.page != 3 {
@@ -239,11 +241,12 @@ struct GuidedSetupView: View {
                 Button("Back") { leaveTest(); if model.page > 0 { model.page -= 1 } else { model.step = .languages } }
                     .buttonStyle(WitnessSecondaryButtonStyle())
                 Spacer()
-                Button(L10n.string(model.page == 6 ? "Done" : "Next")) { advance() }
+                Button(L10n.string(model.page == 6 ? "Finish setup" : "Next")) { advance() }
                     .buttonStyle(WitnessPrimaryButtonStyle())
                     .disabled(!model.canAdvance(using: coordinator))
                     .keyboardShortcut(.defaultAction)
             }
+            WitnessSetupProgress(step: model.page + 1, total: 7)
         }
         .padding(28).frame(width: 520, height: 620).witnessWindow()
         .onChange(of: coordinator.transcriptionModelState.isReady) { _, _ in synchronize() }
@@ -368,9 +371,60 @@ struct GuidedSetupView: View {
             Toggle("Open Witness when I log in", isOn: $model.opensAtLogin)
             Text("The first three days start at your first successful dictation. Afterwards, an email address activates ten more free days. Your dictation stays on this Mac.").font(.caption)
         default:
-            Text("Your current model stays selected. You can keep it or try another model. This step is optional; you can change models later in Settings → Speech model.")
-                .font(.callout).foregroundStyle(WitnessStyle.muted)
-            SpeechModelControls(coordinator: coordinator, selection: modelSelection, notetakerStatus: AppDelegate.notetaker?.status ?? NotetakerStatus(), beforeRestart: finish)
+            OnboardingSpeechModelView(coordinator: coordinator, selection: modelSelection, beforeRestart: finish)
         }
+    }
+}
+
+struct OnboardingSpeechModelView: View {
+    @ObservedObject var coordinator: DictationCoordinator
+    @ObservedObject var selection: SpeechModelSelection
+    var beforeRestart: () -> Void
+    @State private var exploresModels = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack { Spacer(); WitnessBrandMark(size: 56); Spacer() }.padding(.bottom, 6)
+            Text("Find your favorite model")
+                .font(.system(size: 27, weight: .semibold)).tracking(-0.6)
+                .multilineTextAlignment(.center).frame(maxWidth: .infinity)
+            Text("Keep the model you’ve just tried, or explore another. You can always change this in Settings.")
+                .font(.callout).foregroundStyle(WitnessStyle.muted)
+                .multilineTextAlignment(.center).frame(maxWidth: .infinity)
+            VStack(spacing: 0) {
+                modelOption(explore: false, title: L10n.format("Keep %@", selection.active.title),
+                    detail: L10n.string("Your current model keeps working."), symbol: "waveform")
+                Divider()
+                modelOption(explore: true, title: L10n.string("Try another model"),
+                    detail: L10n.string("Compare speed, languages and recognition."), symbol: "square.stack")
+            }
+            .background(WitnessStyle.surface, in: RoundedRectangle(cornerRadius: 18))
+            .clipShape(RoundedRectangle(cornerRadius: 18))
+            .overlay { RoundedRectangle(cornerRadius: 18).stroke(WitnessStyle.line, lineWidth: 1).allowsHitTesting(false) }
+            if exploresModels || selection.downloading != nil || selection.pending != nil {
+                SpeechModelControls(coordinator: coordinator, selection: selection,
+                    notetakerStatus: AppDelegate.notetaker?.status ?? NotetakerStatus(), beforeRestart: beforeRestart)
+            }
+            Label("Your voice stays on your Mac.", systemImage: "lock.shield")
+                .font(.caption).foregroundStyle(WitnessStyle.muted)
+                .frame(maxWidth: .infinity)
+        }
+    }
+
+    private func modelOption(explore: Bool, title: String, detail: String, symbol: String) -> some View {
+        Button { exploresModels = explore } label: {
+            HStack(spacing: 12) {
+                WitnessIconTile(systemImage: symbol, tint: exploresModels == explore ? WitnessStyle.accent : WitnessStyle.muted)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(verbatim: title).font(.callout.weight(.semibold))
+                    Text(verbatim: detail).font(.caption).foregroundStyle(WitnessStyle.muted)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: exploresModels == explore ? "largecircle.fill.circle" : "circle")
+                    .foregroundStyle(exploresModels == explore ? WitnessStyle.accent : WitnessStyle.muted)
+            }.padding(16).frame(maxWidth: .infinity, alignment: .leading)
+                .background(exploresModels == explore ? WitnessStyle.accent.opacity(0.06) : .clear)
+                .contentShape(Rectangle())
+        }.buttonStyle(.plain).accessibilityAddTraits(exploresModels == explore ? [.isSelected] : [])
     }
 }

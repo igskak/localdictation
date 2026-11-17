@@ -1,9 +1,9 @@
 # Speech model selection — next release
 
-Implemented on `codex/test-model-picker`, after the installed 0.6.26 (28)
-prototype. Local candidate build number: 29. Not published; release waits for
-further design review. The selector is now available in ordinary Release builds;
-the Notetaker and diarization release gates remain independent.
+Shipping in Witness 0.6.27 (30), following review of the model-selection,
+onboarding and compact menu-bar previews. Model selection is available in
+ordinary Release builds. Notetaker is enabled as a clearly labelled public demo;
+speaker separation remains in development and can misattribute speakers.
 
 ## User flow
 
@@ -54,8 +54,9 @@ files are replaced atomically, and disk capacity is checked before transfer.
 Metadata and weights are the only network payloads; no content is uploaded.
 No dependency or product event is added. See `PRIVACY.md` for local retention
 and request disclosure and the bundled `SpeechModels-NOTICES.txt` for licenses.
-Publishing remains a separate step: carry the model download/privacy wording
-into the applicable website terms when preparing the public release.
+The matching website terms, privacy and third-party notices disclose model
+selection, static asset delivery, local retention and the Notetaker demo in
+German and English.
 
 The active model ID, downloaded pending choice and preparation marker are
 separate local settings. Test-host startup never consumes real pending choices.
@@ -81,6 +82,6 @@ Re-run standard tests with `xcodebuild test`. To also run the small public
 artifact transfer check, set `TEST_RUNNER_WITNESS_MODEL_DOWNLOAD_HTTP_SMOKE=1`.
 Snapshots from the fixture test are exported to `/tmp/witness-model-selection-preview`.
 
-- Ordinary Release build without Notetaker/dogfood flags: passed.
-- Local dogfood DMG packages the Notetaker feature set used by the existing
-  test app for review; this is not a signed/notarized public release.
+- The public Release enables the demo without dogfood flags. Its diarization
+  model is bundled from a pinned, hash-verified artifact before Developer ID
+  signing and notarization.
