@@ -380,7 +380,14 @@ struct OnboardingSpeechModelView: View {
     @ObservedObject var coordinator: DictationCoordinator
     @ObservedObject var selection: SpeechModelSelection
     var beforeRestart: () -> Void
-    @State private var exploresModels = false
+    @State private var exploresModels: Bool
+
+    init(coordinator: DictationCoordinator, selection: SpeechModelSelection, beforeRestart: @escaping () -> Void) {
+        self.coordinator = coordinator
+        self.selection = selection
+        self.beforeRestart = beforeRestart
+        _exploresModels = State(initialValue: selection.downloading != nil || selection.pending != nil)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -409,10 +416,15 @@ struct OnboardingSpeechModelView: View {
                 .font(.caption).foregroundStyle(WitnessStyle.muted)
                 .frame(maxWidth: .infinity)
         }
+        .onChange(of: selection.downloading) { _, model in if model != nil { exploresModels = true } }
+        .onChange(of: selection.pending) { _, model in if model != nil { exploresModels = true } }
     }
 
     private func modelOption(explore: Bool, title: String, detail: String, symbol: String) -> some View {
-        Button { exploresModels = explore } label: {
+        Button {
+            if !explore { selection.keepCurrent() }
+            exploresModels = explore
+        } label: {
             HStack(spacing: 12) {
                 WitnessIconTile(systemImage: symbol, tint: exploresModels == explore ? WitnessStyle.accent : WitnessStyle.muted)
                 VStack(alignment: .leading, spacing: 4) {

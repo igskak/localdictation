@@ -128,6 +128,7 @@ final class SpeechModelSelection: ObservableObject {
     }
 
     func keepCurrent() {
+        if downloading != nil { cancelDownload() }
         pending = nil; defaults.removeObject(forKey: Self.pendingKey); error = nil
     }
 

@@ -90,6 +90,24 @@ final class SpeechModelSelectionTests: XCTestCase {
         XCTAssertEqual(DictationEngineChoice.saved(in: defaults), .whisper)
     }
 
+    func testKeepingCurrentDuringDownloadDoesNotStageLateCompletion() async throws {
+        let storage = ModelStorageFixture(), defaults = try preferences()
+        let downloader = ModelDownloadFixture(storage: storage)
+        let notifications = ModelNotificationsFixture()
+        let selection = SpeechModelSelection(active: .whisper, storage: storage, downloader: downloader,
+            notifications: notifications, defaults: defaults)
+        selection.choose(.parakeetUltra, profile: profile)
+        while !(await downloader.started) { await Task.yield() }
+        selection.keepCurrent()
+        XCTAssertNil(selection.downloading)
+        await downloader.finish()
+        for _ in 0..<5 { await Task.yield() }
+        XCTAssertNil(selection.pending)
+        XCTAssertTrue(notifications.downloadedModels.isEmpty)
+        XCTAssertNil(defaults.string(forKey: SpeechModelSelection.pendingKey))
+        XCTAssertEqual(DictationEngineChoice.saved(in: defaults), .whisper)
+    }
+
     func testFailureCanBeRetriedAndDoesNotChangeActiveModel() async throws {
         let storage = ModelStorageFixture(), defaults = try preferences()
         let downloader = ModelDownloadFixture(storage: storage), notifications = ModelNotificationsFixture()

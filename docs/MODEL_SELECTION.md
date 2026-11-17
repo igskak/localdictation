@@ -18,7 +18,8 @@ Download and select requests notification authorization when needed, fetches
 only model assets and shows byte-based progress. The current speech engine
 keeps serving both entry points. Closing Settings or finishing onboarding does
 not cancel the download. Cancel leaves completed files available for retry.
-Failures leave the working choice intact. Download completion persists a separate
+Keeping the active model cancels any download and clears a pending choice; late
+completion cannot stage it again. Failures leave the working choice intact. Download completion persists a separate
 pending choice and sends a local notification. Already installed models need no
 network access and go straight to the pending/restart state.
 
