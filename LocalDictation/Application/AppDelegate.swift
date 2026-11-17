@@ -1,4 +1,5 @@
 import AppKit
+import UserNotifications
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -24,6 +25,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// another application, and there is no menu bar window open to host the
     /// answer.
     private var paywall: PaywallWindowController?
+    private var modelPreparation: SpeechModelPreparationController?
     #if DEBUG || NOTETAKER_DOGFOOD
     private var debugMeetingWindow: DebugMeetingWindowController?
     private var debugMeetingLibraryWindow: MeetingLibraryWindowController?
@@ -78,6 +80,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         #endif
+        UNUserNotificationCenter.current().delegate = self
         Log.application.info("Witness launched as a menu bar utility")
         if let coordinator = Self.coordinator {
             reviewPanel = ReviewPanelController(coordinator: coordinator)
@@ -86,6 +89,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // Mac that launches already locked should have a listener for the
             // first press rather than for the second.
             paywall = PaywallWindowController(coordinator: coordinator)
+        }
+        if let coordinator = Self.coordinator {
+            modelPreparation = SpeechModelPreparationController(coordinator: coordinator)
+            modelPreparation?.start()
         }
         Self.coordinator?.activate()
         Self.notetaker?.activate()
@@ -144,5 +151,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         Self.notetaker?.deactivate()
         Self.coordinator?.deactivate()
+    }
+}
+
+extension AppDelegate: UNUserNotificationCenterDelegate {
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
+        [.banner, .sound]
+    }
+
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse) async {
+        guard response.notification.request.identifier == "speech-model-downloaded" else { return }
+        await MainActor.run {
+            SettingsNavigation.request(.speechModel)
+            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+            NSApp.activate(ignoringOtherApps: true)
+        }
     }
 }

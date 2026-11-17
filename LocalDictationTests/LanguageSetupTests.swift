@@ -65,7 +65,7 @@ final class LanguageSetupTests: XCTestCase {
     func testGuidedSetupPagesFitAndRender() throws {
         let coordinator = makeCoordinator(InMemoryPreferencesStore())
         let model = LanguageSetupModel(selection: .default)
-        for page in 0...5 {
+        for page in 0...6 {
             model.page = page
             let view = GuidedSetupView(model: model, coordinator: coordinator, notifyWhenReady: {}, finish: {})
                 .environmentObject(coordinator)

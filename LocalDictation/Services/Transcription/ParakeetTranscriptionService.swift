@@ -48,6 +48,7 @@ actor ParakeetTranscriptionService: TranscriptionService {
     /// is released at every `await`, so a second caller would start a second
     /// load of the same weights.
     private var loadTask: Task<Void, any Error>?
+    private var loadStartedAt: Date?
     private var inferenceTurns = InferenceTurns<CheckedContinuation<Void, Never>>()
 
     init(variant: Variant = .ultra) {
@@ -62,7 +63,10 @@ actor ParakeetTranscriptionService: TranscriptionService {
 
     func modelState(for profile: LanguageProfile) async -> TranscriptionModelState {
         if manager != nil { return .ready }
-        if loadTask != nil { return .preparing(ModelPreparation(phase: .loading)) }
+        if loadTask != nil {
+            let phase: ModelPreparation.Phase = loadStartedAt.map { Date().timeIntervalSince($0) > 20 } == true ? .compilingForThisSystem : .loading
+            return .preparing(ModelPreparation(phase: phase))
+        }
         guard let directory = Self.modelDirectory(for: variant) else {
             return .failed("Could not locate Application Support")
         }
@@ -81,6 +85,7 @@ actor ParakeetTranscriptionService: TranscriptionService {
         if let loadTask {
             load = loadTask
         } else {
+            loadStartedAt = Date()
             load = startLoad()
             loadTask = load
         }
@@ -100,6 +105,7 @@ actor ParakeetTranscriptionService: TranscriptionService {
     private func startLoad() -> Task<Void, any Error> {
         let variant = variant
         return Task { [self] in
+            defer { loadStartedAt = nil }
             guard let directory = Self.modelDirectory(for: variant) else {
                 throw TranscriptionError.modelUnavailable("Could not locate Application Support")
             }

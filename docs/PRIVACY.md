@@ -370,3 +370,41 @@ Gesture state exists only in memory and is discarded when the gesture ends.
 Normal shortcuts remain available without this extra permission. Dictation
 in the setup test uses the same local speech engine, keeps its result only in
 memory, and does not insert into another app or change the clipboard.
+
+## Optional speech model selection (next release)
+
+Settings → Speech model and the optional final onboarding step let the user
+choose a recognizer. Choosing **Download and select** fetches only immutable
+model files; it does not load a second speech model or send any content. The
+current recognizer continues working. Progress is measured in downloaded bytes.
+An explicitly selected installed model needs no network request.
+
+Model asset requests go to Hugging Face (`huggingface.co`) and its file/CDN
+redirects. The requests contain only the public repository, pinned revision,
+file paths and ordinary HTTP/TLS metadata including the connecting IP address.
+They contain no installation identifier, language profile, recordings, words,
+clipboard data, application contents or other content-derived information.
+The purpose is delivery of the model explicitly selected by the user. Witness
+retains no server request log; upstream infrastructure controls its own request
+log retention. This is the same static-asset recipient as the existing model
+download. There are no new product events or diagnostic uploads.
+
+Model assets remain in `Application Support/Witness/Models` until the user
+removes an inactive model, removes app data, or deletes them manually. The
+remove action moves the model to the Mac's Trash. Completed files may be
+reused after a cancelled or interrupted download. macOS manages its separate
+Core ML compilation cache. Model source revisions and licenses are included
+in the app's `SpeechModels-NOTICES.txt`.
+
+Local preferences store the active model ID, a fully downloaded selection
+waiting for restart, and a preparation marker. These fixed model IDs never
+leave this Mac and remain until replaced, cancelled, preparation succeeds or
+local settings are removed. Incomplete or unsupported selections never replace
+the working recognizer. Audio continues to be memory-only.
+
+Download-complete and ready notifications are local macOS notifications with
+the model name and restart/readiness instructions. They contain no content and
+are not sent to an external recipient. macOS notification authorization is
+requested from the model selection action; if unavailable, progress and restart
+status remain visible in Settings. Closing the preparation popup does not stop
+preparation. Model download and initial local preparation are separate phases.

@@ -292,6 +292,11 @@
 		421820C9DE2294CA0DCE64D4 /* Nemotron3-MODEL-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 9EDEBD5100738476872ACA72 /* Nemotron3-MODEL-LICENSE.txt */; };
 		315638A247D5B2E877D28F12 /* Sparkle-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 08297670C004EE41B08B89C2 /* Sparkle-LICENSE.txt */; };
 		1D9D398B04B88AD00FBDD4D4 /* Witness.icns in Resources */ = {isa = PBXBuildFile; fileRef = D62808A87FCBEBAEB4D58080 /* Witness.icns */; };
+		1964B8675C545D90531C083C /* SpeechModelDownloadService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B676A3CBD1ECE731D76FE71 /* SpeechModelDownloadService.swift */; };
+		3A9E77385A8ACB8FC22C408C /* SpeechModelSelection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 645E8A769260F96109390DD2 /* SpeechModelSelection.swift */; };
+		3A175AB05F20F23616F13699 /* SpeechModelViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = D309878EFE50D1D491AF4C0A /* SpeechModelViews.swift */; };
+		8A76116A7145DAF3151F013E /* SpeechModelSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F1AB3683C0F3B2F5E2B944D /* SpeechModelSelectionTests.swift */; };
+		7EABA327D5C0DE32448F486F /* SpeechModels-NOTICES.txt in Resources */ = {isa = PBXBuildFile; fileRef = B2F26A1BBBB62D1B8695E432 /* SpeechModels-NOTICES.txt */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -590,6 +595,11 @@
 		F8FEF1D1AD7F65872851E828 /* WordScannerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordScannerTests.swift; sourceTree = "<group>"; };
 		A30000000000000000000008 /* LocalDictation.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LocalDictation.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A30000000000000000000009 /* LocalDictationTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LocalDictationTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		2B676A3CBD1ECE731D76FE71 /* SpeechModelDownloadService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechModelDownloadService.swift; sourceTree = "<group>"; };
+		645E8A769260F96109390DD2 /* SpeechModelSelection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechModelSelection.swift; sourceTree = "<group>"; };
+		D309878EFE50D1D491AF4C0A /* SpeechModelViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechModelViews.swift; sourceTree = "<group>"; };
+		7F1AB3683C0F3B2F5E2B944D /* SpeechModelSelectionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechModelSelectionTests.swift; sourceTree = "<group>"; };
+		B2F26A1BBBB62D1B8695E432 /* SpeechModels-NOTICES.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = SpeechModels-NOTICES.txt; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -767,6 +777,7 @@
 			isa = PBXGroup;
 			children = (
 				DC0466158FD03C83B00B41F9 /* SettingsView.swift */,
+				D309878EFE50D1D491AF4C0A /* SpeechModelViews.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -817,6 +828,7 @@
 			isa = PBXGroup;
 			children = (
 				20337C4F240280AAF414252D /* FluidAudio-LICENSE.txt */,
+				B2F26A1BBBB62D1B8695E432 /* SpeechModels-NOTICES.txt */,
 				9A4FDC8856930DF37DE4B6C2 /* Info.plist */,
 				FCC3F0F5A8353323BD90C314 /* InfoPlist.xcstrings */,
 				EB6F69453268540336175122 /* Localizable.xcstrings */,
@@ -1015,6 +1027,8 @@
 				BDAD9627A8E0028EA8EACB3E /* TranscriptionService.swift */,
 				E4A6970B56202DAD57A0AD07 /* WhisperKitTranscriptionService.swift */,
 				1E63586C965D8AB161E5D2DE /* DictationEngineChoice.swift */,
+				645E8A769260F96109390DD2 /* SpeechModelSelection.swift */,
+				2B676A3CBD1ECE731D76FE71 /* SpeechModelDownloadService.swift */,
 				8592CC499244FB8EF8E9FEF4 /* ParakeetTranscriptionService.swift */,
 			);
 			path = Transcription;
@@ -1133,6 +1147,7 @@
 				A7FB57FDEB8E1AD4E6838B64 /* EditMapTests.swift */,
 				E8CF52FC9EDDFFB352E50D29 /* EncoderOutputReuseTests.swift */,
 				B95D3AFA64BF436D2AE7B29E /* InferenceTurnsTests.swift */,
+				7F1AB3683C0F3B2F5E2B944D /* SpeechModelSelectionTests.swift */,
 				B66FEF45CBD1CDC4675F4B33 /* MeetingQualityTests.swift */,
 				19C091F4817E89949C68E69A /* EncoderReuseParityTests.swift */,
 				ACCD8FECF1DDEA61616108FA /* EnergyVoiceActivityDetectorTests.swift */,
@@ -1328,6 +1343,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D201C5C16CBD1D28B92AD29E /* FluidAudio-LICENSE.txt in Resources */,
+				7EABA327D5C0DE32448F486F /* SpeechModels-NOTICES.txt in Resources */,
 				D0EA0DBAF447345924DD1750 /* InfoPlist.xcstrings in Resources */,
 				8D618CD8C32884C45C4BFB5F /* Localizable.xcstrings in Resources */,
 				421820C9DE2294CA0DCE64D4 /* Nemotron3-MODEL-LICENSE.txt in Resources */,
@@ -1398,6 +1414,7 @@
 				DC72345E9D777D6F63F41D78 /* ReviewPresentation.swift in Sources */,
 				AE993742C9DDB2D48DFAA2A2 /* ReviewStripView.swift in Sources */,
 				3B0CA80C3291DD27B1EB5D14 /* SettingsView.swift in Sources */,
+				3A175AB05F20F23616F13699 /* SpeechModelViews.swift in Sources */,
 				9E538B7A50DF95DF0446F405 /* AccessibilityAuthorization.swift in Sources */,
 				E3106476F2FAE02FCA1180D7 /* CaptureDiagnostics.swift in Sources */,
 				E8A4779F6BC19CE1C2E19BFD /* CapturedUtterance.swift in Sources */,
@@ -1505,6 +1522,8 @@
 				E5FBCC52E88ED0D29CFBEA19 /* TranscriptionService.swift in Sources */,
 				358E1AE5026D0AE2BA62D96A /* WhisperKitTranscriptionService.swift in Sources */,
 				5D93150FA291299FFBA3AB81 /* DictationEngineChoice.swift in Sources */,
+				3A9E77385A8ACB8FC22C408C /* SpeechModelSelection.swift in Sources */,
+				1964B8675C545D90531C083C /* SpeechModelDownloadService.swift in Sources */,
 				E529DB708411670B917B02F7 /* ParakeetTranscriptionService.swift in Sources */,
 				B6703D61BC244406C4288748 /* AppUpdater.swift in Sources */,
 				87E8277474B51E752F09330D /* EnergyVoiceActivityDetector.swift in Sources */,
@@ -1554,6 +1573,7 @@
 				0A4E88B7CBB462923E817D0E /* EditMapTests.swift in Sources */,
 				7148795906A4049B2127FC14 /* EncoderOutputReuseTests.swift in Sources */,
 				4AF9445D4560FA403F269472 /* InferenceTurnsTests.swift in Sources */,
+				8A76116A7145DAF3151F013E /* SpeechModelSelectionTests.swift in Sources */,
 				9D37FCC7EDFB47BE63C997C4 /* MeetingQualityTests.swift in Sources */,
 				97729B7136CE8B700B275084 /* EncoderReuseParityTests.swift in Sources */,
 				038145DB15FB92C5B6FF4F0A /* EnergyVoiceActivityDetectorTests.swift in Sources */,
@@ -1765,7 +1785,7 @@
 				CODE_SIGN_ENTITLEMENTS = LocalDictation/Witness.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 28;
+				CURRENT_PROJECT_VERSION = 29;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_PREVIEWS = YES;
@@ -1790,7 +1810,7 @@
 				CODE_SIGN_ENTITLEMENTS = LocalDictation/Witness.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 28;
+				CURRENT_PROJECT_VERSION = 29;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;

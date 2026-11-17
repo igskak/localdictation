@@ -6,17 +6,13 @@ import UniformTypeIdentifiers
 
 enum SettingsSection: String, CaseIterable, Identifiable {
     case dictation
-    #if DEBUG || NOTETAKER_DOGFOOD
     case speechModel
-    #endif
     case languages, cleanup, dictionary, privacy, license, updates, diagnostics, audio
 
     var id: String { rawValue }
     var title: String {
         switch self {
-        #if DEBUG || NOTETAKER_DOGFOOD
         case .speechModel: "Speech model"
-        #endif
         case .dictation: "Dictation"
         case .languages: "Languages"
         case .cleanup: "Text cleanup"
@@ -30,9 +26,7 @@ enum SettingsSection: String, CaseIterable, Identifiable {
     }
     var symbol: String {
         switch self {
-        #if DEBUG || NOTETAKER_DOGFOOD
         case .speechModel: "cpu"
-        #endif
         case .dictation: "mic"
         case .languages: "globe"
         case .cleanup: "slider.horizontal.3"
@@ -67,12 +61,14 @@ enum SettingsNavigation {
 struct SettingsView: View {
     @EnvironmentObject private var coordinator: DictationCoordinator
     @ObservedObject private var updater: AppUpdater
+    @ObservedObject private var modelSelection: SpeechModelSelection
     @State private var availableAudioInputs: [SystemAudioInput.Device] = []
     @State private var selection: SettingsSection = .dictation
 
-    init(initialSelection: SettingsSection = .dictation, updater: AppUpdater = .shared) {
+    init(initialSelection: SettingsSection = .dictation, updater: AppUpdater = .shared, modelSelection: SpeechModelSelection = .shared) {
         _selection = State(initialValue: initialSelection)
         self.updater = updater
+        self.modelSelection = modelSelection
     }
 
     var body: some View {
@@ -151,10 +147,8 @@ struct SettingsView: View {
 
     @ViewBuilder private var page: some View {
         switch selection {
-        #if DEBUG || NOTETAKER_DOGFOOD
         case .speechModel:
-            SpeechModelSettingsView(notetakerStatus: AppDelegate.notetaker?.status ?? NotetakerStatus())
-        #endif
+            SpeechModelSettingsView(notetakerStatus: AppDelegate.notetaker?.status ?? NotetakerStatus(), selection: modelSelection)
         case .dictation: dictationPage
         case .languages: LanguagesView()
         case .cleanup: cleanupPage
@@ -921,82 +915,3 @@ private struct LaunchAtLoginRow: View {
         return controller.state == .requiresApproval
     }
 }
-
-#if DEBUG || NOTETAKER_DOGFOOD
-/// Test-only controls. Saving a choice changes the next launch, never a live
-/// recording. The active model stays visible even when another one is pending.
-struct SpeechModelSettingsView: View {
-    @EnvironmentObject private var coordinator: DictationCoordinator
-    @ObservedObject var notetakerStatus: NotetakerStatus
-    @AppStorage(DictationEngineChoice.defaultsKey) private var savedChoice = DictationEngineChoice.whisper.rawValue
-    @State private var restartError: String?
-
-    private var selected: DictationEngineChoice {
-        DictationEngineChoice(rawValue: savedChoice) ?? .whisper
-    }
-    private var canRestart: Bool {
-        DictationEngineChoice.allowsRestart(dictation: coordinator.state,
-            meetingIsActive: notetakerStatus.isActive)
-    }
-
-    var body: some View {
-        WitnessSettingsForm {
-            WitnessSettingsSection("Model comparison · test build") {
-                LabeledContent("Active model", value: DictationEngineChoice.active.title)
-                Text("Dictation and Notetaker use the same selected model. Speaker separation uses a separate model.")
-                    .font(.callout).foregroundStyle(WitnessStyle.muted)
-                Picker("Model for next launch", selection: $savedChoice) {
-                    ForEach(DictationEngineChoice.allCases) { choice in
-                        Text(choice.title).tag(choice.rawValue)
-                    }
-                }
-                Text(selected.detail)
-                    .font(.callout).foregroundStyle(WitnessStyle.muted)
-                    .fixedSize(horizontal: false, vertical: true)
-                if !selected.supports(coordinator.languageProfile) {
-                    Text("This model does not support all your selected languages. Choose supported languages or a Whisper model before recording.")
-                        .font(.callout).foregroundStyle(WitnessStyle.warning)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                if selected != DictationEngineChoice.active {
-                    Label("Restart required to apply the selected model", systemImage: "arrow.clockwise")
-                        .font(.callout)
-                    Button("Restart Witness") { restart() }
-                        .disabled(!canRestart)
-                    Button("Keep active model") { savedChoice = DictationEngineChoice.active.rawValue }
-                    if !canRestart {
-                        Text("Finish dictation or the meeting note before restarting.")
-                            .font(.callout).foregroundStyle(WitnessStyle.muted)
-                    }
-                }
-                if let restartError {
-                    Text(restartError).font(.callout).foregroundStyle(WitnessStyle.warning)
-                }
-            }
-            WitnessSettingsSection("Testing") {
-                Text("After restarting, Witness loads the chosen model. If its weights are missing, they are downloaded first. Audio and transcripts stay on this Mac.")
-                    .font(.callout).foregroundStyle(WitnessStyle.muted)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text("Use the same language profile and cleanup level when comparing models. Clean formatting and speaker separation are unchanged by this selection.")
-                    .font(.callout).foregroundStyle(WitnessStyle.muted)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-    }
-
-    private func restart() {
-        guard canRestart else { return }
-        // Pass the path as an argument, never interpolate it into shell code.
-        // Wait for this process to exit before opening its replacement.
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/sh")
-        process.arguments = ["-c", "while /bin/kill -0 \"$1\" 2>/dev/null; do /bin/sleep 0.2; done; exec /usr/bin/open \"$2\"", "witness-restart", String(ProcessInfo.processInfo.processIdentifier), Bundle.main.bundlePath]
-        do {
-            try process.run()
-            NSApp.terminate(nil)
-        } catch {
-            restartError = "Could not restart Witness. Quit and reopen it to apply the selected model."
-        }
-    }
-}
-#endif

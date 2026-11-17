@@ -1,5 +1,8 @@
 # Model selection in the local test build
 
+This records prototype build 28. The staged-download flow for the next release
+is documented in [MODEL_SELECTION.md](MODEL_SELECTION.md).
+
 Based on the installed dogfood commit `51a7c09`. Settings → Speech model is
 available in Debug and NOTETAKER_DOGFOOD builds. Choose a model, then Restart
 Witness. The saved choice applies to both dictation and Notetaker after launch;

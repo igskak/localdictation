@@ -67,7 +67,7 @@ final class LanguageSetupModel: ObservableObject {
     }
 
     func advance(using coordinator: DictationCoordinator) {
-        guard canAdvance(using: coordinator), page < 5 else { return }
+        guard canAdvance(using: coordinator), page < 6 else { return }
         clearTest(using: coordinator)
         page += 1
         synchronizeReadiness(using: coordinator)
@@ -204,22 +204,23 @@ struct FirstRunView: View {
 }
 
 struct GuidedSetupView: View {
+    @ObservedObject var modelSelection: SpeechModelSelection = .shared
     @ObservedObject var model: LanguageSetupModel
     @ObservedObject var coordinator: DictationCoordinator
     let notifyWhenReady: () -> Void
     let finish: () -> Void
 
-    private var titles: [String] { ["Microphone access", "Type into other apps", "Choose your shortcut", "Preparing your speech model", "Try your first dictation", "You’re ready to dictate"] }
+    private var titles: [String] { ["Microphone access", "Type into other apps", "Choose your shortcut", "Preparing your speech model", "Try your first dictation", "You’re ready to dictate", "Choose a speech model"] }
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack {
                 WitnessBrand()
                 Spacer()
-                Text(verbatim: L10n.format("Step %lld of %lld", Int64(model.page + 1), 6))
+                Text(verbatim: L10n.format("Step %lld of %lld", Int64(model.page + 1), 7))
                     .font(.caption).foregroundStyle(WitnessStyle.muted)
             }
-            WitnessSetupProgress(step: model.page + 1, total: 6)
-            Text(LocalizedStringKey(titles[min(model.page, 5)]))
+            WitnessSetupProgress(step: model.page + 1, total: 7)
+            Text(LocalizedStringKey(titles[min(model.page, 6)]))
                 .font(.system(size: 27, weight: .semibold)).tracking(-0.6)
                 .fixedSize(horizontal: false, vertical: true)
             ScrollView {
@@ -238,7 +239,7 @@ struct GuidedSetupView: View {
                 Button("Back") { leaveTest(); if model.page > 0 { model.page -= 1 } else { model.step = .languages } }
                     .buttonStyle(WitnessSecondaryButtonStyle())
                 Spacer()
-                Button(L10n.string(model.page == 5 ? "Done" : "Next")) { advance() }
+                Button(L10n.string(model.page == 6 ? "Done" : "Next")) { advance() }
                     .buttonStyle(WitnessPrimaryButtonStyle())
                     .disabled(!model.canAdvance(using: coordinator))
                     .keyboardShortcut(.defaultAction)
@@ -263,7 +264,7 @@ struct GuidedSetupView: View {
     }
     private func leaveTest() { model.clearTest(using: coordinator) }
     private func advance() {
-        if model.page == 5 { finish(); return }
+        if model.page == 6 { finish(); return }
         model.advance(using: coordinator)
     }
 
@@ -346,7 +347,7 @@ struct GuidedSetupView: View {
                 }
                 Button("Try again") { enterTest() }
             }
-        default:
+        case 5:
             Label("Your first dictation worked", systemImage: "checkmark.circle").foregroundStyle(WitnessStyle.success)
             if coordinator.canInsert && !coordinator.needsAccessibilityTrust && coordinator.insertsAutomatically {
                 Label("Automatic insertion is enabled", systemImage: "checkmark.circle")
@@ -366,6 +367,10 @@ struct GuidedSetupView: View {
             Text("Find Witness in the menu bar. You can reopen Setup and practice at any time.")
             Toggle("Open Witness when I log in", isOn: $model.opensAtLogin)
             Text("The first three days start at your first successful dictation. Afterwards, an email address activates ten more free days. Your dictation stays on this Mac.").font(.caption)
+        default:
+            Text("Your current model stays selected. You can keep it or try another model. This step is optional; you can change models later in Settings → Speech model.")
+                .font(.callout).foregroundStyle(WitnessStyle.muted)
+            SpeechModelControls(coordinator: coordinator, selection: modelSelection, notetakerStatus: AppDelegate.notetaker?.status ?? NotetakerStatus(), beforeRestart: finish)
         }
     }
 }

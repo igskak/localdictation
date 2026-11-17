@@ -1,6 +1,6 @@
 import Foundation
 
-/// The test build keeps one selection for both entry points. Freeze the active
+/// One selection serves both entry points. Freeze the active
 /// selection at launch: changing Settings must never switch an in-flight call.
 enum DictationEngineChoice: String, CaseIterable, Identifiable, Sendable {
     case whisper
@@ -10,7 +10,13 @@ enum DictationEngineChoice: String, CaseIterable, Identifiable, Sendable {
 
     static let defaultsKey = "DictationEngine"
     static let fullWhisperVariant = "openai_whisper-large-v3_turbo"
-    static let active = current
+    static let active: Self = {
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil { return current }
+        #endif
+        return SpeechModelLaunchSelection.resolve(defaults: .standard, storage: LocalSpeechModelStorage.live,
+            profile: (try? FilePreferencesStore().load().languageProfile) ?? .default)
+    }()
 
     var id: String { rawValue }
 
@@ -36,13 +42,13 @@ enum DictationEngineChoice: String, CaseIterable, Identifiable, Sendable {
     var detail: String {
         switch self {
         case .whisper:
-            "The current baseline. Faster than full large-v3; supports all Witness languages."
+            "Balanced speed and recognition quality. Supports all Witness languages."
         case .whisperLarge:
-            "The full 32-layer decoder, about 3.2 GB. Slower than turbo; supports all Witness languages."
+            "A larger Whisper model. Recognition may take longer; results can differ from turbo. Supports all Witness languages."
         case .parakeetUltra:
-            "A faster experimental recognizer for 25 European languages. Language selection is less strict than Whisper."
+            "Fast recognition for 25 European languages. Language selection is less strict than Whisper."
         case .parakeetV3:
-            "The original Parakeet v3 for comparison with Ultra. Supports the same 25 European languages."
+            "Another fast option for 25 European languages. Try it alongside Ultra to compare results."
         }
     }
 

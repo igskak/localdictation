@@ -95,7 +95,7 @@ final class LanguageSetupWindowController: NSObject, NSWindowDelegate {
                 model.step = .languages
             } else {
                 model.step = .ready
-                model.page = min(max(receipt.page, 0), 4)
+                model.page = min(max(receipt.page, 0), 6)
                 if model.page > 1 && coordinator.needsAccessibilityTrust && !receipt.usesClipboardOnly {
                     model.page = 1
                 }
@@ -256,7 +256,7 @@ final class LanguageSetupWindowController: NSObject, NSWindowDelegate {
     /// thing — nothing here is a second question, so nothing here can be left
     /// unanswered.
     func finish() {
-        if installationAware { receipt.outcome = model.page == 5 ? "completed" : "skipped"; receipt.save(to: receiptURL) }
+        if installationAware { receipt.outcome = model.page >= 5 ? "completed" : "skipped"; receipt.save(to: receiptURL) }
         window?.close()
     }
 

@@ -147,6 +147,16 @@ Read these files before continuing implementation:
 
 The app is a menu bar utility that sets the `.accessory` activation policy at launch, so it shows no Dock icon. It is deliberately not marked `LSUIElement`: Launchpad leaves out agent apps, and opening the app from Launchpad or Finder while it runs opens Settings.
 
+## Choosing a speech model (next release)
+
+Settings → Speech model offers Whisper large-v3 turbo, full Whisper large-v3,
+Parakeet Ultra and Parakeet TDT v3, with approximate sizes and language support.
+**Download and select** fetches the model while the current recognizer keeps
+working, then offers **Restart and apply**. After restart, a popup explains the
+local preparation and a notification announces readiness. The final onboarding
+step offers the same optional choice. Inactive models can be moved to Trash.
+See [the model selection flow](docs/MODEL_SELECTION.md) for details and validation.
+
 ## Build and test from the command line
 
 ```sh
