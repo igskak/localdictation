@@ -23,7 +23,10 @@ choices wait for a restart and local preparation, with progress, notifications,
 cancel/retry and protection of active models. Restart is blocked while either
 feature is busy. Initial language and permission gates are preserved.
 
-Validation: 1,228 Debug tests, including deterministic shortcut/mode integration,
+Confirmed Sparkle installations also defer relaunch until both features are idle;
+a cancelled update cannot resume later.
+
+Validation: 1,232 Debug tests, including deterministic shortcut/mode integration,
 model selection/download/restart tests and light/dark native window fixtures.
 Eleven hardware, corpus or network opt-in tests are skipped by default.
 `Tools/release.sh` verifies the speaker model, signs the exported bundle with

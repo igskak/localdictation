@@ -285,6 +285,11 @@ struct SettingsView: View {
         WitnessSettingsForm {
             WitnessSettingsSection("Updates") {
                 LabeledContent("Installed version", value: AppVersion.short)
+                if updater.isWaitingToRestart {
+                    Label("The update is ready. Witness will restart after dictation or the meeting note finishes.", systemImage: "hourglass")
+                        .font(.callout).foregroundStyle(WitnessStyle.warning)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 Button("Check for updates…") { updater.checkForUpdates() }
                     .buttonStyle(WitnessPrimaryButtonStyle())
                     .disabled(!updater.canCheckForUpdates)

@@ -11,12 +11,19 @@ final class AppUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
     static let shared = AppUpdater(startingUpdater: true)
 
     @Published private(set) var canCheckForUpdates = false
+    @Published private(set) var isWaitingToRestart = false
     private var controller: SPUStandardUpdaterController!
     private var observation: AnyCancellable?
+    private let mayRestart: @MainActor () -> Bool
+    private var pendingInstallation: Task<Void, Never>?
 
     /// Layout previews and tests can construct the adapter without starting
     /// Sparkle's scheduler or making an update request.
-    init(startingUpdater: Bool) {
+    init(startingUpdater: Bool, mayRestart: @escaping @MainActor () -> Bool = {
+        DictationEngineChoice.allowsRestart(dictation: AppDelegate.coordinator?.state ?? .launching,
+            meetingIsActive: AppDelegate.notetaker?.status.isActive ?? false)
+    }) {
+        self.mayRestart = mayRestart
         super.init()
         controller = SPUStandardUpdaterController(
             startingUpdater: startingUpdater,
@@ -43,6 +50,40 @@ final class AppUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
 
     func updaterWillRelaunchApplication(_ updater: SPUUpdater) {
         try? Data(OnboardingReceipt.currentInstallation.utf8).write(to: OnboardingReceipt.updateMarkerURL, options: .atomic)
+    }
+
+    func updater(_ updater: SPUUpdater, shouldPostponeRelaunchForUpdate item: SUAppcastItem,
+                 untilInvokingBlock installHandler: @escaping () -> Void) -> Bool {
+        postponeRelaunchIfNeeded(installHandler)
+    }
+
+    /// A confirmed installation may finish downloading while a meeting starts.
+    /// Recheck at Sparkle's relaunch boundary, not only at the Settings button.
+    func postponeRelaunchIfNeeded(_ installHandler: @escaping () -> Void) -> Bool {
+        guard !mayRestart() else { return false }
+        pendingInstallation?.cancel()
+        isWaitingToRestart = true
+        pendingInstallation = Task { [weak self] in
+            while let self, !self.mayRestart() {
+                do { try await Task.sleep(for: .milliseconds(250)) }
+                catch { return }
+            }
+            guard let self, !Task.isCancelled else { return }
+            self.isWaitingToRestart = false
+            self.pendingInstallation = nil
+            installHandler()
+        }
+        return true
+    }
+
+    func cancelPendingInstallation() {
+        pendingInstallation?.cancel()
+        pendingInstallation = nil
+        isWaitingToRestart = false
+    }
+
+    func updater(_ updater: SPUUpdater, didAbortWithError error: any Error) {
+        cancelPendingInstallation()
     }
 
     func checkForUpdates() {

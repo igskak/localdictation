@@ -818,7 +818,7 @@ final class MeetingLibraryWindowController: NSObject {
             backing: .buffered,
             defer: false
         )
-        window.title = "Witness Meeting Notes — Test Build"
+        window.title = "Witness Meeting Notes — Demo"
         window.contentMinSize = NSSize(width: 900, height: 620)
         window.isReleasedWhenClosed = false
         window.contentViewController = NSHostingController(rootView: MeetingLibraryView(model: model, startMeeting: startMeeting))

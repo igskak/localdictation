@@ -830,7 +830,7 @@ final class DebugMeetingWindowController: NSObject {
             backing: .buffered,
             defer: false
         )
-        window.title = "Witness Meeting Note — Test Build"
+        window.title = "Witness Notetaker — Demo"
         window.contentMinSize = NSSize(width: 780, height: 620)
         window.isReleasedWhenClosed = false
         window.contentViewController = NSHostingController(rootView: DebugMeetingView(model: model, openHistory: { [weak self] in
