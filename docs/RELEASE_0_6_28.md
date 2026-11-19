@@ -20,8 +20,30 @@ opt-in tests skipped, no failures. Regression coverage exercises retry in both
 recording modes, revoked microphone access, the 300 ms boundary, legacy receipt
 migration, changed mount identifiers, installation/update changes and an
 unfinished setup at the next launch. The release uses the existing Developer ID,
-notarization/stapling and signed Sparkle feed pipeline. Production artifact
-verification is recorded separately after publication.
+notarization/stapling and signed Sparkle feed pipeline.
 
 No new dependency, network request, content transfer or service change.
 The updated local onboarding receipt is described in `docs/PRIVACY.md`.
+
+## Published artifact verification
+
+- Published on 2026-11-19 as the latest stable GitHub release, tag `v0.6.28`,
+  built from `07b62a385508cab32be3b15e54022b7bd5af8dc7`.
+- App notarization `fe3382f4-e2fd-4be0-beca-7eecd1b8def8` and DMG notarization
+  `c1c40cc6-a69b-41e0-ba30-37820ebfa1ed` were accepted. Both were stapled;
+  Gatekeeper accepted the app and DMG as Notarized Developer ID.
+- The preceding public 0.6.27 DMG checksum and code signature were verified.
+  The new DMG and appcast Ed25519 signatures both verify with that release's
+  public key. Bundle identity, feed URL and macOS minimum remain unchanged;
+  the update build increases from 30 to 31. This verifies update compatibility
+  without claiming an interactive Sparkle installation was exercised.
+- GitHub's uploaded digests match the local artifacts. Both public assets were
+  downloaded without authentication and matched byte-for-byte by SHA-256.
+- `https://witnessmac.com/download` resolves through GitHub's latest release
+  to `v0.6.28/Witness.dmg` and returns HTTP 200 with 101,820,913 bytes.
+- DMG SHA-256:
+  `a61162ec73cc8f923f4bbb21c0c43890413ff4540b2ca1c15842738204fa4889`.
+- Appcast SHA-256:
+  `9e662e499534119f99925bae3fb76faacbc69b3b03cc69dedc0cb6ddf467204a`.
+
+Release: https://github.com/igskak/localdictation/releases/tag/v0.6.28
