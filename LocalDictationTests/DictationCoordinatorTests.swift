@@ -158,6 +158,42 @@ final class DictationCoordinatorTests: XCTestCase {
         XCTAssertEqual(capture.stopCount, 1)
     }
 
+    func testNextHotkeyRetriesCaptureStartFailureWithoutOpeningMenu() async throws {
+        let (coordinator, _, hotkey, capture) = makeCoordinator()
+        coordinator.activate()
+        capture.failNextStart(with: .noInputDevice)
+        hotkey.emit(.pressed)
+        try await waitUntil("capture fails") {
+            if case .failed(.captureStart) = coordinator.state { return true }
+            return false
+        }
+
+        hotkey.emit(.released)
+        hotkey.emit(.pressed)
+        try await waitUntil("next press retries capture") { coordinator.state == .recording }
+        hotkey.emit(.released)
+        try await waitUntil("retry finishes") { coordinator.state == .ready }
+        XCTAssertEqual(capture.startCount, 2)
+        XCTAssertEqual(capture.stopCount, 1)
+    }
+
+    func testHotkeyRetryRechecksMicrophonePermission() async throws {
+        let (coordinator, permissions, hotkey, capture) = makeCoordinator()
+        coordinator.activate()
+        capture.failNextStart(with: .noInputDevice)
+        hotkey.emit(.pressed)
+        try await waitUntil("capture fails") {
+            if case .failed(.captureStart) = coordinator.state { return true }
+            return false
+        }
+
+        permissions.set(.denied)
+        hotkey.emit(.pressed)
+        XCTAssertEqual(coordinator.state, .permissionDenied(restricted: false))
+        XCTAssertEqual(capture.startCount, 1)
+        XCTAssertEqual(permissions.requestCount, 0)
+    }
+
     func testHotkeyRegistrationCollisionIsSurfaced() {
         let (coordinator, _, hotkey, _) = makeCoordinator(hotkeyError: HotkeyRegistrationError.alreadyInUse)
         coordinator.activate()

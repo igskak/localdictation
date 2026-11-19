@@ -739,6 +739,16 @@ final class DictationCoordinator: ObservableObject {
     func stopOnboardingRecording() { endCapture(reason: .hotkeyRelease) }
 
     private func beginCapture() {
+        // A failed utterance must not disable the shortcut until the menu is
+        // opened. Retry completed capture/transcription failures on the next
+        // press, rechecking permission and entitlement through normal recovery.
+        switch state {
+        case .failed(.captureStart), .failed(.transcription):
+            recoverFromFailure()
+        default:
+            break
+        }
+
         // A locked Mac answers the press instead of recording it.
         //
         // The machine is applied first and its verdict respected: a lock that
@@ -1705,6 +1715,10 @@ final class DictationCoordinator: ObservableObject {
     private func startTranscription(for utterance: CapturedUtterance) -> Bool {
         guard let transcriptionService else { return false }
         guard !utterance.samples.isEmpty else { return false }
+        guard utterance.duration >= transcriptionService.minimumAudioDuration else {
+            noteSilence(.tooShort(duration: utterance.duration))
+            return false
+        }
 
         let profile = effectiveProfile
         guard transcriptionService.supports(profile) else {

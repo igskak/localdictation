@@ -25,6 +25,7 @@ final class InferenceTurnsTests: XCTestCase {
             let meeting = try XCTUnwrap(clients.meeting as? WhisperKitMeetingClient)
             XCTAssertTrue(meeting.service === dictation)
             XCTAssertEqual(dictation.displayName, choice.title)
+            XCTAssertEqual(dictation.minimumAudioDuration, 0)
         }
         XCTAssertNotEqual(DictationEngineChoice.fullWhisperVariant, WhisperKitTranscriptionService.defaultModelVariant)
     }
@@ -36,6 +37,7 @@ final class InferenceTurnsTests: XCTestCase {
             let meeting = try XCTUnwrap(clients.meeting as? ParakeetTranscriptionService)
             XCTAssertTrue(meeting === dictation)
             XCTAssertEqual(dictation.identifier, choice.rawValue)
+            XCTAssertEqual(dictation.minimumAudioDuration, 0.3)
         }
     }
 

@@ -36,8 +36,9 @@ struct SystemModelReadyNotificationService: ModelReadyNotificationService {
 /// the document, and this one exists to be answered. The app is an accessory
 /// with no Dock icon, so it has to activate itself to be seen at all.
 ///
-/// Only the Continue button answers the question. Closing the window means
-/// "not now", and the question comes back at the next launch.
+/// Only the Continue button answers the language question. Automatic setup is
+/// shown once per installation or update, even if the window is left unfinished.
+/// The user can reopen it explicitly without changing their saved choices.
 ///
 /// This was the other way round for exactly one live launch, on the reasoning
 /// that the app has always had a profile so there was nothing to cancel into.
@@ -82,14 +83,19 @@ final class LanguageSetupWindowController: NSObject, NSWindowDelegate {
         super.init()
         if installationAware {
             isAnswered = !coordinator.needsLanguageSetup
-            if receiptURL == OnboardingReceipt.url, let marker = try? Data(contentsOf: OnboardingReceipt.updateMarkerURL),
-               String(data: marker, encoding: .utf8) == receipt.installation {
-                receipt.installation = installationIdentity
-                receipt.save(to: receiptURL)
-            }
-            if receiptURL == OnboardingReceipt.url { try? FileManager.default.removeItem(at: OnboardingReceipt.updateMarkerURL) }
-            if receipt.installation != installationIdentity {
+            // Older releases used a marker to suppress setup after Sparkle
+            // updates. Updates now get the same once-per-copy setup as installs.
+            if receiptURL == OnboardingReceipt.url { try? FileManager.default.removeItem(at: OnboardingReceipt.legacyUpdateMarkerURL) }
+            if OnboardingReceipt.matchesInstallation(receipt.installation, current: installationIdentity) {
+                // Migrate the old device-number identity without losing progress.
+                if receipt.installation != installationIdentity {
+                    receipt.installation = installationIdentity
+                    receipt.save(to: receiptURL)
+                }
+            } else {
                 receipt = OnboardingReceipt(installation: installationIdentity)
+            }
+            if receipt.outcome == "pending" && receipt.page == 0 {
                 model.step = .welcome
             } else if coordinator.needsLanguageSetup {
                 model.step = .languages
@@ -146,6 +152,7 @@ final class LanguageSetupWindowController: NSObject, NSWindowDelegate {
         )
         window.delegate = self
         window.isReleasedWhenClosed = false
+        window.isRestorable = false
         // Above other applications, and on whichever Space the user is
         // actually looking at. An accessory app has no Dock icon to bounce and
         // no window of its own to come forward with: without these, the one
@@ -155,6 +162,12 @@ final class LanguageSetupWindowController: NSObject, NSWindowDelegate {
         window.collectionBehavior = [.moveToActiveSpace]
         window.center()
         self.window = window
+        if installationAware && receipt.outcome == "pending" {
+            // Persist at presentation, not only on close: a shutdown or crash
+            // must not schedule the same setup for the next login.
+            receipt.outcome = "presented"
+            receipt.save(to: receiptURL)
+        }
 
         Log.application.info("Asking which languages the user speaks")
         window.makeKeyAndOrderFront(nil)
@@ -297,16 +310,15 @@ final class LanguageSetupWindowController: NSObject, NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
         model.isInteractive = false
         model.clearTest(using: coordinator)
-        if installationAware && receipt.outcome == "pending" { receipt.outcome = "dismissed"; receipt.save(to: receiptURL) }
+        if installationAware && ["pending", "presented"].contains(receipt.outcome) { receipt.outcome = "dismissed"; receipt.save(to: receiptURL) }
         window = nil
         guard !isAnswered else {
             applyLoginChoice()
             return
         }
-        // Nothing is recorded, so `needsLanguageSetup` stays true and the next
-        // launch asks again. Logged because "why am I being asked twice" and
-        // "why was I never asked" are the same question from opposite sides.
-        Log.application.notice("Language question closed without an answer; it will be asked again")
+        // The language choice stays unanswered, so an explicit setup action can
+        // ask it again. Automatic launch follows the installation receipt.
+        Log.application.notice("Language question closed without an answer")
     }
 
     /// Opens the app at login, unless the person switched that off on the
@@ -349,12 +361,33 @@ struct OnboardingReceipt: Codable {
         outcome = try container.decodeIfPresent(String.self, forKey: .outcome) ?? "pending"
         usesClipboardOnly = try container.decodeIfPresent(Bool.self, forKey: .usesClipboardOnly) ?? false
     }
-    static var updateMarkerURL: URL { ApplicationSupportDirectory.file("onboarding-update") }
+    static var legacyUpdateMarkerURL: URL { ApplicationSupportDirectory.file("onboarding-update") }
     static var url: URL { ApplicationSupportDirectory.file("onboarding.json") }
     static var currentInstallation: String {
-        let attributes = try? FileManager.default.attributesOfItem(atPath: Bundle.main.bundlePath)
-        let executable = Bundle.main.executablePath.flatMap { try? FileManager.default.attributesOfItem(atPath: $0) }
-        return "\(attributes?[.systemNumber] ?? 0):\(attributes?[.systemFileNumber] ?? 0):\(executable?[.systemFileNumber] ?? 0):\(Bundle.main.bundlePath)"
+        let bundle = Bundle.main
+        let attributes = (try? FileManager.default.attributesOfItem(atPath: bundle.bundlePath)) ?? [:]
+        let executable = bundle.executablePath.flatMap { try? FileManager.default.attributesOfItem(atPath: $0) } ?? [:]
+        return installationIdentity(bundlePath: bundle.bundlePath,
+            version: bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "",
+            build: bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "",
+            bundleAttributes: attributes, executableAttributes: executable)
+    }
+
+    static func installationIdentity(bundlePath: String, version: String, build: String,
+                                     bundleAttributes: [FileAttributeKey: Any], executableAttributes: [FileAttributeKey: Any]) -> String {
+        // File numbers identify a replacement copy; version/build also detect an
+        // in-place update. The mounted device number is deliberately excluded.
+        "v2:\(version):\(build):\(bundleAttributes[.systemFileNumber] ?? 0):\(executableAttributes[.systemFileNumber] ?? 0):\(bundlePath)"
+    }
+
+    static func matchesInstallation(_ stored: String, current: String) -> Bool {
+        if stored == current { return true }
+        let legacy = stored.split(separator: ":", maxSplits: 3, omittingEmptySubsequences: false)
+        let stable = current.split(separator: ":", maxSplits: 5, omittingEmptySubsequences: false)
+        guard legacy.count == 4, UInt64(legacy[0]) != nil,
+              stable.count == 6, stable[0] == "v2",
+              stable[3] != "0", stable[4] != "0" else { return false }
+        return legacy[1] == stable[3] && legacy[2] == stable[4] && legacy[3] == stable[5]
     }
     static func load(from url: URL = Self.url) -> Self {
         guard let data = try? Data(contentsOf: url), let value = try? JSONDecoder().decode(Self.self, from: data) else {

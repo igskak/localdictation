@@ -48,10 +48,6 @@ final class AppUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
         }
     }
 
-    func updaterWillRelaunchApplication(_ updater: SPUUpdater) {
-        try? Data(OnboardingReceipt.currentInstallation.utf8).write(to: OnboardingReceipt.updateMarkerURL, options: .atomic)
-    }
-
     func updater(_ updater: SPUUpdater, shouldPostponeRelaunchForUpdate item: SUAppcastItem,
                  untilInvokingBlock installHandler: @escaping () -> Void) -> Bool {
         postponeRelaunchIfNeeded(installHandler)

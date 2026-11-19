@@ -62,6 +62,102 @@ final class LanguageSetupTests: XCTestCase {
         reinstall.finish()
     }
 
+    private func installationIdentity(device: UInt64 = 10, bundleFile: UInt64 = 20,
+                                      executableFile: UInt64 = 30, version: String = "0.6.27", build: String = "30.1") -> String {
+        OnboardingReceipt.installationIdentity(bundlePath: "/Applications/Witness.app", version: version, build: build,
+            bundleAttributes: [.systemNumber: device, .systemFileNumber: bundleFile],
+            executableAttributes: [.systemNumber: device, .systemFileNumber: executableFile])
+    }
+
+    func testInstallationIdentitySurvivesMountedDeviceNumberChange() {
+        XCTAssertEqual(installationIdentity(device: 10), installationIdentity(device: 99))
+    }
+
+    func testInstallationIdentityChangesForReinstallationAndUpdates() {
+        let original = installationIdentity()
+        XCTAssertNotEqual(original, installationIdentity(bundleFile: 21))
+        XCTAssertNotEqual(original, installationIdentity(executableFile: 31))
+        XCTAssertNotEqual(original, installationIdentity(version: "0.6.28"))
+        XCTAssertNotEqual(original, installationIdentity(build: "30.2"))
+    }
+
+    func testLegacyReceiptMatchesAfterDeviceNumberChangesButNotAfterReplacement() {
+        let legacy = "99:20:30:/Applications/Witness.app"
+        XCTAssertTrue(OnboardingReceipt.matchesInstallation(legacy, current: installationIdentity(device: 10)))
+        XCTAssertFalse(OnboardingReceipt.matchesInstallation(legacy, current: installationIdentity(bundleFile: 21)))
+        XCTAssertFalse(OnboardingReceipt.matchesInstallation(legacy, current: installationIdentity(executableFile: 31)))
+    }
+
+    func testUnfinishedSetupDoesNotReopenAtNextLaunchButCanBeOpenedExplicitly() {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let receiptURL = directory.appendingPathComponent("onboarding.json")
+        let coordinator = makeCoordinator(InMemoryPreferencesStore())
+        func controller() -> LanguageSetupWindowController {
+            LanguageSetupWindowController(coordinator: coordinator, loginItem: FakeLoginItemService(),
+                installationAware: true, receiptURL: receiptURL, installationIdentity: installationIdentity())
+        }
+        let first = controller()
+        first.presentIfNeeded()
+        XCTAssertTrue(first.isPresenting)
+        XCTAssertEqual(first.window?.isRestorable, false)
+        XCTAssertEqual(OnboardingReceipt.load(from: receiptURL).outcome, "presented")
+
+        // Simulate a new process while the first window was never dismissed.
+        let restart = controller()
+        restart.presentIfNeeded()
+        XCTAssertFalse(restart.isPresenting)
+        XCTAssertTrue(coordinator.needsLanguageSetup, "Showing setup must not invent a language answer")
+        restart.presentIfNeeded(force: true)
+        XCTAssertTrue(restart.isPresenting)
+        restart.finish()
+        first.finish()
+    }
+
+    func testLegacyCompletedAndSkippedReceiptsMigrateWithoutShowingSetup() {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let receiptURL = directory.appendingPathComponent("onboarding.json")
+        let coordinator = makeCoordinator(InMemoryPreferencesStore())
+        for outcome in ["completed", "skipped", "dismissed"] {
+            var receipt = OnboardingReceipt(installation: "99:20:30:/Applications/Witness.app")
+            receipt.outcome = outcome
+            receipt.page = 3
+            receipt.usesClipboardOnly = true
+            receipt.save(to: receiptURL)
+            let controller = LanguageSetupWindowController(coordinator: coordinator, loginItem: FakeLoginItemService(),
+                installationAware: true, receiptURL: receiptURL, installationIdentity: installationIdentity(device: 10))
+            controller.presentIfNeeded()
+            XCTAssertFalse(controller.isPresenting)
+            let migrated = OnboardingReceipt.load(from: receiptURL)
+            XCTAssertEqual(migrated.installation, installationIdentity())
+            XCTAssertEqual(migrated.outcome, outcome)
+            XCTAssertEqual(migrated.page, 3)
+            XCTAssertTrue(migrated.usesClipboardOnly)
+        }
+    }
+
+    func testEachInstalledCopyAndUpdateShowsSetupOnlyOnce() {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let receiptURL = directory.appendingPathComponent("onboarding.json")
+        let coordinator = makeCoordinator(InMemoryPreferencesStore())
+        let identities = [installationIdentity(), installationIdentity(build: "30.2"),
+                          installationIdentity(version: "0.6.28"), installationIdentity(bundleFile: 21)]
+        for identity in identities {
+            let setup = LanguageSetupWindowController(coordinator: coordinator, loginItem: FakeLoginItemService(),
+                installationAware: true, receiptURL: receiptURL, installationIdentity: identity)
+            setup.presentIfNeeded()
+            XCTAssertTrue(setup.isPresenting)
+            setup.finish()
+
+            let restart = LanguageSetupWindowController(coordinator: coordinator, loginItem: FakeLoginItemService(),
+                installationAware: true, receiptURL: receiptURL, installationIdentity: identity)
+            restart.presentIfNeeded()
+            XCTAssertFalse(restart.isPresenting)
+        }
+    }
+
     func testGuidedSetupPagesFitAndRender() throws {
         let coordinator = makeCoordinator(InMemoryPreferencesStore())
         let model = LanguageSetupModel(selection: .default)

@@ -201,6 +201,7 @@ final class FakeAudioCaptureService: AudioCaptureService, @unchecked Sendable {
 final class FakeTranscriptionService: TranscriptionService, @unchecked Sendable {
     let identifier = "fake"
     let displayName = "Fake Engine"
+    var minimumAudioDuration: TimeInterval = 0
 
     private let lock = NSLock()
     private var result: Transcript?

@@ -41,6 +41,7 @@ actor ParakeetTranscriptionService: TranscriptionService {
 
     nonisolated let identifier: String
     nonisolated let displayName: String
+    nonisolated var minimumAudioDuration: TimeInterval { ASRConstants.minimumAudioDurationSeconds }
     let variant: Variant
 
     private var manager: AsrManager?

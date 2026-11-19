@@ -19,9 +19,11 @@ final class SilentDictationTests: XCTestCase {
 
     private func makeHarness(
         transcript: Transcript,
-        snapshot: CaptureSnapshot = .heardSpeech
+        snapshot: CaptureSnapshot = .heardSpeech,
+        minimumAudioDuration: TimeInterval = 0
     ) -> Harness {
         let engine = FakeTranscriptionService()
+        engine.minimumAudioDuration = minimumAudioDuration
         engine.setResult(transcript)
         let hotkey = FakeHotkeyService()
         let capture = FakeAudioCaptureService()
@@ -44,7 +46,53 @@ final class SilentDictationTests: XCTestCase {
         harness.hotkey.emit(.released)
     }
 
-    // MARK: - The two silences
+    // MARK: - Empty and short captures
+
+    func testShortPressIsAnsweredWithoutCallingEngineAndNextPressWorks() async throws {
+        for frames in [1, 4_799] {
+            let harness = makeHarness(
+                transcript: .fixture(text: "next recording", profile: .german),
+                snapshot: CaptureSnapshot(frameCount: frames, peakLevel: 0.1, sampleRate: 16_000),
+                minimumAudioDuration: 0.3
+            )
+            record(harness)
+            try await waitUntil("short capture is answered") { harness.coordinator.silentResult != nil }
+            XCTAssertEqual(harness.coordinator.silentResult, .tooShort(duration: Double(frames) / 16_000))
+            XCTAssertEqual(harness.engine.transcribeCount, 0)
+            XCTAssertEqual(harness.coordinator.state, .ready)
+            XCTAssertNil(harness.coordinator.diagnostics.lastErrorDescription)
+            XCTAssertFalse(harness.coordinator.hasRetainedAudio)
+
+            harness.capture.setSnapshot(.heardSpeech)
+            record(harness)
+            try await waitUntil("next capture is transcribed") { harness.coordinator.result != nil }
+            XCTAssertEqual(harness.engine.transcribeCount, 1)
+            XCTAssertNil(harness.coordinator.silentResult)
+            harness.coordinator.deactivate()
+        }
+    }
+
+    func testCaptureAtEngineMinimumIsTranscribed() async throws {
+        let harness = makeHarness(
+            transcript: .fixture(text: "yes", profile: .german),
+            snapshot: CaptureSnapshot(frameCount: 4_800, peakLevel: 0.1, sampleRate: 16_000),
+            minimumAudioDuration: 0.3
+        )
+        record(harness)
+        try await waitUntil("minimum length is accepted") { harness.coordinator.result != nil }
+        XCTAssertEqual(harness.engine.transcribeCount, 1)
+        XCTAssertNil(harness.coordinator.silentResult)
+    }
+
+    func testShortCaptureDoesNotBlameTheMicrophoneOrLanguageSelection() {
+        let presentation = StatusPresentation(
+            state: .ready, binding: .optionSpace, silentResult: .tooShort(duration: 0.1)
+        )
+        XCTAssertEqual(presentation.title, L10n.string("Recording was too short"))
+        XCTAssertEqual(presentation.detail, L10n.string(
+            "Recording ended before enough audio was captured. Try recording a little longer."
+        ))
+    }
 
     func testSpeechThatRecognizesToNothingSaysSo() async throws {
         let harness = makeHarness(transcript: .empty(profile: .german, engineIdentifier: "fake"))

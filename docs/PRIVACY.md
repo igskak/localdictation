@@ -354,14 +354,16 @@ exactly as wide as this document is.
 ## Local onboarding and keyboard gestures (next release)
 
 `onboarding.json` in Application Support stores only a local app-bundle file
-identity, the last setup page, the explicit choice to continue with copy and
-paste without Accessibility access, and whether setup was completed, skipped or
-closed. This choice stays on this Mac and is never transmitted. It is retained until this file or the app's local data is removed.
-This distinguishes a replacement installation from a normal restart; manual
-replacement may also show setup again. A one-shot local `onboarding-update`
-marker preserves setup status across a normal Sparkle update and is consumed
-on the following launch. It contains only the previous local bundle identity.
-The file identity is never sent to an external recipient.
+identity (bundle path, bundle and executable file numbers, app version and build),
+the last setup page, the explicit choice to continue with copy and paste without
+Accessibility access, and whether setup was shown, completed, skipped or closed.
+These choices stay on this Mac and are never transmitted. They are retained until
+this file or the app's local data is removed. Setup is shown once after installing,
+reinstalling or updating the app, including updates through Sparkle. A normal
+app launch or Mac restart does not repeat it, even if setup was left unfinished.
+The obsolete local `onboarding-update` marker from older versions is removed on
+the following launch; new versions no longer write it. The file identity is never
+sent to an external recipient.
 
 The optional single-modifier shortcut observes keyboard modifier changes and
 whether another key was pressed, using macOS Input Monitoring permission.

@@ -9,7 +9,7 @@ import Foundation
 /// than as an empty answer. `docs/PHASE_4_COMPATIBILITY.md` records two
 /// utterances of 8.8 s and 10.1 s that did exactly this on a real Mac.
 ///
-/// The two cases are separated because they have different answers. Audio that
+/// The cases are separated because they have different answers. Audio that
 /// never reached speech level is a microphone problem: the wrong input device,
 /// a muted one, a Mac listening to something the user is not speaking into.
 /// Audio that did carry speech and came back empty is the engine's answer, and
@@ -20,6 +20,8 @@ import Foundation
 /// profile label. Nothing derived from what was said can reach here, which is
 /// what makes it safe to show and to log.
 enum SilentResult: Sendable, Equatable {
+    /// The engine's minimum input length was not reached, so inference was skipped.
+    case tooShort(duration: TimeInterval)
     /// The microphone was open and nothing in it ever reached speech level.
     case nothingHeard(duration: TimeInterval, peakLevel: Float, inputDeviceName: String?)
     /// Speech was heard and the engine returned no words for it.
@@ -27,6 +29,7 @@ enum SilentResult: Sendable, Equatable {
 
     var title: String {
         switch self {
+        case .tooShort: L10n.string("Recording was too short")
         case .nothingHeard: L10n.string("Nothing was heard")
         case .nothingRecognized: L10n.string("Nothing was recognized")
         }
@@ -36,6 +39,8 @@ enum SilentResult: Sendable, Equatable {
     /// where they are already looking.
     var message: String {
         switch self {
+        case .tooShort:
+            return L10n.string("Recording ended before enough audio was captured. Try recording a little longer.")
         case let .nothingHeard(duration, _, inputDeviceName):
             let device = inputDeviceName.map { "“\($0)”" } ?? L10n.string("the current input device")
             return L10n.format(
@@ -54,6 +59,7 @@ enum SilentResult: Sendable, Equatable {
 
     var systemImage: String {
         switch self {
+        case .tooShort: "waveform.badge.exclamationmark"
         case .nothingHeard: "mic.slash"
         case .nothingRecognized: "waveform.badge.exclamationmark"
         }
@@ -63,6 +69,8 @@ enum SilentResult: Sendable, Equatable {
     /// `InsertionOutcome.logLabel`.
     var logLabel: String {
         switch self {
+        case let .tooShort(duration):
+            "silent:tooShort duration=\(Self.seconds(duration))"
         case let .nothingHeard(duration, peakLevel, _):
             "silent:nothingHeard duration=\(Self.seconds(duration)) peak=\(Self.level(peakLevel))"
         case let .nothingRecognized(duration, profileLabel):

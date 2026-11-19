@@ -232,6 +232,8 @@ enum TranscriptionError: Error, Sendable, Equatable {
 /// token-level timing and confidence is part of the contract, not an optional
 /// extra: Phase 3's risk engine is built on it.
 protocol TranscriptionService: AnyObject, Sendable {
+    /// Shorter captures are answered without inference or entering a failure state.
+    var minimumAudioDuration: TimeInterval { get }
     /// Stable identifier recorded in transcripts and benchmark results.
     var identifier: String { get }
     var displayName: String { get }
@@ -255,6 +257,8 @@ protocol TranscriptionService: AnyObject, Sendable {
 }
 
 extension TranscriptionService {
+    var minimumAudioDuration: TimeInterval { 0 }
+
     /// Convenience for engines that support every profile they are asked about.
     func supportsAllProfiles() -> Bool {
         LanguageProfile.all.allSatisfy(supports)

@@ -704,3 +704,37 @@ whether insertion fell back to the clipboard, how long a dictation was, or
 anything per dictation at all. Those are facts about using the product rather
 than about setting it up, and the first three of them are one join away from
 being a diary.
+
+## A failed dictation must not disable the next hotkey press — 2026-11-19
+
+Local unified logs from the installed 0.6.27 build showed Parakeet rejecting
+captures shorter than 300 ms. The coordinator then stayed in `.failed`, where
+every later `.hotkeyPressed` was rejected. Opening the menu happened to restore
+`.ready` through its microphone authorization refresh, making an engine failure
+look like an intermittent shortcut problem.
+
+The next press now retries completed capture-start and transcription failures
+through the existing recovery path, which rechecks microphone authorization and
+preserves the entitlement gate. Registration failures still require resolving
+the shortcut problem. Engines expose their minimum input duration; Parakeet uses
+FluidAudio's own constant, while other engines retain their existing behavior.
+A shorter capture produces a localized “Recording was too short” notice, skips
+inference, releases its retained audio, and leaves the next press usable.
+
+Regression coverage includes recovery without opening the menu in both recording
+modes, microphone permission denial during recovery, captures immediately below
+and exactly at Parakeet's minimum, and a successful recording after a short tap.
+
+## Setup follows installation changes, not Mac restarts — 2026-11-19
+
+The local installation identity no longer includes the mounted device number.
+It uses the bundle path, bundle/executable file numbers, version and build, so
+replacing the app or updating its version/build offers setup once while ordinary
+launches keep the existing receipt. Legacy receipts migrate by matching file
+numbers and path, preserving progress and the clipboard-only choice.
+
+The receipt is marked as presented when the window is shown. A shutdown or crash
+before setup is closed therefore does not reopen it at the next login. The setup
+window also opts out of macOS window restoration. Dismissing setup does not invent
+a language answer; setup remains available through the explicit menu action.
+Sparkle no longer writes a marker to suppress setup after updates.

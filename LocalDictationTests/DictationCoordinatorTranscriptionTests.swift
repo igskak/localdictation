@@ -57,6 +57,35 @@ final class DictationCoordinatorTranscriptionTests: XCTestCase {
         hotkey.emit(.released)
     }
 
+    func testNextHotkeyRetriesAfterTranscriptionFailureWithoutOpeningMenu() async throws {
+        for activation in RecordingActivation.allCases {
+            let engine = FakeTranscriptionService()
+            engine.setError(.engineFailure("Invalid audio data: at least 300ms required"))
+            let (coordinator, hotkey, capture) = makeCoordinator(transcription: engine)
+            coordinator.setActivation(activation)
+
+            hotkey.emit(.pressed)
+            try await waitUntil("first recording starts") { coordinator.state == .recording }
+            hotkey.emit(activation == .toggle ? .pressed : .released)
+            try await waitUntil("transcription fails") {
+                if case .failed(.transcription) = coordinator.state { return true }
+                return false
+            }
+            XCTAssertFalse(coordinator.hasRetainedAudio)
+
+            engine.setResult(.fixture(words: [("recovered", 0.9)]))
+            hotkey.emit(.pressed)
+            XCTAssertEqual(coordinator.state, .starting)
+            try await waitUntil("next recording starts") { coordinator.state == .recording }
+            hotkey.emit(activation == .toggle ? .pressed : .released)
+            try await waitUntil("next result arrives") { coordinator.transcript?.text == "recovered" }
+            XCTAssertEqual(capture.startCount, 2)
+            XCTAssertEqual(capture.stopCount, 2)
+            XCTAssertEqual(coordinator.state, .ready)
+            coordinator.deactivate()
+        }
+    }
+
     func testOnboardingDictationIsIsolatedFromInsertionAndHistory() async throws {
         let engine = FakeTranscriptionService()
         engine.setResult(.fixture(words: [("hello", 0.9)]))
