@@ -14,7 +14,7 @@ struct SpeechModelSettingsView: View {
                     .fixedSize(horizontal: false, vertical: true)
                 SpeechModelControls(coordinator: coordinator, selection: selection, notetakerStatus: notetakerStatus)
                 Divider()
-                Label("Dictation and Notetaker use the same selected model. Audio and transcripts stay on this Mac.", systemImage: "lock")
+                Label("Your selected model works for dictation, meetings and files. Audio and transcripts stay on this Mac.", systemImage: "lock")
                     .font(.caption).foregroundStyle(WitnessStyle.muted)
                 Text("Sizes are approximate. macOS preparation uses additional disk space. You can remove inactive models to free space.")
                     .font(.caption).foregroundStyle(WitnessStyle.muted)
@@ -35,7 +35,7 @@ struct SpeechModelControls: View {
     @State private var removing = false
 
     private var canRestart: Bool {
-        DictationEngineChoice.allowsRestart(dictation: coordinator.state, meetingIsActive: notetakerStatus.isActive)
+        DictationEngineChoice.allowsRestart(dictation: coordinator.state, meetingIsActive: notetakerStatus.isActive, fileIsActive: coordinator.isFileTranscriptionRunning)
     }
 
     var body: some View {
@@ -115,12 +115,12 @@ struct SpeechModelControls: View {
                 }
                 Button("Restart and apply") {
                     beforeRestart()
-                    selection.restart(dictation: coordinator.state, meetingIsActive: notetakerStatus.isActive, profile: coordinator.languageProfile)
+                    selection.restart(dictation: coordinator.state, meetingIsActive: notetakerStatus.isActive, fileIsActive: coordinator.isFileTranscriptionRunning, profile: coordinator.languageProfile)
                 }
                 .buttonStyle(WitnessPrimaryButtonStyle())
                 .disabled(!canRestart || !pending.supports(coordinator.languageProfile))
                 Button("Keep active model") { selection.keepCurrent() }
-                if !canRestart { Text("Finish dictation or the meeting note before restarting.").font(.caption).foregroundStyle(WitnessStyle.muted) }
+                if !canRestart { Text("Wait for your dictation, meeting or file to finish before restarting.").font(.caption).foregroundStyle(WitnessStyle.muted) }
             }
             if selection.downloading == nil {
                 if selection.installed.contains(choice) {

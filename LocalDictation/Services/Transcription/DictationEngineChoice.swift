@@ -26,8 +26,8 @@ enum DictationEngineChoice: String, CaseIterable, Identifiable, Sendable {
 
     static var current: Self { saved(in: .standard) }
 
-    static func allowsRestart(dictation: RecordingState, meetingIsActive: Bool) -> Bool {
-        !dictation.isBusy && !meetingIsActive
+    static func allowsRestart(dictation: RecordingState, meetingIsActive: Bool, fileIsActive: Bool = false) -> Bool {
+        !dictation.isBusy && !meetingIsActive && !fileIsActive
     }
 
     var title: String {
@@ -67,10 +67,10 @@ enum DictationEngineChoice: String, CaseIterable, Identifiable, Sendable {
         case .whisper, .whisperLarge:
             let speech = WhisperKitTranscriptionService(modelVariant: self == .whisper
                 ? WhisperKitTranscriptionService.defaultModelVariant : Self.fullWhisperVariant)
-            return SpeechEngineClients(dictation: speech, meeting: speech.meetingClient)
+            return SpeechEngineClients(dictation: speech, meeting: speech.meetingClient, file: speech.fileClient)
         case .parakeetUltra, .parakeetV3:
             let speech = ParakeetTranscriptionService(variant: self == .parakeetUltra ? .ultra : .v3)
-            return SpeechEngineClients(dictation: speech, meeting: speech)
+            return SpeechEngineClients(dictation: speech, meeting: speech, file: speech)
         }
     }
 }
@@ -78,4 +78,5 @@ enum DictationEngineChoice: String, CaseIterable, Identifiable, Sendable {
 struct SpeechEngineClients: Sendable {
     let dictation: any TranscriptionService
     let meeting: any TranscriptionService
+    let file: any TranscriptionService
 }

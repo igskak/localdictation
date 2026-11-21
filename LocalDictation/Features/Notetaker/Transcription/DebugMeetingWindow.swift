@@ -107,10 +107,12 @@ final class DebugMeetingModel: ObservableObject {
     private var pausedAt: Date?
     private var accumulatedPause: TimeInterval = 0
     private var captureStartReported = false
+    private let fileIsActive: () -> Bool
 
     init(
         languageProfileProvider: @escaping @MainActor () -> LanguageProfile = { .default },
         transcription: any TranscriptionService = WhisperKitTranscriptionService(logsInference: false),
+        fileIsActive: @escaping () -> Bool = { false },
         cleanupProvider: @escaping @MainActor () -> MeetingTextCleanup = { MeetingTextCleanup() },
         resolver: any MeetingProcessResolving = CoreAudioMeetingProcessResolver(),
         store: any MeetingStoring = FileMeetingStore(),
@@ -120,6 +122,7 @@ final class DebugMeetingModel: ObservableObject {
         self.languageProfileProvider = languageProfileProvider
         languageProfile = languageProfileProvider()
         self.transcription = transcription
+        self.fileIsActive = fileIsActive
         self.cleanupProvider = cleanupProvider
         self.resolver = resolver
         self.store = store
@@ -142,6 +145,10 @@ final class DebugMeetingModel: ObservableObject {
 
     func start(preferredProcessID: pid_t? = nil) {
         guard canStart else { return }
+        guard !fileIsActive() else {
+            status = L10n.string("Your file is still being transcribed. When it’s ready, you can start a meeting note.")
+            return
+        }
         refreshLanguageProfile()
         let sessionProfile = languageProfile
         active = true
@@ -1037,6 +1044,7 @@ final class DogfoodNotetakerFacade: NotetakerFacade {
     init(
         languageProfileProvider: @escaping @MainActor () -> LanguageProfile = { .default },
         transcription: any TranscriptionService = WhisperKitTranscriptionService(logsInference: false),
+        fileIsActive: @escaping () -> Bool = { false },
         cleanupProvider: @escaping @MainActor () -> MeetingTextCleanup = { MeetingTextCleanup() }
     ) {
         let store = FileMeetingStore()
@@ -1045,6 +1053,7 @@ final class DogfoodNotetakerFacade: NotetakerFacade {
         let recordingModel = DebugMeetingModel(
             languageProfileProvider: languageProfileProvider,
             transcription: transcription,
+            fileIsActive: fileIsActive,
             cleanupProvider: cleanupProvider,
             store: store,
             menuBarStatus: status

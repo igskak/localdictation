@@ -19,6 +19,11 @@ struct MeetingTranscriptRow: Sendable, Equatable {
     let speakerConfidence: Double?
     let speakerAssignmentSource: SpeakerAssignmentSource
     let wordAttributions: [SpeakerWordAttribution]
+    /// The part of `original.text` this row covers when a window was cut into
+    /// several rows (by speaker or by sentence). Nil for a row that is the whole
+    /// window. Without it every fragment would show the entire window as its
+    /// "recognized" text.
+    let rawSlice: String?
 
     init(
         source: MeetingAudioSource,
@@ -29,8 +34,10 @@ struct MeetingTranscriptRow: Sendable, Equatable {
         speakerID: String? = nil,
         speakerConfidence: Double? = nil,
         speakerAssignmentSource: SpeakerAssignmentSource = .sourceFallback,
-        wordAttributions: [SpeakerWordAttribution] = []
+        wordAttributions: [SpeakerWordAttribution] = [],
+        rawSlice: String? = nil
     ) {
+        self.rawSlice = rawSlice
         self.source = source
         self.startFrame = startFrame
         self.endFrame = endFrame
@@ -71,7 +78,8 @@ struct MeetingTranscriptRow: Sendable, Equatable {
         words: [SpeakerWordAttribution],
         startFrame: Int64? = nil,
         endFrame: Int64? = nil,
-        text: String? = nil
+        text: String? = nil,
+        rawSlice: String? = nil
     ) -> MeetingTranscriptRow {
         MeetingTranscriptRow(
             source: source,
@@ -82,7 +90,8 @@ struct MeetingTranscriptRow: Sendable, Equatable {
             speakerID: speakerID,
             speakerConfidence: min(max(confidence, 0), 1),
             speakerAssignmentSource: .diarization,
-            wordAttributions: words
+            wordAttributions: words,
+            rawSlice: rawSlice ?? self.rawSlice
         )
     }
 }

@@ -340,7 +340,7 @@ struct MeetingDetectionMetrics: Codable, Sendable, Equatable {
         case .zoom: zoom.record(evaluation)
         case .googleMeet: googleMeet.record(evaluation)
         case .safari: safari.record(evaluation)
-        case .manual: break
+        case .manual, .file: break
         }
     }
 

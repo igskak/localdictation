@@ -21,7 +21,8 @@ final class AppUpdater: NSObject, ObservableObject, SPUUpdaterDelegate {
     /// Sparkle's scheduler or making an update request.
     init(startingUpdater: Bool, mayRestart: @escaping @MainActor () -> Bool = {
         DictationEngineChoice.allowsRestart(dictation: AppDelegate.coordinator?.state ?? .launching,
-            meetingIsActive: AppDelegate.notetaker?.status.isActive ?? false)
+            meetingIsActive: AppDelegate.notetaker?.status.isActive ?? false,
+            fileIsActive: AppDelegate.coordinator?.isFileTranscriptionRunning ?? false)
     }) {
         self.mayRestart = mayRestart
         super.init()

@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 enum MenuBarTab: String, CaseIterable {
-    case dictation, notetaker
+    case dictation, notetaker, files
 }
 
 struct MenuBarView: View {
@@ -14,9 +14,16 @@ struct MenuBarView: View {
     @State private var showsResult = false
     @State private var contentHeight: CGFloat = 420
     private let notetaker: any NotetakerFacade
+    private let fileTranscription: FileTranscriptionFeature?
 
-    init(notetaker: any NotetakerFacade = UnavailableNotetakerFacade(), modelSelection: SpeechModelSelection = .shared, initialTab: MenuBarTab = .dictation) {
+    init(
+        notetaker: any NotetakerFacade = UnavailableNotetakerFacade(),
+        fileTranscription: FileTranscriptionFeature? = nil,
+        modelSelection: SpeechModelSelection = .shared,
+        initialTab: MenuBarTab = .dictation
+    ) {
         self.notetaker = notetaker
+        self.fileTranscription = fileTranscription
         _notetakerStatus = ObservedObject(wrappedValue: notetaker.status)
         self.modelSelection = modelSelection
         _tab = State(initialValue: initialTab)
@@ -68,13 +75,28 @@ struct MenuBarView: View {
                 .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
                 .accessibilityLabel("More actions")
             }
-            if hasNotetaker { tabs }
+            if hasNotetaker || fileTranscription != nil { tabs }
             // Recording and actionable notices belong above both tabs.
             if notetakerStatus.isActive || notetakerStatus.state == .attention { meetingActivity }
             if let suggestion = notetaker.suggestion { MeetingSuggestionCard(suggestion: suggestion) }
             globalNotices
-            if tab == .dictation || !hasNotetaker { dictation }
-            else { meeting }
+            if let fileTranscription, coordinator.isFileTranscriptionRunning, tab != .files {
+                HStack {
+                    Label("Transcribing a file", systemImage: "waveform")
+                    Spacer()
+                    Button("Open") { fileTranscription.coordinator.presentWindow() }
+                }
+                .font(.callout)
+                .foregroundStyle(WitnessStyle.accent)
+                .witnessCard(.accent, padding: 12)
+            }
+            switch tab {
+            case .dictation: dictation
+            case .notetaker:
+                if hasNotetaker { meeting } else { dictation }
+            case .files:
+                if let fileTranscription { files(fileTranscription) } else { dictation }
+            }
             Divider().overlay(WitnessStyle.line)
             HStack {
                 Button { showSettings() } label: { Label("Settings", systemImage: "slider.horizontal.3") }
@@ -90,7 +112,8 @@ struct MenuBarView: View {
     private var tabs: some View {
         HStack(spacing: 4) {
             tabButton(.dictation, title: "Dictation", symbol: "mic")
-            tabButton(.notetaker, title: "Notetaker", symbol: "note.text")
+            if hasNotetaker { tabButton(.notetaker, title: "Notetaker", symbol: "note.text") }
+            if fileTranscription != nil { tabButton(.files, title: "Files", symbol: "doc.text") }
         }
         .padding(4)
         .background(WitnessStyle.raisedSurface, in: RoundedRectangle(cornerRadius: 15))
@@ -164,29 +187,65 @@ struct MenuBarView: View {
     }
 
     @ViewBuilder private var globalNotices: some View {
-        if showsGlobalDictationStatus { compactStatus }
+        if coordinator.state.isBusy || (tab != .files && showsGlobalDictationStatus) { compactStatus }
         if coordinator.state == .recording || coordinator.state == .finishing {
             RecordingLevelView(snapshot: coordinator.diagnostics.snapshot)
         }
-        if coordinator.canOpenReview, let result = coordinator.result, !result.isEmpty {
+        if tab != .files, coordinator.canOpenReview, let result = coordinator.result, !result.isEmpty {
             Button { coordinator.openReview() } label: {
                 Label(reviewTitle(for: result), systemImage: "exclamationmark.triangle")
                     .font(.callout.weight(.medium)).frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(WitnessSecondaryButtonStyle()).foregroundStyle(WitnessStyle.warning)
         }
-        if let outcome = coordinator.lastInsertion, let message = outcome.message { InsertionOutcomeView(message: message) }
+        if tab != .files, let outcome = coordinator.lastInsertion, let message = outcome.message { InsertionOutcomeView(message: message) }
         if presentation.showsLicenseAction {
             LicenseLockView(presentation: LicensePresentation(state: coordinator.entitlement), openLicenseSettings: { showSettings(.license) })
         } else if let notice = EntitlementNotice(state: coordinator.entitlement) {
             EntitlementNoticeView(notice: notice, openLicenseSettings: { showSettings(.license) })
         }
-        if let warning = coordinator.secureInputWarning {
+        if tab != .files, let warning = coordinator.secureInputWarning {
             SecureInputWarningView(message: warning) { coordinator.refreshAuthorization() }
         }
-        if coordinator.needsAccessibilityTrust {
+        if tab != .files, coordinator.needsAccessibilityTrust {
             AccessibilityTrustView(grant: { coordinator.requestAccessibilityTrust() },
                 openSettings: { coordinator.openAccessibilitySettings() }, recheck: { coordinator.refreshAccessibilityAuthorization() })
+        }
+    }
+
+    private func files(_ feature: FileTranscriptionFeature) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(spacing: 8) {
+                WitnessIconTile(systemImage: "waveform", tint: WitnessStyle.accent)
+                Text("Turn a recording into text").font(.title3.weight(.semibold))
+                Text("Choose an audio or video file. Witness transcribes it right here on your Mac.")
+                    .font(.callout)
+                    .foregroundStyle(WitnessStyle.muted)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.top, 6)
+
+            Button {
+                feature.coordinator.presentWindow()
+            } label: {
+                Label(
+                    LocalizedStringKey(coordinator.isFileTranscriptionRunning ? "View progress" : "Transcribe a file…"),
+                    systemImage: coordinator.isFileTranscriptionRunning ? "waveform" : "doc.badge.plus"
+                )
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(WitnessPrimaryButtonStyle())
+
+            Button { feature.showLibrary() } label: {
+                Label("Saved transcripts", systemImage: "clock.arrow.circlepath")
+            }
+            .buttonStyle(.plain)
+            .font(.callout)
+            .foregroundStyle(WitnessStyle.muted)
+
+            modelLabel
         }
     }
 

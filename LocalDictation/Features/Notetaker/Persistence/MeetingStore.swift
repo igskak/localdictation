@@ -21,6 +21,11 @@ struct MeetingManifest: Codable, Sendable, Equatable, Identifiable {
     /// Content-free local diagnostic categories for a partial note. Optional
     /// keeps schema-1 manifests written by earlier test builds readable.
     var partialIssueCodes: [String]?
+    /// Set only for a note made from a file: where it was read from and how
+    /// long it is. The path is kept so a passage can be played again from the
+    /// original; the audio itself is never copied. Optional keeps every schema-1
+    /// manifest written before files existed readable.
+    var sourceFile: MeetingSourceFile?
 
     init(
         id: UUID = UUID(),
@@ -31,7 +36,8 @@ struct MeetingManifest: Codable, Sendable, Equatable, Identifiable {
         sourcePlatform: MeetingPlatform,
         completionState: MeetingCompletionState = .recording,
         speakerDisplayNames: [String: String] = ["you": "You", "others": "Others"],
-        partialIssueCodes: [String]? = nil
+        partialIssueCodes: [String]? = nil,
+        sourceFile: MeetingSourceFile? = nil
     ) {
         schemaVersion = Self.currentSchemaVersion
         self.id = id
@@ -43,7 +49,14 @@ struct MeetingManifest: Codable, Sendable, Equatable, Identifiable {
         self.completionState = completionState
         self.speakerDisplayNames = speakerDisplayNames
         self.partialIssueCodes = partialIssueCodes
+        self.sourceFile = sourceFile
     }
+}
+
+struct MeetingSourceFile: Codable, Sendable, Equatable {
+    let name: String
+    let path: String
+    let durationSeconds: Double
 }
 
 struct MeetingTranscriptRecord: Codable, Sendable, Equatable, Identifiable {
@@ -116,7 +129,7 @@ struct MeetingTranscriptRecord: Codable, Sendable, Equatable, Identifiable {
             startFrame: row.startFrame,
             endFrame: row.endFrame,
             text: row.text,
-            rawText: row.original.text,
+            rawText: row.rawSlice ?? row.original.text,
             meanConfidence: row.original.meanConfidence,
             minimumConfidence: row.original.minimumConfidence,
             hasConfidenceSignal: row.original.hasConfidenceSignal,
@@ -134,7 +147,7 @@ struct MeetingTranscriptRecord: Codable, Sendable, Equatable, Identifiable {
             startFrame: row.startFrame,
             endFrame: row.endFrame,
             text: row.text,
-            rawText: row.original.text,
+            rawText: row.rawSlice ?? row.original.text,
             meanConfidence: row.original.meanConfidence,
             minimumConfidence: row.original.minimumConfidence,
             hasConfidenceSignal: row.original.hasConfidenceSignal,
@@ -215,9 +228,22 @@ struct MeetingSearchResult: Sendable, Equatable {
     let matchingTranscriptIDs: [UUID]
 }
 
-enum MeetingExportFormat: Sendable, Equatable {
+enum MeetingExportFormat: Sendable, Equatable, CaseIterable {
     case plainText
     case markdown
+    case docx
+    case srt
+    /// `Speaker: #hh:mm:ss-d# text`, for qualitative-analysis software.
+    case timestampedText
+
+    var fileExtension: String {
+        switch self {
+        case .plainText, .timestampedText: "txt"
+        case .markdown: "md"
+        case .docx: "docx"
+        case .srt: "srt"
+        }
+    }
 }
 
 enum MeetingStoreError: Error, Sendable, Equatable {
@@ -232,6 +258,7 @@ enum MeetingStoreError: Error, Sendable, Equatable {
 
 protocol MeetingStoring: Sendable {
     func createMeeting(_ manifest: MeetingManifest) async throws
+    func createMeeting(_ manifest: MeetingManifest, transcript: [MeetingTranscriptRecord]) async throws
     func loadManifest(id: UUID) async throws -> MeetingManifest
     func updateManifest(_ manifest: MeetingManifest) async throws
     func appendTranscript(_ record: MeetingTranscriptRecord, meetingID: UUID) async throws
@@ -243,6 +270,8 @@ protocol MeetingStoring: Sendable {
     func listMeetings() async throws -> [MeetingManifest]
     func search(_ query: String) async throws -> [MeetingSearchResult]
     func export(meetingID: UUID, format: MeetingExportFormat) async throws -> String
+    /// The bytes of an export, for formats that are not text.
+    func exportData(meetingID: UUID, format: MeetingExportFormat) async throws -> Data
     func deleteMeeting(id: UUID) async throws
 }
 
@@ -285,6 +314,10 @@ actor FileMeetingStore: MeetingStoring {
     }
 
     func createMeeting(_ manifest: MeetingManifest) throws {
+        try createMeeting(manifest, transcript: [])
+    }
+
+    func createMeeting(_ manifest: MeetingManifest, transcript: [MeetingTranscriptRecord]) throws {
         guard manifest.schemaVersion == MeetingManifest.currentSchemaVersion else {
             throw MeetingStoreError.unsupportedSchema(manifest.schemaVersion)
         }
@@ -292,18 +325,27 @@ actor FileMeetingStore: MeetingStoring {
         guard !fileManager.fileExists(atPath: directory.path) else {
             throw MeetingStoreError.alreadyExists(manifest.id)
         }
+        let staging = rootURL.appendingPathComponent(".\(UUID().uuidString)", isDirectory: true)
+        defer { try? fileManager.removeItem(at: staging) }
         do {
             try secureDirectory(rootURL)
-            try secureDirectory(directory)
-            try writeAtomic(manifest, to: directory.appendingPathComponent("manifest.json"))
-            try writeAtomic(MeetingNotes(), to: directory.appendingPathComponent("notes.json"))
-            try Data().write(to: directory.appendingPathComponent("transcript.ndjson"), options: .atomic)
-            try secureFile(directory.appendingPathComponent("transcript.ndjson"))
+            try secureDirectory(staging)
+            try writeAtomic(manifest, to: staging.appendingPathComponent("manifest.json"))
+            try writeAtomic(MeetingNotes(), to: staging.appendingPathComponent("notes.json"))
+            let transcriptURL = staging.appendingPathComponent("transcript.ndjson")
+            if transcript.isEmpty {
+                try Data().write(to: transcriptURL, options: .atomic)
+                try secureFile(transcriptURL)
+            } else {
+                try writeTranscript(transcript, to: transcriptURL, operation: "createMeeting")
+            }
+            try Task.checkCancellation()
+            try fileManager.moveItem(at: staging, to: directory)
         } catch let error as MeetingStoreError {
-            try? fileManager.removeItem(at: directory)
             throw error
+        } catch is CancellationError {
+            throw CancellationError()
         } catch {
-            try? fileManager.removeItem(at: directory)
             throw MeetingStoreError.unwritable("createMeeting")
         }
     }
@@ -358,6 +400,10 @@ actor FileMeetingStore: MeetingStoring {
     ) throws {
         let url = meetingDirectory(meetingID).appendingPathComponent("transcript.ndjson")
         guard fileManager.fileExists(atPath: url.path) else { throw MeetingStoreError.notFound(meetingID) }
+        try writeTranscript(records, to: url, operation: operation)
+    }
+
+    private func writeTranscript(_ records: [MeetingTranscriptRecord], to url: URL, operation: String) throws {
         do {
             var data = Data()
             for record in records {
@@ -456,20 +502,20 @@ actor FileMeetingStore: MeetingStoring {
     }
 
     func export(meetingID: UUID, format: MeetingExportFormat) throws -> String {
+        guard format != .docx else { throw MeetingStoreError.unreadable("docx is not text") }
         let manifest = try loadManifest(id: meetingID)
         let rows = try loadTranscript(meetingID: meetingID)
         let notes = try loadNotes(meetingID: meetingID)
-        let body = rows.map { row in
-            "[\(Self.timestamp(frame: row.startFrame, sampleRate: row.sampleRate))] \(manifest.speakerDisplayNames[row.speakerID] ?? row.speakerID): \(row.text)"
-        }.joined(separator: "\n")
-        switch format {
-        case .plainText:
-            return [manifest.title, body, notes.text.isEmpty ? nil : "Notes\n\(notes.text)"]
-                .compactMap { $0 }.joined(separator: "\n\n") + "\n"
-        case .markdown:
-            return ["# \(manifest.title)", body, notes.text.isEmpty ? nil : "## Notes\n\n\(notes.text)"]
-                .compactMap { $0 }.joined(separator: "\n\n") + "\n"
-        }
+        return MeetingExportRenderer.text(manifest: manifest, records: rows, notes: notes, format: format)
+    }
+
+    func exportData(meetingID: UUID, format: MeetingExportFormat) throws -> Data {
+        guard format == .docx else { return Data(try export(meetingID: meetingID, format: format).utf8) }
+        let manifest = try loadManifest(id: meetingID)
+        let rows = try loadTranscript(meetingID: meetingID)
+        let notes = try loadNotes(meetingID: meetingID)
+        do { return try MeetingExportRenderer.docx(manifest: manifest, records: rows, notes: notes) }
+        catch { throw MeetingStoreError.unwritable("docx") }
     }
 
     func deleteMeeting(id: UUID) throws {
@@ -505,10 +551,5 @@ actor FileMeetingStore: MeetingStoring {
         } catch {
             throw MeetingStoreError.unwritable("atomicWrite")
         }
-    }
-
-    private static func timestamp(frame: Int64, sampleRate: Double) -> String {
-        let seconds = max(Int(Double(frame) / max(sampleRate, 1)), 0)
-        return String(format: "%02d:%02d:%02d", seconds / 3600, (seconds / 60) % 60, seconds % 60)
     }
 }

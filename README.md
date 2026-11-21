@@ -102,7 +102,12 @@ Two Phase 3 decisions are worth knowing before reading the code:
 - **The deterministic signals come first and model confidence comes last.** Numbers, dates, amounts, names, dictionary near-misses, cleanup edits, and language switching are facts about the text. Model confidence is wired up and measured but carries a weight of **zero**, because Phase 2 found weak — and on Russian, negative — separation between the confidence of correct and incorrect tokens. It earns a weight from a measurement on real speech, not from an assumption.
 - **A dropped word is not chased.** If the engine swallows "не" or "nicht", no rule can flag what is absent. The app does not build a mechanism for it; the reasoning is recorded in `docs/PHASE_3.md`. The consequence is that audio replay is offered only for a marked fragment, and the recording is discarded the moment the app decides no review is needed.
 
-Settings has a manual, signed update check. It contacts GitHub only when pressed; installing an offered update requires confirmation. The user dictionary, the licensing record, and the settings file are the only app data that persist — transcripts and audio stay in memory. See `docs/PRIVACY.md` for the enumerated network requests.
+Settings has a manual, signed update check. It contacts GitHub only when pressed; installing an offered update requires confirmation. Dictation audio and text stay in memory. File transcripts and meeting notes are stored locally. See `docs/PRIVACY.md` for the enumerated network requests.
+
+To transcribe a recording, open Witness in the menu bar, select **Files**, and
+choose **Transcribe a file…**. Drop or select an audio or video file. Witness
+uses your selected speech model and opens the result in **Saved transcripts**,
+where you can play a passage, check flagged text, or export a copy.
 
 Read these files before continuing implementation:
 
@@ -234,7 +239,7 @@ Audio stays in memory. Normal capture performs no file writes, and a test assert
 
 A recording's lifetime is bounded by the review decision, not by the end of the interaction: it is released the instant the app decides no review is needed, and otherwise when the review is accepted, dismissed, or superseded. Tests assert both. Replay reads those samples straight out of memory — no file and no URL is involved.
 
-Three files in `~/Library/Application Support/Witness/` are the only things written to disk. `glossary.json` holds user-entered terms, optional explicit replacement phrases, and their language; `license.json` holds an install identifier, when the first dictation happened, the furthest date the app has seen, the license key if there is one, and which of the once-per-install setup events have already been reported; `preferences.json` holds the shortcut, recording mode, languages, insertion choice, cleanup level, microphone choice, first-run answer, and product-event consent. A test asserts the exact field list of each.
+The app writes its settings, glossary, and license record under `~/Library/Application Support/Witness/`. File transcripts are saved separately in `Transcripts`, and meeting notes in `Meetings`. `glossary.json` holds user-entered terms, optional explicit replacement phrases, and their language; `license.json` holds an install identifier, when the first dictation happened, the furthest date the app has seen, the license key if there is one, and which of the once-per-install setup events have already been reported; `preferences.json` holds the shortcut, recording mode, languages, insertion choice, cleanup level, microphone choice, first-run answer, and product-event consent. A test asserts the exact field list of each.
 
 Nothing in `preferences.json` is derived from anything that was said. It is a settings file rather than a `UserDefaults` domain on purpose: everything this app writes belongs in one directory the user can open, and a preference the app will not show its owner is a preference the app is keeping from them.
 

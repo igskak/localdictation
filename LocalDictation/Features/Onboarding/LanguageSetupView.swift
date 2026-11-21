@@ -368,8 +368,21 @@ struct GuidedSetupView: View {
             Text(verbatim: coordinator.binding.displayString).font(.title)
             Text(coordinator.activation.explanation)
             Text("Find Witness in the menu bar. You can reopen Setup and practice at any time.")
+            HStack(alignment: .top, spacing: 10) {
+                WitnessIconTile(systemImage: "doc.text", tint: WitnessStyle.accent)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Have a recording to transcribe?").font(.callout.weight(.semibold))
+                    Text("Open Files in the Witness menu and choose Transcribe a file. Your recording and transcript stay on this Mac.")
+                        .font(.callout)
+                        .foregroundStyle(WitnessStyle.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .background(WitnessStyle.raisedSurface, in: RoundedRectangle(cornerRadius: WitnessStyle.compactCornerRadius))
             Toggle("Open Witness when I log in", isOn: $model.opensAtLogin)
-            Text("The first three days start at your first successful dictation. Afterwards, an email address activates ten more free days. Your dictation stays on this Mac.").font(.caption)
+            Text("Your three free days start when your first dictation or file transcript is ready. Add your email afterwards for ten more free days.").font(.caption)
         default:
             OnboardingSpeechModelView(coordinator: coordinator, selection: modelSelection, beforeRestart: finish)
         }

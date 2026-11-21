@@ -5,6 +5,8 @@ enum MeetingPlatform: String, Sendable, Hashable, Codable {
     case googleMeet
     case safari
     case manual
+    /// An audio or video file the person chose, not a call.
+    case file
 }
 
 enum DetectionConfidence: Sendable, Hashable {

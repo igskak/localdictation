@@ -26,6 +26,7 @@ actor WhisperKitTranscriptionService: TranscriptionService {
     enum Caller: Hashable, Sendable {
         case dictation
         case meeting
+        case file
     }
 
     nonisolated var identifier: String {
@@ -419,8 +420,12 @@ actor WhisperKitTranscriptionService: TranscriptionService {
     /// 1.27 GB encoder twice and, whenever macOS had evicted its Neural Engine
     /// compilation, made the user wait minutes for a model dictation already
     /// had in memory.
-    nonisolated var meetingClient: WhisperKitMeetingClient {
-        WhisperKitMeetingClient(service: self)
+    nonisolated var meetingClient: WhisperKitLongFormClient {
+        WhisperKitLongFormClient(service: self)
+    }
+
+    nonisolated var fileClient: WhisperKitLongFormClient {
+        WhisperKitLongFormClient(service: self, caller: .file)
     }
 
     func transcribe(_ utterance: CapturedUtterance, profile: LanguageProfile) async throws -> Transcript {
@@ -494,7 +499,7 @@ actor WhisperKitTranscriptionService: TranscriptionService {
         let maximumNoSpeechProbability = segments.map(\.noSpeechProb).max()
 
         try Task.checkCancellation()
-        lastDecodedLanguage[caller] = (language, Date())
+        if caller != .file { lastDecodedLanguage[caller] = (language, Date()) }
 
         // Local timing only: counts and durations, no speech data. The two
         // durations say whether language selection or decoding dominates;
@@ -580,7 +585,7 @@ actor WhisperKitTranscriptionService: TranscriptionService {
 
         let decision: LanguageDecision
         switch caller {
-        case .dictation:
+        case .dictation, .file:
             decision = LanguageDecision.choose(
                 profile: profile,
                 probabilities: probabilities,
@@ -878,13 +883,15 @@ private final class ReusingAudioEncoder: AudioEncoding, WhisperMLModel, @uncheck
 ///
 /// Loading and model state are the engine's own, so a meeting started while
 /// dictation is ready starts at once. Inference goes through the engine's
-/// queue under `.meeting`, which keeps the meeting's recent language apart from
-/// dictation's and keeps per-window timing out of the dictation log.
-final class WhisperKitMeetingClient: TranscriptionService {
+/// queue under a separate caller, keeping dictation’s language history and
+/// timings independent of meetings and files.
+final class WhisperKitLongFormClient: TranscriptionService {
     let service: WhisperKitTranscriptionService
+    private let caller: WhisperKitTranscriptionService.Caller
 
-    init(service: WhisperKitTranscriptionService) {
+    init(service: WhisperKitTranscriptionService, caller: WhisperKitTranscriptionService.Caller = .meeting) {
         self.service = service
+        self.caller = caller
     }
 
     var identifier: String { service.identifier }
@@ -903,7 +910,7 @@ final class WhisperKitMeetingClient: TranscriptionService {
     }
 
     func transcribe(_ utterance: CapturedUtterance, profile: LanguageProfile) async throws -> Transcript {
-        try await service.transcribe(utterance, profile: profile, caller: .meeting)
+        try await service.transcribe(utterance, profile: profile, caller: caller)
     }
 }
 

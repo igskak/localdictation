@@ -57,6 +57,28 @@ actor MeetingPersistenceRecorder {
         self.manifest = manifest
     }
 
+    /// Publishes the completed file transcript in one local store operation.
+    func saveFile(
+        title: String,
+        profile: LanguageProfile,
+        source: MeetingSourceFile?,
+        rows: [MeetingTranscriptRow]
+    ) async throws -> UUID {
+        let date = Date()
+        let manifest = MeetingManifest(
+            title: title,
+            startedAt: date,
+            endedAt: date,
+            selectedLanguages: profile.languages,
+            sourcePlatform: .file,
+            completionState: .completed,
+            speakerDisplayNames: ["others": L10n.string("Speaker")],
+            sourceFile: source
+        )
+        try await store.createMeeting(manifest, transcript: rows.map(MeetingTranscriptRecord.init(row:)))
+        return manifest.id
+    }
+
     func discardEmptyMeeting() async {
         guard let manifest, persistedRowCount == 0 else { return }
         try? await store.deleteMeeting(id: manifest.id)

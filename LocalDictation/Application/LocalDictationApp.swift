@@ -265,6 +265,7 @@ struct LocalDictationApp: App {
     @StateObject private var coordinator: DictationCoordinator
     @StateObject private var notetakerStatus: NotetakerStatus
     private let notetaker: any NotetakerFacade
+    private let fileTranscription: FileTranscriptionFeature
 
     init() {
         // Before `makeLive`, which is what constructs the stores: the folder has
@@ -275,6 +276,7 @@ struct LocalDictationApp: App {
         _coordinator = StateObject(wrappedValue: composition.dictationCoordinator)
         _notetakerStatus = StateObject(wrappedValue: composition.notetaker.status)
         notetaker = composition.notetaker
+        fileTranscription = composition.fileTranscription
         // The delegate activates the coordinator once AppKit has finished
         // launching, so hotkey registration happens against a live event target.
         AppDelegate.coordinator = composition.dictationCoordinator
@@ -283,7 +285,7 @@ struct LocalDictationApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            MenuBarView(notetaker: notetaker)
+            MenuBarView(notetaker: notetaker, fileTranscription: fileTranscription)
                 .environmentObject(coordinator)
         } label: {
             // The indicator lives here because this is the one place that is on
@@ -291,8 +293,8 @@ struct LocalDictationApp: App {
             // label as a template image, so the alert is the symbol itself
             // rather than a badge drawn over one.
             Label(
-                notetakerStatus.accessibilityLabel,
-                systemImage: notetakerStatus.systemImage ?? StatusPresentation(
+                coordinator.isFileTranscriptionRunning ? L10n.string("Transcribing a file") : notetakerStatus.accessibilityLabel,
+                systemImage: coordinator.isFileTranscriptionRunning ? "waveform.badge.magnifyingglass" : notetakerStatus.systemImage ?? StatusPresentation(
                     state: coordinator.state,
                     binding: coordinator.binding,
                     // Carried into the label since the app fetches the model
@@ -322,18 +324,24 @@ struct LocalDictationApp: App {
 struct ApplicationComposition {
     let dictationCoordinator: DictationCoordinator
     let notetaker: any NotetakerFacade
+    let fileTranscription: FileTranscriptionFeature
 
     static func make(
         notetakerAvailability: NotetakerAvailability,
+        fileEngine: (any TranscriptionService)? = nil,
         makeDictationCoordinator: () -> DictationCoordinator,
         makeAvailableNotetaker: (DictationCoordinator) -> any NotetakerFacade
     ) -> ApplicationComposition {
         let coordinator = makeDictationCoordinator()
+        let notetaker = NotetakerCompositionRoot.make(
+            availability: notetakerAvailability,
+            buildAvailableSubsystem: { makeAvailableNotetaker(coordinator) }
+        )
         return ApplicationComposition(
             dictationCoordinator: coordinator,
-            notetaker: NotetakerCompositionRoot.make(
-                availability: notetakerAvailability,
-                buildAvailableSubsystem: { makeAvailableNotetaker(coordinator) }
+            notetaker: notetaker,
+            fileTranscription: FileTranscriptionFeature(
+                host: coordinator, engine: fileEngine, meetingIsActive: { notetaker.status.isActive }
             )
         )
     }
@@ -345,6 +353,7 @@ struct ApplicationComposition {
         let speech = DictationEngineChoice.active.makeClients()
         return make(
             notetakerAvailability: notetakerAvailability,
+            fileEngine: speech.file,
             makeDictationCoordinator: {
                 DictationCoordinator.makeLive(transcriptionService: speech.dictation)
             },
@@ -356,6 +365,7 @@ struct ApplicationComposition {
                         coordinator?.languageProfile ?? .default
                     },
                     transcription: speech.meeting,
+                    fileIsActive: { [weak coordinator] in coordinator?.isFileTranscriptionRunning ?? false },
                     // Read when each meeting starts, like the language profile.
                     cleanupProvider: { [weak coordinator] in
                         MeetingTextCleanup(

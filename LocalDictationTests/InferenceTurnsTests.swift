@@ -22,7 +22,7 @@ final class InferenceTurnsTests: XCTestCase {
         for choice in [DictationEngineChoice.whisper, .whisperLarge] {
             let clients = choice.makeClients()
             let dictation = try XCTUnwrap(clients.dictation as? WhisperKitTranscriptionService)
-            let meeting = try XCTUnwrap(clients.meeting as? WhisperKitMeetingClient)
+            let meeting = try XCTUnwrap(clients.meeting as? WhisperKitLongFormClient)
             XCTAssertTrue(meeting.service === dictation)
             XCTAssertEqual(dictation.displayName, choice.title)
             XCTAssertEqual(dictation.minimumAudioDuration, 0)

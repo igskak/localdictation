@@ -69,6 +69,7 @@ final class DictationCoordinator: ObservableObject {
     /// dictation starts, or — uniquely for this one — the wait it describes
     /// ends, at which point it is replaced by the sentence saying so.
     @Published private(set) var speechModelNotice: SpeechModelNotice?
+    @Published private(set) var isFileTranscriptionRunning = false
     /// Microphone authorization, published rather than only folded into
     /// `state`.
     ///
@@ -764,6 +765,11 @@ final class DictationCoordinator: ObservableObject {
             return
         }
 
+        if isFileTranscriptionRunning {
+            speechModelNotice = .transcribingFile
+            return
+        }
+
         // The press that arrives before the speech model does. It is answered
         // rather than served, and deliberately without touching the state
         // machine: nothing was recorded, so nothing has begun, and the release
@@ -1068,6 +1074,23 @@ final class DictationCoordinator: ObservableObject {
 
     /// Puts the notice out. The next dictation clears it anyway; this is for
     /// the user who has read it.
+    var sharedTranscriptionService: (any TranscriptionService)? { transcriptionService }
+    var isDictationBusy: Bool { state.isBusy }
+    var isLockedForFileTranscription: Bool { entitlement.lock != nil }
+
+    func setFileTranscriptionRunning(_ running: Bool) {
+        isFileTranscriptionRunning = running
+        if !running, speechModelNotice == .transcribingFile { speechModelNotice = nil }
+    }
+
+    func noteFileTranscriptionProduced() {
+        entitlementService?.recordSuccessfulDictation()
+    }
+
+    func requestPaywallForFileTranscription() {
+        paywallRequests += 1
+    }
+
     func dismissSpeechModelNotice() {
         guard speechModelNotice != nil else { return }
         speechModelNotice = nil

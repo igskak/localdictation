@@ -260,7 +260,7 @@ struct SettingsView: View {
         WitnessSettingsForm {
             WitnessSettingsSection("On this Mac") {
                 Label("Speech recognition and text cleanup run locally.", systemImage: "lock.shield")
-                Text("Audio stays in memory until processing or review ends. Recordings and transcripts are not saved or sent to a server.")
+                Text("Dictation audio and text stay in memory. Transcripts from files are saved on this Mac, along with the original file location.")
                     .font(.callout).foregroundStyle(WitnessStyle.muted)
             }
             WitnessSettingsSection("Product events") {
@@ -662,7 +662,7 @@ struct GlossaryView: View {
                         .foregroundStyle(WitnessStyle.muted)
                         .textSelection(.enabled)
                 }
-                Text("Your dictionary is saved on this Mac. Recordings and transcripts stay in memory.")
+                Text("Your dictionary is saved on this Mac. Dictation audio and text stay in memory.")
                     .font(.caption)
                     .foregroundStyle(WitnessStyle.muted)
             }

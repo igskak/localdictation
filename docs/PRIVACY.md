@@ -82,6 +82,24 @@ Dictionary corrections are saved only when the user explicitly writes both
 the preferred term and its optional misrecognition in Settings. Witness does
 not learn corrections from dictations or from text in other applications.
 
+## Local file transcripts
+
+When you choose **Files → Transcribe a file**, Witness reads the audio from
+the file you select and runs your active speech model on this Mac. Decoded
+audio is kept in memory in short windows. Witness does not copy the source
+audio or video. Playing a passage reads that stretch from the original file.
+
+Completed transcripts are saved in owner-only directories under
+`~/Library/Application Support/Witness/Transcripts`. A saved transcript
+includes its title, creation time, selected languages, text, timestamps,
+recognition warnings, and the source file name, path, and duration. Notes and
+manual speaker labels are saved there if you add them. You can delete a
+transcript from **Saved transcripts**. Your original file stays in place.
+
+File contents, paths, and transcript data are not sent. A first successful
+file transcript starts the same free-use period as a first dictation, with
+the same optional, content-free `trial_started` event listed below.
+
 ## Local meeting notes
 
 Notetaker is available as a demo. Speaker separation is still being improved;
@@ -253,7 +271,7 @@ and then for the six about setup.
 | `model_failed` | Getting it did not work, with `network`, `storage` or `other` |
 | `dictation_blocked_by_model` | You hold the hotkey while the model is still arriving |
 | `microphone_denied` | macOS asked for the microphone and the answer was no |
-| `trial_started` | Your first successful dictation — the moment the three ungated days start |
+| `trial_started` | Your first successful dictation or file transcript starts the three ungated days |
 | `activation_requested` | You press **Send me a key** or **Send my key** |
 | `paywall_shown` | The app puts the offers on screen, with which of the four reasons it did |
 

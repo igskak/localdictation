@@ -138,9 +138,9 @@ final class SpeechModelSelection: ObservableObject {
         catch { self.error = L10n.string("The model could not be removed. Please try again.") }
     }
 
-    func restart(dictation: RecordingState, meetingIsActive: Bool, profile: LanguageProfile) {
+    func restart(dictation: RecordingState, meetingIsActive: Bool, fileIsActive: Bool = false, profile: LanguageProfile) {
         guard let pending, pending.supports(profile), storage.isInstalled(pending), downloading == nil,
-              DictationEngineChoice.allowsRestart(dictation: dictation, meetingIsActive: meetingIsActive) else { return }
+              DictationEngineChoice.allowsRestart(dictation: dictation, meetingIsActive: meetingIsActive, fileIsActive: fileIsActive) else { return }
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/sh")
         process.arguments = ["-c", "while /bin/kill -0 \"$1\" 2>/dev/null; do /bin/sleep 0.2; done; exec /usr/bin/open \"$2\"", "witness-restart", String(ProcessInfo.processInfo.processIdentifier), Bundle.main.bundlePath]
