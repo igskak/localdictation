@@ -3,7 +3,7 @@ import Foundation
 
 /// The single product gate for the Notetaker subsystem.
 ///
-/// The public demo is enabled; the same gate remains injectable in tests. The
+/// The public beta is enabled. The same gate remains injectable in tests. The
 /// composition root is the only place that switches on this value: callers get
 /// a facade either way and never scatter availability checks through the app.
 enum NotetakerAvailability: Sendable, Equatable {

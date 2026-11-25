@@ -80,33 +80,39 @@ final class MenuBarIntegrationTests: XCTestCase {
         coordinator.activate()
         await coordinator.refreshTranscriptionModelState()
         defer { coordinator.deactivate() }
-        for tab in [MenuBarTab.dictation, .notetaker] {
-        for scheme in [ColorScheme.light, .dark] {
-            let view = MenuBarView(notetaker: MenuNotetakerFixture(), initialTab: tab)
-                .environmentObject(coordinator).environment(\.colorScheme, scheme)
-            let hosting = NSHostingView(rootView: view)
-            let size = NSSize(width: 398, height: 680)
-            let window = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: [.borderless], backing: .buffered, defer: false)
-            window.isReleasedWhenClosed = false
-            window.contentView = hosting
-            hosting.frame = NSRect(origin: .zero, size: size)
-            window.orderFront(nil)
-            try await Task.sleep(for: .milliseconds(100))
-            for _ in 0..<5 { await Task.yield() }
-            hosting.layoutSubtreeIfNeeded()
-            XCTAssertLessThanOrEqual(hosting.fittingSize.width, 399)
-            XCTAssertLessThanOrEqual(hosting.fittingSize.height, 681)
-            if tab == .dictation { XCTAssertLessThan(hosting.fittingSize.height, 350, "Idle panel must remain compact") }
-            let fitted = hosting.fittingSize
-            window.setContentSize(fitted)
-            hosting.frame = NSRect(origin: .zero, size: fitted)
-            hosting.layoutSubtreeIfNeeded()
-            let bitmap = try XCTUnwrap(hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds))
-            hosting.cacheDisplay(in: hosting.bounds, to: bitmap)
-            try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
-                .write(to: folder.appendingPathComponent(tab.rawValue + (scheme == .light ? "-light.png" : "-dark.png")))
-            window.close()
-        }
+        let notetaker = MenuNotetakerFixture()
+        let files = FileTranscriptionFeature(
+            host: coordinator, engine: engine, meetingIsActive: { false },
+            store: FileMeetingStore(rootURL: folder.appendingPathComponent("fixture-transcripts"))
+        )
+        for tab in MenuBarTab.allCases {
+            for scheme in [ColorScheme.light, .dark] {
+                let view = MenuBarView(notetaker: notetaker, fileTranscription: files, initialTab: tab)
+                    .environmentObject(coordinator).environment(\.colorScheme, scheme)
+                let hosting = NSHostingView(rootView: view)
+                let size = NSSize(width: 398, height: 680)
+                let window = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: [.borderless], backing: .buffered, defer: false)
+                window.isReleasedWhenClosed = false
+                window.appearance = NSAppearance(named: scheme == .light ? .aqua : .darkAqua)
+                window.contentView = hosting
+                hosting.frame = NSRect(origin: .zero, size: size)
+                window.orderFront(nil)
+                defer { window.close() }
+                try await Task.sleep(for: .milliseconds(100))
+                for _ in 0..<5 { await Task.yield() }
+                hosting.layoutSubtreeIfNeeded()
+                XCTAssertLessThanOrEqual(hosting.fittingSize.width, 399)
+                XCTAssertLessThanOrEqual(hosting.fittingSize.height, 681)
+                if tab != .files { XCTAssertLessThan(hosting.fittingSize.height, 350, "Idle panel must remain compact") }
+                let fitted = hosting.fittingSize
+                window.setContentSize(fitted)
+                hosting.frame = NSRect(origin: .zero, size: fitted)
+                hosting.layoutSubtreeIfNeeded()
+                let bitmap = try XCTUnwrap(hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds))
+                hosting.cacheDisplay(in: hosting.bounds, to: bitmap)
+                try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
+                    .write(to: folder.appendingPathComponent(tab.rawValue + (scheme == .light ? "-light.png" : "-dark.png")))
+            }
         }
     }
 
@@ -126,7 +132,12 @@ final class MenuBarIntegrationTests: XCTestCase {
 @MainActor
 private final class MenuNotetakerFixture: NotetakerFacade {
     let status = NotetakerStatus()
-    var menuBarItem: NotetakerMenuItem? { NotetakerMenuItem(title: "Record meeting note…", systemImage: "note.text", action: {}) }
+    var menuBarItem: NotetakerMenuItem? {
+        NotetakerMenuItem(title: "Record meeting note…", systemImage: "note.text.badge.plus", action: {})
+    }
+    var historyMenuItem: NotetakerMenuItem? {
+        NotetakerMenuItem(title: "Meeting note history…", systemImage: "clock.arrow.circlepath", action: {})
+    }
     func activate() {}
     func deactivate() {}
 }

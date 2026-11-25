@@ -896,7 +896,7 @@ final class MeetingLibraryWindowController: NSObject, NSWindowDelegate {
         model: MeetingLibraryModel,
         startMeeting: (() -> Void)?,
         startFile: (() -> Void)? = nil,
-        windowTitle: String = "Witness Meeting Notes — Demo"
+        windowTitle: String = L10n.string("Witness Meeting Notes — Beta")
     ) {
         self.model = model
         self.startMeeting = startMeeting

@@ -18,7 +18,8 @@ final class DictationCoordinatorInsertionTests: XCTestCase {
 
     private func makeHarness(
         transcript: Transcript,
-        trust: AccessibilityAuthorization = .trusted
+        trust: AccessibilityAuthorization = .trusted,
+        secureInputSource: FakeSecureInputSource? = nil
     ) -> Harness {
         let engine = FakeTranscriptionService()
         engine.setResult(transcript)
@@ -44,6 +45,7 @@ final class DictationCoordinatorInsertionTests: XCTestCase {
             fragmentPlayer: FakeAudioFragmentPlayer(),
             accessibilityService: accessibility,
             insertionService: insertion,
+            secureInputSource: secureInputSource,
             languageProfile: .german
         )
         coordinator.activate()
@@ -258,6 +260,42 @@ final class DictationCoordinatorInsertionTests: XCTestCase {
         XCTAssertEqual(harness.coordinator.lastInsertion, .refused(.secureField))
         XCTAssertFalse(harness.coordinator.lastInsertion?.isOnClipboard ?? true)
         XCTAssertNotNil(harness.coordinator.result, "the text stays here so the user can act on it")
+    }
+
+    func testSecureInputRefreshClearsTheLiveWarningAndKeepsTheRefusedResult() async throws {
+        let source = FakeSecureInputSource(.off)
+        let harness = makeHarness(transcript: Self.quietTranscript, secureInputSource: source)
+        let coordinator = harness.coordinator
+        source.secureInputState = .init(isEnabled: true, holderName: "ChatGPT")
+        harness.insertion.outcome = .refused(.secureInput, holder: "ChatGPT")
+
+        record(harness)
+        try await waitUntil("insertion refused") { coordinator.lastInsertion != nil }
+
+        XCTAssertTrue(try XCTUnwrap(coordinator.secureInputWarning).contains("ChatGPT"))
+        XCTAssertNil(coordinator.menuInsertionMessage)
+
+        source.secureInputState = .init(isEnabled: true, holderName: "Chrome")
+        coordinator.refreshSecureInput()
+        XCTAssertTrue(try XCTUnwrap(coordinator.secureInputWarning).contains("Chrome"))
+        XCTAssertNil(coordinator.menuInsertionMessage)
+
+        source.secureInputState = .off
+        coordinator.refreshSecureInput()
+
+        XCTAssertNil(coordinator.secureInputWarning)
+        XCTAssertEqual(coordinator.menuInsertionMessage, L10n.string("Your last dictation is in Witness. It was not inserted or copied."))
+        XCTAssertEqual(coordinator.lastInsertion, .refused(.secureInput, holder: "ChatGPT"))
+        XCTAssertEqual(coordinator.result?.cleanedText, "Der termin steht.")
+        XCTAssertTrue(coordinator.recentDictations.isEmpty)
+        XCTAssertEqual(harness.insertion.insertCount, 1)
+
+        harness.insertion.outcome = .inserted(.focusedElement)
+        record(harness)
+        try await waitUntil("next dictation inserts normally") {
+            coordinator.lastInsertion == .inserted(.focusedElement)
+        }
+        XCTAssertNil(coordinator.menuInsertionMessage)
     }
 
     func testDictatingWithNoOtherApplicationInFrontStillReachesTheService() async throws {

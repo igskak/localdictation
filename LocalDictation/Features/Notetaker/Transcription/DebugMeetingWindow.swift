@@ -470,7 +470,7 @@ struct DebugMeetingView: View {
             WitnessBrand()
             Text("Meeting Note")
                 .font(.title3.weight(.semibold))
-            NotetakerDemoBadge()
+            NotetakerBetaBadge()
             Button(action: openHistory) {
                 Label("History", systemImage: "clock.arrow.circlepath")
             }
@@ -496,7 +496,7 @@ struct DebugMeetingView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 statusCard
-                NotetakerDemoNotice()
+                NotetakerSpeakerLabelNote()
                 actionButtons
                 if let failure = model.failureMessage { failureCard(failure) }
                 automaticSourceNote
@@ -837,7 +837,7 @@ final class DebugMeetingWindowController: NSObject {
             backing: .buffered,
             defer: false
         )
-        window.title = "Witness Notetaker — Demo"
+        window.title = L10n.string("Witness Notetaker — Beta")
         window.contentMinSize = NSSize(width: 780, height: 620)
         window.isReleasedWhenClosed = false
         window.contentViewController = NSHostingController(rootView: DebugMeetingView(model: model, openHistory: { [weak self] in

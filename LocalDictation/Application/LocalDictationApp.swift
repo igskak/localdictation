@@ -357,7 +357,7 @@ struct ApplicationComposition {
             makeDictationCoordinator: {
                 DictationCoordinator.makeLive(transcriptionService: speech.dictation)
             },
-            // The public demo uses the same account settings and local engine.
+            // The public beta uses the same account settings and local engine.
             // An injected disabled gate still constructs no meeting services.
             makeAvailableNotetaker: { coordinator in
                 DogfoodNotetakerFacade(

@@ -1269,13 +1269,8 @@ final class DictationCoordinator: ObservableObject {
     /// Read by the test that asserts the watch ends when the answer arrives.
     var isWatchingForAccessibilityTrust: Bool { trustPollTimer != nil }
 
-    /// Re-reads the process-wide secure input flag.
-    ///
-    /// `IsSecureEventInputEnabled()` is a cheap call and the holder is only
-    /// looked up when the flag is actually on, so this costs nothing on the
-    /// path it runs on — every activation of the app, and every time the
-    /// menu is opened.
-    private func refreshSecureInput() {
+    /// Re-reads the session-wide flag and publishes changes to the menu.
+    func refreshSecureInput() {
         guard let secureInputSource else { return }
         let resolved = secureInputSource.secureInputState
         guard resolved != secureInput else { return }
@@ -1285,14 +1280,20 @@ final class DictationCoordinator: ObservableObject {
         )
     }
 
-    /// The sentence for a Mac where nothing can be inserted at all, or `nil`
-    /// when insertion is possible.
     var secureInputWarning: String? {
         guard secureInput.isEnabled else { return nil }
         guard let holder = secureInput.holderName else {
-            return "An application has secure input enabled. Until it stops, dictation is refused everywhere on this Mac — nothing is inserted and nothing is copied."
+            return L10n.string("A password field may be active in an open tab or window. Close the password prompt or switch to a regular text field, then try dictating again.")
         }
-        return "\(holder) has secure input enabled. Until it stops, dictation is refused everywhere on this Mac. Switching to it and clicking into an ordinary field usually clears it; quitting it always does."
+        return L10n.format("A password field may be active in a tab or window in %@. Close the password prompt or switch to a regular text field, then try dictating again.", holder)
+    }
+
+    var menuInsertionMessage: String? {
+        guard case .refused(.secureInput, _) = lastInsertion else { return lastInsertion?.message }
+        // The warning already describes the current block. Once it clears,
+        // keep the previous result visible without blaming the old holder.
+        guard !secureInput.isEnabled else { return nil }
+        return L10n.string("Your last dictation is in Witness. It was not inserted or copied.")
     }
 
     /// Shows the system prompt. Trust is granted out of band, so the answer
@@ -1368,6 +1369,7 @@ final class DictationCoordinator: ObservableObject {
         // A clipboard fallback for want of trust is the moment the ask makes
         // sense, so the displayed state is re-read before the menu shows it.
         refreshAccessibilityAuthorization()
+        if case .refused(.secureInput, _) = outcome { refreshSecureInput() }
         Log.insertion.info("Insertion outcome \(outcome.logLabel, privacy: .public)")
         apply(.insertionFinished)
     }

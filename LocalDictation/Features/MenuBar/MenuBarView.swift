@@ -53,6 +53,12 @@ struct MenuBarView: View {
             coordinator.refreshAuthorization()
             Task { await coordinator.refreshTranscriptionModelState() }
         }
+        .task {
+            while !Task.isCancelled {
+                coordinator.refreshSecureInput()
+                try? await Task.sleep(for: .seconds(1))
+            }
+        }
         .onChange(of: coordinator.effectiveProfile) {
             Task { await coordinator.refreshTranscriptionModelState() }
         }
@@ -116,23 +122,24 @@ struct MenuBarView: View {
             if fileTranscription != nil { tabButton(.files, title: "Files", symbol: "doc.text") }
         }
         .padding(4)
-        .background(WitnessStyle.raisedSurface, in: RoundedRectangle(cornerRadius: 15))
+        .background(WitnessStyle.raisedSurface, in: RoundedRectangle(cornerRadius: 12))
     }
 
     private func tabButton(_ value: MenuBarTab, title: String, symbol: String) -> some View {
         Button { tab = value } label: {
-            HStack(spacing: 6) {
+            HStack(spacing: 5) {
                 Image(systemName: symbol).accessibilityHidden(true)
                 Text(LocalizedStringKey(title))
-                if value == .notetaker { NotetakerDemoBadge() }
+                    .lineLimit(1)
             }
-            .font(.caption.weight(.medium))
-            .frame(maxWidth: .infinity).padding(.vertical, 8)
-            .contentShape(RoundedRectangle(cornerRadius: 11))
+            .font(.callout.weight(.medium))
+            .frame(maxWidth: .infinity)
+            .frame(height: 32)
+            .contentShape(RoundedRectangle(cornerRadius: 9))
         }
         .buttonStyle(.plain)
         .background {
-            if tab == value { WitnessControlSurface(cornerRadius: 11) }
+            if tab == value { WitnessControlSurface(cornerRadius: 9) }
         }
         .foregroundStyle(tab == value ? WitnessStyle.ink : WitnessStyle.muted)
         .accessibilityAddTraits(tab == value ? [.isSelected] : [])
@@ -140,7 +147,7 @@ struct MenuBarView: View {
 
     private var dictation: some View {
         VStack(alignment: .leading, spacing: 12) {
-            if !showsGlobalDictationStatus { compactStatus }
+            if !showsGlobalDictationStatus, !coordinator.secureInput.isEnabled { compactStatus }
             if coordinator.hasTranscriptionEngine {
                 LanguagePinPicker(profile: coordinator.languageProfile, pinned: $coordinator.pinnedLanguage)
                 if !coordinator.transcriptionModelState.isReady {
@@ -198,16 +205,15 @@ struct MenuBarView: View {
             }
             .buttonStyle(WitnessSecondaryButtonStyle()).foregroundStyle(WitnessStyle.warning)
         }
-        if tab != .files, let outcome = coordinator.lastInsertion, let message = outcome.message { InsertionOutcomeView(message: message) }
+        if tab == .dictation, let message = coordinator.menuInsertionMessage { InsertionOutcomeView(message: message) }
         if presentation.showsLicenseAction {
             LicenseLockView(presentation: LicensePresentation(state: coordinator.entitlement), openLicenseSettings: { showSettings(.license) })
         } else if let notice = EntitlementNotice(state: coordinator.entitlement) {
             EntitlementNoticeView(notice: notice, openLicenseSettings: { showSettings(.license) })
         }
         if tab != .files, let warning = coordinator.secureInputWarning {
-            SecureInputWarningView(message: warning) { coordinator.refreshAuthorization() }
-        }
-        if tab != .files, coordinator.needsAccessibilityTrust {
+            SecureInputWarningView(message: warning)
+        } else if tab != .files, coordinator.needsAccessibilityTrust {
             AccessibilityTrustView(grant: { coordinator.requestAccessibilityTrust() },
                 openSettings: { coordinator.openAccessibilitySettings() }, recheck: { coordinator.refreshAccessibilityAuthorization() })
         }
@@ -250,15 +256,24 @@ struct MenuBarView: View {
     }
 
     private var meeting: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            VStack(spacing: 9) {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 10) {
                 WitnessIconTile(systemImage: "note.text", tint: WitnessStyle.accent)
-                Text("A note for every meeting").font(.title3.weight(.semibold))
-                Text("Capture a local transcript from your microphone and the meeting app.")
-                    .font(.callout).foregroundStyle(WitnessStyle.muted).multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }.frame(maxWidth: .infinity).padding(.top, 6)
-            NotetakerDemoNotice()
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text("Notetaker").font(.headline)
+                        NotetakerBetaBadge()
+                    }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityAddTraits(.isHeader)
+
+                    Text("Transcribes your mic and meeting audio locally.")
+                        .font(.callout)
+                        .foregroundStyle(WitnessStyle.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            NotetakerSpeakerLabelNote()
             if let item = notetaker.menuBarItem {
                 Button(action: item.action) { Label(LocalizedStringKey(item.title), systemImage: item.systemImage).frame(maxWidth: .infinity) }
                     .buttonStyle(WitnessPrimaryButtonStyle())
@@ -678,17 +693,8 @@ private struct EntitlementNoticeView: View {
     }
 }
 
-/// The one state where the app is working and nothing it does can reach the
-/// screen.
-///
-/// Secure input is process-wide: while it is on, no application may observe or
-/// synthesize keyboard events, which is what protects a password field and what
-/// makes dictation impossible. The user sees an app that has simply stopped, so
-/// the menu — the first place they look — says who is holding it rather than
-/// waiting for a refusal to explain it after the next recording.
 private struct SecureInputWarningView: View {
     let message: String
-    let recheck: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -698,10 +704,6 @@ private struct SecureInputWarningView: View {
                 .font(.caption)
                 .foregroundStyle(WitnessStyle.muted)
                 .fixedSize(horizontal: false, vertical: true)
-
-            Button("Re-check", action: recheck)
-                .font(.caption)
-                .buttonStyle(WitnessSecondaryButtonStyle())
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .witnessCard(.warning, padding: 12)

@@ -53,7 +53,7 @@
 		6B6CC6F1769FFEC10736C190 /* SpeakerDiarization.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAB14C4D210A38315061DAB9 /* SpeakerDiarization.swift */; };
 		3530CC323CFF8BF9FA0A8B57 /* MeetingStateMachine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AD3F5EAE6A99CF0DC23C17E /* MeetingStateMachine.swift */; };
 		0C4A32BF9F3CDF9431FD6C26 /* NotetakerAvailability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4067D6F840B25094C846ABDD /* NotetakerAvailability.swift */; };
-		2428DB3CFBEE82515DB07A58 /* NotetakerDemoNotice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FF566340BD80C771C2D36B4 /* NotetakerDemoNotice.swift */; };
+		2428DB3CFBEE82515DB07A58 /* NotetakerBetaViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FF566340BD80C771C2D36B4 /* NotetakerBetaViews.swift */; };
 		8F97159AA92A546E9299333C /* MeetingPersistenceRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE7088760FA5AB1745B1D04C /* MeetingPersistenceRecorder.swift */; };
 		AE5D785AC621BFEB25B88B5F /* MeetingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F770572475EB3F2B034D5B41 /* MeetingStore.swift */; };
 		A110AEADE1AF2F7E6C908CF4 /* DebugMeetingSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C5A11C400996FC6B944072E /* DebugMeetingSession.swift */; };
@@ -367,7 +367,7 @@
 		EAB14C4D210A38315061DAB9 /* SpeakerDiarization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeakerDiarization.swift; sourceTree = "<group>"; };
 		7AD3F5EAE6A99CF0DC23C17E /* MeetingStateMachine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingStateMachine.swift; sourceTree = "<group>"; };
 		4067D6F840B25094C846ABDD /* NotetakerAvailability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotetakerAvailability.swift; sourceTree = "<group>"; };
-		8FF566340BD80C771C2D36B4 /* NotetakerDemoNotice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotetakerDemoNotice.swift; sourceTree = "<group>"; };
+		8FF566340BD80C771C2D36B4 /* NotetakerBetaViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotetakerBetaViews.swift; sourceTree = "<group>"; };
 		FE7088760FA5AB1745B1D04C /* MeetingPersistenceRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingPersistenceRecorder.swift; sourceTree = "<group>"; };
 		F770572475EB3F2B034D5B41 /* MeetingStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingStore.swift; sourceTree = "<group>"; };
 		3C5A11C400996FC6B944072E /* DebugMeetingSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugMeetingSession.swift; sourceTree = "<group>"; };
@@ -788,7 +788,7 @@
 			children = (
 				7AD3F5EAE6A99CF0DC23C17E /* MeetingStateMachine.swift */,
 				4067D6F840B25094C846ABDD /* NotetakerAvailability.swift */,
-				8FF566340BD80C771C2D36B4 /* NotetakerDemoNotice.swift */,
+				8FF566340BD80C771C2D36B4 /* NotetakerBetaViews.swift */,
 				432A0FD8230C40472797B019 /* Audio */,
 				52EF72173973E0926F98FE09 /* Detection */,
 				E0886BE4C1E25A941AE462C1 /* Diarization */,
@@ -1459,7 +1459,7 @@
 				6B6CC6F1769FFEC10736C190 /* SpeakerDiarization.swift in Sources */,
 				3530CC323CFF8BF9FA0A8B57 /* MeetingStateMachine.swift in Sources */,
 				0C4A32BF9F3CDF9431FD6C26 /* NotetakerAvailability.swift in Sources */,
-				2428DB3CFBEE82515DB07A58 /* NotetakerDemoNotice.swift in Sources */,
+				2428DB3CFBEE82515DB07A58 /* NotetakerBetaViews.swift in Sources */,
 				8F97159AA92A546E9299333C /* MeetingPersistenceRecorder.swift in Sources */,
 				AE5D785AC621BFEB25B88B5F /* MeetingStore.swift in Sources */,
 				A110AEADE1AF2F7E6C908CF4 /* DebugMeetingSession.swift in Sources */,
@@ -1849,7 +1849,7 @@
 				CODE_SIGN_ENTITLEMENTS = LocalDictation/Witness.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 32;
+				CURRENT_PROJECT_VERSION = 33;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_PREVIEWS = YES;
@@ -1860,7 +1860,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.6.29;
+				MARKETING_VERSION = 0.6.30;
 				PRODUCT_BUNDLE_IDENTIFIER = com.witnessmac.Witness;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) NOTETAKER_DIARIZATION";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -1875,7 +1875,7 @@
 				CODE_SIGN_ENTITLEMENTS = LocalDictation/Witness.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 32;
+				CURRENT_PROJECT_VERSION = 33;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -1885,7 +1885,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.6.29;
+				MARKETING_VERSION = 0.6.30;
 				PRODUCT_BUNDLE_IDENTIFIER = com.witnessmac.Witness;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) NOTETAKER_DIARIZATION";
 				SWIFT_EMIT_LOC_STRINGS = YES;
