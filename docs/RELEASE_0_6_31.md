@@ -42,3 +42,27 @@ is counted as correct if the two consecutive reference words from different
 participants, with no overlap and at most one second between them, are both
 assigned correctly at their midpoints. This check is specific to one English
 meeting and does not measure the original Daily.
+
+| Path | Correct speaker at word midpoint | Correct handoffs | Median inference time per 48 seconds |
+| --- | ---: | ---: | ---: |
+| Existing streaming Nemotron | 564 / 1,916 | 3 / 70 | 0.37 s |
+| Community-1, complete excerpt | 1,445 / 1,916 | 7 / 70 | 1.33 s |
+| Community-1, rolling production algorithm | 1,415 / 1,916 | 10 / 70 | 3.71 s |
+
+Measured on a MacBookPro17,1 running macOS 26.6.2. Handoff accuracy remains
+low on this replay. The native Xcode suite reported 1,292 passed and 11
+skipped, with no failures.
+
+## Published artifact verification
+
+- Published as the latest stable release on 26 November 2026 at 23:34
+  Europe/Warsaw. The [v0.6.31 tag](https://github.com/igskak/localdictation/releases/tag/v0.6.31)
+  points to `121e3a7cf518b2d5df8c8e9301d9f80f40933551`.
+- Apple notarized the app (`2d9043a1-7799-4b9e-b7f3-7e7c10c52262`) and the
+  disk image (`30abf1c9-aaf2-4bc0-9657-ef191c054dff`). Both tickets are
+  stapled and validated. Gatekeeper accepted both artifacts.
+- The 0.6.30 public release key verifies the 0.6.31 Sparkle feed and disk
+  image. The live feed and website download returned HTTP 200 and matched
+  the signed release files byte for byte.
+- DMG SHA-256 is `379648d3f5eaede897ddc32d8004aa838199c182a31f880b8ef8aa6448609fdb`.
+  Appcast SHA-256 is `01753693dce25abafdb57b95db5d9b9e800d2e916d98b64a1bdb23de6ceb46d1`.
