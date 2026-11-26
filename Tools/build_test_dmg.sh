@@ -56,6 +56,8 @@ if [ "${NOTETAKER_DOGFOOD:-0}" = 1 ]; then
     fi
     Tools/prepare_nemotron3_model.sh "$model_stage/Nemotron3" >/dev/null
     ditto "$model_stage/Nemotron3" "$app/Contents/Resources/Nemotron3"
+    Tools/prepare_community_speaker_review.sh "$model_stage/CommunitySpeakerReview" >/dev/null
+    ditto "$model_stage/CommunitySpeakerReview" "$app/Contents/Resources/CommunitySpeakerReview"
     codesign --force --deep --sign - "$app"
     codesign --verify --deep --strict "$app"
 fi

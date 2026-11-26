@@ -21,6 +21,184 @@ struct DiarizedSpeakerTurn: Sendable, Equatable {
     let confidence: Double
 }
 
+extension DiarizedSpeakerTurn {
+    func clipped(to range: Range<Int64>) -> Self? {
+        let start = max(startFrame, range.lowerBound)
+        let end = min(endFrame, range.upperBound)
+        guard end > start else { return nil }
+        return Self(speakerID: speakerID, startFrame: start, endFrame: end, confidence: confidence)
+    }
+
+    func subtracting(_ range: Range<Int64>) -> [Self] {
+        guard range.overlaps(startFrame..<endFrame) else { return [self] }
+        return [
+            clipped(to: Int64.min..<range.lowerBound),
+            clipped(to: range.upperBound..<Int64.max)
+        ].compactMap { $0 }
+    }
+}
+
+struct SpeakerTimelineUpdate: Sendable {
+    let turns: [DiarizedSpeakerTurn]
+    var replacing: Range<Int64>?
+
+    var affectedFrames: Range<Int64>? {
+        if let replacing { return replacing.isEmpty ? nil : replacing }
+        guard let start = turns.map(\.startFrame).min(),
+              let end = turns.map(\.endFrame).max(), end > start else { return nil }
+        return start..<end
+    }
+}
+
+struct MeetingSpeakerReview: Sendable {
+    let turns: [DiarizedSpeakerTurn]
+    let embeddings: [String: [Float]]
+}
+
+protocol MeetingSpeakerReviewing: Sendable {
+    func prepare() async throws
+    func review(_ audio: MeetingRecognitionAudio) async throws -> MeetingSpeakerReview
+}
+
+/// Rolling system audio is retained only for the current on-device review.
+struct MeetingSpeakerReviewBuffer: Sendable {
+    private static let rate = Int(AudioTargetFormat.sampleRate)
+    private let capacity = 32 * rate
+    private let minimumFrames = 12 * rate
+    private let step = Int64(10 * rate)
+    private var samples: [Float] = []
+    private var startFrame: Int64 = 0
+    private var lastScheduledEnd: Int64?
+
+    mutating func append(_ chunk: MeetingAudioChunk) {
+        guard chunk.source == .system, chunk.sampleRate == AudioTargetFormat.sampleRate,
+              !chunk.samples.isEmpty else { return }
+        let endFrame = startFrame + Int64(samples.count)
+        let gap = chunk.startFrame - endFrame
+        if samples.isEmpty || gap < 0 || gap > Int64(capacity / 2) {
+            samples.removeAll(keepingCapacity: true)
+            startFrame = chunk.startFrame
+            lastScheduledEnd = nil
+        } else if gap > 0 {
+            samples.append(contentsOf: repeatElement(0, count: Int(gap)))
+        }
+        samples.append(contentsOf: chunk.samples)
+        // Trim in blocks to avoid moving the buffer on each audio callback.
+        if samples.count > capacity + 2 * Self.rate {
+            let excess = samples.count - capacity
+            samples.removeFirst(excess)
+            startFrame += Int64(excess)
+        }
+    }
+
+    mutating func takeWindow(final: Bool = false) -> MeetingRecognitionAudio? {
+        guard samples.count >= (final ? 2 * Self.rate : minimumFrames) else { return nil }
+        let end = startFrame + Int64(samples.count)
+        if let lastScheduledEnd, end - lastScheduledEnd < (final ? 1 : step) { return nil }
+        lastScheduledEnd = end
+        let count = min(samples.count, capacity)
+        return MeetingRecognitionAudio(
+            source: .system, startFrame: end - Int64(count), samples: Array(samples.suffix(count))
+        )
+    }
+}
+
+/// Each review starts clustering from scratch. Match the new clusters to
+/// session-local IDs with overlapping audio and fixed speaker embeddings.
+struct MeetingSpeakerIdentityTracker: Sendable {
+    private struct Cluster {
+        let turns: [DiarizedSpeakerTurn]
+        let voice: [Float]
+        var firstFrame: Int64 { turns[0].startFrame }
+        var supportedFrames: Int64 { turns.reduce(0) { $0 + $1.endFrame - $1.startFrame } }
+    }
+
+    private var voices: [[Float]] = []
+    private var recent: [DiarizedSpeakerTurn] = []
+    private var lastWindow: Range<Int64>?
+
+    mutating func update(_ review: MeetingSpeakerReview, window: MeetingRecognitionAudio) -> SpeakerTimelineUpdate? {
+        let usable = review.turns.filter { $0.confidence >= 0.55 }
+        let clusters = Dictionary(grouping: usable, by: \.speakerID).compactMap { key, turns -> Cluster? in
+            guard let voice = review.embeddings[key].flatMap(Self.normalized) else { return nil }
+            return Cluster(turns: turns.sorted { $0.startFrame < $1.startFrame }, voice: voice)
+        }.sorted {
+            $0.firstFrame == $1.firstFrame ? $0.turns[0].speakerID < $1.turns[0].speakerID : $0.firstFrame < $1.firstFrame
+        }
+
+        // Clusters in one pass represent distinct voices. Match only to
+        // session IDs that were already present before this pass.
+        let known = voices
+        var used: Set<Int> = []
+        var turns: [DiarizedSpeakerTurn] = []
+        for cluster in clusters {
+            let similar = known.enumerated().map { index, voice in
+                (index: index, score: Self.similarity(cluster.voice, voice))
+            }.sorted { $0.score > $1.score }
+            let support = known.indices.map { index in
+                let id = "speaker-\(index + 1)"
+                let frames = cluster.turns.reduce(Int64(0)) { total, turn in
+                    total + recent.reduce(Int64(0)) { overlap, earlier in
+                        guard earlier.speakerID == id else { return overlap }
+                        return overlap + max(0, min(turn.endFrame, earlier.endFrame) - max(turn.startFrame, earlier.startFrame))
+                    }
+                }
+                return (index: index, frames: frames)
+            }.sorted { $0.frames > $1.frames }
+
+            let identity: Int
+            if let match = support.first, match.frames >= 16_000,
+               match.frames >= (support.dropFirst().first?.frames ?? 0) + 8_000,
+               Self.similarity(cluster.voice, known[match.index]) >= 0.40 {
+                identity = match.index
+            } else if let match = similar.first, match.score >= 0.70,
+                      match.score - (similar.dropFirst().first?.score ?? 0) >= 0.12 {
+                identity = match.index
+            } else if (similar.first?.score ?? 0) < 0.45,
+                      cluster.supportedFrames >= 24_000, voices.count < 8 {
+                identity = voices.count
+                voices.append(cluster.voice)
+            } else {
+                continue
+            }
+            guard used.insert(identity).inserted else { continue }
+            let speaker = "speaker-\(identity + 1)"
+            turns += cluster.turns.map {
+                DiarizedSpeakerTurn(speakerID: speaker, startFrame: $0.startFrame,
+                                    endFrame: $0.endFrame, confidence: $0.confidence)
+            }
+        }
+
+        guard !turns.isEmpty else { return nil }
+        // Far-left edge predictions in a repeated window lack the context
+        // that was available in the previous pass.
+        let start: Int64
+        if let lastWindow, window.startFrame > lastWindow.lowerBound, window.startFrame < lastWindow.upperBound {
+            start = min(window.startFrame + 32_000, lastWindow.upperBound, window.endFrame)
+        } else {
+            start = window.startFrame
+        }
+        let replacement = start..<window.endFrame
+        let revised = turns.compactMap { $0.clipped(to: replacement) }
+        guard !revised.isEmpty else { return nil }
+        lastWindow = window.startFrame..<window.endFrame
+        recent = (recent.flatMap { $0.subtracting(replacement) } + revised)
+            .compactMap { $0.clipped(to: window.startFrame..<window.endFrame) }
+        return SpeakerTimelineUpdate(turns: revised, replacing: replacement)
+    }
+
+    private static func normalized(_ voice: [Float]) -> [Float]? {
+        let norm = sqrt(voice.reduce(0) { $0 + $1 * $1 })
+        guard norm.isFinite, norm > 0 else { return nil }
+        return voice.map { $0 / norm }
+    }
+
+    private static func similarity(_ lhs: [Float], _ rhs: [Float]) -> Float {
+        guard lhs.count == rhs.count else { return 0 }
+        return zip(lhs, rhs).reduce(0) { $0 + $1.0 * $1.1 }
+    }
+}
+
 struct SpeakerAlignment: Sendable, Equatable {
     let speakerID: String
     let confidence: Double
@@ -40,25 +218,36 @@ struct SpeakerAttributionAligner: Sendable {
         let segment = attribution(start: row.startFrame, end: row.endFrame, turns: turns)
         guard let segment else { return nil }
 
-        let words = row.original.tokens.compactMap { token -> SpeakerWordAttribution? in
-            let start = row.startFrame + Int64((max(token.start, 0) * sampleRate).rounded())
-            let end = row.startFrame + Int64((max(token.end, token.start) * sampleRate).rounded())
-            guard let value = attribution(start: start, end: max(end, start + 1), turns: turns) else { return nil }
-            return SpeakerWordAttribution(
-                text: token.text,
-                startFrame: start,
-                endFrame: max(end, start + 1),
-                speakerID: value.speakerID,
-                confidence: value.confidence
-            )
-        }
+        let words = row.original.tokens.map { token in
+            wordAttribution(for: token, rowStart: row.startFrame, turns: turns, sampleRate: sampleRate)
+        }.filter { $0.speakerID != "others" }
         return SpeakerAlignment(speakerID: segment.speakerID, confidence: segment.confidence, words: words)
+    }
+
+    func wordAttribution(
+        for token: TranscriptToken,
+        rowStart: Int64,
+        turns: [DiarizedSpeakerTurn],
+        sampleRate: Double
+    ) -> SpeakerWordAttribution {
+        let start = rowStart + Int64((max(token.start, 0) * sampleRate).rounded())
+        let end = max(start + 1, rowStart + Int64((max(token.end, token.start) * sampleRate).rounded()))
+        // Similar support from another slot makes this word ambiguous.
+        let value = attribution(start: start, end: end, turns: turns, minimumLead: 0.15)
+        return SpeakerWordAttribution(
+            text: token.text,
+            startFrame: start,
+            endFrame: end,
+            speakerID: value?.speakerID ?? "others",
+            confidence: value?.confidence ?? 0
+        )
     }
 
     private func attribution(
         start: Int64,
         end: Int64,
-        turns: [DiarizedSpeakerTurn]
+        turns: [DiarizedSpeakerTurn],
+        minimumLead: Double = 0
     ) -> (speakerID: String, confidence: Double)? {
         guard end > start else { return nil }
         var durationBySpeaker: [String: Double] = [:]
@@ -69,111 +258,90 @@ struct SpeakerAttributionAligner: Sendable {
             durationBySpeaker[turn.speakerID, default: 0] += overlap
             weightedConfidenceBySpeaker[turn.speakerID, default: 0] += overlap * min(max(turn.confidence, 0), 1)
         }
-        guard let winner = durationBySpeaker.max(by: { lhs, rhs in
+        let support = minimumLead > 0 ? weightedConfidenceBySpeaker : durationBySpeaker
+        guard let winner = support.max(by: { lhs, rhs in
             lhs.value == rhs.value ? lhs.key > rhs.key : lhs.value < rhs.value
         }) else { return nil }
         let intervalDuration = Double(end - start)
-        let coverage = winner.value / intervalDuration
-        let turnConfidence = weightedConfidenceBySpeaker[winner.key, default: 0] / winner.value
-        return (winner.key, min(max(coverage * turnConfidence, 0), 1))
+        let confidence = weightedConfidenceBySpeaker[winner.key, default: 0] / intervalDuration
+        if minimumLead > 0 {
+            let runnerUp = weightedConfidenceBySpeaker.lazy.filter { $0.key != winner.key }.map(\.value).max() ?? 0
+            guard confidence - runnerUp / intervalDuration >= minimumLead else { return nil }
+        }
+        return (winner.key, min(confidence, 1))
     }
 }
 
-/// Turns the word-level result into visible speaker runs without rewriting the
-/// recognized words. If even one visible token cannot be attributed, the
-/// original row is retained with a segment-level hypothesis instead of
-/// dropping or inventing text.
+/// Builds visible speaker runs from timed words. A word without speaker
+/// evidence can stay unassigned without hiding a supported handoff nearby.
 struct SpeakerAttributedRowBuilder: Sendable {
-    private struct MatchedWord {
-        let token: TranscriptToken
-        let attribution: SpeakerWordAttribution
-    }
+    /// The fraction of the recognized words supported by the winning slot,
+    /// weighted by the model confidence and its coverage of each word.
+    private static let minimumRunConfidence = 0.5
+    private static let shortReplyConfidence = 0.65
+    private static let shortReplyPauseFrames: Int64 = 6_400
+    private static let clearReplyFrames: Int64 = 5_600
+    private static let clearReplyConfidence = 0.9
 
     func rows(
         from row: MeetingTranscriptRow,
         turns: [DiarizedSpeakerTurn],
         sampleRate: Double = AudioTargetFormat.sampleRate
     ) -> [MeetingTranscriptRow] {
-        guard let alignment = SpeakerAttributionAligner().align(
-            row: row,
-            turns: turns,
-            sampleRate: sampleRate
-        ) else { return [row] }
-        guard row.source == .system else { return [row] }
+        guard row.source == .system, row.endFrame > row.startFrame, sampleRate > 0,
+              !turns.isEmpty, let visibleRange = visibleOffsets(row: row) else { return [row] }
 
-        let visibleRange = visibleOffsets(row: row)
-        let visibleTokens = row.original.tokens.filter {
+        let tokens = row.original.tokens.filter {
             $0.range.upperBound > visibleRange.lowerBound && $0.range.lowerBound < visibleRange.upperBound
         }
-        var remaining = alignment.words
-        let matched: [MatchedWord] = visibleTokens.compactMap { token in
-            let start = row.startFrame + Int64((max(token.start, 0) * sampleRate).rounded())
-            let end = row.startFrame + Int64((max(token.end, token.start) * sampleRate).rounded())
-            guard let index = remaining.firstIndex(where: {
-                $0.startFrame == start && $0.endFrame == max(end, start + 1) && $0.text == token.text
-            }) else { return nil }
-            return MatchedWord(token: token, attribution: remaining.remove(at: index))
+        guard !tokens.isEmpty else { return [row] }
+
+        let aligner = SpeakerAttributionAligner()
+        let words = tokens.map {
+            aligner.wordAttribution(for: $0, rowStart: row.startFrame, turns: turns, sampleRate: sampleRate)
+        }
+        var speakers = Self.smoothedSpeakers(words)
+        for index in speakers.indices.dropFirst() where Self.continuesPreviousWord(tokens[index].text) {
+            speakers[index] = speakers[index - 1]
         }
 
-        guard !visibleTokens.isEmpty, matched.count == visibleTokens.count else {
-            return [row.attributed(
-                speakerID: alignment.speakerID,
-                confidence: alignment.confidence,
-                words: alignment.words
-            )]
-        }
-
-        let speakers = Self.smoothedSpeakers(matched.map(\.attribution))
-        let smoothed = zip(matched, speakers).map { word, speakerID in
-            let original = word.attribution
-            return MatchedWord(token: word.token, attribution: SpeakerWordAttribution(
-                text: original.text,
-                startFrame: original.startFrame,
-                endFrame: original.endFrame,
-                speakerID: speakerID,
-                confidence: original.confidence
-            ))
-        }
-
-        var groups: [[MatchedWord]] = []
-        for word in smoothed {
-            if groups.last?.last?.attribution.speakerID == word.attribution.speakerID
-                || (!groups.isEmpty && Self.continuesPreviousWord(word.token.text)) {
-                groups[groups.count - 1].append(word)
-            } else {
-                groups.append([word])
+        // Score display runs against the original evidence. Smoothing can
+        // change the grouping, but it cannot make a word support another slot.
+        for run in Self.runs(of: speakers) {
+            let speaker = speakers[run.lowerBound]
+            if Self.confidence(for: speaker, in: words[run]) < Self.minimumRunConfidence {
+                speakers.replaceSubrange(run, with: repeatElement("others", count: run.count))
             }
         }
-        guard groups.count > 1 else {
-            return [row.attributed(
-                speakerID: alignment.speakerID,
-                confidence: alignment.confidence,
-                words: alignment.words
-            )]
-        }
 
+        let runs = Self.runs(of: speakers)
         let characters = Array(row.original.text)
-        return groups.enumerated().compactMap { index, group in
-            guard let first = group.first, let last = group.last else { return nil }
-            let lower = max(first.token.range.lowerBound, visibleRange.lowerBound)
-            let nextLower = groups.indices.contains(index + 1)
-                ? groups[index + 1][0].token.range.lowerBound
-                : visibleRange.upperBound
-            let upper = min(max(nextLower, lower), characters.count)
-            guard lower < upper else { return nil }
-            let text = String(characters[lower..<upper]).trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !text.isEmpty else { return nil }
-            let words = group.map(\.attribution)
-            let confidence = words.reduce(0) { $0 + $1.confidence } / Double(words.count)
+        return runs.enumerated().map { index, run in
+            let speaker = speakers[run.lowerBound]
+            let lower = index == 0 ? visibleRange.lowerBound : tokens[run.lowerBound].range.lowerBound
+            let upper = index == runs.count - 1 ? visibleRange.upperBound : tokens[run.upperBound].range.lowerBound
+            let slice = String(characters[lower..<upper]).trimmingCharacters(in: .whitespacesAndNewlines)
+            let evidence = words[run].filter { $0.speakerID != "others" }
+            let start = index == 0 ? row.startFrame : words[run.lowerBound].startFrame
+            let end = index == runs.count - 1 ? row.endFrame : words[run.upperBound - 1].endFrame
+
+            if speaker == "others" {
+                return MeetingTranscriptRow(
+                    source: row.source, startFrame: start, endFrame: end,
+                    text: slice, original: row.original, wordAttributions: evidence,
+                    rawSlice: runs.count == 1 ? row.rawSlice : slice
+                )
+            }
             return row.attributed(
-                speakerID: first.attribution.speakerID,
-                confidence: confidence,
-                words: words,
-                startFrame: first.attribution.startFrame,
-                endFrame: last.attribution.endFrame,
-                text: text
+                speakerID: speaker, confidence: Self.confidence(for: speaker, in: words[run]),
+                words: evidence, startFrame: start, endFrame: end, text: slice,
+                rawSlice: runs.count == 1 ? row.rawSlice : slice
             )
         }
+    }
+
+    private static func confidence(for speaker: String, in words: ArraySlice<SpeakerWordAttribution>) -> Double {
+        words.reduce(0) { $0 + ($1.speakerID == speaker ? $1.confidence : 0) } / Double(words.count)
     }
 
     /// Whisper writes "кого-то" as "кого" and "-то", and "Opus'а" as "Opus"
@@ -194,38 +362,67 @@ struct SpeakerAttributedRowBuilder: Sendable {
     static let minimumTurnWords = 4
     static let minimumTurnFrames: Int64 = 24_000
 
-    /// The speaker for each word once runs too short to be a turn are folded
-    /// into a neighbour: the longer one, or the earlier one on a tie.
+    /// A pause followed by strong evidence can mark a short answer. At a
+    /// contested handoff, leave uncovered words explicitly unassigned.
     static func smoothedSpeakers(_ words: [SpeakerWordAttribution]) -> [String] {
         var speakers = words.map(\.speakerID)
-        guard !speakers.isEmpty else { return [] }
         while true {
-            var runs: [Range<Int>] = []
-            var start = 0
-            for index in 1...speakers.count where index == speakers.count || speakers[index] != speakers[start] {
-                runs.append(start..<index)
-                start = index
+            let runs = runs(of: speakers)
+            guard runs.count > 1 else { return speakers }
+            var changed = false
+            for (index, run) in runs.enumerated() {
+                let first = run.lowerBound
+                let last = run.upperBound - 1
+                guard run.count < minimumTurnWords,
+                      words[last].endFrame - words[first].startFrame < minimumTurnFrames else { continue }
+
+                let previous = index > 0 ? runs[index - 1] : nil
+                let next = index + 1 < runs.count ? runs[index + 1] : nil
+                let previousSpeaker = previous.map { speakers[$0.lowerBound] }
+                let nextSpeaker = next.map { speakers[$0.lowerBound] }
+                let speaker = speakers[first]
+                let pauseBefore = first > 0 ? words[first].startFrame - words[first - 1].endFrame : 0
+                let pauseAfter = last + 1 < words.count ? words[last + 1].startFrame - words[last].endFrame : 0
+
+                let replacement: String
+                if speaker == "others" {
+                    guard let previousSpeaker, previousSpeaker == nextSpeaker else { continue }
+                    replacement = previousSpeaker
+                } else {
+                    let confidence = confidence(for: speaker, in: words[run])
+                    let hasPause = max(pauseBefore, pauseAfter) >= shortReplyPauseFrames
+                    let strongReply = confidence >= clearReplyConfidence
+                        && words[last].endFrame - words[first].startFrame >= clearReplyFrames
+                    guard !strongReply, !hasPause || confidence < shortReplyConfidence else { continue }
+                    if previousSpeaker == "others" || nextSpeaker == "others" {
+                        replacement = "others"
+                    } else if let previous, let next {
+                        replacement = speakers[(next.count > previous.count ? next : previous).lowerBound]
+                    } else {
+                        replacement = previousSpeaker ?? nextSpeaker ?? "others"
+                    }
+                }
+                speakers.replaceSubrange(run, with: repeatElement(replacement, count: run.count))
+                changed = true
+                break
             }
-            guard runs.count > 1, let short = runs.firstIndex(where: { run in
-                run.count < minimumTurnWords
-                    && words[run.upperBound - 1].endFrame - words[run.lowerBound].startFrame < minimumTurnFrames
-            }) else { return speakers }
-            let previous = short > 0 ? runs[short - 1] : nil
-            let next = short + 1 < runs.count ? runs[short + 1] : nil
-            let target: Range<Int>
-            if let previous, let next {
-                target = next.count > previous.count ? next : previous
-            } else {
-                target = previous ?? next!
-            }
-            for index in runs[short] { speakers[index] = speakers[target.lowerBound] }
+            if !changed { return speakers }
         }
     }
 
-    private func visibleOffsets(row: MeetingTranscriptRow) -> Range<Int> {
-        guard let range = row.original.text.range(of: row.text, options: .backwards) else {
-            return 0..<row.original.text.count
+    private static func runs(of speakers: [String]) -> [Range<Int>] {
+        guard !speakers.isEmpty else { return [] }
+        var runs: [Range<Int>] = []
+        var start = 0
+        for index in 1...speakers.count where index == speakers.count || speakers[index] != speakers[start] {
+            runs.append(start..<index)
+            start = index
         }
+        return runs
+    }
+
+    private func visibleOffsets(row: MeetingTranscriptRow) -> Range<Int>? {
+        guard let range = row.original.text.range(of: row.text, options: .backwards) else { return nil }
         let lower = row.original.text.distance(from: row.original.text.startIndex, to: range.lowerBound)
         let upper = row.original.text.distance(from: row.original.text.startIndex, to: range.upperBound)
         return lower..<upper

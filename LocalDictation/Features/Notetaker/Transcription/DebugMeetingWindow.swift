@@ -567,7 +567,7 @@ struct DebugMeetingView: View {
                 "Speaker separation",
                 detail: diarizationDetail,
                 systemImage: "person.2.wave.2",
-                available: model.diarizationState == .active
+                available: model.diarizationState == .active || model.diarizationState == .reviewing
             )
         }
     }
@@ -576,7 +576,8 @@ struct DebugMeetingView: View {
         switch model.diarizationState {
         case .unavailable: "Starts with recording"
         case .preparing: "Loading the bundled local model"
-        case .active: "Nemotron 3 · local · 10.6 s model window"
+        case .active: "Local labels update when audio is analyzed"
+        case .reviewing: "Local labels are rechecked as the conversation continues"
         case .fallback: "Model unavailable — using You/Others"
         case .failed: "Stopped safely — using You/Others"
         }

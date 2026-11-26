@@ -108,8 +108,86 @@ extension MeetingTranscriptRow {
             speakerID: speakerID,
             speakerConfidence: speakerConfidence,
             speakerAssignmentSource: speakerAssignmentSource,
-            wordAttributions: wordAttributions
+            wordAttributions: wordAttributions,
+            rawSlice: rawSlice
         )
+    }
+}
+
+/// The recognition window is the stable unit while speaker runs can split,
+/// merge, or arrive later than a row from the other source.
+struct MeetingTranscriptWindowKey: Hashable, Sendable {
+    let source: MeetingAudioSource
+    let startFrame: Int64
+    let endFrame: Int64
+
+    init(_ row: MeetingTranscriptRow) {
+        source = row.source
+        startFrame = row.startFrame
+        endFrame = row.endFrame
+    }
+}
+
+struct LiveMeetingSpeakerTimeline: Sendable {
+    private struct RenderedWindow: Sendable {
+        let input: MeetingTranscriptRow
+        let rows: [MeetingTranscriptRow]
+    }
+
+    private let cleanup: MeetingTextCleanup
+    private let builder = SpeakerAttributedRowBuilder()
+    private var windows: [MeetingTranscriptWindowKey: RenderedWindow] = [:]
+    private var turns: [DiarizedSpeakerTurn] = []
+    private(set) var baseRows: [MeetingTranscriptRow] = []
+    private(set) var rows: [MeetingTranscriptRow] = []
+
+    init(cleanup: MeetingTextCleanup) { self.cleanup = cleanup }
+
+    mutating func updateTranscript(_ input: [MeetingTranscriptRow]) {
+        guard input != baseRows else { return }
+        baseRows = input
+        rebuild()
+    }
+
+    mutating func apply(_ update: SpeakerTimelineUpdate) {
+        let changedRange = update.affectedFrames
+        guard let changedRange else { return }
+        if let replacement = update.replacing {
+            turns = turns.flatMap { $0.subtracting(replacement) }
+        }
+        turns.append(contentsOf: update.turns)
+        rebuild(in: changedRange)
+    }
+
+    mutating func clearAttribution() {
+        guard !turns.isEmpty else { return }
+        turns.removeAll()
+        windows.removeAll()
+        rebuild()
+    }
+
+    private mutating func rebuild(in changed: Range<Int64>? = nil) {
+        var refreshed: [MeetingTranscriptWindowKey: RenderedWindow] = [:]
+        var display: [MeetingTranscriptRow] = []
+        for input in baseRows {
+            let key = MeetingTranscriptWindowKey(input)
+            let invalidated = input.source == .system
+                && (changed?.overlaps(input.startFrame..<input.endFrame) ?? false)
+            let window: RenderedWindow
+            if let cached = windows[key], cached.input == input, !invalidated {
+                window = cached
+            } else {
+                let relevant = input.source == .system
+                    ? turns.filter { $0.endFrame > input.startFrame && $0.startFrame < input.endFrame }
+                    : []
+                window = RenderedWindow(input: input, rows: builder.rows(from: input, turns: relevant).map(cleanup.clean))
+            }
+            refreshed[key] = window
+            display.append(contentsOf: window.rows)
+        }
+        windows = refreshed
+        // A speaker boundary can land after a microphone row already present.
+        rows = display.sorted { $0.startFrame < $1.startFrame }
     }
 }
 

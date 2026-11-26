@@ -17,17 +17,17 @@ enum MeetingPartialIssue: String, Sendable, Hashable, CaseIterable {
     case localStorageFailed
 }
 
-/// Isolated manual test harness. It is never constructed by the live default.
+/// Coordinates a live meeting while keeping capture and recognition independent.
 actor DebugMeetingSession {
     private let permission = AVCaptureMicrophonePermissionService()
     private let engine: any TranscriptionService
-    private let cleanup: MeetingTextCleanup
     private let system = SystemAudioCapture()
     private lazy var microphone = MeetingMicrophoneCapture(permission: permission)
     private let profile: LanguageProfile
     private let title: String
     private let persistence: MeetingPersistenceRecorder
     private let diarizer: any StreamingSpeakerDiarizationService
+    private let reviewer: (any MeetingSpeakerReviewing)?
     private let emit: @Sendable (DebugMeetingUpdate) -> Void
     private var stopRequested = false
     private var pauseRequested = false
@@ -42,9 +42,13 @@ actor DebugMeetingSession {
     private var captureEndedAt: TimeInterval?
     private var diarizationEnabled = false
     private var diarizationFailed = false
-    private var diarizationTurns: [DiarizedSpeakerTurn] = []
-    private var publishedRows: [MeetingTranscriptRow] = []
-    private var publishedBaseRowCount = 0
+    private var timeline: LiveMeetingSpeakerTimeline
+    private var reviewingSpeakers = false
+    private var reviewBuffer = MeetingSpeakerReviewBuffer()
+    private var reviewIdentities = MeetingSpeakerIdentityTracker()
+    private var reviewTask: Task<Void, Never>?
+    private var reviewCount = 0
+    private var reviewSeconds: TimeInterval = 0
     private var echoRowsRemoved = 0
 
     init(
@@ -54,14 +58,16 @@ actor DebugMeetingSession {
         cleanup: MeetingTextCleanup = MeetingTextCleanup(),
         persistence: MeetingPersistenceRecorder = MeetingPersistenceRecorder(),
         diarizer: any StreamingSpeakerDiarizationService = ProductionDiarizationFactory.make(),
+        reviewer: (any MeetingSpeakerReviewing)? = ProductionDiarizationFactory.makeReview(),
         emit: @escaping @Sendable (DebugMeetingUpdate) -> Void
     ) {
         self.profile = profile
         self.title = title
         self.engine = engine
-        self.cleanup = cleanup
+        self.timeline = LiveMeetingSpeakerTimeline(cleanup: cleanup)
         self.persistence = persistence
         self.diarizer = diarizer
+        self.reviewer = reviewer
         self.emit = emit
     }
 
@@ -79,9 +85,13 @@ actor DebugMeetingSession {
         emit(.status("Preparing local speaker separation…"))
         emit(.diarization(.preparing))
         do {
-            try await diarizer.prepare()
+            if let reviewer, (try? await reviewer.prepare()) != nil {
+                reviewingSpeakers = true
+            } else {
+                try await diarizer.prepare()
+            }
             diarizationEnabled = true
-            emit(.diarization(.active))
+            emit(.diarization(reviewingSpeakers ? .reviewing : .active))
         } catch {
             diarizationEnabled = false
             emit(.diarization(.fallback))
@@ -156,6 +166,7 @@ actor DebugMeetingSession {
                     while let chunk = try microphoneProcessor.take() {
                         for window in try microphoneWindows.append(chunk) { try await worker.enqueue(window) }
                     }
+                    scheduleSpeakerReview(final: true)
                     if let window = systemWindows.finish() { try await worker.enqueue(window) }
                     if let window = microphoneWindows.finish() { try await worker.enqueue(window) }
                     systemWindows = MeetingWindowBuilder(source: .system)
@@ -242,12 +253,13 @@ actor DebugMeetingSession {
         while true {
             do {
                 if try await worker.drainOne() {
-                    let rows = attributedRows(from: await worker.assembler.rows)
-                    // The live file keeps every row for crash recovery; the
-                    // echo filter shapes what is read, and the final replace.
-                    emit(.rows(withoutEcho(rows)))
+                    let baseRows = await worker.assembler.rows
+                    timeline.updateTranscript(baseRows)
+                    publishTranscript()
+                    // Persist stable recognition windows so late splits never
+                    // duplicate or discard text if the process is interrupted.
                     do {
-                        try await persistence.persist(rows: rows)
+                        try await persistence.persist(rows: baseRows)
                     } catch {
                         storageFailed = true
                         partial = true
@@ -283,13 +295,8 @@ actor DebugMeetingSession {
             }
         }
         let baseRows = await worker.assembler.rows
-        // Earlier live rows may have arrived before the model's right context
-        // or before a row of the other source that sorts ahead of them.
-        // Rebuild once from the complete set; recognized text and source
-        // evidence remain intact.
-        publishedRows = []
-        publishedBaseRowCount = 0
-        let finalRows = withoutEcho(attributedRows(from: baseRows))
+        timeline.updateTranscript(baseRows)
+        let finalRows = withoutEcho(timeline.rows)
         emit(.rows(finalRows))
         await emitMetrics(worker)
         do {
@@ -316,42 +323,77 @@ actor DebugMeetingSession {
 
     private func ingestDiarization(_ chunk: MeetingAudioChunk) async {
         guard diarizationEnabled, !diarizationFailed, !chunk.samples.isEmpty else { return }
+        if reviewingSpeakers {
+            reviewBuffer.append(chunk)
+            scheduleSpeakerReview()
+            return
+        }
         do {
-            diarizationTurns.append(contentsOf: try await diarizer.ingest(chunk))
+            applyDiarization(SpeakerTimelineUpdate(turns: try await diarizer.ingest(chunk)))
         } catch {
             diarizationFailed = true
             diarizationEnabled = false
+            timeline.clearAttribution()
+            publishTranscript()
             emit(.diarization(.failed))
         }
     }
 
     private func finishDiarization() async {
+        if reviewingSpeakers {
+            await reviewTask?.value
+            scheduleSpeakerReview(final: true)
+            await reviewTask?.value
+            reviewBuffer = MeetingSpeakerReviewBuffer()
+            reviewIdentities = MeetingSpeakerIdentityTracker()
+            return
+        }
         guard diarizationEnabled, !diarizationFailed else { return }
         do {
-            diarizationTurns.append(contentsOf: try await diarizer.finish())
+            applyDiarization(SpeakerTimelineUpdate(turns: try await diarizer.finish()))
         } catch {
             diarizationFailed = true
             diarizationEnabled = false
+            timeline.clearAttribution()
+            publishTranscript()
             emit(.diarization(.failed))
         }
     }
 
-    private func attributedRows(from baseRows: [MeetingTranscriptRow]) -> [MeetingTranscriptRow] {
-        if baseRows.count < publishedBaseRowCount {
-            publishedRows = []
-            publishedBaseRowCount = 0
-        }
-        guard baseRows.count > publishedBaseRowCount else { return publishedRows }
-        let builder = SpeakerAttributedRowBuilder()
-        for row in baseRows.dropFirst(publishedBaseRowCount) {
-            if diarizationEnabled, row.source == .system {
-                publishedRows.append(contentsOf: builder.rows(from: row, turns: diarizationTurns).map(cleanup.clean))
-            } else {
-                publishedRows.append(cleanup.clean(row))
+    private func scheduleSpeakerReview(final: Bool = false) {
+        guard reviewingSpeakers, !diarizationFailed, reviewTask == nil, let reviewer,
+              let window = reviewBuffer.takeWindow(final: final) else { return }
+        reviewTask = Task(priority: .utility) {
+            let start = ProcessInfo.processInfo.systemUptime
+            do {
+                let result = try await reviewer.review(window)
+                if let update = reviewIdentities.update(result, window: window) {
+                    applyDiarization(update)
+                }
+                reviewCount += 1
+                reviewSeconds += ProcessInfo.processInfo.systemUptime - start
+            } catch {
+                diarizationFailed = true
+                diarizationEnabled = false
+                reviewBuffer = MeetingSpeakerReviewBuffer()
+                reviewIdentities = MeetingSpeakerIdentityTracker()
+                Log.audio.error("Local speaker review stopped; later passages use source labels.")
+                emit(.diarization(.failed))
             }
+            reviewTask = nil
+            if paused, !stopRequested { scheduleSpeakerReview(final: true) }
         }
-        publishedBaseRowCount = baseRows.count
-        return publishedRows
+    }
+
+    private func applyDiarization(_ update: SpeakerTimelineUpdate) {
+        guard update.affectedFrames != nil else { return }
+        let previous = timeline.rows
+        timeline.apply(update)
+        if timeline.rows != previous { publishTranscript() }
+    }
+
+    private func publishTranscript() {
+        emit(.rows(withoutEcho(timeline.rows)))
     }
 
     private func emitMetrics(_ worker: LongFormTranscriber) async {
@@ -363,13 +405,15 @@ actor DebugMeetingSession {
         let realTimeFactor = metrics.realTimeFactor.map { String(format: "%.2f", $0) } ?? "n/a"
         let diarizationRTF = diarizationMetrics.realTimeFactor.map { String(format: "%.3f", $0) } ?? "n/a"
         let text = String(
-            format: "ASR RTF: %@; inference / meeting time: %.2f; diarization RTF: %@; diarization load: %.2f s; speaker turns: %d; diarization discontinuities: %d; peak queue: %d; max queue delay: %.1f s; peak process memory: %.0f MB; silent windows: %d; lost intervals: %d; echo rows removed: %d",
+            format: "ASR RTF: %@; inference / meeting time: %.2f; diarization RTF: %@; diarization load: %.2f s; speaker turns: %d; diarization discontinuities: %d; speaker review windows: %d (%.2f s); peak queue: %d; max queue delay: %.1f s; peak process memory: %.0f MB; silent windows: %d; lost intervals: %d; echo rows removed: %d",
             realTimeFactor,
             metrics.inferenceSeconds / elapsed,
             diarizationRTF,
             diarizationMetrics.modelLoadSeconds,
             diarizationMetrics.emittedTurns,
             diarizationMetrics.discontinuities,
+            reviewCount,
+            reviewSeconds,
             metrics.peakQueuedWindows,
             metrics.maximumQueueDelay,
             resident,

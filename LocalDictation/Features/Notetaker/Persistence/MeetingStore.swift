@@ -431,7 +431,7 @@ actor FileMeetingStore: MeetingStoring {
             return try lines.enumerated().map { offset, line in
                 do { return try decoder.decode(MeetingTranscriptRecord.self, from: Data(line)) }
                 catch { throw MeetingStoreError.corruptTranscript(meetingID, line: offset + 1) }
-            }
+            }.sorted { $0.startFrame < $1.startFrame }
         } catch let error as MeetingStoreError {
             throw error
         } catch {

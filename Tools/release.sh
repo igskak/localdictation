@@ -138,10 +138,10 @@ fi
 
 step "Archiving"
 
-# The public Notetaker demo uses only this pinned, hash-verified local model.
-# Keep weights outside git and include them before signing the exported app.
-step "Preparing the bundled speaker model"
+# Verify both local speaker models before signing the exported app.
+step "Preparing the bundled speaker models"
 Tools/prepare_nemotron3_model.sh "$BUILD/Nemotron3" >/dev/null
+Tools/prepare_community_speaker_review.sh "$BUILD/CommunitySpeakerReview" >/dev/null
 
 rm -rf "$ARCHIVE" "$EXPORT" "$UPDATE_FEED" "$BUILD/Sparkle-tools" "$BUILD/dmg" "$BUILD/Witness.zip" "$BUILD/Witness-rw.dmg" "$DMG"
 mkdir -p "$BUILD"
@@ -206,6 +206,7 @@ xcodebuild -exportArchive \
 [ -d "$APP" ] || die "the export produced no app at $APP"
 
 ditto "$BUILD/Nemotron3" "$APP/Contents/Resources/Nemotron3"
+ditto "$BUILD/CommunitySpeakerReview" "$APP/Contents/Resources/CommunitySpeakerReview"
 # Embedded frameworks retain Xcode's Developer ID signatures. Only the outer
 # bundle changed; sign it again with the same runtime and audio entitlement.
 codesign --force --sign "$IDENTITY" --options runtime --timestamp \

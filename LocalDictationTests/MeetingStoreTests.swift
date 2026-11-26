@@ -309,6 +309,25 @@ final class MeetingStoreTests: XCTestCase {
         XCTAssertTrue(stored.isEmpty)
     }
 
+    func testRecoveryKeepsBothSourcesWhenAnEarlierWindowArrivesLate() async throws {
+        let store = FileMeetingStore(rootURL: root)
+        let recorder = MeetingPersistenceRecorder(store: store)
+        let id = try await recorder.begin(title: "Recovery", profile: .english)
+        let recognized = makeRow(text: "First")
+        let first = MeetingTranscriptRow(
+            source: .system, startFrame: 0, endFrame: 8_000, text: recognized.text, original: recognized.original
+        )
+        let second = MeetingTranscriptRow(
+            source: .microphone, startFrame: 8_000, endFrame: 16_000, text: "Second", original: recognized.original
+        )
+        try await recorder.persist(rows: [second])
+        try await recorder.persist(rows: [first, second])
+
+        let stored = try await store.loadTranscript(meetingID: id)
+        XCTAssertEqual(stored.map(\.text), ["First", "Second"])
+        XCTAssertEqual(stored.map(\.speakerID), ["others", "you"])
+    }
+
     func testRecorderPersistsContentFreePartialIssueCodes() async throws {
         let store = FileMeetingStore(rootURL: root)
         let recorder = MeetingPersistenceRecorder(store: store)

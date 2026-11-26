@@ -9,6 +9,7 @@ enum DiarizationDisplayState: Sendable, Equatable {
     case unavailable
     case preparing
     case active
+    case reviewing
     case fallback
     case failed
 }
@@ -188,6 +189,13 @@ enum ProductionDiarizationFactory {
         #endif
     }
 
+    static func makeReview() -> (any MeetingSpeakerReviewing)? {
+        #if NOTETAKER_DIARIZATION
+        if #available(macOS 15, *) { return BundledCommunitySpeakerReview() }
+        #endif
+        return nil
+    }
+
     static func warmUpIfAvailable() async {
         #if NOTETAKER_DIARIZATION
         try? await shared.prepare()
@@ -359,6 +367,81 @@ actor BundledNemotronSpeakerDiarizer: StreamingSpeakerDiarizationService {
             emittedProbabilityFrames += result.frameCount
         }
         return turns
+    }
+}
+/// The review model is loaded directly from verified, compiled app resources.
+/// FluidAudio's model discovery and its download fallback are never invoked.
+actor BundledCommunitySpeakerReview: MeetingSpeakerReviewing {
+    private let directory: URL?
+    private var models: WitnessOfflineDiarizerModels?
+
+    init(directory: URL? = Bundle.main.resourceURL?.appendingPathComponent("CommunitySpeakerReview")) {
+        self.directory = directory
+    }
+
+    func prepare() async throws {
+        guard #available(macOS 15, *) else { throw ProductionDiarizationError.unavailableInBuild }
+        guard models == nil else { return }
+        guard let directory else { throw ProductionDiarizationError.bundledModelMissing }
+        let start = ProcessInfo.processInfo.systemUptime
+        let config = MLModelConfiguration()
+        config.computeUnits = .all
+        let cpu = MLModelConfiguration()
+        cpu.computeUnits = .cpuOnly
+
+        struct Parameters: Decodable {
+            struct Tensor: Decodable { let data_base64: String }
+            let tensors: [String: Tensor]
+        }
+        let parameterURL = directory.appendingPathComponent("plda-parameters.json")
+        let parameters = try JSONDecoder().decode(Parameters.self, from: Data(contentsOf: parameterURL))
+        guard let encoded = parameters.tensors["psi"]?.data_base64,
+              let data = Data(base64Encoded: encoded), data.count == 128 * MemoryLayout<Float>.size else {
+            throw ProductionDiarizationError.bundledModelMissing
+        }
+        let psi = data.withUnsafeBytes { bytes in
+            (0..<128).map {
+                Double(Float(bitPattern: UInt32(littleEndian: bytes.loadUnaligned(fromByteOffset: $0 * 4, as: UInt32.self))))
+            }
+        }
+        let segmentation = try await MLModel.load(contentsOf: directory.appendingPathComponent("Segmentation.mlmodelc"), configuration: config)
+        let fbank = try await MLModel.load(contentsOf: directory.appendingPathComponent("FBank.mlmodelc"), configuration: cpu)
+        let embedding = try await MLModel.load(contentsOf: directory.appendingPathComponent("Embedding.mlmodelc"), configuration: config)
+        let plda = try await MLModel.load(contentsOf: directory.appendingPathComponent("PldaRho.mlmodelc"), configuration: config)
+        models = WitnessOfflineDiarizerModels(
+            segmentationModel: segmentation, fbankModel: fbank, embeddingModel: embedding,
+            pldaRhoModel: plda, pldaPsi: psi,
+            compilationDuration: ProcessInfo.processInfo.systemUptime - start
+        )
+    }
+
+    func review(_ audio: MeetingRecognitionAudio) async throws -> MeetingSpeakerReview {
+        guard let models else { throw ProductionDiarizationError.notPrepared }
+        return try await Self.run(models: models, audio: audio)
+    }
+
+    private static func run(models: WitnessOfflineDiarizerModels, audio: MeetingRecognitionAudio) async throws -> MeetingSpeakerReview {
+        var config = WitnessOfflineDiarizerConfig()
+        config.postProcessing.exclusiveSegments = false
+        let manager = WitnessOfflineDiarizer(config: config)
+        manager.initialize(models: models)
+        let result: WitnessOfflineDiarizerResult
+        do {
+            result = try await manager.process(audio: audio.samples)
+        } catch WitnessOfflineDiarizationError.noSpeechDetected {
+            return MeetingSpeakerReview(turns: [], embeddings: [:])
+        }
+        let scale = AudioTargetFormat.sampleRate
+        let range = audio.startFrame..<audio.endFrame
+        let turns = result.segments.compactMap { segment in
+            DiarizedSpeakerTurn(
+                speakerID: segment.speakerId,
+                startFrame: audio.startFrame + Int64((Double(segment.startTimeSeconds) * scale).rounded()),
+                endFrame: audio.startFrame + Int64((Double(segment.endTimeSeconds) * scale).rounded()),
+                confidence: Double(segment.qualityScore)
+            ).clipped(to: range)
+        }
+        return MeetingSpeakerReview(turns: turns, embeddings: result.speakerDatabase ?? [:])
     }
 }
 #endif

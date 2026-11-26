@@ -5,7 +5,7 @@ import Foundation
 actor MeetingPersistenceRecorder {
     private let store: any MeetingStoring
     private var manifest: MeetingManifest?
-    private var persistedRowCount = 0
+    private var recoveryWindows: Set<MeetingTranscriptWindowKey> = []
 
     init(store: any MeetingStoring = FileMeetingStore()) {
         self.store = store
@@ -29,10 +29,9 @@ actor MeetingPersistenceRecorder {
 
     func persist(rows: [MeetingTranscriptRow]) async throws {
         guard let manifest else { return }
-        guard rows.count > persistedRowCount else { return }
-        for row in rows.dropFirst(persistedRowCount) {
+        for row in rows where !recoveryWindows.contains(MeetingTranscriptWindowKey(row)) {
             try await store.appendTranscript(MeetingTranscriptRecord(row: row), meetingID: manifest.id)
-            persistedRowCount += 1
+            recoveryWindows.insert(MeetingTranscriptWindowKey(row))
         }
     }
 
@@ -45,7 +44,7 @@ actor MeetingPersistenceRecorder {
             rows.map(MeetingTranscriptRecord.init(row:)),
             meetingID: manifest.id
         )
-        persistedRowCount = rows.count
+        recoveryWindows = Set(rows.map(MeetingTranscriptWindowKey.init))
     }
 
     func finish(partial: Bool, issueCodes: [String] = [], at date: Date = Date()) async throws {
@@ -80,7 +79,7 @@ actor MeetingPersistenceRecorder {
     }
 
     func discardEmptyMeeting() async {
-        guard let manifest, persistedRowCount == 0 else { return }
+        guard let manifest, recoveryWindows.isEmpty else { return }
         try? await store.deleteMeeting(id: manifest.id)
         self.manifest = nil
     }
